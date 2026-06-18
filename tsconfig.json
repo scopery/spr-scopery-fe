@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"],
+
+      "@/shared/ui": ["./shared/ui/index.ts"],
+      "@/shared/ui/*": ["./shared/ui/*"],
+      "@/shared/components/*": ["./shared/components/*"],
+      "@/shared/lib/*": ["./shared/lib/*"],
+      "@/shared/tokens": ["./shared/tokens/index.ts"],
+      "@/shared/tokens/*": ["./shared/tokens/*"],
+      "@/shared/utils/*": ["./shared/utils/*"],
+      "@/modules/*": ["./modules/*"],
+
+      "@/tokens/*": ["./shared/tokens/*"],
+      "@/utils/*": ["./utils/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", "vitest.config.ts"]
+}
+

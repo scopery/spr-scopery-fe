@@ -1,0 +1,218 @@
+# Scopery FE — Cursor Rules
+
+## Project Context
+This is a B2B product frontend built with:
+- Next.js 14 (App Router) + TypeScript
+- Tailwind CSS (token-based design system)
+- Storybook + Vitest
+- Three-tier component architecture
+
+---
+
+## Component Architecture
+
+### Three tiers — always place components in the right tier
+
+**Tier 1: `shared/ui/`** — Design system only
+- Atoms and molecules with ZERO business knowledge
+- A component belongs here ONLY if it receives primitive/generic UI props
+- Must NOT import from `services/`, `types/`, `constants/`, `shared/lib/`, `contexts/`, or business enums
+- Examples: `Button`, `Input`, `Modal`, `Badge`, `Typography`, `Stack`, `Select`
+- Import: `from '@/shared/ui'`
+
+**Tier 2: `shared/components/<domain>/`** — Reusable domain-aware components
+- Used by 2+ distinct routes
+- May import services, types, and business enums
+- Domains: `documents`, `editor`, `governance`, `collaboration`, `document-templates`, `ai-document-intelligence`, `ai-agent-control`, `document-hub`, `layout`, `guards`, `common`
+- Import: `from '@/shared/components/documents/CreateDocumentModal'`
+
+**Tier 3: `app/.../_components/`** — Route-private components
+- Used by exactly ONE route segment, not reused elsewhere
+- If used by 2+ pages within same domain → move to `shared/components/<domain>/`
+- Import: relative `from './_components/MyModal'`
+
+### Do NOT:
+- Put a component in `shared/ui/` if it imports from `services/`, `types/`, or any business enum
+- Put a component in `_components/` if it is used by more than one route segment
+- Create a new component without checking if one already exists in `shared/ui/` or `shared/components/`
+
+---
+
+## File Structure
+
+### Design system component (shared/ui):
+```
+shared/ui/atoms/ComponentName/
+├── ComponentName.tsx          # Implementation
+├── ComponentName.types.ts     # Types
+├── ComponentName.test.tsx     # Tests
+├── ComponentName.stories.tsx  # Storybook
+└── index.ts                   # Exports
+```
+
+### Domain component (shared/components):
+```
+shared/components/<domain>/ComponentName.tsx
+```
+No mandatory subfolder structure — keep flat unless the domain is large enough to warrant grouping.
+
+### Route-private component:
+```
+app/<route>/_components/ComponentName.tsx
+```
+
+---
+
+## Import Conventions
+
+```typescript
+// Design system — always use barrel
+import { Button, Stack, Typography, ContentLoader, Badge, Modal } from '@/shared/ui'
+
+// Domain-aware shared components — always use full path
+import { DocumentEditor } from '@/shared/components/editor/DocumentEditor'
+import { GovernanceStatusBanner } from '@/shared/components/governance/GovernanceStatusBanner'
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog'
+import { AppShell } from '@/shared/components/layout/AppShell'
+
+// Route-private components — relative import
+import { CreateProjectModal } from './_components/CreateProjectModal'
+
+// API layer — always go through apiClient, never raw fetch
+import { apiClient } from '@/shared/lib/apiClient'
+
+// Generic utilities
+import { cn } from '@/shared/utils/cn'
+
+// Endpoints — always declared in constants/endpoints.ts (legacy transitional folder)
+import { FOO_ENDPOINTS } from '@/constants/endpoints'
+```
+
+## Import Aliases (tsconfig)
+- `@/shared/ui` → Design system barrel
+- `@/shared/ui/*` → Design system individual files
+- `@/shared/components/*` → Layout, guards, common, legacy domain components
+- `@/shared/lib/*` → apiClient, dataMode, errorHandling
+- `@/shared/tokens/*` → Design tokens
+- `@/shared/utils/*` → Generic utilities (cn, polymorphic)
+- `@/modules/*` → Business modules (preferred for new domain work)
+- `@/hooks/*`, `@/services/*`, `@/types/*`, `@/constants/*` → Legacy transitional folders
+- `@/utils/*` → Legacy utils barrel (re-exports generic utils; domain utils remain here)
+
+## Module-based structure (long-term standard)
+
+New business features should go in `modules/{module}/`:
+
+```
+modules/{module}/
+  ui/       Container + View components
+  hooks/    Data orchestration
+  api/      Services, endpoints, API mappers
+  model/    Types, view models, mock data
+  index.ts
+```
+
+Pattern: **Container → Hook → Service → Mapper → Types/ViewModel**
+
+- Views must not call services or apiClient directly.
+- Hooks must not import from UI views.
+- Existing global `hooks/`, `services/`, `types/`, `constants/` are transitional — migrate module-by-module.
+- Do not add new domain-specific components to `shared/components/` unless intentionally cross-app.
+
+---
+
+## Code Patterns
+
+### shared/ui components MUST:
+1. Use design tokens (never hardcoded values)
+2. Support polymorphic `as` prop
+3. Follow variant-driven API (variant, size, tone, state)
+4. Include proper ARIA attributes
+5. Use forwardRef for ref forwarding
+6. Export types alongside component
+
+### Styling Rules:
+- Use `cn()` utility for className merging
+- Reference tokens via Tailwind classes: `bg-primary`, `text-neutral-900`
+- Never use arbitrary values: ❌ `bg-[#3b82f6]` ✅ `bg-primary`
+- Never hardcode spacing: ❌ `p-4` ✅ `p-md`
+
+### TypeScript Rules:
+- Strict mode enabled
+- Use PolymorphicComponentPropWithRef for polymorphic components
+- Export all public types
+- No `any` types — define a proper interface in `types/`
+
+### Testing Rules (shared/ui only):
+- Test all variants and sizes
+- Test accessibility (ARIA attributes)
+- Test polymorphic behavior
+- Test disabled/loading states
+
+### Accessibility Rules:
+- Proper semantic HTML
+- ARIA attributes where needed
+- Keyboard navigation support
+- Screen reader friendly
+
+---
+
+## Data Layer Conventions
+
+### Always follow: page → hook → service → apiClient
+
+```typescript
+// hooks/useFoos.ts
+'use client'
+import { useCallback, useEffect, useState } from 'react'
+import * as fooService from '@/services/foo.service'
+
+export function useFoos(orgId: string | null) {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    if (!orgId) return
+    setLoading(true)
+    try {
+      const res = await fooService.listFoos(orgId)
+      setItems(res.items)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.detail : 'Failed to load')
+    } finally {
+      setLoading(false)
+    }
+  }, [orgId])
+
+  useEffect(() => { load() }, [load])
+  return { items, loading, error, refetch: load }
+}
+```
+
+- Never call `fetch()` directly — always use `apiClient`
+- Never fetch inside a component — always go through a hook
+- Wrap fetch in `useCallback` to prevent effect loops
+- All API URLs declared in `constants/endpoints.ts` — never inline
+
+---
+
+## Design Tokens Available
+- Colors: primary, secondary, neutral, success, warning, error, info
+- Spacing: xs, sm, md, lg, xl, 2xl
+- Typography: xs, sm, base, lg, xl, 2xl
+- Radius: xs, sm, md, lg, xl
+- Shadows: sm, md, lg, xl
+
+---
+
+## shared/ui Component Checklist (new atoms/molecules only)
+- [ ] Polymorphic support (as prop)
+- [ ] Variant/size/tone props
+- [ ] Token-based styling
+- [ ] ARIA attributes
+- [ ] forwardRef
+- [ ] TypeScript types
+- [ ] Unit tests
+- [ ] Storybook stories
+- [ ] Exported from shared/ui/index.ts

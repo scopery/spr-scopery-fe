@@ -1,0 +1,214 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Color Tokens — primary gradient (navy → cyan), solid #0a1121 for text/border */
+    --color-primary: #0a1121;
+    --color-primary-hover: #0f172a;
+    --color-primary-active: #020617;
+    --color-primary-gradient: linear-gradient(to right, #001F6D);
+    --color-primary-gradient-hover: linear-gradient(to right, #0d0d0d);
+    
+    --color-secondary: #83CAE4;
+    --color-secondary-hover: var(--color-neutral-700);
+    --color-secondary-active: var(--color-neutral-950);
+    
+    --color-neutral-50: #fafafa;
+    --color-neutral-100: #f5f5f5;
+    --color-neutral-200: #e5e5e5;
+    --color-neutral-300: #d4d4d4;
+    --color-neutral-400: #a3a3a3;
+    --color-neutral-500: #737373;
+    --color-neutral-600: #525252;
+    --color-neutral-700: #404040;
+    --color-neutral-800: #262626;
+    --color-neutral-900: #171717;
+    --color-neutral-950: #0a0a0a;
+    
+    --color-success: #03A67D;
+    --color-warning: #E84200;
+    --color-error: #97001C;
+    --color-info: #0787E2;
+    --color-progress: #001F6D;
+    
+    /* Spacing Tokens */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+    
+    /* Border Radius Tokens */
+    --radius-xs: 0.125rem;
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+    
+    /* Typography Tokens */
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    
+    --line-height-xs: 1rem;
+    --line-height-sm: 1.25rem;
+    --line-height-base: 1.5rem;
+    --line-height-lg: 1.75rem;
+    --line-height-xl: 1.75rem;
+    --line-height-2xl: 2rem;
+    
+    /* Font Weight Tokens */
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    
+    /* Shadow Tokens */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  }
+  
+  [data-theme='dark'] {
+    --color-primary: #0a1121;
+    --color-primary-hover: #0f172a;
+    --color-primary-active: #020617;
+    --color-primary-gradient: linear-gradient(to right, #000000, #001F6D, #0787E2);
+    --color-primary-gradient-hover: linear-gradient(to right, #0d0d0d, #002a8a, #1a9bf0);
+    
+    --color-secondary: var(--color-neutral-800);
+    --color-secondary-hover: var(--color-neutral-700);
+    --color-secondary-active: var(--color-neutral-950);
+    
+    --color-neutral-50: #0a0a0a;
+    --color-neutral-100: #171717;
+    --color-neutral-200: #262626;
+    --color-neutral-300: #404040;
+    --color-neutral-400: #525252;
+    --color-neutral-500: #737373;
+    --color-neutral-600: #a3a3a3;
+    --color-neutral-700: #d4d4d4;
+    --color-neutral-800: #e5e5e5;
+    --color-neutral-900: #f5f5f5;
+    --color-neutral-950: #fafafa;
+  }
+}
+
+/* Questrial: weight < 500 | Cal Sans: weight >= 500 (medium, semibold, bold) */
+body {
+  color: var(--color-neutral-900);
+  font-family: 'Questrial', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Khi dùng font-medium / font-semibold / font-bold → dùng Cal Sans */
+.font-medium,
+.font-semibold,
+.font-bold {
+  font-family: 'Cal Sans', 'Questrial', sans-serif;
+}
+
+/* Cal Sans đậm sẵn → luôn font-weight normal (override medium/semibold/bold) */
+.font-calsans {
+  font-weight: normal !important;
+}
+
+/* Project card hover: ảnh nền neo góc dưới phải, không bị đè bởi Tailwind */
+.project-card-hover {
+  position: relative;
+  overflow: hidden;
+}
+.project-card-hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-color: #001F6D;
+  background-image: url('/illustrations/card_bg.svg');
+  /* Neo góc dưới phải: phần ảnh có các ô vuông decor (252–456, 136–272) sẽ nằm đúng góc card */
+  background-position: 100% 100%;
+  /* Zoom vào vùng có ô vuông để decor hiện rõ thay vì thu nhỏ toàn ảnh */
+  background-size: 180%;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.project-card-hover:hover::after {
+  opacity: 1;
+}
+.project-card-hover > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ContentLoader ease-out: 2×4 grid, 5 frames, black BG, ease-out timing */
+@keyframes content-loader-easeout {
+  /* Frame 1: trắng, neutral-900 | neutral-700, trắng | trắng, neutral-500 | neutral-200, trắng */
+  0%, 19.999% {
+    --loader-c0: #ffffff;
+    --loader-c1: var(--color-neutral-900);
+    --loader-c2: var(--color-neutral-700);
+    --loader-c3: #ffffff;
+    --loader-c4: #ffffff;
+    --loader-c5: var(--color-neutral-500);
+    --loader-c6: var(--color-neutral-200);
+    --loader-c7: #ffffff;
+  }
+  /* Frame 2: Trắng, trắng | neutral-700, neutral-900 | neutral-200, neutral-500 | trắng, trắng */
+  20%, 39.999% {
+    --loader-c0: #ffffff;
+    --loader-c1: #ffffff;
+    --loader-c2: var(--color-neutral-700);
+    --loader-c3: var(--color-neutral-900);
+    --loader-c4: var(--color-neutral-200);
+    --loader-c5: var(--color-neutral-500);
+    --loader-c6: #ffffff;
+    --loader-c7: #ffffff;
+  }
+  /* Frame 3: same as frame 1 */
+  40%, 59.999% {
+    --loader-c0: #ffffff;
+    --loader-c1: var(--color-neutral-900);
+    --loader-c2: var(--color-neutral-700);
+    --loader-c3: #ffffff;
+    --loader-c4: #ffffff;
+    --loader-c5: var(--color-neutral-500);
+    --loader-c6: var(--color-neutral-200);
+    --loader-c7: #ffffff;
+  }
+  /* Frame 4: neutral-900, trắng | neutral-700, trắng | neutral-500, trắng | neutral-200, trắng */
+  60%, 79.999% {
+    --loader-c0: var(--color-neutral-900);
+    --loader-c1: #ffffff;
+    --loader-c2: var(--color-neutral-700);
+    --loader-c3: #ffffff;
+    --loader-c4: var(--color-neutral-500);
+    --loader-c5: #ffffff;
+    --loader-c6: var(--color-neutral-200);
+    --loader-c7: #ffffff;
+  }
+  /* Frame 5: same as frame 1 */
+  80%, 100% {
+    --loader-c0: #ffffff;
+    --loader-c1: var(--color-neutral-900);
+    --loader-c2: var(--color-neutral-700);
+    --loader-c3: #ffffff;
+    --loader-c4: #ffffff;
+    --loader-c5: var(--color-neutral-500);
+    --loader-c6: var(--color-neutral-200);
+    --loader-c7: #ffffff;
+  }
+}
+
+.content-loader-easeout {
+  animation: content-loader-easeout 2.8s ease-out infinite;
+}
+
