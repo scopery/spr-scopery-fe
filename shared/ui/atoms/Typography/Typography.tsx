@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import type { TypographyProps, TypographyVariant } from './Typography.types'
 
 const typographySizes = {
@@ -40,10 +40,7 @@ const typographyTones = {
 }
 
 // Variant configurations: [defaultElement, defaultSize, defaultWeight, additionalClasses]
-const variantConfig: Record<
-  TypographyVariant,
-  [string, string, string, string]
-> = {
+const variantConfig: Record<TypographyVariant, [string, string, string, string]> = {
   h1: ['h1', '4xl', 'bold', ''],
   h2: ['h2', '3xl', 'bold', ''],
   h3: ['h3', '2xl', 'bold', ''],
@@ -89,8 +86,7 @@ export const Typography = React.forwardRef(
     }: TypographyProps<C>,
     ref?: React.Ref<HTMLElement>
   ) => {
-    const [defaultElement, defaultSize, defaultWeight, additionalClasses] =
-      variantConfig[variant]
+    const [defaultElement, defaultSize, defaultWeight, additionalClasses] = variantConfig[variant]
 
     // Determine the HTML element
     const Component = (as || defaultElement) as React.ElementType
@@ -130,4 +126,3 @@ export const Typography = React.forwardRef(
 )
 
 Typography.displayName = 'Typography'
-

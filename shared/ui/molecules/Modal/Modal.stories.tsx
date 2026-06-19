@@ -65,9 +65,7 @@ export const Default: Story = {
   args: {
     title: 'Modal Title',
     children: (
-      <Typography>
-        This is the modal content. It can contain any React elements.
-      </Typography>
+      <Typography>This is the modal content. It can contain any React elements.</Typography>
     ),
   },
 }
@@ -80,11 +78,7 @@ export const WithActions: Story = {
       { label: 'Cancel', onClick: () => {}, variant: 'ghost' },
       { label: 'Confirm', onClick: () => {}, variant: 'primary' },
     ],
-    children: (
-      <Typography>
-        Are you sure you want to proceed with this action?
-      </Typography>
-    ),
+    children: <Typography>Are you sure you want to proceed with this action?</Typography>,
   },
 }
 
@@ -109,16 +103,13 @@ export const LongContent: Story = {
   render: (args) => <ModalWrapper {...args} />,
   args: {
     title: 'Scrollable Content',
-    actions: [
-      { label: 'Close', onClick: () => {}, variant: 'primary' },
-    ],
+    actions: [{ label: 'Close', onClick: () => {}, variant: 'primary' }],
     children: (
       <div>
         {Array.from({ length: 20 }, (_, i) => (
           <Typography key={i} className="mb-4">
-            Paragraph {i + 1}: This is a long paragraph to demonstrate scrolling
-            behavior. The modal body should scroll while the header and footer
-            remain fixed.
+            Paragraph {i + 1}: This is a long paragraph to demonstrate scrolling behavior. The modal
+            body should scroll while the header and footer remain fixed.
           </Typography>
         ))}
       </div>
@@ -131,11 +122,7 @@ export const Small: Story = {
   args: {
     title: 'Small Modal',
     size: 'sm',
-    children: (
-      <Typography>
-        This is a small modal with limited width.
-      </Typography>
-    ),
+    children: <Typography>This is a small modal with limited width.</Typography>,
   },
 }
 
@@ -144,11 +131,7 @@ export const Large: Story = {
   args: {
     title: 'Large Modal',
     size: 'lg',
-    children: (
-      <Typography>
-        This is a large modal with more width for content.
-      </Typography>
-    ),
+    children: <Typography>This is a large modal with more width for content.</Typography>,
   },
 }
 
@@ -157,11 +140,7 @@ export const WithoutCloseButton: Story = {
   args: {
     title: 'Modal Without Close Button',
     showCloseButton: false,
-    children: (
-      <Typography>
-        This modal does not have a close button in the header.
-      </Typography>
-    ),
+    children: <Typography>This modal does not have a close button in the header.</Typography>,
   },
 }
 
@@ -174,11 +153,6 @@ export const MultipleActions: Story = {
       { label: 'Cancel', onClick: () => {}, variant: 'ghost' },
       { label: 'Save', onClick: () => {}, variant: 'primary' },
     ],
-    children: (
-      <Typography>
-        This modal has multiple action buttons in the footer.
-      </Typography>
-    ),
+    children: <Typography>This modal has multiple action buttons in the footer.</Typography>,
   },
 }
-

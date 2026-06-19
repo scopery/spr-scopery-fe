@@ -1,0 +1,5 @@
+export { LoginView } from './ui/LoginView'
+export { RegisterView } from './ui/RegisterView'
+export { AuthProvider, useAuth } from './context/AuthContext'
+export { useAuthActions } from './hooks/useAuthActions'
+export type { AuthSession, LoginPayload, RegisterPayload, BootstrapStatus } from './model/auth'

@@ -12,7 +12,10 @@ const meta = {
     title: { control: 'text', description: 'Title of the project overview' },
     description: { control: 'text', description: 'Description text' },
     badgeText: { control: 'text', description: 'Badge text in the top-right' },
-    progress: { control: { type: 'range', min: 0, max: 1, step: 0.01 }, description: 'Progress ratio (0-1)' },
+    progress: {
+      control: { type: 'range', min: 0, max: 1, step: 0.01 },
+      description: 'Progress ratio (0-1)',
+    },
     steps: { control: 'object', description: 'Timeline steps array' },
     currentStepNote: { control: 'text', description: 'Current step note text' },
     metrics: { control: 'object', description: 'Metrics card values' },
@@ -23,11 +26,41 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const defaultSteps = [
-  { id: 'elicitation', label: 'ELICITATION', date: 'Feb 12th', position: 0.05, status: 'completed' as const },
-  { id: 'planning', label: 'IN PLANING', date: 'Feb 15th', position: 0.32, status: 'completed' as const },
-  { id: 'development', label: 'IN DEVELOPMENT', date: 'Feb 15th', position: 0.6, status: 'current' as const },
-  { id: 'testing', label: 'TESTING', date: 'Feb 15th', position: 0.78, status: 'upcoming' as const },
-  { id: 'delivered', label: 'DELIVERED', date: 'Feb 15th', position: 0.95, status: 'upcoming' as const },
+  {
+    id: 'elicitation',
+    label: 'ELICITATION',
+    date: 'Feb 12th',
+    position: 0.05,
+    status: 'completed' as const,
+  },
+  {
+    id: 'planning',
+    label: 'IN PLANING',
+    date: 'Feb 15th',
+    position: 0.32,
+    status: 'completed' as const,
+  },
+  {
+    id: 'development',
+    label: 'IN DEVELOPMENT',
+    date: 'Feb 15th',
+    position: 0.6,
+    status: 'current' as const,
+  },
+  {
+    id: 'testing',
+    label: 'TESTING',
+    date: 'Feb 15th',
+    position: 0.78,
+    status: 'upcoming' as const,
+  },
+  {
+    id: 'delivered',
+    label: 'DELIVERED',
+    date: 'Feb 15th',
+    position: 0.95,
+    status: 'upcoming' as const,
+  },
 ]
 
 export const Default: Story = {
@@ -73,4 +106,3 @@ export const WithoutBadge: Story = {
     badgeText: undefined,
   },
 }
-

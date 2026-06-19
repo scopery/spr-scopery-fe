@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import { Box } from '@/shared/ui/atoms/Box'
 import { Stack } from '@/shared/ui/atoms/Stack'
 import { Typography } from '@/shared/ui/atoms/Typography'
@@ -109,7 +109,7 @@ export const Modal = React.forwardRef(
             background="white"
             shadow="xl"
             className={cn(
-              'flex flex-col max-h-[90vh] w-full',
+              'flex max-h-[90vh] w-full flex-col',
               modalSizes[size],
               'transform transition-all duration-200'
             )}
@@ -131,12 +131,7 @@ export const Modal = React.forwardRef(
                   className="w-full"
                 >
                   {title && (
-                    <Typography
-                      id="modal-title"
-                      variant="h6"
-                      weight="semibold"
-                      className="flex-1"
-                    >
+                    <Typography id="modal-title" variant="h6" weight="semibold" className="flex-1">
                       {title}
                     </Typography>
                   )}
@@ -160,7 +155,7 @@ export const Modal = React.forwardRef(
               display="block"
               paddingX="lg"
               paddingY="md"
-              className="flex-1 overflow-y-auto min-h-0 text-sm"
+              className="min-h-0 flex-1 overflow-y-auto text-sm"
             >
               {children}
             </Box>
@@ -169,12 +164,7 @@ export const Modal = React.forwardRef(
             {actions.length > 0 && (
               <>
                 <Divider />
-                <Box
-                  display="flex"
-                  paddingX="lg"
-                  paddingY="md"
-                  className="flex-shrink-0"
-                >
+                <Box display="flex" paddingX="lg" paddingY="md" className="flex-shrink-0">
                   <Stack
                     direction="horizontal"
                     spacing="sm"
@@ -207,4 +197,3 @@ export const Modal = React.forwardRef(
 )
 
 Modal.displayName = 'Modal'
-

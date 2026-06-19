@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import type { SpacerProps } from './Spacer.types'
 
 const spacerSizes = {
@@ -42,4 +42,3 @@ export const Spacer = React.forwardRef<HTMLDivElement, SpacerProps>(
 )
 
 Spacer.displayName = 'Spacer'
-

@@ -214,7 +214,7 @@ Tài liệu mô tả các chức năng đang có trên web tại thời điểm 
 - **ClarityDetailsModal**: clarity_score (0.00), clarity_label; ambiguity_tags; missing_fields; answer_guidance; suggested_answer_template (code block + Copy); follow_up_questions (priority badge). Editor: nút Re-assess clarity.
 - **question_order**: FE sort questions (section ASC, position ASC, created_at ASC) → flatten → order = index + 1; map question_id → order cho assess-one.
 - **answer_text**: util `toAnswerText(qType, value, answerSchema)` — text/textarea từ value.text; boolean/number String(value); single_select ưu tiên label; multi_select join; date value.date; fallback JSON.stringify. Không log answer_text.
-- **Lỗi**: 409 AI_FEATURE_DISABLED → set featureDisabled, toast "Clarity assessment is disabled.", ẩn/disable assess toàn trang. 403 → toast "You don't have permission." 502 AI_* → toast "AI failed to assess. Please try again." 401 để apiClient redirect login.
+- **Lỗi**: 409 AI*FEATURE_DISABLED → set featureDisabled, toast "Clarity assessment is disabled.", ẩn/disable assess toàn trang. 403 → toast "You don't have permission." 502 AI*\* → toast "AI failed to assess. Please try again." 401 để apiClient redirect login.
 
 ---
 
@@ -341,4 +341,4 @@ Tài liệu mô tả các chức năng đang có trên web tại thời điểm 
 
 ---
 
-*Tài liệu as-is, cập nhật theo codebase tại thời điểm viết. Khi thêm/bớt tính năng nên cập nhật lại doc này.*
+_Tài liệu as-is, cập nhật theo codebase tại thời điểm viết. Khi thêm/bớt tính năng nên cập nhật lại doc này._

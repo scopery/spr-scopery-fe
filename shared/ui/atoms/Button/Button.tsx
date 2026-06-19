@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import type { ButtonProps } from './Button.types'
 
 const buttonVariants = {
@@ -8,7 +8,8 @@ const buttonVariants = {
   outline:
     'border-[1px] border-primary text-primary bg-transparent hover:bg-primary hover:text-white',
   ghost: 'text-primary bg-transparent hover:bg-neutral-100',
-  glass: 'bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 active:bg-white/30',
+  glass:
+    'bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 active:bg-white/30',
   'neutral-flat':
     'border border-neutral-00 text-neutral-900 bg-transparent rounded-none font-normal hover:bg-neutral-900 hover:text-white hover:border-neutral-900',
 }
@@ -126,4 +127,3 @@ export const Button = React.forwardRef(
 )
 
 Button.displayName = 'Button'
-

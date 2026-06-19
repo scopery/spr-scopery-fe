@@ -27,9 +27,11 @@ The AI Orchestration Layer is **complete** and operational. All requirements fro
 ### Tables Created
 
 #### `ai_configs` (PK: purpose)
+
 Stores admin-configurable AI settings per purpose. DB config overrides ENV defaults.
 
 **Columns:**
+
 - `purpose` (text, PK) — one of: improve_answer, qgen_clarifying_questions, clarity_assess_one, impact_analysis
 - `enabled` (boolean, default true)
 - `primary_engine` (ai_engine_enum: legacy_chat | workflow_api | agents_sdk)
@@ -46,19 +48,23 @@ Stores admin-configurable AI settings per purpose. DB config overrides ENV defau
 - `updated_at` (timestamptz)
 
 **Constraints:**
+
 - `chk_workflow_api_requires_workflow_id` — enforces workflow_id when primary_engine = workflow_api
 - `chk_agents_sdk_requires_agent_entry` — enforces agent_entry when primary_engine = agents_sdk
 
 **Seed Data:**
+
 - improve_answer: legacy_chat, model=gpt-3.5-turbo
 - qgen_clarifying_questions: agents_sdk (agent_entry=qgen_v2), fallback=legacy_chat, model=gpt-5.2
 - clarity_assess_one: legacy_chat, model=gpt-4o
 - impact_analysis: legacy_chat, model=gpt-4o
 
 #### `ai_orchestrator_runs` (PK: id uuid)
+
 Audit log for every orchestrator run.
 
 **Columns:**
+
 - `id` (uuid PK, auto-generated)
 - `purpose` (text)
 - `org_id`, `project_id`, `session_id`, `user_id` (nullable UUIDs)
@@ -74,6 +80,7 @@ Audit log for every orchestrator run.
 - `created_at` (timestamptz)
 
 **Indexes:**
+
 - `(purpose, created_at desc)`
 - `(org_id, created_at desc)`
 - `(project_id, created_at desc)`
@@ -84,12 +91,15 @@ Audit log for every orchestrator run.
 ## 2. Core Implementation ✅
 
 ### AiOrchestrator Class
+
 **File:** `src/modules/ai/orchestrator/ai.orchestrator.ts`
 
 **Key Methods:**
 
 #### `run<P extends AiPurpose>(purpose, ctx, input)`
+
 Main orchestration logic:
+
 1. Load config from DB (via `ai_configs.getByPurpose`) or fallback to ENV defaults
 2. Check if purpose is enabled; if not and fallback_engine exists, use fallback
 3. Handle client override (`ctx.forceEngine` for legacy QGen support)
@@ -104,6 +114,7 @@ Main orchestration logic:
 10. Return `{ output, run_id, engine_used, status }`
 
 **Fallback Logic:**
+
 - If primary engine fails and `fallback_engine` is set → try fallback
 - Status becomes `fallback_success` if fallback succeeds
 - Both primary and fallback errors are captured; last error is logged if both fail
@@ -113,6 +124,7 @@ Main orchestration logic:
 ## 3. Engine Adapters ✅
 
 ### A) LegacyChatEngine
+
 **File:** `src/modules/ai/orchestrator/engines/legacy.engine.ts`
 
 - Uses OpenAI Chat Completions API via `createAiClient()`
@@ -121,6 +133,7 @@ Main orchestration logic:
 - Returns `{ rawOutput, model, workflowId: null, agentEntry: null }`
 
 ### B) WorkflowApiEngine
+
 **File:** `src/modules/ai/orchestrator/engines/workflow.engine.ts`
 
 - Calls OpenAI Workflows Runs API: `POST /v1/workflows/:workflow_id/runs`
@@ -133,6 +146,7 @@ Main orchestration logic:
   - No finalOutput → AI_OUTPUT_NOT_JSON
 
 ### C) AgentsSdkEngine
+
 **File:** `src/modules/ai/orchestrator/engines/agents.engine.ts`
 
 - Runs in-process via `@openai/agents` SDK
@@ -151,9 +165,11 @@ Main orchestration logic:
 ### Endpoints
 
 #### GET /configs
+
 Lists all AI configs (from DB or ENV defaults).
 
 **Response:**
+
 ```json
 {
   "items": [
@@ -178,9 +194,11 @@ Lists all AI configs (from DB or ENV defaults).
 ```
 
 #### PATCH /configs/:purpose
+
 Updates config for a specific purpose.
 
 **Validations:**
+
 - `purpose` must be one of: improve_answer, qgen_clarifying_questions, clarity_assess_one, impact_analysis
 - If `primary_engine=workflow_api` → `workflow_id` required (422)
 - If `primary_engine=agents_sdk` → `agent_entry` required and in registry (422)
@@ -188,9 +206,11 @@ Updates config for a specific purpose.
 **Response:** Updated config row (direct object, no `{ ok, data }`)
 
 #### POST /configs/:purpose/test-run
+
 Admin-only test run without writing to domain tables.
 
 **Request:**
+
 ```json
 {
   "input": { "question_id": "...", "current_value": "..." },
@@ -199,6 +219,7 @@ Admin-only test run without writing to domain tables.
 ```
 
 **Response:**
+
 ```json
 {
   "run_id": "uuid",
@@ -210,15 +231,18 @@ Admin-only test run without writing to domain tables.
 Still logs to `ai_orchestrator_runs`.
 
 #### GET /runs
+
 Lists orchestrator audit runs with pagination.
 
 **Query Params:**
+
 - `purpose` (optional filter)
 - `status` (optional filter)
 - `limit` (default 50, max 100)
 - `offset` (default 0)
 
 **Response:**
+
 ```json
 {
   "items": [ ... ],
@@ -227,6 +251,7 @@ Lists orchestrator audit runs with pagination.
 ```
 
 #### GET /runs/:runId
+
 Retrieves a specific run by ID (full row, redacted).
 
 ---
@@ -236,9 +261,11 @@ Retrieves a specific run by ID (full row, redacted).
 All four AI endpoints now use the orchestrator via `runAiOrchestrator()`.
 
 ### 5.1 Improve Answer
+
 **Endpoint:** `POST /api/v2/orgs/:orgId/projects/:projectId/sessions/:sessionId/ai/improve`
 
 **Orchestrator Integration:**
+
 - Purpose: `improve_answer`
 - Input: `{ question_id, current_value, user_instruction?, question: {...} }`
 - Output validated against `ImproveAnswerOutputSchema`
@@ -249,13 +276,16 @@ All four AI endpoints now use the orchestrator via `runAiOrchestrator()`.
   - `run_id`
 
 **Engine Selection:**
+
 - Default: `legacy_chat` (per ai_configs or ENV)
 - Admin can change to workflow_api/agents_sdk
 
 ### 5.2 QGen Generate
+
 **Endpoint:** `POST /api/v2/orgs/:orgId/projects/:projectId/ai/questions/generate`
 
 **Orchestrator Integration:**
+
 - Purpose: `qgen_clarifying_questions`
 - **Engine param semantics:**
   - `engine="legacy"` → `ctx.forceEngine = 'legacy_chat'`
@@ -265,13 +295,16 @@ All four AI endpoints now use the orchestrator via `runAiOrchestrator()`.
 - Output: `{ items: [...], batch_token, payload_sent }`
 
 **Config Defaults (ENV):**
+
 - If `AI_WF_QGEN_V2_ENABLED=true` → primary=agents_sdk, agent_entry=qgen_v2
 - If `AI_WF_QGEN_V2_USE_AGENTS_SDK=false` → primary=workflow_api, workflow_id from env
 
 ### 5.3 Clarity Assess-One
+
 **Endpoint:** `POST /api/v2/orgs/:orgId/projects/:projectId/sessions/:sessionId/ai/clarity/assess-one`
 
 **Orchestrator Integration:**
+
 - Purpose: `clarity_assess_one`
 - Input: `{ input_as_text: buildWorkflowInput(payload) }`
 - Output validated against `ClarityAssessOneOutputSchema`
@@ -282,9 +315,11 @@ All four AI endpoints now use the orchestrator via `runAiOrchestrator()`.
 **Saves result to:** `session_answer_clarity` table (with input_hash dedup)
 
 ### 5.4 Impact Analysis
+
 **Endpoint:** `POST /api/v2/orgs/:orgId/projects/:projectId/ai/impact-analysis`
 
 **Orchestrator Integration:**
+
 - Purpose: `impact_analysis`
 - Input: `{ note_text, baseline_answers, questions, project_id, base, intake_id }`
 - Output: `{ note_summary?, proposals: [...] }`
@@ -299,11 +334,13 @@ All errors mapped to **RFC 9457 Problem Details** with absolute URIs.
 ### Error Codes
 
 **409 Conflict:**
+
 - `AI_FEATURE_DISABLED` — purpose is disabled in ai_configs
 - `AI_WORKFLOW_ID_REQUIRED` — workflow_api needs workflow_id
 - `AI_BATCH_EXPIRED` — Redis proposal expired/committed
 
 **502 Bad Gateway:**
+
 - `AI_OUTPUT_NOT_JSON` — AI returned non-JSON
 - `AI_OUTPUT_SCHEMA_MISMATCH` — JSON doesn't match Zod schema
 - `AI_PROVIDER_ERROR` — OpenAI API error
@@ -311,6 +348,7 @@ All errors mapped to **RFC 9457 Problem Details** with absolute URIs.
 - `AI_BAD_OUTPUT` — Generic post-parse validation fail
 
 **Error Type URIs:**
+
 - `https://api.scopery.local/problems/ai-bad-output` (502)
 - `https://api.scopery.local/problems/ai-provider-error` (502)
 - `https://api.scopery.local/problems/conflict` (409, code=AI_FEATURE_DISABLED, etc.)
@@ -326,15 +364,18 @@ All errors mapped to **RFC 9457 Problem Details** with absolute URIs.
 ### Redaction Mode (ENV: `AI_RUNS_REDACT_MODE`)
 
 **Options:**
+
 - `meta_only` (default) — only lengths, hashes, counts
 - `safe_payload` — allow question_ids, sections; redact long text (>500 chars)
 
 **Never Logged:**
+
 - Raw answers
 - Full notes / QA packs
 - Full user instructions
 
 **What's Logged:**
+
 - question_id, session_id, project_id, org_id (UUIDs)
 - String lengths: `{ _len: 123 }`
 - Array counts: `{ _count: 5 }`
@@ -345,6 +386,7 @@ All errors mapped to **RFC 9457 Problem Details** with absolute URIs.
 ## 8. Config Precedence ✅
 
 **Resolution Order:**
+
 1. **DB row in `ai_configs`** (if exists) → **source of truth**
 2. **ENV defaults** (if no DB row) → fallback
 
@@ -353,12 +395,14 @@ All errors mapped to **RFC 9457 Problem Details** with absolute URIs.
 ### ENV Variables
 
 **Infrastructure (always used):**
+
 - `OPENAI_API_KEY` — required
 - `OPENAI_ORG_ID`, `OPENAI_PROJECT_ID`, `OPENAI_BASE_URL` — optional
 - `AI_REDIS_URL`, `AI_REDIS_PREFIX`, `AI_PROPOSAL_TTL_SECONDS`
 - `AI_MAX_NOTE_BYTES`, `AI_QGEN_FILE_MAX_BYTES`
 
 **Feature Flags (only when no DB row):**
+
 - `AI_WF_ANSWER_CLARITY_ENABLED` (default false) → clarity_assess_one.enabled
 - `AI_WF_QGEN_V2_ENABLED` (default false) → qgen_clarifying_questions.enabled
 - `AI_WF_QGEN_V2_WORKFLOW_ID` → qgen workflow_id
@@ -376,12 +420,14 @@ All errors mapped to **RFC 9457 Problem Details** with absolute URIs.
 **File:** `src/modules/ai/orchestrator/engines/agents.engine.ts`
 
 **Valid `agent_entry` Keys:**
+
 - `qgen_v2` — ✅ Implemented (calls `runQgenV2WithAgentsSdk`)
 - `improve_answer` — Stub (throws AI_FEATURE_DISABLED)
 - `clarity_assess_one` — Stub
 - `impact_analysis` — Stub
 
 **Admin Validation:**
+
 - PATCH with invalid agent_entry → 422 VALIDATION_ERROR
 - Runtime: unknown agent_entry → 409 AI_FEATURE_DISABLED
 
@@ -394,16 +440,19 @@ All errors mapped to **RFC 9457 Problem Details** with absolute URIs.
 **Coverage:**
 
 ### Admin API Tests
+
 - Non-admin user GET /configs → 403
 - Admin GET /configs → 200 with items array
 - PATCH /configs with workflow_api but no workflow_id → 422
 - GET /runs → 200 with pagination
 
 ### Contract Tests
+
 - Improve answer response has: `batch_token`, `proposal`, `run_id`
 - Proposal includes: `question_id`, `proposed_value`, `diff_summary`, `rationale`, `confidence`
 
 **Additional Tests:**
+
 - `tests/ai.test.ts` — end-to-end AI flows
 - `tests/aiClarity.test.ts` — clarity assessment integration
 
@@ -412,17 +461,21 @@ All errors mapped to **RFC 9457 Problem Details** with absolute URIs.
 ## 11. Documentation ✅
 
 ### API Documentation
+
 **File:** `documents/API_DOCUMENTATION.md`
 
 **Sections:**
+
 - Error codes (12. Error codes & Problem Details)
 - AI endpoints listed under existing sections
 - Admin APIs documented in section 5
 
 ### ENV Documentation
+
 **File:** `.env.example`
 
 All AI-related ENV variables documented with comments:
+
 - Lines 17-80: AI / OpenAI configuration
 - Feature flags clearly marked
 - Usage notes (e.g., "DO NOT expose to FE")
@@ -432,6 +485,7 @@ All AI-related ENV variables documented with comments:
 ## 12. Migration Checklist ✅
 
 ### Database
+
 - [x] Migration SQL created: `migrations/phase25_ai_orchestration.sql`
 - [x] Tables: `ai_configs`, `ai_orchestrator_runs`
 - [x] Enums: `ai_engine_enum`, `ai_run_status_enum`
@@ -439,6 +493,7 @@ All AI-related ENV variables documented with comments:
 - [x] Seed data for 4 purposes
 
 ### Code
+
 - [x] Types/Enums: `src/modules/ai/orchestrator/ai.types.ts`
 - [x] AiOrchestrator class: `ai.orchestrator.ts`
 - [x] Config repo: `ai.config.repo.ts`
@@ -454,18 +509,21 @@ All AI-related ENV variables documented with comments:
 - [x] Public helper: `ai.public.service.ts`
 
 ### Integration
+
 - [x] Admin routes mounted in `/api/v2/admin` router
 - [x] All 4 AI endpoints refactored to use orchestrator
 - [x] Backward compatibility maintained
 - [x] Client override (`forceEngine`) for QGen legacy
 
 ### Testing
+
 - [x] Admin API tests
 - [x] Contract tests (response shape)
 - [x] Config validation tests
 - [x] End-to-end AI tests
 
 ### Documentation
+
 - [x] API documentation updated
 - [x] ENV variables documented
 - [x] Migration comments in SQL
@@ -475,7 +533,9 @@ All AI-related ENV variables documented with comments:
 ## 13. Outstanding Items / Future Work
 
 ### 13.1 Agent Implementation (Low Priority)
+
 Currently only `qgen_v2` agent is implemented. Other agents are stubbed:
+
 - `improve_answer` agent
 - `clarity_assess_one` agent
 - `impact_analysis` agent
@@ -483,17 +543,21 @@ Currently only `qgen_v2` agent is implemented. Other agents are stubbed:
 **Action:** Implement when Agents SDK implementations are available.
 
 ### 13.2 Workflow ID Seeding (Optional)
+
 If using Workflow API for any purpose, admin must manually set `workflow_id` via PATCH `/admin/ai/configs/:purpose`.
 
 **Action:** Could seed workflow IDs in migration if known at deploy time.
 
 ### 13.3 Trace-Links Pagination (Nice-to-have)
+
 Currently `GET /trace-links` returns `{ items: [] }`.
 
 **Action:** Add pagination format `{ items: [], page: { limit, offset, total } }` for consistency (mentioned in prompt notes).
 
 ### 13.4 Monitoring Dashboard (Future)
+
 `ai_orchestrator_runs` table provides rich audit data. Could build:
+
 - Admin dashboard: run stats, error rates, latency metrics
 - Purpose-level health indicators
 - Fallback frequency analysis
@@ -503,29 +567,35 @@ Currently `GET /trace-links` returns `{ items: [] }`.
 ## 14. Key Design Decisions
 
 ### 14.1 DB Config as Source of Truth
+
 Once a row exists in `ai_configs`, ENV feature flags are ignored (except infrastructure vars like `OPENAI_API_KEY`).
 
 **Rationale:** Admin control without redeployment.
 
 ### 14.2 Separate `ai_orchestrator_runs` Table
+
 Instead of extending existing `ai_runs`, created dedicated audit table.
 
 **Rationale:**
+
 - Different schema (engine_used, workflow_id, agent_entry)
 - Cleaner separation of concerns
 - Easier to query orchestrator-specific runs
 
 ### 14.3 Client Override (`forceEngine`)
+
 QGen supports legacy engine via `engine="legacy"` request param.
 
 **Rationale:** Backward compatibility during migration period.
 
 ### 14.4 Redaction by Default
+
 All payloads/outputs are redacted before logging.
 
 **Rationale:** Privacy/security — never log raw user answers or sensitive notes.
 
 ### 14.5 Fallback Success Status
+
 Separate status `fallback_success` (vs. `success`) for observability.
 
 **Rationale:** Admin can track how often fallback is used → primary engine reliability.
@@ -537,6 +607,7 @@ Separate status `fallback_success` (vs. `success`) for observability.
 ### 15.1 Admin: Switch Clarity to Workflow API
 
 **Current State (DB):**
+
 ```json
 {
   "purpose": "clarity_assess_one",
@@ -547,6 +618,7 @@ Separate status `fallback_success` (vs. `success`) for observability.
 ```
 
 **Admin Action:**
+
 ```bash
 curl -X PATCH https://api.scopery.local/api/v2/admin/ai/configs/clarity_assess_one \
   -H "Authorization: Bearer ADMIN_TOKEN" \
@@ -558,6 +630,7 @@ curl -X PATCH https://api.scopery.local/api/v2/admin/ai/configs/clarity_assess_o
 ```
 
 **Result:**
+
 - All subsequent clarity assess-one calls use Workflow API
 - No code deployment needed
 - Logs `engine_used=workflow_api` in `ai_orchestrator_runs`
@@ -575,6 +648,7 @@ curl -X PATCH .../admin/ai/configs/qgen_clarifying_questions \
 ```
 
 **Behavior:**
+
 - Tries Agents SDK first
 - If fails → automatically tries legacy_chat
 - Status logged as `fallback_success` if fallback works
@@ -593,6 +667,7 @@ curl -X POST .../admin/ai/configs/improve_answer/test-run \
 ```
 
 **Response:**
+
 ```json
 {
   "run_id": "uuid",
@@ -623,14 +698,16 @@ The **AI Orchestration Layer is production-ready**. All requirements from the or
 ✅ Backward compatibility maintained  
 ✅ RFC 9457 error handling  
 ✅ Security: redaction + validation  
-✅ Tests + documentation  
+✅ Tests + documentation
 
 **No further action required** unless:
+
 - Implementing additional agent implementations (improve_answer, clarity, impact)
 - Seeding workflow IDs at migration time
 - Building admin monitoring dashboard
 
 For any issues or questions, refer to:
+
 - Code: `src/modules/ai/orchestrator/`
 - Migration: `migrations/phase25_ai_orchestration.sql`
 - Tests: `tests/aiOrchestrator.test.ts`

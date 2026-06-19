@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import { Box } from '@/shared/ui/atoms/Box'
 import { Stack } from '@/shared/ui/atoms/Stack'
 import { Typography } from '@/shared/ui/atoms/Typography'
@@ -87,7 +87,13 @@ export const FileMediaLibrary = React.forwardRef(
 
           {/* Folder Preview Section */}
           <Box display="block" className="relative mb-6">
-            <Stack direction="horizontal" spacing="none" align="center" justify="center" className="relative">
+            <Stack
+              direction="horizontal"
+              spacing="none"
+              align="center"
+              justify="center"
+              className="relative"
+            >
               {/* Previous Button */}
               {onPrevious && (
                 <Button
@@ -96,21 +102,18 @@ export const FileMediaLibrary = React.forwardRef(
                   iconOnly
                   icon={<ChevronLeft size={20} />}
                   onClick={onPrevious}
-                  className="absolute left-0 text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-full z-10"
+                  className="absolute left-0 z-10 rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
                   aria-label="Previous"
                 />
               )}
 
               {/* Folder with SVG Illustration */}
               <Box display="block" className="relative mx-8">
-                <Box
-                  display="block"
-                  className="relative w-[280px] h-[200px] rounded-lg"
-                >
+                <Box display="block" className="relative h-[200px] w-[280px] rounded-lg">
                   <img
                     src="/illustrations/media-folder.svg"
                     alt="Media folder"
-                    className="w-full h-full object-contain"
+                    className="h-full w-full object-contain"
                   />
                 </Box>
               </Box>
@@ -123,7 +126,7 @@ export const FileMediaLibrary = React.forwardRef(
                   iconOnly
                   icon={<ChevronRight size={20} />}
                   onClick={onNext}
-                  className="absolute right-0 text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-full z-10"
+                  className="absolute right-0 z-10 rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
                   aria-label="Next"
                 />
               )}
@@ -136,7 +139,7 @@ export const FileMediaLibrary = React.forwardRef(
               {folder.name}
             </Typography>
             {folder.description && (
-              <Typography variant="body" className="text-neutral-700 text-sm leading-relaxed">
+              <Typography variant="body" className="text-sm leading-relaxed text-neutral-700">
                 {folder.description}
               </Typography>
             )}
@@ -148,7 +151,7 @@ export const FileMediaLibrary = React.forwardRef(
               <Button
                 variant="primary"
                 onClick={onAction}
-                className="bg-lime-800 hover:bg-lime-700 text-white px-6 py-2 rounded-full"
+                className="rounded-full bg-lime-800 px-6 py-2 text-white hover:bg-lime-700"
               >
                 {actionLabel}
               </Button>
@@ -161,4 +164,3 @@ export const FileMediaLibrary = React.forwardRef(
 )
 
 FileMediaLibrary.displayName = 'FileMediaLibrary'
-

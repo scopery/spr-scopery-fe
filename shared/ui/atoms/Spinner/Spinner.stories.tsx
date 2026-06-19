@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Spinner } from './Spinner';
+import type { Meta, StoryObj } from '@storybook/react'
+import { Spinner } from './Spinner'
 
 const meta = {
   title: 'Atoms/Spinner',
@@ -24,86 +24,86 @@ const meta = {
       description: 'Accessible label',
     },
   },
-} satisfies Meta<typeof Spinner>;
+} satisfies Meta<typeof Spinner>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {},
-};
+}
 
 export const Primary: Story = {
   args: {
     tone: 'primary',
   },
-};
+}
 
 export const Secondary: Story = {
   args: {
     tone: 'secondary',
   },
-};
+}
 
 export const Success: Story = {
   args: {
     tone: 'success',
   },
-};
+}
 
 export const Warning: Story = {
   args: {
     tone: 'warning',
   },
-};
+}
 
 export const Error: Story = {
   args: {
     tone: 'error',
   },
-};
+}
 
 export const Info: Story = {
   args: {
     tone: 'info',
   },
-};
+}
 
 export const ExtraSmall: Story = {
   args: {
     size: 'xs',
   },
-};
+}
 
 export const Small: Story = {
   args: {
     size: 'sm',
   },
-};
+}
 
 export const Medium: Story = {
   args: {
     size: 'md',
   },
-};
+}
 
 export const Large: Story = {
   args: {
     size: 'lg',
   },
-};
+}
 
 export const ExtraLarge: Story = {
   args: {
     size: 'xl',
   },
-};
+}
 
 export const CustomLabel: Story = {
   args: {
     label: 'Loading content, please wait...',
   },
-};
+}
 
 export const AllSizes: Story = {
   render: () => (
@@ -115,7 +115,7 @@ export const AllSizes: Story = {
       <Spinner size="xl" />
     </div>
   ),
-};
+}
 
 export const AllTones: Story = {
   render: () => (
@@ -129,5 +129,4 @@ export const AllTones: Story = {
       <Spinner tone="info" />
     </div>
   ),
-};
-
+}

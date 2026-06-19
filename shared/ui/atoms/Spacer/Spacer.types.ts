@@ -15,4 +15,3 @@ export interface SpacerProps extends React.HTMLAttributes<HTMLDivElement> {
    */
   axis?: SpacerAxis
 }
-

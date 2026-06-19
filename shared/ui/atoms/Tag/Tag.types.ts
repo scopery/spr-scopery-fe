@@ -1,4 +1,4 @@
-import { PolymorphicComponentPropWithRef } from '@/utils'
+import { PolymorphicComponentPropWithRef } from '@/utils/polymorphic'
 
 export type TagVariant = 'solid' | 'outline' | 'soft'
 export type TagSize = 'sm' | 'md' | 'lg'
@@ -33,4 +33,3 @@ export type TagProps<C extends React.ElementType = 'span'> = PolymorphicComponen
     onRemove?: () => void
   }
 >
-

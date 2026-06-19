@@ -21,4 +21,3 @@ export interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
    */
   error?: string
 }
-

@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import { Typography } from '../Typography'
 import type { SwitchProps } from './Switch.types'
 
@@ -152,4 +152,3 @@ export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
 )
 
 Switch.displayName = 'Switch'
-

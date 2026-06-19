@@ -1,4 +1,4 @@
-import { PolymorphicComponentPropWithRef } from '@/utils'
+import { PolymorphicComponentPropWithRef } from '@/utils/polymorphic'
 
 export type FileMediaLibraryProps<C extends React.ElementType = 'div'> =
   PolymorphicComponentPropWithRef<
@@ -54,4 +54,3 @@ export type FileMediaLibraryProps<C extends React.ElementType = 'div'> =
       cardShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl'
     }
   >
-

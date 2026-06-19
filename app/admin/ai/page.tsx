@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { Typography, Button, Badge } from '@/shared/ui'
-import { useAdminAiConfigs } from '@/hooks/useAdminAi'
+import { useAdminAiConfigs } from '@/modules/admin'
 import { useRouter } from 'next/navigation'
 import { FEATURES } from '@/config/features'
 import { ROUTES } from '@/constants/routes'
@@ -58,10 +58,7 @@ export default function AdminAIConfigsPage() {
             Manage AI orchestration settings for each purpose
           </Typography>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => router.push('/admin/ai/runs')}
-        >
+        <Button variant="outline" onClick={() => router.push('/admin/ai/runs')}>
           View Audit Logs
         </Button>
       </div>
@@ -83,7 +80,10 @@ export default function AdminAIConfigsPage() {
                   </Badge>
                 </div>
                 <Typography variant="sm" className="text-neutral-600">
-                  Purpose: <code className="rounded bg-neutral-100 px-1 py-0.5 text-xs">{config.purpose}</code>
+                  Purpose:{' '}
+                  <code className="rounded bg-neutral-100 px-1 py-0.5 text-xs">
+                    {config.purpose}
+                  </code>
                 </Typography>
               </div>
               <div className="flex gap-2">
@@ -107,7 +107,7 @@ export default function AdminAIConfigsPage() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {/* Primary Engine */}
               <div>
-                <Typography variant="xs" className="mb-1 font-semibold text-neutral-500 uppercase">
+                <Typography variant="xs" className="mb-1 font-semibold uppercase text-neutral-500">
                   Primary Engine
                 </Typography>
                 <Typography variant="sm" className="text-neutral-800">
@@ -117,7 +117,7 @@ export default function AdminAIConfigsPage() {
 
               {/* Fallback Engine */}
               <div>
-                <Typography variant="xs" className="mb-1 font-semibold text-neutral-500 uppercase">
+                <Typography variant="xs" className="mb-1 font-semibold uppercase text-neutral-500">
                   Fallback Engine
                 </Typography>
                 <Typography variant="sm" className="text-neutral-800">
@@ -129,7 +129,7 @@ export default function AdminAIConfigsPage() {
 
               {/* Model */}
               <div>
-                <Typography variant="xs" className="mb-1 font-semibold text-neutral-500 uppercase">
+                <Typography variant="xs" className="mb-1 font-semibold uppercase text-neutral-500">
                   Model
                 </Typography>
                 <Typography variant="sm" className="text-neutral-800">
@@ -140,7 +140,10 @@ export default function AdminAIConfigsPage() {
               {/* Workflow ID */}
               {config.workflow_id && (
                 <div>
-                  <Typography variant="xs" className="mb-1 font-semibold text-neutral-500 uppercase">
+                  <Typography
+                    variant="xs"
+                    className="mb-1 font-semibold uppercase text-neutral-500"
+                  >
                     Workflow ID
                   </Typography>
                   <Typography variant="xs" className="font-mono text-neutral-800">
@@ -152,7 +155,10 @@ export default function AdminAIConfigsPage() {
               {/* Agent Entry */}
               {config.agent_entry && (
                 <div>
-                  <Typography variant="xs" className="mb-1 font-semibold text-neutral-500 uppercase">
+                  <Typography
+                    variant="xs"
+                    className="mb-1 font-semibold uppercase text-neutral-500"
+                  >
                     Agent Entry
                   </Typography>
                   <Typography variant="sm" className="text-neutral-800">
@@ -164,7 +170,10 @@ export default function AdminAIConfigsPage() {
               {/* Timeout */}
               {config.timeout_ms && (
                 <div>
-                  <Typography variant="xs" className="mb-1 font-semibold text-neutral-500 uppercase">
+                  <Typography
+                    variant="xs"
+                    className="mb-1 font-semibold uppercase text-neutral-500"
+                  >
                     Timeout
                   </Typography>
                   <Typography variant="sm" className="text-neutral-800">

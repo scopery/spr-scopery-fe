@@ -4,8 +4,10 @@ export type InputSize = 'sm' | 'md' | 'lg'
 export type InputVariant = 'outline' | 'filled'
 export type InputState = 'default' | 'error' | 'success'
 
-export interface InputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'prefix'> {
+export interface InputProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'size' | 'prefix'
+> {
   /**
    * Input size
    * @default 'md'
@@ -51,4 +53,3 @@ export interface InputProps
    */
   postfix?: React.ReactNode
 }
-

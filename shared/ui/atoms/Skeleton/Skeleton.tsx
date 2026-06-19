@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import type { SkeletonProps } from './Skeleton.types'
 
 const skeletonVariants = {
@@ -19,18 +19,7 @@ const skeletonVariants = {
  * ```
  */
 export const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
-  (
-    {
-      variant = 'text',
-      width,
-      height,
-      noAnimation = false,
-      className,
-      style,
-      ...props
-    },
-    ref
-  ) => {
+  ({ variant = 'text', width, height, noAnimation = false, className, style, ...props }, ref) => {
     const defaultHeight = variant === 'text' ? '1em' : variant === 'circular' ? '40px' : '100px'
 
     const inlineStyles: React.CSSProperties = {
@@ -59,4 +48,3 @@ export const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
 )
 
 Skeleton.displayName = 'Skeleton'
-

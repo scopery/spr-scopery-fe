@@ -7,7 +7,7 @@ import {
   isGovernancePreviewDenied,
   parseGovernanceErrorDetails,
 } from './governanceError'
-import { ApiError } from '@/types/api'
+import { ApiError } from '@/shared/lib/api-types'
 
 describe('governanceError', () => {
   const governanceProblem = {

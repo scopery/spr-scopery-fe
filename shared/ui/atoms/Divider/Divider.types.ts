@@ -19,4 +19,3 @@ export interface DividerProps extends React.HTMLAttributes<HTMLHRElement> {
    */
   label?: string
 }
-

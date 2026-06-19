@@ -1,6 +1,6 @@
 import { getApiBaseUrl } from '@/shared/lib/apiClient'
 import { getGovernanceBlockedMessage } from '@/utils/governanceError'
-import type { ProblemDetails } from '@/types/api'
+import type { ProblemDetails } from '@/shared/lib/api-types'
 
 export type DocumentExportFormat = 'markdown' | 'text'
 
@@ -121,7 +121,10 @@ export async function fetchExportPackageResponse(
   url: string,
   body: Record<string, unknown>,
   token?: string | null
-): Promise<{ kind: 'zip'; blob: Blob; filename: string } | { kind: 'json'; result: DocumentExportPackageResult }> {
+): Promise<
+  | { kind: 'zip'; blob: Blob; filename: string }
+  | { kind: 'json'; result: DocumentExportPackageResult }
+> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }
@@ -150,7 +153,10 @@ export async function fetchExportPackageResponse(
   const contentType = res.headers.get('Content-Type') ?? ''
   if (contentType.includes('application/zip')) {
     const blob = await res.blob()
-    const filename = parseFilenameFromDisposition(res.headers.get('Content-Disposition'), 'export.zip')
+    const filename = parseFilenameFromDisposition(
+      res.headers.get('Content-Disposition'),
+      'export.zip'
+    )
     return { kind: 'zip', blob, filename }
   }
 
@@ -159,7 +165,9 @@ export async function fetchExportPackageResponse(
 }
 
 export async function downloadExportPackageFromResponse(
-  response: { kind: 'zip'; blob: Blob; filename: string } | { kind: 'json'; result: DocumentExportPackageResult }
+  response:
+    | { kind: 'zip'; blob: Blob; filename: string }
+    | { kind: 'json'; result: DocumentExportPackageResult }
 ) {
   if (response.kind === 'zip') {
     triggerBlobDownload(response.blob, response.filename)

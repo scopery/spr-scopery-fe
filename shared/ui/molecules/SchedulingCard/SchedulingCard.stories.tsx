@@ -45,7 +45,7 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
-    description: 'You have one scheduled event today - don\'t miss them!',
+    description: "You have one scheduled event today - don't miss them!",
     day: 'FRIDAY',
     date: 'Mar 28',
     event: {
@@ -109,7 +109,7 @@ export const CustomActionLabel: Story = {
 export const MultipleEvents: Story = {
   args: {
     ...Default.args,
-    description: 'You have 3 scheduled events today - don\'t miss them!',
+    description: "You have 3 scheduled events today - don't miss them!",
     day: 'MONDAY',
     date: 'Apr 1',
     event: {
@@ -120,4 +120,3 @@ export const MultipleEvents: Story = {
     },
   },
 }
-

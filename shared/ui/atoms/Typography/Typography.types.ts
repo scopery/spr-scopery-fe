@@ -1,4 +1,4 @@
-import { PolymorphicComponentPropWithRef } from '@/utils'
+import { PolymorphicComponentPropWithRef } from '@/utils/polymorphic'
 
 export type TypographyVariant =
   | 'h1'
@@ -28,42 +28,40 @@ export type TypographyTone =
   | 'error'
   | 'info'
 
-export type TypographyProps<C extends React.ElementType = 'p'> =
-  PolymorphicComponentPropWithRef<
-    C,
-    {
-      /**
-       * Typography variant (determines default element and styles)
-       * @default 'body'
-       */
-      variant?: TypographyVariant
-      /**
-       * Font size (overrides variant default)
-       */
-      size?: TypographySize
-      /**
-       * Font weight (overrides variant default)
-       */
-      weight?: TypographyWeight
-      /**
-       * Text alignment
-       */
-      align?: TypographyAlign
-      /**
-       * Text color tone
-       * @default 'default'
-       */
-      tone?: TypographyTone
-      /**
-       * Truncate text with ellipsis
-       * @default false
-       */
-      truncate?: boolean
-      /**
-       * Italic text
-       * @default false
-       */
-      italic?: boolean
-    }
-  >
-
+export type TypographyProps<C extends React.ElementType = 'p'> = PolymorphicComponentPropWithRef<
+  C,
+  {
+    /**
+     * Typography variant (determines default element and styles)
+     * @default 'body'
+     */
+    variant?: TypographyVariant
+    /**
+     * Font size (overrides variant default)
+     */
+    size?: TypographySize
+    /**
+     * Font weight (overrides variant default)
+     */
+    weight?: TypographyWeight
+    /**
+     * Text alignment
+     */
+    align?: TypographyAlign
+    /**
+     * Text color tone
+     * @default 'default'
+     */
+    tone?: TypographyTone
+    /**
+     * Truncate text with ellipsis
+     * @default false
+     */
+    truncate?: boolean
+    /**
+     * Italic text
+     * @default false
+     */
+    italic?: boolean
+  }
+>

@@ -1,4 +1,4 @@
-import { PolymorphicComponentPropWithRef } from '@/utils'
+import { PolymorphicComponentPropWithRef } from '@/utils/polymorphic'
 
 export type StackDirection = 'horizontal' | 'vertical'
 export type StackSpacing = 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
@@ -33,4 +33,3 @@ export type StackProps<C extends React.ElementType = 'div'> = PolymorphicCompone
     wrap?: boolean
   }
 >
-

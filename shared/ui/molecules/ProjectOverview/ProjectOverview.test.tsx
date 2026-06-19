@@ -3,9 +3,27 @@ import { render, screen } from '@testing-library/react'
 import { ProjectOverview } from './ProjectOverview'
 
 const sampleSteps = [
-  { id: 'elicitation', label: 'ELICITATION', date: 'Feb 15th', position: 0.05, status: 'completed' as const },
-  { id: 'planning', label: 'IN PLANING', date: 'Feb 15th', position: 0.32, status: 'completed' as const },
-  { id: 'development', label: 'IN DEVELOPMENT', date: 'Feb 15th', position: 0.6, status: 'current' as const },
+  {
+    id: 'elicitation',
+    label: 'ELICITATION',
+    date: 'Feb 15th',
+    position: 0.05,
+    status: 'completed' as const,
+  },
+  {
+    id: 'planning',
+    label: 'IN PLANING',
+    date: 'Feb 15th',
+    position: 0.32,
+    status: 'completed' as const,
+  },
+  {
+    id: 'development',
+    label: 'IN DEVELOPMENT',
+    date: 'Feb 15th',
+    position: 0.6,
+    status: 'current' as const,
+  },
   { id: 'testing', label: 'TESTING', date: '', position: 0.78, status: 'upcoming' as const },
   { id: 'delivered', label: 'DELIVERED', date: '', position: 0.95, status: 'upcoming' as const },
 ]
@@ -77,4 +95,3 @@ describe('ProjectOverview', () => {
     expect(screen.getByText('Option 1')).toBeInTheDocument()
   })
 })
-

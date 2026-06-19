@@ -8,32 +8,32 @@
 
 ## Reuse Map — Có sẵn → path → dùng cho
 
-| Có sẵn | Path | Dùng cho |
-|--------|------|----------|
-| **ROUTES.documentVersionBaseline** | `constants/routes.ts` | Link to baseline page; breadcrumb |
-| **ROUTES.documentDetail** | `constants/routes.ts` | Back link to document |
-| **VERSION_SNAPSHOT_ENDPOINTS.snapshot** | `constants/endpoints.ts` | POST create snapshot |
-| **VERSION_SNAPSHOT_ENDPOINTS.snapshots** | `constants/endpoints.ts` | GET list snapshots (optional; banner if 404) |
-| **ITEM_ENDPOINTS.diff** | `constants/endpoints.ts` | GET item diff ?from=&to= |
-| **DOCUMENT_ENDPOINTS.versions** | `constants/endpoints.ts` | List versions (From/To select) |
-| **ApiResponse&lt;T&gt;** | `types/auth.ts` | Service parse ok/data/error |
-| **SnapshotResult, ItemDiffResult, DiffField, DiffQuery, SnapshotListItem** | `types/snapshot.ts` | Snapshot + diff types |
-| **Document, DocumentVersion** | `types/document.ts` | Document meta, version options |
-| **OutlineSection** | `types/outline.ts` | Outline context (items from outline when BE provides) |
-| **apiClient** | `lib/apiClient.ts` | get/post; Bearer token |
-| **snapshot.service** | `services/snapshot.service.ts` | createSnapshot, getItemDiff, listSnapshots |
-| **documents.service** | `services/documents.service.ts` | getDocument, listVersions |
-| **outline.service** | `services/outline.service.ts` | listOutlineSections (outline context) |
-| **items.service** | `services/items.service.ts` | listProjectItems (item options fallback) |
-| **useDocumentVersions** | `hooks/useDocumentVersions.ts` | From/To version select options |
-| **useCreateSnapshot** | `hooks/useCreateSnapshot.ts` | Create snapshot button + lastResult |
-| **useSnapshotList** | `hooks/useSnapshotList.ts` | Snapshot history or historyAvailable=false → banner |
-| **useItemDiff** | `hooks/useItemDiff.ts` | Compare → fetchDiff, diff data/loading/error |
-| **useOutlineSections** | `hooks/useOutlineSections.ts` | Item options from outline when BE returns items in sections |
-| **useItemsList** | `hooks/useItemsList.ts` | Item select options (project items) + fallback |
-| **getDefaultOrgId, setDefaultOrgId** | `hooks/useOrganizations` | orgId from query or default |
-| **Button, Typography, Stack, Box, Select, Input, Spinner, Link** | `components/index.ts` | Snapshot block, diff form, diff table |
-| **toast** | `sonner` | Success/error after create snapshot / diff |
+| Có sẵn                                                                     | Path                            | Dùng cho                                                    |
+| -------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------- |
+| **ROUTES.documentVersionBaseline**                                         | `constants/routes.ts`           | Link to baseline page; breadcrumb                           |
+| **ROUTES.documentDetail**                                                  | `constants/routes.ts`           | Back link to document                                       |
+| **VERSION_SNAPSHOT_ENDPOINTS.snapshot**                                    | `constants/endpoints.ts`        | POST create snapshot                                        |
+| **VERSION_SNAPSHOT_ENDPOINTS.snapshots**                                   | `constants/endpoints.ts`        | GET list snapshots (optional; banner if 404)                |
+| **ITEM_ENDPOINTS.diff**                                                    | `constants/endpoints.ts`        | GET item diff ?from=&to=                                    |
+| **DOCUMENT_ENDPOINTS.versions**                                            | `constants/endpoints.ts`        | List versions (From/To select)                              |
+| **ApiResponse&lt;T&gt;**                                                   | `types/auth.ts`                 | Service parse ok/data/error                                 |
+| **SnapshotResult, ItemDiffResult, DiffField, DiffQuery, SnapshotListItem** | `types/snapshot.ts`             | Snapshot + diff types                                       |
+| **Document, DocumentVersion**                                              | `types/document.ts`             | Document meta, version options                              |
+| **OutlineSection**                                                         | `types/outline.ts`              | Outline context (items from outline when BE provides)       |
+| **apiClient**                                                              | `lib/apiClient.ts`              | get/post; Bearer token                                      |
+| **snapshot.service**                                                       | `services/snapshot.service.ts`  | createSnapshot, getItemDiff, listSnapshots                  |
+| **documents.service**                                                      | `services/documents.service.ts` | getDocument, listVersions                                   |
+| **outline.service**                                                        | `services/outline.service.ts`   | listOutlineSections (outline context)                       |
+| **items.service**                                                          | `services/items.service.ts`     | listProjectItems (item options fallback)                    |
+| **useDocumentVersions**                                                    | `hooks/useDocumentVersions.ts`  | From/To version select options                              |
+| **useCreateSnapshot**                                                      | `hooks/useCreateSnapshot.ts`    | Create snapshot button + lastResult                         |
+| **useSnapshotList**                                                        | `hooks/useSnapshotList.ts`      | Snapshot history or historyAvailable=false → banner         |
+| **useItemDiff**                                                            | `hooks/useItemDiff.ts`          | Compare → fetchDiff, diff data/loading/error                |
+| **useOutlineSections**                                                     | `hooks/useOutlineSections.ts`   | Item options from outline when BE returns items in sections |
+| **useItemsList**                                                           | `hooks/useItemsList.ts`         | Item select options (project items) + fallback              |
+| **getDefaultOrgId, setDefaultOrgId**                                       | `hooks/useOrganizations`        | orgId from query or default                                 |
+| **Button, Typography, Stack, Box, Select, Input, Spinner, Link**           | `components/index.ts`           | Snapshot block, diff form, diff table                       |
+| **toast**                                                                  | `sonner`                        | Success/error after create snapshot / diff                  |
 
 ---
 

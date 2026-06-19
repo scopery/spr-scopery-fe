@@ -9,10 +9,10 @@
  * - 502: AI errors
  */
 
-import { isProblem, getProblemCode, getProblemRequestId } from '@/types/api'
+import { isProblem, getProblemCode, getProblemRequestId } from '@/shared/lib/api-types'
 
 // Re-export so pages can import from a single place
-export { getProblemRequestId, isProblem } from '@/types/api'
+export { getProblemRequestId, isProblem } from '@/shared/lib/api-types'
 import { getGovernanceBlockedMessage } from '@/utils/governanceError'
 
 /** Human-readable message for toast / inline error. Use for 403, 404, 409, 413, 429, 502. */
@@ -54,8 +54,10 @@ export function getProblemToastMessage(err: unknown): string {
       INVITE_ALREADY_PENDING: 'An invite already exists for this email.',
       ALREADY_MEMBER: 'User is already an org member.',
       AI_BATCH_EXPIRED: 'Batch đã hết hạn hoặc đã commit. Gọi lại Generate để lấy batch mới.',
-      AI_FEATURE_DISABLED: 'Tính năng AI v2 chưa được bật trên server. Liên hệ admin để bật AI_WF_QGEN_V2_ENABLED và cấu hình workflow.',
-      AI_WORKFLOW_ID_REQUIRED: 'Server chưa cấu hình workflow v2. Liên hệ admin hoặc thử engine Legacy.',
+      AI_FEATURE_DISABLED:
+        'Tính năng AI v2 chưa được bật trên server. Liên hệ admin để bật AI_WF_QGEN_V2_ENABLED và cấu hình workflow.',
+      AI_WORKFLOW_ID_REQUIRED:
+        'Server chưa cấu hình workflow v2. Liên hệ admin hoặc thử engine Legacy.',
       NODE_CODE_EXISTS: 'Mã node đã tồn tại trong org.',
       NODE_HAS_CHILDREN: 'Node còn module con, hãy archive con trước.',
       NODE_IN_USE: 'Node đang được dùng trong Project Scope hoặc Requirement mapping.',

@@ -11,4 +11,3 @@ export type {
 // Re-export for backward compatibility
 export { Typography as Text } from './Typography'
 export { Typography as Heading } from './Typography'
-

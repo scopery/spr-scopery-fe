@@ -9,10 +9,9 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Typography, Button, ContentLoader } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { useOrgInviteActions } from '@/hooks/useOrgInviteActions'
-import { useOrgActions } from '@/hooks/useOrgActions'
-import { useAuth } from '@/contexts/AuthContext'
-import { ApiError, getProblemCode } from '@/types/api'
+import { useOrgInviteActions, useOrgActions } from '@/modules/org'
+import { useAuth } from '@/modules/auth'
+import { ApiError, getProblemCode } from '@/shared/lib/api-types'
 import { clearPendingInviteToken, setPendingInviteToken } from '@/utils/inviteToken'
 import { toast } from 'sonner'
 
@@ -24,7 +23,9 @@ export default function InviteAcceptPage() {
   const { acceptInvite } = useOrgInviteActions()
   const { setDefaultOrg } = useOrgActions()
 
-  const [status, setStatus] = useState<'checking' | 'need_login' | 'accepting' | 'success' | 'error'>('checking')
+  const [status, setStatus] = useState<
+    'checking' | 'need_login' | 'accepting' | 'success' | 'error'
+  >('checking')
   const [errorMessage, setErrorMessage] = useState<string>('')
 
   useEffect(() => {
@@ -58,9 +59,11 @@ export default function InviteAcceptPage() {
           const code = getProblemCode(err)
           if (code === 'INVITE_EXPIRED') setErrorMessage('Invite has expired.')
           else if (code === 'INVITE_INVALID') setErrorMessage('Invite is invalid.')
-          else if (code === 'INVITE_EMAIL_MISMATCH') setErrorMessage('Email does not match the invite.')
+          else if (code === 'INVITE_EMAIL_MISMATCH')
+            setErrorMessage('Email does not match the invite.')
           else if (code === 'ALREADY_ACCEPTED') setErrorMessage('Invite was already accepted.')
-          else if (code === 'TOO_MANY_REQUESTS') setErrorMessage('Too many requests. Please try again later.')
+          else if (code === 'TOO_MANY_REQUESTS')
+            setErrorMessage('Too many requests. Please try again later.')
           else setErrorMessage(err.problem.detail || 'Failed to accept invite.')
         } else {
           setErrorMessage('Failed to accept invite. Please try again later.')
@@ -73,9 +76,9 @@ export default function InviteAcceptPage() {
 
   if (status === 'need_login') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="flex min-h-screen items-center justify-center p-4">
         <div className="text-center">
-          <ContentLoader variant="easeOut" className="w-20 mx-auto mb-4" />
+          <ContentLoader variant="easeOut" className="mx-auto mb-4 w-20" />
           <Typography>Redirecting to login...</Typography>
         </div>
       </div>
@@ -84,9 +87,9 @@ export default function InviteAcceptPage() {
 
   if (status === 'accepting' || status === 'checking') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="flex min-h-screen items-center justify-center p-4">
         <div className="text-center">
-          <ContentLoader variant="easeOut" className="w-20 mx-auto mb-4" />
+          <ContentLoader variant="easeOut" className="mx-auto mb-4 w-20" />
           <Typography>Accepting invite...</Typography>
         </div>
       </div>
@@ -95,8 +98,8 @@ export default function InviteAcceptPage() {
 
   if (status === 'error') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
-        <div className="max-w-md text-center space-y-4">
+      <div className="flex min-h-screen items-center justify-center bg-neutral-50 p-4">
+        <div className="max-w-md space-y-4 text-center">
           <Typography as="h1" weight="bold" tone="error">
             Could not accept invite
           </Typography>
@@ -113,7 +116,7 @@ export default function InviteAcceptPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-neutral-50 p-4">
       <ContentLoader variant="easeOut" className="w-20" />
     </div>
   )

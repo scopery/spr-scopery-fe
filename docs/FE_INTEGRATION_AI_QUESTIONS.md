@@ -11,12 +11,14 @@ Doc này dành cho Frontend tích hợp đúng flow **sinh câu hỏi làm rõ**
 **Method:** `POST`  
 **URL:** `{BASE_URL}/api/v2/orgs/{orgId}/projects/{projectId}/ai/questions/generate`  
 **Headers:**
+
 ```http
 Authorization: Bearer <JWT>
 Content-Type: application/json
 ```
 
 **Body (JSON) — tối thiểu để xài được v2:**
+
 ```json
 {
   "engine": "agentkit_v2_file",
@@ -25,6 +27,7 @@ Content-Type: application/json
 ```
 
 **Body đầy đủ (có thể gửi thêm):**
+
 ```json
 {
   "engine": "agentkit_v2_file",
@@ -73,14 +76,14 @@ POST /api/v2/orgs/550e8400-e29b-41d4-a716-446655440000/projects/660e8400-e29b-41
 
 ### Request body (JSON)
 
-| Field | Kiểu | Bắt buộc | Mô tả |
-|-------|------|----------|--------|
-| `engine` | `"legacy"` \| `"agentkit_v2_file"` | Không | Mặc định theo server. **Muốn dùng flow v2 (recommended)** thì gửi `"agentkit_v2_file"`. |
-| `base_session_id` | UUID string | **Có** khi engine = v2 | Session dùng làm context (Q&A). **V2 bắt buộc phải gửi.** |
-| `base_revision_id` | UUID string | Không (legacy) | Chỉ dùng khi `engine === "legacy"`. |
-| `instruction` | string (max 4000) | Không | Gợi ý cho AI (vd. "Tập trung scope, NFR"). |
-| `max_items` | number (1–100) | Không | Số câu hỏi tối đa; server vẫn cap theo env. |
-| `use_cached_digest` | boolean | Không, default `true` | Chỉ v2: dùng cache digest (facts/unknowns) nếu có. |
+| Field               | Kiểu                               | Bắt buộc               | Mô tả                                                                                   |
+| ------------------- | ---------------------------------- | ---------------------- | --------------------------------------------------------------------------------------- |
+| `engine`            | `"legacy"` \| `"agentkit_v2_file"` | Không                  | Mặc định theo server. **Muốn dùng flow v2 (recommended)** thì gửi `"agentkit_v2_file"`. |
+| `base_session_id`   | UUID string                        | **Có** khi engine = v2 | Session dùng làm context (Q&A). **V2 bắt buộc phải gửi.**                               |
+| `base_revision_id`  | UUID string                        | Không (legacy)         | Chỉ dùng khi `engine === "legacy"`.                                                     |
+| `instruction`       | string (max 4000)                  | Không                  | Gợi ý cho AI (vd. "Tập trung scope, NFR").                                              |
+| `max_items`         | number (1–100)                     | Không                  | Số câu hỏi tối đa; server vẫn cap theo env.                                             |
+| `use_cached_digest` | boolean                            | Không, default `true`  | Chỉ v2: dùng cache digest (facts/unknowns) nếu có.                                      |
 
 ### Quan trọng: Khi dùng engine v2
 
@@ -136,15 +139,15 @@ POST /api/v2/orgs/550e8400-e29b-41d4-a716-446655440000/projects/660e8400-e29b-41
 
 ### Lỗi hay gặp
 
-| Status | Code | Ý nghĩa | Cách xử lý FE |
-|--------|------|--------|----------------|
-| 422 | (validation) | Thiếu `base_session_id` khi engine = v2, hoặc legacy thiếu cả session + revision | Hiển thị lỗi từ `errors[]`; nhắc user chọn session (v2) hoặc session/revision (legacy). |
-| 409 | `AI_FEATURE_DISABLED` | Server tắt QGen v2 | Thông báo feature chưa bật hoặc dùng engine legacy. |
-| 409 | `AI_WORKFLOW_ID_REQUIRED` | Server chưa cấu hình workflow v2 | Thông báo lỗi cấu hình server. |
-| 409 | `AI_BATCH_EXPIRED` | Batch cũ đã hết hạn / đã commit | Gọi lại generate để lấy batch_token mới. |
-| 413 | `PAYLOAD_TOO_LARGE` | QA pack (session Q&A) quá lớn | Giảm nội dung session hoặc thông báo. |
-| 502 | `AI_*` | Lỗi workflow / output AI | Thông báo lỗi tạm thời, cho user thử lại. |
-| 404 | `AI_PROVIDER_ERROR` | Workflow API trả 404 (workflow không tồn tại / endpoint) | Thông báo: Admin kiểm tra workflow ID và cấu hình OpenAI. |
+| Status | Code                      | Ý nghĩa                                                                          | Cách xử lý FE                                                                           |
+| ------ | ------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 422    | (validation)              | Thiếu `base_session_id` khi engine = v2, hoặc legacy thiếu cả session + revision | Hiển thị lỗi từ `errors[]`; nhắc user chọn session (v2) hoặc session/revision (legacy). |
+| 409    | `AI_FEATURE_DISABLED`     | Server tắt QGen v2                                                               | Thông báo feature chưa bật hoặc dùng engine legacy.                                     |
+| 409    | `AI_WORKFLOW_ID_REQUIRED` | Server chưa cấu hình workflow v2                                                 | Thông báo lỗi cấu hình server.                                                          |
+| 409    | `AI_BATCH_EXPIRED`        | Batch cũ đã hết hạn / đã commit                                                  | Gọi lại generate để lấy batch_token mới.                                                |
+| 413    | `PAYLOAD_TOO_LARGE`       | QA pack (session Q&A) quá lớn                                                    | Giảm nội dung session hoặc thông báo.                                                   |
+| 502    | `AI_*`                    | Lỗi workflow / output AI                                                         | Thông báo lỗi tạm thời, cho user thử lại.                                               |
+| 404    | `AI_PROVIDER_ERROR`       | Workflow API trả 404 (workflow không tồn tại / endpoint)                         | Thông báo: Admin kiểm tra workflow ID và cấu hình OpenAI.                               |
 
 ---
 
@@ -265,8 +268,10 @@ Nếu vẫn gặp lỗi, kiểm tra response body (422 có `errors`, 409 có `co
 **FE:** Khi nhận 502 với `code: "AI_PROVIDER_ERROR"` và message có "404" / "Workflow API", thông báo: "Lỗi kết nối workflow AI (404). Admin kiểm tra workflow ID và cấu hình OpenAI (project, API key)."
 
 **Cách tránh 404 (phía BE):** Bật chạy workflow qua **Agents SDK** thay vì REST. Trong `.env` set:
+
 ```env
 AI_WF_QGEN_V2_USE_AGENTS_SDK=true
 AI_QGEN_AGENTS_MODEL=gpt-4o
 ```
+
 Khi đó BE không gọi `POST /v1/workflows/.../runs` nữa mà chạy agent trong process (không cần `AI_WF_QGEN_V2_WORKFLOW_ID`).

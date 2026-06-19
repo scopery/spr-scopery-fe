@@ -157,7 +157,11 @@ describe('Button', () => {
     })
 
     it('hides icon when loading', () => {
-      render(<Button loading icon={<TestIcon />}>Loading</Button>)
+      render(
+        <Button loading icon={<TestIcon />}>
+          Loading
+        </Button>
+      )
       expect(screen.queryByTestId('test-icon')).not.toBeInTheDocument()
     })
   })
@@ -195,4 +199,3 @@ describe('Button', () => {
     })
   })
 })
-

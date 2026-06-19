@@ -1,7 +1,4 @@
-import {
-  MOCK_ORG_ID,
-  MOCK_USER_ID,
-} from '@/shared/lib/dataMode'
+import { MOCK_ORG_ID, MOCK_USER_ID } from '@/shared/lib/dataMode'
 
 export const MOCK_PROFILE = {
   user_id: MOCK_USER_ID,

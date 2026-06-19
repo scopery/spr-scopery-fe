@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import type { InputProps } from './Input.types'
 
 const inputSizes = {
@@ -111,10 +111,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className={cn('flex flex-col gap-2', fullWidth ? 'w-full' : 'min-w-[280px]')}>
         {label && (
-          <label
-            htmlFor={inputId}
-            className="text-sm font-normal text-neutral-700 cursor-pointer"
-          >
+          <label htmlFor={inputId} className="cursor-pointer text-sm font-normal text-neutral-700">
             {label}
             {required && (
               <span className="ml-1 text-error" aria-label="required">
@@ -128,7 +125,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {prefix && (
             <div
               className={cn(
-                'absolute top-1/2 -translate-y-1/2 flex items-center justify-center text-neutral-500',
+                'absolute top-1/2 flex -translate-y-1/2 items-center justify-center text-neutral-500',
                 iconPositions[size],
                 iconSizes[size]
               )}
@@ -146,10 +143,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             aria-describedby={cn(errorId, helperTextId)}
             className={cn(
               // Base styles
-              'transition-colors duration-200 w-full font-normal',
+              'w-full font-normal transition-colors duration-200',
               'placeholder:text-neutral-400',
               'focus:outline-none',
-              'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-neutral-50',
+              'disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:opacity-50',
               // Size
               inputSizes[size],
               // Padding
@@ -166,7 +163,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {postfix && (
             <div
               className={cn(
-                'absolute top-1/2 -translate-y-1/2 flex items-center justify-center text-neutral-500 cursor-pointer',
+                'absolute top-1/2 flex -translate-y-1/2 cursor-pointer items-center justify-center text-neutral-500',
                 size === 'sm' ? 'right-2.5' : size === 'md' ? 'right-3' : 'right-4',
                 iconSizes[size]
               )}
@@ -198,4 +195,3 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 )
 
 Input.displayName = 'Input'
-

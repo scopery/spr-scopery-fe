@@ -1,7 +1,14 @@
 import React from 'react'
 
 export type SpinnerSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
-export type SpinnerTone = 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info'
+export type SpinnerTone =
+  | 'default'
+  | 'primary'
+  | 'secondary'
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'info'
 
 export interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
@@ -19,4 +26,3 @@ export interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
    */
   label?: string
 }
-

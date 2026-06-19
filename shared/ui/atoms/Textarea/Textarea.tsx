@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import type { TextareaProps } from './Textarea.types'
 
 const textareaSizes = {
@@ -82,7 +82,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         {label && (
           <label
             htmlFor={textareaId}
-            className="text-sm font-normal text-neutral-700 cursor-pointer"
+            className="cursor-pointer text-sm font-normal text-neutral-700"
           >
             {label}
             {required && (
@@ -102,10 +102,10 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           aria-describedby={cn(errorId, helperTextId)}
           className={cn(
             // Base styles
-            'transition-colors duration-200 w-full font-normal',
+            'w-full font-normal transition-colors duration-200',
             'placeholder:text-neutral-400',
             'focus:outline-none',
-            'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-neutral-50',
+            'disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:opacity-50',
             // Size
             textareaSizes[size],
             // Variant
@@ -114,7 +114,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             textareaResize[resize],
             // States
             error
-              ? 'border-error focus:border-error focus:ring-1 focus:ring-error/20'
+              ? 'focus:ring-error/20 border-error focus:border-error focus:ring-1'
               : 'border-neutral-300 focus:ring-1 focus:ring-neutral-100',
             className
           )}

@@ -6,4 +6,3 @@ export type {
   StackAlign,
   StackJustify,
 } from './Stack.types'
-

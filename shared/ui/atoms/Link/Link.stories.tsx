@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Link } from './Link';
+import type { Meta, StoryObj } from '@storybook/react'
+import { Link } from './Link'
 
 const meta = {
   title: 'Atoms/Link',
@@ -28,17 +28,17 @@ const meta = {
       description: 'Whether the link is disabled',
     },
   },
-} satisfies Meta<typeof Link>;
+} satisfies Meta<typeof Link>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
     href: '#',
     children: 'Default Link',
   },
-};
+}
 
 export const Primary: Story = {
   args: {
@@ -46,7 +46,7 @@ export const Primary: Story = {
     children: 'Primary Link',
     variant: 'primary',
   },
-};
+}
 
 export const Muted: Story = {
   args: {
@@ -54,7 +54,7 @@ export const Muted: Story = {
     children: 'Muted Link',
     variant: 'muted',
   },
-};
+}
 
 export const Underline: Story = {
   args: {
@@ -62,7 +62,7 @@ export const Underline: Story = {
     children: 'Underlined Link',
     variant: 'underline',
   },
-};
+}
 
 export const External: Story = {
   args: {
@@ -70,7 +70,7 @@ export const External: Story = {
     children: 'External Link',
     external: true,
   },
-};
+}
 
 export const Disabled: Story = {
   args: {
@@ -78,7 +78,7 @@ export const Disabled: Story = {
     children: 'Disabled Link',
     disabled: true,
   },
-};
+}
 
 export const Small: Story = {
   args: {
@@ -86,7 +86,7 @@ export const Small: Story = {
     children: 'Small Link',
     size: 'sm',
   },
-};
+}
 
 export const Medium: Story = {
   args: {
@@ -94,7 +94,7 @@ export const Medium: Story = {
     children: 'Medium Link',
     size: 'md',
   },
-};
+}
 
 export const Large: Story = {
   args: {
@@ -102,7 +102,7 @@ export const Large: Story = {
     children: 'Large Link',
     size: 'lg',
   },
-};
+}
 
 export const AllVariants: Story = {
   render: () => (
@@ -121,5 +121,4 @@ export const AllVariants: Story = {
       </Link>
     </div>
   ),
-};
-
+}

@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import type { BadgeProps } from './Badge.types'
 
 const badgeVariants = {
@@ -104,4 +104,3 @@ export const Badge = React.forwardRef(
 )
 
 Badge.displayName = 'Badge'
-

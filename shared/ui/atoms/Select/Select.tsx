@@ -1,6 +1,6 @@
 import React from 'react'
 import * as SelectPrimitive from '@radix-ui/react-select'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import { ChevronDown, Check } from 'lucide-react'
 import type { SelectProps, SelectSize } from './Select.types'
 
@@ -86,12 +86,12 @@ export const Select = React.forwardRef(
         >
           <SelectPrimitive.Trigger
             className={cn(
-              'inline-flex items-center justify-between gap-2 w-full min-w-0',
+              'inline-flex w-full min-w-0 items-center justify-between gap-2',
               'border border-neutral-300',
               'bg-white text-neutral-900',
               'transition-colors duration-200',
-              'focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20',
-              'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-neutral-50',
+              'focus:ring-primary/20 focus:border-primary focus:outline-none focus:ring-1',
+              'disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:opacity-50',
               selectSizes[size].trigger,
               className
             )}
@@ -99,10 +99,7 @@ export const Select = React.forwardRef(
           >
             <SelectPrimitive.Value placeholder={placeholder} />
             <SelectPrimitive.Icon className="flex-shrink-0">
-              <ChevronDown
-                size={16}
-                className={cn('transition-transform', open && 'rotate-180')}
-              />
+              <ChevronDown size={16} className={cn('transition-transform', open && 'rotate-180')} />
             </SelectPrimitive.Icon>
           </SelectPrimitive.Trigger>
 
@@ -124,22 +121,22 @@ export const Select = React.forwardRef(
                 {options.map((option) => {
                   const itemValue = toItemValue(option.value)
                   return (
-                  <SelectPrimitive.Item
-                    key={itemValue}
-                    value={itemValue}
-                    disabled={option.disabled}
-                    className={cn(
-                      'relative flex cursor-pointer select-none items-center rounded-sm',
-                      'outline-none focus:bg-neutral-100 focus:text-neutral-900',
-                      'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-                      selectSizes[size].item
-                    )}
-                  >
-                    <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
-                    <SelectPrimitive.ItemIndicator className="absolute right-2 flex items-center">
-                      <Check size={16} />
-                    </SelectPrimitive.ItemIndicator>
-                  </SelectPrimitive.Item>
+                    <SelectPrimitive.Item
+                      key={itemValue}
+                      value={itemValue}
+                      disabled={option.disabled}
+                      className={cn(
+                        'relative flex cursor-pointer select-none items-center rounded-sm',
+                        'outline-none focus:bg-neutral-100 focus:text-neutral-900',
+                        'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+                        selectSizes[size].item
+                      )}
+                    >
+                      <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+                      <SelectPrimitive.ItemIndicator className="absolute right-2 flex items-center">
+                        <Check size={16} />
+                      </SelectPrimitive.ItemIndicator>
+                    </SelectPrimitive.Item>
                   )
                 })}
               </SelectPrimitive.Viewport>
@@ -152,4 +149,3 @@ export const Select = React.forwardRef(
 )
 
 Select.displayName = 'Select'
-

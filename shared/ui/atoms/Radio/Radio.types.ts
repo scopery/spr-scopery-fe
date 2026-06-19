@@ -21,4 +21,3 @@ export interface RadioProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
    */
   error?: string
 }
-

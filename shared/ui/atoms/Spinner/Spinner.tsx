@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import type { SpinnerProps } from './Spinner.types'
 
 const spinnerSizes = {
@@ -56,4 +56,3 @@ export const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
 )
 
 Spinner.displayName = 'Spinner'
-

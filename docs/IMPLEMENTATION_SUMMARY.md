@@ -1,3 +1,5 @@
+> **Out of date (2026):** This document references code removed during Safe Dead Code Cleanup (orphan hooks/services/components). See `CLAUDE.md` for current architecture.
+
 # AI + Traceability + Admin AI Implementation Summary
 
 **Date:** 2026-02-16  
@@ -8,9 +10,11 @@
 ## ✅ Completed - Phase 1: Infrastructure
 
 ### 1. Environment Configuration
+
 - ✅ Updated `.env.example` with AI guidelines (secrets are BE-only)
 
 ### 2. Type System
+
 - ✅ **`types/api-enums.ts`** - Added all missing enums:
   - AI: `AiQuestionsGenerateEngine`, `AiEngineType`, `AiPurpose`, `AiRunStatus`
   - Traceability: `OrgNodeType`, `OrgNodeStatus`, `NodeLinkType`, `ScopeRole`, `ActorKind`, `RequirementType`, `TraceLinkType`, `TraceEntityType`
@@ -99,6 +103,7 @@
 ## 📋 TODO - Phase 2: Remaining AI Pages
 
 ### AI Session Features (Session Screen)
+
 - [ ] **Integrate ImproveAnswerModal into Session Detail Page**
   - Add "AI Improve" button next to each question (editor only, session in_progress)
   - On accept, refresh session answers
@@ -116,6 +121,7 @@
   - Recommended next action
 
 ### Project AI Pages
+
 - [ ] **`app/org/[orgId]/projects/[projectId]/ai/questions/page.tsx`**
   - Form: engine select, base_session_id, instruction, max_items
   - Call `generateQuestions()`
@@ -156,6 +162,7 @@
 ## 📋 TODO - Phase 4: Traceability Pages
 
 ### Org Landscape
+
 - [ ] **`app/org/[orgId]/landscape/page.tsx`**
   - Visual graph/tree view of org nodes (systems, subsystems, modules)
   - Node types: system, subsystem, module
@@ -166,6 +173,7 @@
   - Fallback: auto-layout if positions endpoint not available
 
 ### Project Scope
+
 - [ ] **`app/org/[orgId]/projects/[projectId]/scope/page.tsx`**
   - Select nodes from org landscape
   - Set scope_role: primary, impacted, out_of_scope
@@ -173,12 +181,14 @@
   - Permission: editor/owner
 
 ### Org Actors
+
 - [ ] **`app/org/[orgId]/actors/page.tsx`**
   - List actors: actor_key, name, kind (persona/system/team/external)
   - CRUD: create/edit actors (owner only)
   - Filter by kind
 
 ### Requirements & Trace
+
 - [ ] **`app/org/[orgId]/projects/[projectId]/requirements/page.tsx`**
   - List requirements by type: BO, BR, FR, NFR
   - Hierarchy: BO → BR → FR; NFR → BO/BR
@@ -198,6 +208,7 @@
 ## 🔧 Additional Tasks
 
 ### Permission Gating (All Pages)
+
 - [ ] Check `profile.role` for admin pages (403 if not admin)
 - [ ] Check `profile.status` for mutations (403 if suspended, show banner)
 - [ ] Check org role (owner/member/partner) for org-level mutations
@@ -205,17 +216,20 @@
 - [ ] Hide mutation buttons for partner/viewer
 
 ### Error Handling
+
 - [ ] All pages handle Problem Details errors properly
 - [ ] Show `request_id` in error toasts/modals for debugging
 - [ ] Branch on `code` for specific conflicts (AI_BATCH_EXPIRED, AI_FEATURE_DISABLED, etc.)
 - [ ] Display field-level errors for 422 validation
 
 ### State Management
+
 - [ ] All pages have loading, empty, error states
 - [ ] Refresh data after mutations
 - [ ] Optimistic updates where appropriate
 
 ### Routing & Navigation
+
 - [ ] Add routes to sidebar/navigation
 - [ ] Breadcrumbs for nested pages
 - [ ] Back buttons where needed
@@ -227,23 +241,28 @@
 ### Code Files Changed/Created
 
 **Types (3 files):**
+
 - ✅ `types/api-enums.ts` - Updated with AI & Traceability enums
 - ✅ `types/ai.ts` - NEW: 365 lines
 - ✅ `types/traceability.ts` - NEW: 244 lines
 
 **Services (3 files):**
+
 - ✅ `services/ai.service.ts` - NEW: 179 lines
 - ✅ `services/admin-ai.service.ts` - NEW: 68 lines
 - ✅ `services/traceability.service.ts` - NEW: 306 lines
 
 **Components (1 file):**
+
 - ✅ `components/shared/ImproveAnswerModal.tsx` - NEW: 274 lines
 
 **Admin Pages (2 files):**
+
 - ✅ `app/admin/ai/page.tsx` - NEW: 227 lines (AI Configs list)
 - ✅ `app/admin/ai/runs/page.tsx` - NEW: 268 lines (AI Runs audit)
 
 **TODO Pages (14 files):**
+
 - [ ] `app/org/[orgId]/projects/[projectId]/sessions/[sessionId]/page.tsx` - Integrate ImproveAnswerModal
 - [ ] `app/org/[orgId]/projects/[projectId]/ai/questions/page.tsx` - Generate Questions
 - [ ] `app/org/[orgId]/projects/[projectId]/ai/impact/page.tsx` - Impact Analysis
@@ -257,6 +276,7 @@
 - [ ] `app/org/[orgId]/projects/[projectId]/trace/page.tsx` - Trace View
 
 **Config (1 file):**
+
 - ✅ `.env.example` - Updated
 
 ---
@@ -264,6 +284,7 @@
 ## 🧪 Manual Testing Checklist (After Full Implementation)
 
 ### AI Features
+
 - [ ] **Improve Answer**
   - [ ] Generate suggestion with/without user instruction
   - [ ] Accept suggestion → answer updated in session
@@ -291,6 +312,7 @@
   - [ ] Accept/reject decisions → creates answer_revisions
 
 ### Admin AI
+
 - [ ] **Configs**
   - [ ] List all configs with correct engines, models
   - [ ] Edit config → update works, validation enforced
@@ -302,6 +324,7 @@
   - [ ] View run details → full payload/output redacted
 
 ### Traceability
+
 - [ ] **Org Landscape**
   - [ ] Create nodes (system/subsystem/module)
   - [ ] Create links (integrates_with, etc.)

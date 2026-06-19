@@ -58,7 +58,13 @@ export { Spacer } from './atoms/Spacer'
 export type { SpacerProps, SpacerSize, SpacerAxis } from './atoms/Spacer'
 
 export { Stack } from './atoms/Stack'
-export type { StackProps, StackDirection, StackSpacing, StackAlign, StackJustify } from './atoms/Stack'
+export type {
+  StackProps,
+  StackDirection,
+  StackSpacing,
+  StackAlign,
+  StackJustify,
+} from './atoms/Stack'
 
 export { Skeleton } from './atoms/Skeleton'
 export type { SkeletonProps, SkeletonVariant } from './atoms/Skeleton'
@@ -84,6 +90,9 @@ export type { TodoListProps, TodoItem, TodoStatus } from './molecules/TodoList'
 
 export { Modal } from './molecules/Modal'
 export type { ModalProps, ModalSize, ModalAction } from './molecules/Modal'
+
+export { ConfirmDialog } from './molecules/ConfirmDialog'
+export type { ConfirmDialogProps } from './molecules/ConfirmDialog'
 
 export { NotificationCard } from './molecules/NotificationCard'
 export type { NotificationCardProps } from './molecules/NotificationCard'

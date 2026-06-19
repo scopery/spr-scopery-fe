@@ -3,9 +3,9 @@
 import { useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { ContentLoader, Typography } from '@/shared/ui'
-import { DocumentHubView } from '@/shared/components/document-hub/DocumentHubView'
-import { useOrg } from '@/hooks/useOrg'
-import { useEffectivePermissions } from '@/hooks/useEffectivePermissions'
+import { DocumentHubView } from '@/modules/documents'
+import { useOrg } from '@/modules/org'
+import { useEffectivePermissions } from '@/modules/permissions'
 import { buildDocumentSpacePermissions } from '@/utils/permissions'
 
 export default function DocumentHubPage() {

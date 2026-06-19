@@ -5,7 +5,11 @@ const SESSION_COOKIE = 'scopery_session'
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60
 
 function getBackendBase(): string {
-  return (process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+  return (
+    process.env.API_INTERNAL_URL ??
+    process.env.NEXT_PUBLIC_API_URL ??
+    'http://localhost:3000'
+  ).replace(/\/$/, '')
 }
 
 function getTargetUrl(request: NextRequest, path: string[]): string {
@@ -79,13 +83,17 @@ async function proxy(request: NextRequest, context: { params: { path: string[] }
       })
     }
 
-    response.cookies.set(SESSION_COOKIE, JSON.stringify({ user: data.user, profile: data.profile }), {
-      httpOnly: false,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: SESSION_MAX_AGE,
-      secure,
-    })
+    response.cookies.set(
+      SESSION_COOKIE,
+      JSON.stringify({ user: data.user, profile: data.profile }),
+      {
+        httpOnly: false,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: SESSION_MAX_AGE,
+        secure,
+      }
+    )
 
     return response
   }

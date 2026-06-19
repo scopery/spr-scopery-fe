@@ -1,4 +1,4 @@
-import { ApiError, getProblemCode } from '@/types/api'
+import { ApiError, getProblemCode } from '@/shared/lib/api-types'
 
 export const JOIN_INVITE_ERROR_BY_CODE: Record<string, string> = {
   INVITE_EXPIRED: 'Invite expired. Ask owner to resend.',

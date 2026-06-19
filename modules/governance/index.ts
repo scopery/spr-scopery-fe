@@ -1,5 +1,4 @@
-/**
- * governance module — placeholder barrel.
- * Business UI, hooks, API adapters, and model types will migrate here module-by-module.
- */
-export {}
+export * from './policy'
+export * from './simulator'
+export * from './preset-preview'
+export * as governanceApi from './policy/api/governance.api'

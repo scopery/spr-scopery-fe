@@ -179,10 +179,7 @@ describe('Checkbox', () => {
   describe('Custom className', () => {
     it('merges custom className', () => {
       render(<Checkbox className="custom-class" />)
-      expect(screen.getByRole('checkbox').parentElement?.parentElement).toHaveClass(
-        'custom-class'
-      )
+      expect(screen.getByRole('checkbox').parentElement?.parentElement).toHaveClass('custom-class')
     })
   })
 })
-

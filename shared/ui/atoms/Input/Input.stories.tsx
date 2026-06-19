@@ -1,6 +1,6 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Mail, Lock, Eye } from 'lucide-react';
-import { Input } from './Input';
+import type { Meta, StoryObj } from '@storybook/react'
+import { Mail, Lock, Eye } from 'lucide-react'
+import { Input } from './Input'
 
 const meta = {
   title: 'Atoms/Input',
@@ -38,16 +38,16 @@ const meta = {
       description: 'Full width input',
     },
   },
-} satisfies Meta<typeof Input>;
+} satisfies Meta<typeof Input>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
     placeholder: 'Enter text...',
   },
-};
+}
 
 export const WithLabel: Story = {
   args: {
@@ -55,26 +55,26 @@ export const WithLabel: Story = {
     placeholder: 'Enter your email',
     type: 'email',
   },
-};
+}
 
 export const EmailWithIcon: Story = {
   args: {
     label: 'Email',
     placeholder: 'Enter your email',
     type: 'email',
-    prefix: <Mail className="w-full h-full" />,
+    prefix: <Mail className="h-full w-full" />,
   },
-};
+}
 
 export const PasswordWithIcons: Story = {
   args: {
     label: 'Password',
     placeholder: 'Enter your password',
     type: 'password',
-    prefix: <Lock className="w-full h-full" />,
-    postfix: <Eye className="w-full h-full" />,
+    prefix: <Lock className="h-full w-full" />,
+    postfix: <Eye className="h-full w-full" />,
   },
-};
+}
 
 export const Required: Story = {
   args: {
@@ -82,7 +82,7 @@ export const Required: Story = {
     placeholder: 'Enter username',
     required: true,
   },
-};
+}
 
 export const WithHelperText: Story = {
   args: {
@@ -91,7 +91,7 @@ export const WithHelperText: Story = {
     placeholder: 'Enter password',
     helperText: 'Must be at least 8 characters',
   },
-};
+}
 
 export const WithError: Story = {
   args: {
@@ -100,7 +100,7 @@ export const WithError: Story = {
     type: 'email',
     error: 'Please enter a valid email address',
   },
-};
+}
 
 export const Success: Story = {
   args: {
@@ -109,7 +109,7 @@ export const Success: Story = {
     state: 'success',
     defaultValue: 'johndoe',
   },
-};
+}
 
 export const Disabled: Story = {
   args: {
@@ -118,7 +118,7 @@ export const Disabled: Story = {
     disabled: true,
     defaultValue: 'Disabled value',
   },
-};
+}
 
 export const Small: Story = {
   args: {
@@ -126,7 +126,7 @@ export const Small: Story = {
     label: 'Small Input',
     placeholder: 'Small input',
   },
-};
+}
 
 export const Medium: Story = {
   args: {
@@ -134,7 +134,7 @@ export const Medium: Story = {
     label: 'Medium Input',
     placeholder: 'Medium input',
   },
-};
+}
 
 export const Large: Story = {
   args: {
@@ -142,7 +142,7 @@ export const Large: Story = {
     label: 'Large Input',
     placeholder: 'Large input',
   },
-};
+}
 
 export const Filled: Story = {
   args: {
@@ -150,7 +150,7 @@ export const Filled: Story = {
     label: 'Filled Variant',
     placeholder: 'Filled variant',
   },
-};
+}
 
 export const FullWidth: Story = {
   args: {
@@ -161,19 +161,18 @@ export const FullWidth: Story = {
   parameters: {
     layout: 'padded',
   },
-};
+}
 
 export const CompleteExample: Story = {
   args: {
     label: 'Email',
     placeholder: 'Enter your email',
     type: 'email',
-    prefix: <Mail className="w-full h-full" />,
+    prefix: <Mail className="h-full w-full" />,
     helperText: 'We will never share your email with anyone else',
     fullWidth: true,
   },
   parameters: {
     layout: 'padded',
   },
-};
-
+}

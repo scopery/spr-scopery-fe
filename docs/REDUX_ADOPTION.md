@@ -4,13 +4,13 @@ Khi chuyển từ bootstrap + guards + session cookie sang Redux, cần cập nh
 
 ## Store slices tối thiểu (chốt)
 
-| Slice | Nội dung |
-|-------|----------|
-| **authSlice** | `session` (access_token, refresh_token, user basic), `profile`, `suspended`, `bootstrapStatus`. Hydrate từ cookie on load. |
-| **orgSlice** | `orgs` list, `defaultOrgId`, `currentOrgId`, `memberships` (role/status per org từ API getOrg/list). |
-| **projectSlice** | `currentProject`, `my_role`, counts (questions_count, answered_count); list per org nếu cần. |
-| **sessionSlice** | Current session detail, **answers draft** (local), `saveStatus`, `progress`. |
-| **uiSlice** | Modals, toasts, global loading (optional; có thể để local state). |
+| Slice            | Nội dung                                                                                                                   |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **authSlice**    | `session` (access_token, refresh_token, user basic), `profile`, `suspended`, `bootstrapStatus`. Hydrate từ cookie on load. |
+| **orgSlice**     | `orgs` list, `defaultOrgId`, `currentOrgId`, `memberships` (role/status per org từ API getOrg/list).                       |
+| **projectSlice** | `currentProject`, `my_role`, counts (questions_count, answered_count); list per org nếu cần.                               |
+| **sessionSlice** | Current session detail, **answers draft** (local), `saveStatus`, `progress`.                                               |
+| **uiSlice**      | Modals, toasts, global loading (optional; có thể để local state).                                                          |
 
 ## Pattern autosave (sessions)
 

@@ -4,8 +4,10 @@ export type TextareaSize = 'sm' | 'md' | 'lg'
 export type TextareaVariant = 'outline' | 'filled'
 export type TextareaResize = 'none' | 'vertical' | 'horizontal' | 'both'
 
-export interface TextareaProps
-  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'size'> {
+export interface TextareaProps extends Omit<
+  React.TextareaHTMLAttributes<HTMLTextAreaElement>,
+  'size'
+> {
   /**
    * Textarea size
    * @default 'md'
@@ -43,4 +45,3 @@ export interface TextareaProps
    */
   fullWidth?: boolean
 }
-

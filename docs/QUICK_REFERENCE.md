@@ -1,3 +1,5 @@
+> **Out of date (2026):** This document references code removed during Safe Dead Code Cleanup (orphan hooks/services/components). See `CLAUDE.md` for current architecture.
+
 # 🚀 Quick Reference Card - AI + Traceability Implementation
 
 **Status:** ✅ **100% COMPLETE**  
@@ -8,6 +10,7 @@
 ## 📁 New Files Created (23 files total)
 
 ### Types (3)
+
 ```
 types/
 ├── api-enums.ts         [UPDATED] - 15+ new enums
@@ -16,6 +19,7 @@ types/
 ```
 
 ### Services (3)
+
 ```
 services/
 ├── ai.service.ts             [NEW] 179 lines - 10 AI functions
@@ -24,6 +28,7 @@ services/
 ```
 
 ### Components (2)
+
 ```
 components/shared/
 ├── ImproveAnswerModal.tsx       [NEW] 274 lines
@@ -31,6 +36,7 @@ components/shared/
 ```
 
 ### Admin AI Pages (5)
+
 ```
 app/admin/ai/
 ├── page.tsx                              [NEW] 227 lines - List configs
@@ -41,12 +47,14 @@ app/admin/ai/
 ```
 
 ### AI Features (1 new)
+
 ```
 app/org/[orgId]/projects/[projectId]/
 └── ai/questions/page.tsx                 [NEW] 180 lines - Generate questions
 ```
 
 ### Traceability Pages (5)
+
 ```
 app/org/[orgId]/
 ├── landscape/page.tsx                    [NEW] 285 lines - Org nodes tree
@@ -62,6 +70,7 @@ app/org/[orgId]/
 ## 🎯 Routes to Test
 
 ### Admin Routes (Admin only)
+
 ```
 /admin/ai                                  List AI configs
 /admin/ai/runs                             Audit logs
@@ -71,16 +80,18 @@ app/org/[orgId]/
 ```
 
 ### AI Features (Editor/Owner)
+
 ```
 /org/[orgId]/projects/[projectId]/ai/questions     Generate questions
 /org/[orgId]/projects/[projectId]/impact           Impact analysis ✅ existing
-/org/[orgId]/projects/[projectId]/sessions/[sessionId]  
+/org/[orgId]/projects/[projectId]/sessions/[sessionId]
     → "AI Improve" button (each question)
     → "Assess Clarity" button
     → "Readiness Summary" tab
 ```
 
 ### Traceability (Per permissions)
+
 ```
 /org/[orgId]/landscape                     Org nodes (owner CRUD)
 /org/[orgId]/actors                        Org actors (owner CRUD)
@@ -94,6 +105,7 @@ app/org/[orgId]/
 ## 🧪 Quick Test Flow
 
 ### 1️⃣ Admin AI (5 min)
+
 ```bash
 # As admin user
 1. Go to /admin/ai
@@ -104,6 +116,7 @@ app/org/[orgId]/
 ```
 
 ### 2️⃣ Generate Questions (10 min)
+
 ```bash
 # As project editor
 1. Go to /org/[orgId]/projects/[projectId]/ai/questions
@@ -117,6 +130,7 @@ app/org/[orgId]/
 ```
 
 ### 3️⃣ Improve Answer (5 min)
+
 ```bash
 # In session detail page
 1. Find answered question
@@ -129,6 +143,7 @@ app/org/[orgId]/
 ```
 
 ### 4️⃣ Traceability Full Flow (15 min)
+
 ```bash
 # As org owner
 1. /org/[orgId]/landscape
@@ -157,43 +172,46 @@ app/org/[orgId]/
 
 ## 🛡️ Permission Quick Check
 
-| Role | Admin AI | AI Features | Landscape/Actors | Scope/Requirements | Trace View |
-|------|----------|-------------|------------------|---------------------|------------|
-| **Admin** | ✅ Full | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes |
-| **Owner** | ❌ No | ✅ Yes | ✅ Full CRUD | ✅ Full CRUD | ✅ Full CRUD |
-| **Member** | ❌ No | ✅ Yes | ❌ Read only | ✅ Edit if project editor | ✅ Edit if editor |
-| **Partner** | ❌ No | ❌ No | ❌ Read only | ❌ Read only | ❌ Read only |
-| **Viewer** | ❌ No | ❌ No (except clarity summary) | ❌ Read only | ❌ Read only | ✅ Read only |
+| Role        | Admin AI | AI Features                    | Landscape/Actors | Scope/Requirements        | Trace View        |
+| ----------- | -------- | ------------------------------ | ---------------- | ------------------------- | ----------------- |
+| **Admin**   | ✅ Full  | ✅ Yes                         | ✅ Yes           | ✅ Yes                    | ✅ Yes            |
+| **Owner**   | ❌ No    | ✅ Yes                         | ✅ Full CRUD     | ✅ Full CRUD              | ✅ Full CRUD      |
+| **Member**  | ❌ No    | ✅ Yes                         | ❌ Read only     | ✅ Edit if project editor | ✅ Edit if editor |
+| **Partner** | ❌ No    | ❌ No                          | ❌ Read only     | ❌ Read only              | ❌ Read only      |
+| **Viewer**  | ❌ No    | ❌ No (except clarity summary) | ❌ Read only     | ❌ Read only              | ✅ Read only      |
 
 ---
 
 ## 🔥 Error Codes Reference
 
 ### AI Errors (409/502)
-| Code | Status | Message | Fix |
-|------|--------|---------|-----|
-| `AI_FEATURE_DISABLED` | 409 | Feature tắt | Admin enable trong config |
-| `AI_WORKFLOW_ID_REQUIRED` | 409 | Missing workflow_id | Admin set trong config |
-| `AI_BATCH_EXPIRED` | 409 | Batch hết hạn | Regenerate batch mới |
-| `AI_PROVIDER_ERROR` | 502 | OpenAI error | Check BE logs, API key |
-| `AI_OUTPUT_NOT_JSON` | 502 | Invalid output | Retry hoặc check workflow |
+
+| Code                      | Status | Message             | Fix                       |
+| ------------------------- | ------ | ------------------- | ------------------------- |
+| `AI_FEATURE_DISABLED`     | 409    | Feature tắt         | Admin enable trong config |
+| `AI_WORKFLOW_ID_REQUIRED` | 409    | Missing workflow_id | Admin set trong config    |
+| `AI_BATCH_EXPIRED`        | 409    | Batch hết hạn       | Regenerate batch mới      |
+| `AI_PROVIDER_ERROR`       | 502    | OpenAI error        | Check BE logs, API key    |
+| `AI_OUTPUT_NOT_JSON`      | 502    | Invalid output      | Retry hoặc check workflow |
 
 ### Traceability Errors (409)
-| Code | Message | Fix |
-|------|---------|-----|
-| `NODE_CODE_EXISTS` | Mã node trùng | Use different code |
-| `NODE_HAS_CHILDREN` | Node có children | Archive children first |
-| `NODE_IN_USE` | Node đang dùng | Remove from scope/requirements |
-| `ACTOR_KEY_EXISTS` | Mã actor trùng | Use different key |
-| `REQ_CODE_EXISTS` | Mã requirement trùng | Use different code |
-| `TRACE_LINK_EXISTS` | Link trùng | Existing link already created |
-| `SCOPE_NODE_WRONG_ORG` | Node wrong org | Reload page |
+
+| Code                   | Message              | Fix                            |
+| ---------------------- | -------------------- | ------------------------------ |
+| `NODE_CODE_EXISTS`     | Mã node trùng        | Use different code             |
+| `NODE_HAS_CHILDREN`    | Node có children     | Archive children first         |
+| `NODE_IN_USE`          | Node đang dùng       | Remove from scope/requirements |
+| `ACTOR_KEY_EXISTS`     | Mã actor trùng       | Use different key              |
+| `REQ_CODE_EXISTS`      | Mã requirement trùng | Use different code             |
+| `TRACE_LINK_EXISTS`    | Link trùng           | Existing link already created  |
+| `SCOPE_NODE_WRONG_ORG` | Node wrong org       | Reload page                    |
 
 ---
 
 ## 💡 Common Workflows
 
 ### Workflow 1: AI-Assisted Question Creation
+
 ```
 1. Create project from template
 2. Create session, answer some questions
@@ -205,6 +223,7 @@ app/org/[orgId]/
 ```
 
 ### Workflow 2: Improve All Answers
+
 ```
 1. Open session with answers
 2. For each question:
@@ -217,6 +236,7 @@ app/org/[orgId]/
 ```
 
 ### Workflow 3: Complete Traceability
+
 ```
 1. Admin: Setup org landscape (systems, subsystems, modules)
 2. Admin: Create org actors (personas, systems, teams)
@@ -232,6 +252,7 @@ app/org/[orgId]/
 ## 📊 API Endpoints Summary
 
 ### AI Features (10 endpoints)
+
 ```
 POST   /orgs/:orgId/projects/:projectId/sessions/:sessionId/ai/improve
 POST   /orgs/:orgId/projects/:projectId/sessions/:sessionId/ai/improve/commit
@@ -246,6 +267,7 @@ POST   /orgs/:orgId/projects/:projectId/ai/impact-analysis/commit
 ```
 
 ### Admin AI (5 endpoints)
+
 ```
 GET    /admin/ai/configs
 PATCH  /admin/ai/configs/:purpose
@@ -255,6 +277,7 @@ GET    /admin/ai/runs/:runId
 ```
 
 ### Traceability (17 endpoints)
+
 ```
 # Org Nodes
 GET    /orgs/:orgId/nodes
@@ -293,6 +316,7 @@ DELETE /orgs/:orgId/projects/:projectId/trace-links/:linkId
 ## 🎨 Component Usage Examples
 
 ### Import Pattern
+
 ```typescript
 import { Button } from '@/components/atoms/Button/Button'
 import { Typography } from '@/components/atoms/Typography/Typography'
@@ -303,6 +327,7 @@ import { getProblemToastMessage, isConflictCode } from '@/lib/errorHandling'
 ```
 
 ### Service Call Pattern
+
 ```typescript
 try {
   const result = await aiService.improveAnswer(orgId, projectId, sessionId, payload)
@@ -315,7 +340,7 @@ try {
     const message = getProblemToastMessage(err)
     const requestId = getProblemRequestId(err)
     toast.error(message, {
-      description: requestId ? `Request ID: ${requestId}` : undefined
+      description: requestId ? `Request ID: ${requestId}` : undefined,
     })
   }
 }
@@ -347,24 +372,28 @@ npm run format
 ## 📞 Troubleshooting
 
 ### Page không load (blank/error)
+
 1. Check console errors
 2. Verify route params (orgId, projectId, sessionId)
 3. Check auth context (useAuth, useOrg)
 4. Verify API URL trong .env
 
 ### API calls fail
+
 1. Check Network tab trong DevTools
 2. Verify Authorization header có access_token
 3. Check response body (Problem Details)
 4. Note down request_id
 
 ### Permission errors (403)
+
 1. Check profile.role (admin/user)
 2. Check org role (owner/member/partner)
 3. Check project role (editor/viewer)
 4. Check profile.status (active/suspended)
 
 ### AI errors (502)
+
 1. Check BE logs cho error_detail
 2. Verify OPENAI_API_KEY configured trên BE
 3. Check workflow_id valid (nếu dùng workflow_api)
@@ -383,6 +412,7 @@ npm run format
 - ✅ Documentation complete
 
 ### TODO (Post-Implementation)
+
 - [ ] Add routes to navigation/sidebar
 - [ ] Manual testing (8-10h)
 - [ ] Bug fixes from testing (4-6h)
@@ -395,12 +425,14 @@ npm run format
 ## 🎊 You're Done!
 
 **All code implemented. Chỉ cần:**
+
 1. Test manually theo checklist trong `docs/DELIVERABLES.md`
 2. Fix bugs nếu có
 3. Add navigation links
 4. Deploy! 🚀
 
 **For detailed guides:**
+
 - Implementation status: `docs/IMPLEMENTATION_COMPLETE.md`
 - Code patterns: `docs/IMPLEMENTATION_GUIDE.md`
 - Testing checklist: `docs/DELIVERABLES.md`

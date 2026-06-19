@@ -69,10 +69,10 @@ describe('Modal', () => {
         <div>Content</div>
       </Modal>
     )
-    
+
     const closeButton = screen.getByLabelText('Close modal')
     await user.click(closeButton)
-    
+
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
@@ -83,7 +83,7 @@ describe('Modal', () => {
         <div>Content</div>
       </Modal>
     )
-    
+
     // Find the overlay (the Box with backdrop)
     const overlay = container.querySelector('[aria-modal="true"]')
     if (overlay) {
@@ -101,10 +101,10 @@ describe('Modal', () => {
         <div>Content</div>
       </Modal>
     )
-    
+
     const content = screen.getByText('Content')
     await user.click(content)
-    
+
     expect(onClose).not.toHaveBeenCalled()
   })
 
@@ -115,7 +115,7 @@ describe('Modal', () => {
         <div>Content</div>
       </Modal>
     )
-    
+
     fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
   })
@@ -130,7 +130,7 @@ describe('Modal', () => {
         <div>Content</div>
       </Modal>
     )
-    
+
     expect(screen.getByText('Cancel')).toBeInTheDocument()
     expect(screen.getByText('Confirm')).toBeInTheDocument()
   })
@@ -138,18 +138,16 @@ describe('Modal', () => {
   it('calls action onClick when button is clicked', async () => {
     const user = userEvent.setup()
     const handleConfirm = vi.fn()
-    const actions = [
-      { label: 'Confirm', onClick: handleConfirm },
-    ]
+    const actions = [{ label: 'Confirm', onClick: handleConfirm }]
     render(
       <Modal open={true} onClose={() => {}} actions={actions}>
         <div>Content</div>
       </Modal>
     )
-    
+
     const confirmButton = screen.getByText('Confirm')
     await user.click(confirmButton)
-    
+
     expect(handleConfirm).toHaveBeenCalledTimes(1)
   })
 
@@ -196,4 +194,3 @@ describe('Modal', () => {
     expect(document.body.style.overflow).toBe('')
   })
 })
-

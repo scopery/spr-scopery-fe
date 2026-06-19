@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import { Box } from '@/shared/ui/atoms/Box'
 import { Stack } from '@/shared/ui/atoms/Stack'
 import { Typography } from '@/shared/ui/atoms/Typography'
@@ -60,7 +60,7 @@ export const UserProfileCard = React.forwardRef(
               <Typography variant="small" weight="semibold" className="text-neutral-900">
                 {name}
               </Typography>
-              <Typography variant="small" className="text-neutral-600 text-xs uppercase">
+              <Typography variant="small" className="text-xs uppercase text-neutral-600">
                 {title}
               </Typography>
             </Stack>
@@ -83,4 +83,3 @@ export const UserProfileCard = React.forwardRef(
 )
 
 UserProfileCard.displayName = 'UserProfileCard'
-

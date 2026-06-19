@@ -5,11 +5,12 @@ Quick verification steps to confirm the AI Orchestration Layer is working correc
 ## Pre-requisites
 
 1. Database migration applied:
+
    ```bash
    # Check if tables exist
-   SELECT tablename FROM pg_tables WHERE schemaname = 'public' 
+   SELECT tablename FROM pg_tables WHERE schemaname = 'public'
    AND tablename IN ('ai_configs', 'ai_orchestrator_runs');
-   
+
    # Verify seed data
    SELECT purpose, enabled, primary_engine FROM ai_configs;
    ```
@@ -25,6 +26,7 @@ Quick verification steps to confirm the AI Orchestration Layer is working correc
 ### 1. Admin APIs (Manual)
 
 #### List Configs
+
 ```bash
 curl -X GET http://localhost:3000/api/v2/admin/ai/configs \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
@@ -33,6 +35,7 @@ curl -X GET http://localhost:3000/api/v2/admin/ai/configs \
 **Expected:** 200, `{ items: [ ... ] }` with 4 purposes
 
 #### Update Config
+
 ```bash
 curl -X PATCH http://localhost:3000/api/v2/admin/ai/configs/improve_answer \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
@@ -43,6 +46,7 @@ curl -X PATCH http://localhost:3000/api/v2/admin/ai/configs/improve_answer \
 **Expected:** 200, updated config row
 
 #### Test Run
+
 ```bash
 curl -X POST http://localhost:3000/api/v2/admin/ai/configs/improve_answer/test-run \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
@@ -66,6 +70,7 @@ curl -X POST http://localhost:3000/api/v2/admin/ai/configs/improve_answer/test-r
 **Expected:** 200, `{ run_id, engine_used, output: { proposed_value, ... } }`
 
 #### List Runs
+
 ```bash
 curl -X GET http://localhost:3000/api/v2/admin/ai/runs?limit=10 \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
@@ -80,6 +85,7 @@ npm test aiOrchestrator.test.ts
 ```
 
 **Expected:** All tests pass
+
 - Admin permission checks (403 for non-admin)
 - Config validation (422 for workflow_api without workflow_id)
 - Response contracts (batch_token, proposal, run_id)
@@ -87,6 +93,7 @@ npm test aiOrchestrator.test.ts
 ### 3. Integration Tests
 
 #### Improve Answer (via Orchestrator)
+
 ```bash
 # 1. Create org, project, session (omitted for brevity)
 # 2. Call improve answer
@@ -99,21 +106,24 @@ curl -X POST http://localhost:3000/api/v2/orgs/:orgId/projects/:projectId/sessio
 ```
 
 **Expected:**
+
 - 200 response
 - Body has: `batch_token`, `proposed_value`, `proposal`, `run_id`
 - `proposal` has: `question_id`, `proposed_value`, `diff_summary`, `rationale`, `confidence`
 
 **DB Check:**
+
 ```sql
-SELECT purpose, engine_used, status, latency_ms 
-FROM ai_orchestrator_runs 
-WHERE purpose = 'improve_answer' 
+SELECT purpose, engine_used, status, latency_ms
+FROM ai_orchestrator_runs
+WHERE purpose = 'improve_answer'
 ORDER BY created_at DESC LIMIT 1;
 ```
 
 **Expected:** 1 row, status = 'success' or 'fallback_success'
 
 #### QGen Generate (Engine Param)
+
 ```bash
 # Force legacy engine
 curl -X POST .../ai/questions/generate \
@@ -131,6 +141,7 @@ curl -X POST .../ai/questions/generate \
 **Expected:** Uses agents_sdk or workflow_api per ai_configs
 
 #### Clarity Assess-One
+
 ```bash
 curl -X POST .../sessions/:sessionId/ai/clarity/assess-one \
   -d '{
@@ -144,10 +155,12 @@ curl -X POST .../sessions/:sessionId/ai/clarity/assess-one \
 ```
 
 **Expected:**
+
 - 200, `{ question_order, assessment: { clarity_score, ... } }`
 - OR 409 AI_FEATURE_DISABLED if disabled in ai_configs
 
 #### Impact Analysis
+
 ```bash
 curl -X POST .../projects/:projectId/ai/impact-analysis \
   -d '{
@@ -157,6 +170,7 @@ curl -X POST .../projects/:projectId/ai/impact-analysis \
 ```
 
 **Expected:**
+
 - 200, `{ batch_token, proposals: [...] }`
 - Run logged with purpose='impact_analysis'
 
@@ -165,6 +179,7 @@ curl -X POST .../projects/:projectId/ai/impact-analysis \
 ### Config Validation
 
 #### Missing workflow_id for workflow_api
+
 ```bash
 curl -X PATCH .../admin/ai/configs/clarity_assess_one \
   -d '{ "primary_engine": "workflow_api", "workflow_id": null }'
@@ -173,6 +188,7 @@ curl -X PATCH .../admin/ai/configs/clarity_assess_one \
 **Expected:** 422 VALIDATION_ERROR, errors array mentions workflow_id
 
 #### Invalid agent_entry
+
 ```bash
 curl -X PATCH .../admin/ai/configs/improve_answer \
   -d '{ "primary_engine": "agents_sdk", "agent_entry": "invalid_key" }'
@@ -197,10 +213,10 @@ curl -X POST .../ai/clarity/assess-one -d '{ ... }'
 
 ```sql
 -- Set fallback for improve_answer
-UPDATE ai_configs 
-SET primary_engine = 'workflow_api', 
-    workflow_id = 'invalid_workflow_id', 
-    fallback_engine = 'legacy_chat' 
+UPDATE ai_configs
+SET primary_engine = 'workflow_api',
+    workflow_id = 'invalid_workflow_id',
+    fallback_engine = 'legacy_chat'
 WHERE purpose = 'improve_answer';
 ```
 
@@ -209,6 +225,7 @@ curl -X POST .../ai/improve -d '{ ... }'
 ```
 
 **Expected:**
+
 - 200 (fallback to legacy_chat works)
 - `ai_orchestrator_runs.status = 'fallback_success'`
 - `ai_orchestrator_runs.engine_used = 'legacy_chat'`
@@ -216,13 +233,14 @@ curl -X POST .../ai/improve -d '{ ... }'
 ## Error Handling Verification
 
 ### 502 AI_OUTPUT_NOT_JSON
+
 Use invalid workflow_id (returns non-JSON):
 
 ```sql
-UPDATE ai_configs 
-SET primary_engine = 'workflow_api', 
-    workflow_id = 'wf_invalid', 
-    fallback_engine = null 
+UPDATE ai_configs
+SET primary_engine = 'workflow_api',
+    workflow_id = 'wf_invalid',
+    fallback_engine = null
 WHERE purpose = 'improve_answer';
 ```
 
@@ -233,12 +251,13 @@ curl -X POST .../ai/improve -d '{ ... }'
 **Expected:** 502, type contains `ai-bad-output`, code = `AI_OUTPUT_NOT_JSON` or `AI_PROVIDER_ERROR`
 
 ### 409 AI_WORKFLOW_ID_REQUIRED
+
 Runtime check:
 
 ```sql
-UPDATE ai_configs 
-SET primary_engine = 'workflow_api', 
-    workflow_id = '' 
+UPDATE ai_configs
+SET primary_engine = 'workflow_api',
+    workflow_id = ''
 WHERE purpose = 'improve_answer';
 ```
 
@@ -251,14 +270,15 @@ curl -X POST .../ai/improve -d '{ ... }'
 ## Redaction Verification
 
 ```sql
-SELECT 
-  payload_redacted, 
-  output_redacted 
-FROM ai_orchestrator_runs 
+SELECT
+  payload_redacted,
+  output_redacted
+FROM ai_orchestrator_runs
 ORDER BY created_at DESC LIMIT 1;
 ```
 
 **Expected:**
+
 - No raw answer text in `payload_redacted`
 - Only metadata: `{ question_id: "...", current_value: { _len: 123 } }`
 - No full note text
@@ -268,18 +288,19 @@ ORDER BY created_at DESC LIMIT 1;
 
 ```sql
 -- Check run latency
-SELECT 
-  purpose, 
-  engine_used, 
-  AVG(latency_ms) as avg_ms, 
+SELECT
+  purpose,
+  engine_used,
+  AVG(latency_ms) as avg_ms,
   MAX(latency_ms) as max_ms,
   COUNT(*) as runs
-FROM ai_orchestrator_runs 
+FROM ai_orchestrator_runs
 WHERE created_at > NOW() - INTERVAL '1 day'
 GROUP BY purpose, engine_used;
 ```
 
 **Expected:**
+
 - legacy_chat: 2-10s avg
 - workflow_api: 5-20s avg (depends on workflow)
 - agents_sdk: 5-30s avg (QGen v2 reasoning)
@@ -287,23 +308,25 @@ GROUP BY purpose, engine_used;
 ## Monitoring Queries
 
 ### Error Rate
+
 ```sql
-SELECT 
+SELECT
   purpose,
   status,
   COUNT(*) as count
-FROM ai_orchestrator_runs 
+FROM ai_orchestrator_runs
 WHERE created_at > NOW() - INTERVAL '1 day'
 GROUP BY purpose, status
 ORDER BY purpose, status;
 ```
 
 ### Fallback Usage
+
 ```sql
-SELECT 
+SELECT
   purpose,
   COUNT(*) as fallback_count
-FROM ai_orchestrator_runs 
+FROM ai_orchestrator_runs
 WHERE status = 'fallback_success'
   AND created_at > NOW() - INTERVAL '7 days'
 GROUP BY purpose;
@@ -312,17 +335,18 @@ GROUP BY purpose;
 **Interpretation:** High fallback_count → primary engine unreliable
 
 ### Recent Failures
+
 ```sql
-SELECT 
+SELECT
   id,
   purpose,
   engine_used,
   error_code,
   error_detail,
   created_at
-FROM ai_orchestrator_runs 
+FROM ai_orchestrator_runs
 WHERE status = 'failed'
-ORDER BY created_at DESC 
+ORDER BY created_at DESC
 LIMIT 20;
 ```
 
@@ -331,6 +355,7 @@ LIMIT 20;
 All checks passing → AI Orchestration Layer is operational.
 
 **Common Issues:**
+
 1. **OPENAI_API_KEY not set** → 502 AI_PROVIDER_ERROR (401 upstream)
 2. **Redis not running** → Batch commit fails (improve/qgen/impact)
 3. **Migration not applied** → Table not found errors
@@ -338,6 +363,7 @@ All checks passing → AI Orchestration Layer is operational.
 5. **Agents SDK not installed** → Import error (agents_sdk engine fails)
 
 **Debug Steps:**
+
 1. Check `ai_orchestrator_runs` for error_code and error_detail
 2. Enable `AI_LOG_PROMPT=true` (dev only) for full prompt logging
 3. Verify ai_configs row exists and enabled=true

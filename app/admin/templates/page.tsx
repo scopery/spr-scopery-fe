@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation'
 import { Plus, Eye, Pencil, Copy, CircleArrowOutUpLeft } from 'lucide-react'
 import { Typography, Button, Badge, ContentLoader, Spinner, Select, Input } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import * as templateService from '@/services/template.service'
-import { useAdminTemplates } from '@/hooks/useAdminTemplates'
+import { adminTemplatesApi } from '@/modules/admin'
+import { useAdminTemplates } from '@/modules/admin'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 
@@ -54,7 +54,7 @@ export default function AdminTemplatesPage() {
   const handleDuplicate = async (templateId: string) => {
     setDuplicatingId(templateId)
     try {
-      const created = await templateService.duplicateTemplate(templateId)
+      const created = await adminTemplatesApi.duplicateTemplate(templateId)
       toast.success('Template duplicated')
       await loadTemplates()
       if (created?.id) {
@@ -68,12 +68,12 @@ export default function AdminTemplatesPage() {
   }
 
   return (
-    <div className="p-6 mx-auto">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div className="mx-auto p-6">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <Link
             href="/"
-            className="inline-flex items-center gap-1 text-primary hover:underline mb-2"
+            className="mb-2 inline-flex items-center gap-1 text-primary hover:underline"
           >
             <CircleArrowOutUpLeft size={20} />
           </Link>
@@ -95,9 +95,9 @@ export default function AdminTemplatesPage() {
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-4 mb-4">
+      <div className="mb-4 flex flex-wrap gap-4">
         <div className="min-w-[180px]">
-          <label className="block text-sm text-neutral-700 mb-2">Status</label>
+          <label className="mb-2 block text-sm text-neutral-700">Status</label>
           <Select
             options={STATUS_OPTIONS}
             value={statusFilter}
@@ -106,7 +106,7 @@ export default function AdminTemplatesPage() {
             size="sm"
           />
         </div>
-        <div className="flex-1 min-w-[200px]">
+        <div className="min-w-[200px] flex-1">
           <Input
             type="search"
             label="Search by name"
@@ -132,7 +132,7 @@ export default function AdminTemplatesPage() {
                 <th className="px-4 py-3 text-sm font-normal text-neutral-700">Version</th>
                 <th className="px-4 py-3 text-sm font-normal text-neutral-700">Status</th>
                 <th className="px-4 py-3 text-sm font-normal text-neutral-700">Created at</th>
-                <th className="px-4 py-3 text-sm font-normal text-neutral-700 w-40">Actions</th>
+                <th className="w-40 px-4 py-3 text-sm font-normal text-neutral-700">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -144,7 +144,10 @@ export default function AdminTemplatesPage() {
                 </tr>
               ) : (
                 filtered.map((t) => (
-                  <tr key={t.id} className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50/50">
+                  <tr
+                    key={t.id}
+                    className="hover:bg-neutral-50/50 border-b border-neutral-100 last:border-0"
+                  >
                     <td className="px-4 py-3">
                       <Link
                         href={ROUTES.admin.template(t.id)}
@@ -194,11 +197,7 @@ export default function AdminTemplatesPage() {
                           className="gap-1"
                           aria-label="Duplicate template"
                         >
-                          {duplicatingId === t.id ? (
-                            <Spinner size="sm" />
-                          ) : (
-                            <Copy size={14} />
-                          )}
+                          {duplicatingId === t.id ? <Spinner size="sm" /> : <Copy size={14} />}
                           Duplicate
                         </Button>
                       </div>

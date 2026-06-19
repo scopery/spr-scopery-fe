@@ -24,7 +24,7 @@ function HomeContent() {
   }, [router, searchParams])
 
   return (
-    <main className="min-h-screen flex items-center justify-center">
+    <main className="flex min-h-screen items-center justify-center">
       <ContentLoader variant="easeOut" className="w-20" />
     </main>
   )
@@ -32,11 +32,13 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={
-      <main className="min-h-screen flex items-center justify-center">
-        <ContentLoader variant="easeOut" className="w-20" />
-      </main>
-    }>
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center">
+          <ContentLoader variant="easeOut" className="w-20" />
+        </main>
+      }
+    >
       <HomeContent />
     </Suspense>
   )

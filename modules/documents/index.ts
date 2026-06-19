@@ -1,5 +1,15 @@
-/**
- * documents module — placeholder barrel.
- * Business UI, hooks, API adapters, and model types will migrate here module-by-module.
- */
-export {}
+/** Public facade — app imports only from here. */
+export * from './document'
+export * from './document-templates'
+export * from './document-links'
+export * from './deliverables'
+export * from './evidence-documents'
+export * from './document-hub'
+export * from './project-sections'
+
+export * as projectDocumentsApi from './project-sections/api/project-documents.api'
+export * as documentTemplatesApi from './document-templates/api/document-templates.api'
+export * as documentLinksApi from './document-links/api/document-links.api'
+export * as deliverablesApi from './deliverables/api/deliverables.api'
+export * as documentsApi from './document/api/documents.api'
+export * as documentExportApi from './document-export/api/document-export.api'

@@ -1,4 +1,4 @@
-import { PolymorphicComponentPropWithRef } from '@/utils'
+import { PolymorphicComponentPropWithRef } from '@/utils/polymorphic'
 
 export type LinkVariant = 'default' | 'primary' | 'muted' | 'underline'
 export type LinkSize = 'sm' | 'md' | 'lg'
@@ -28,4 +28,3 @@ export type LinkProps<C extends React.ElementType = 'a'> = PolymorphicComponentP
     disabled?: boolean
   }
 >
-

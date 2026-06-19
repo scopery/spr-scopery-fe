@@ -2,10 +2,10 @@
 
 import { useParams } from 'next/navigation'
 import { ContentLoader, Typography } from '@/shared/ui'
-import { useAuth } from '@/contexts/AuthContext'
-import { TemplateEditor } from '@/shared/components/document-templates/TemplateEditor'
+import { useAuth } from '@/modules/auth'
+import { TemplateEditor } from '@/modules/documents'
 import { ROUTES } from '@/constants/routes'
-import { useDocumentTemplateDetail } from '@/hooks/useDocumentTemplates'
+import { useDocumentTemplateDetail } from '@/modules/documents'
 
 export default function EditTemplatePage() {
   const params = useParams()
@@ -13,7 +13,11 @@ export default function EditTemplatePage() {
   const templateId = (params?.templateId as string) ?? ''
   const { profile } = useAuth()
 
-  const { template, loading, refetch: refetchTemplate } = useDocumentTemplateDetail(orgId || null, templateId || null)
+  const {
+    template,
+    loading,
+    refetch: refetchTemplate,
+  } = useDocumentTemplateDetail(orgId || null, templateId || null)
 
   if (loading) {
     return (
@@ -28,7 +32,7 @@ export default function EditTemplatePage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="mx-auto max-w-5xl">
       <TemplateEditor
         orgId={orgId}
         template={template}
@@ -36,7 +40,9 @@ export default function EditTemplatePage() {
         userId={profile?.user_id}
         userRole={profile?.role}
         backHref={ROUTES.org.settingsTemplates(orgId)}
-        onSaved={() => { void refetchTemplate() }}
+        onSaved={() => {
+          void refetchTemplate()
+        }}
       />
     </div>
   )

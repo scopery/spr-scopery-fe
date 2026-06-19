@@ -1,4 +1,4 @@
-import { PolymorphicComponentPropWithRef } from '@/utils'
+import { PolymorphicComponentPropWithRef } from '@/utils/polymorphic'
 
 export type UserProfileCardProps<C extends React.ElementType = 'div'> =
   PolymorphicComponentPropWithRef<
@@ -32,4 +32,3 @@ export type UserProfileCardProps<C extends React.ElementType = 'div'> =
       cardShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl'
     }
   >
-

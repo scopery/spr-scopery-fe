@@ -12,8 +12,8 @@
  *   Auth bootstrap is satisfied by seeding a mock session cookie on first load.
  */
 
-import type { ProblemDetails } from '@/types/api'
-import { ApiError } from '@/types/api'
+import type { ProblemDetails } from '@/shared/lib/api-types'
+import { ApiError } from '@/shared/lib/api-types'
 import { isMockMode, MOCK_DELAY_MS } from './dataMode'
 import { resolveMock, MOCK_SESSION_COOKIE_VALUE } from '../../mocks'
 
@@ -82,11 +82,17 @@ function getCookie(name: string): string | null {
 function setCookie(
   name: string,
   value: string,
-  options: { maxAge?: number; path?: string; secure?: boolean; sameSite?: 'Lax' | 'Strict' | 'None' } = {}
+  options: {
+    maxAge?: number
+    path?: string
+    secure?: boolean
+    sameSite?: 'Lax' | 'Strict' | 'None'
+  } = {}
 ): void {
   if (typeof document === 'undefined') return
   const { maxAge = SESSION_MAX_AGE, path = '/', sameSite = 'Lax' } = options
-  const secure = options.secure ?? (typeof window !== 'undefined' && window.location?.protocol === 'https:')
+  const secure =
+    options.secure ?? (typeof window !== 'undefined' && window.location?.protocol === 'https:')
   const parts = [
     encodeURIComponent(name) + '=' + encodeURIComponent(value),
     'path=' + path,
@@ -116,7 +122,11 @@ export function getAccessToken(): string | null {
 }
 
 /** Read full session from cookie (for AuthContext). */
-export function getSessionFromCookie(): { accessToken?: string; refreshToken?: string; user: unknown } | null {
+export function getSessionFromCookie(): {
+  accessToken?: string
+  refreshToken?: string
+  user: unknown
+} | null {
   if (typeof window === 'undefined') return null
   try {
     const raw = getCookie(SESSION_COOKIE_NAME)
@@ -192,7 +202,10 @@ function parseProblemDetails(body: unknown, status: number): ProblemDetails {
     type: 'about:blank',
     title: 'Request failed',
     status,
-    detail: typeof body === 'object' && body !== null && 'detail' in body ? String((body as Record<string, unknown>).detail) : `HTTP ${status}`,
+    detail:
+      typeof body === 'object' && body !== null && 'detail' in body
+        ? String((body as Record<string, unknown>).detail)
+        : `HTTP ${status}`,
   }
 }
 

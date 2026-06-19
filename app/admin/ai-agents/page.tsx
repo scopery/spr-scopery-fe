@@ -7,11 +7,8 @@ import { CircleArrowOutUpLeft } from 'lucide-react'
 import { Typography, Button, ContentLoader, Input } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { FEATURES } from '@/config/features'
-import {
-  AIAgentStatusBadge,
-  formatEstimatedCost,
-} from '@/shared/components/ai-agent-control/ai-agent-badges'
-import { useAiAgentsList } from '@/hooks/useAiAgents'
+import { AIAgentStatusBadge, formatEstimatedCost } from '@/modules/admin'
+import { useAiAgentsList } from '@/modules/admin'
 
 export default function AdminAIAgentsPage() {
   const router = useRouter()
@@ -47,10 +44,7 @@ export default function AdminAIAgentsPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <div className="mb-6">
-        <Link
-          href="/"
-          className="mb-2 inline-flex items-center gap-1 text-primary hover:underline"
-        >
+        <Link href="/" className="mb-2 inline-flex items-center gap-1 text-primary hover:underline">
           <CircleArrowOutUpLeft size={20} />
         </Link>
         <Typography as="h1" size="xl" weight="bold">
@@ -73,7 +67,7 @@ export default function AdminAIAgentsPage() {
             },
           ].map((card) => (
             <div key={card.label} className="rounded-lg border border-neutral-200 bg-white p-4">
-              <Typography variant="xs" className="mb-1 text-neutral-500 uppercase">
+              <Typography variant="xs" className="mb-1 uppercase text-neutral-500">
                 {card.label}
               </Typography>
               <Typography variant="lg" className="font-semibold">
@@ -146,9 +140,7 @@ export default function AdminAIAgentsPage() {
                     )}
                   </td>
                   <td className="px-4 py-3">{agent.runsThisMonth}</td>
-                  <td className="px-4 py-3">
-                    {formatEstimatedCost(agent.costThisMonth, 'USD')}
-                  </td>
+                  <td className="px-4 py-3">{formatEstimatedCost(agent.costThisMonth, 'USD')}</td>
                   <td className="px-4 py-3">
                     {agent.lastRunAt ? new Date(agent.lastRunAt).toLocaleString() : '—'}
                   </td>

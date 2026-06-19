@@ -35,4 +35,3 @@ export interface ProgressProps extends Omit<React.HTMLAttributes<HTMLDivElement>
    */
   indeterminate?: boolean
 }
-

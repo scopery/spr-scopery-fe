@@ -1,5 +1,4 @@
-/**
- * org module — placeholder barrel.
- * Business UI, hooks, API adapters, and model types will migrate here module-by-module.
- */
-export {}
+export * from './org'
+export * from './invites'
+export * as orgApi from './org/api/org.api'
+export * as orgInvitesApi from './invites/api/org-invites.api'

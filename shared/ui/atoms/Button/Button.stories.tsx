@@ -1,6 +1,6 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Star, ChevronRight, X } from 'lucide-react';
-import { Button } from './Button';
+import type { Meta, StoryObj } from '@storybook/react'
+import { Star, ChevronRight, X } from 'lucide-react'
+import { Button } from './Button'
 
 const meta = {
   title: 'Atoms/Button',
@@ -38,10 +38,10 @@ const meta = {
       description: 'Full width button',
     },
   },
-} satisfies Meta<typeof Button>;
+} satisfies Meta<typeof Button>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 // Basic variants
 export const Primary: Story = {
@@ -49,28 +49,28 @@ export const Primary: Story = {
     children: 'Primary Button',
     variant: 'primary',
   },
-};
+}
 
 export const Secondary: Story = {
   args: {
     children: 'Secondary Button',
     variant: 'secondary',
   },
-};
+}
 
 export const Outline: Story = {
   args: {
     children: 'Outline Button',
     variant: 'outline',
   },
-};
+}
 
 export const Ghost: Story = {
   args: {
     children: 'Ghost Button',
     variant: 'ghost',
   },
-};
+}
 
 export const Glass: Story = {
   args: {
@@ -82,7 +82,7 @@ export const Glass: Story = {
       default: 'dark',
     },
   },
-};
+}
 
 // Sizes
 export const Small: Story = {
@@ -90,21 +90,21 @@ export const Small: Story = {
     children: 'Small Button',
     size: 'sm',
   },
-};
+}
 
 export const Medium: Story = {
   args: {
     children: 'Medium Button',
     size: 'md',
   },
-};
+}
 
 export const Large: Story = {
   args: {
     children: 'Large Button',
     size: 'lg',
   },
-};
+}
 
 // Tones
 export const Success: Story = {
@@ -112,21 +112,21 @@ export const Success: Story = {
     children: 'Success',
     tone: 'success',
   },
-};
+}
 
 export const Warning: Story = {
   args: {
     children: 'Warning',
     tone: 'warning',
   },
-};
+}
 
 export const Error: Story = {
   args: {
     children: 'Error',
     tone: 'error',
   },
-};
+}
 
 // States
 export const Disabled: Story = {
@@ -134,14 +134,14 @@ export const Disabled: Story = {
     children: 'Disabled Button',
     disabled: true,
   },
-};
+}
 
 export const Loading: Story = {
   args: {
     children: 'Loading Button',
     loading: true,
   },
-};
+}
 
 export const FullWidth: Story = {
   args: {
@@ -151,7 +151,7 @@ export const FullWidth: Story = {
   parameters: {
     layout: 'padded',
   },
-};
+}
 
 // With Icons
 export const WithIcon: Story = {
@@ -159,14 +159,14 @@ export const WithIcon: Story = {
     children: 'With Icon',
     icon: <Star size={16} />,
   },
-};
+}
 
 export const WithIconRight: Story = {
   args: {
     children: 'With Icon Right',
     iconRight: <ChevronRight size={16} />,
   },
-};
+}
 
 export const IconOnly: Story = {
   args: {
@@ -174,7 +174,7 @@ export const IconOnly: Story = {
     icon: <X size={16} />,
     'aria-label': 'Close',
   },
-};
+}
 
 // Polymorphic
 export const AsLink: Story = {
@@ -183,4 +183,4 @@ export const AsLink: Story = {
     as: 'a',
     href: 'https://example.com',
   },
-};
+}

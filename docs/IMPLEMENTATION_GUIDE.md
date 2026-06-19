@@ -1,3 +1,5 @@
+> **Out of date (2026):** This document references code removed during Safe Dead Code Cleanup (orphan hooks/services/components). See `CLAUDE.md` for current architecture.
+
 # Implementation Guide for Remaining Features
 
 Hướng dẫn chi tiết để implement các trang còn lại theo đúng pattern đã có.
@@ -84,7 +86,7 @@ export default function MyPage() {
       <Typography variant="2xl" className="mb-6 font-semibold">
         My Page Title
       </Typography>
-      
+
       {/* Content */}
       {data.length === 0 ? (
         <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-8 text-center">
@@ -115,6 +117,7 @@ export default function MyPage() {
 **Path:** `app/org/[orgId]/projects/[projectId]/ai/questions/page.tsx`
 
 **Key Points:**
+
 - Form with: `engine` select, `base_session_id` (required for v2), `instruction`, `max_items`
 - Call `generateQuestions()` → display proposals with temp_id
 - Checkboxes to select accepted questions
@@ -122,6 +125,7 @@ export default function MyPage() {
 - Commit button → `commitGeneratedQuestions()`
 
 **Error Handling:**
+
 ```typescript
 // 422: base_session_id missing for v2
 if (isProblem(err) && err.status === 422) {
@@ -144,6 +148,7 @@ if (isConflictCode(err, 'AI_BATCH_EXPIRED')) {
 ```
 
 **State Management:**
+
 ```typescript
 const [proposals, setProposals] = useState<QGenQuestionProposal[]>([])
 const [batchToken, setBatchToken] = useState<string | null>(null)
@@ -160,6 +165,7 @@ const [edits, setEdits] = useState<Map<string, Partial<QGenQuestionProposal>>>(n
 **Steps:**
 
 **Step 1: Intake**
+
 ```typescript
 // Option 1: Paste text
 const [rawText, setRawText] = useState('')
@@ -176,14 +182,14 @@ const handleUploadFile = async (file: File) => {
     file_name: file.name,
     mime_type: file.type,
   })
-  
+
   // PUT file to upload_url (plain fetch, not apiFetch)
   await fetch(upload_url, {
     method: 'PUT',
     body: file,
     headers: { 'Content-Type': file.type },
   })
-  
+
   // Create intake with file_id
   const intake = await createIntake(orgId, projectId, { file_id })
   setIntakeId(intake.id)
@@ -192,12 +198,14 @@ const handleUploadFile = async (file: File) => {
 ```
 
 **Step 2: Select Baseline**
+
 ```typescript
 const [baseSessionId, setBaseSessionId] = useState<string | null>(null)
 // Show dropdown of sessions, user selects one
 ```
 
 **Step 3: Run Analysis**
+
 ```typescript
 const handleRunAnalysis = async () => {
   const response = await runImpactAnalysis(orgId, projectId, {
@@ -211,6 +219,7 @@ const handleRunAnalysis = async () => {
 ```
 
 **Step 4: Review & Commit**
+
 ```typescript
 // Each proposal: question_id, proposed_value, reason, reference_from_note
 // User can accept/reject + edit final_value if accept
@@ -244,6 +253,7 @@ const handleCommit = async () => {
 **Path:** `app/admin/ai/configs/[purpose]/edit/page.tsx`
 
 **Form Fields:**
+
 - `enabled`: checkbox
 - `primary_engine`: select (legacy_chat, workflow_api, agents_sdk)
 - `fallback_engine`: select (same + None option)
@@ -257,28 +267,36 @@ const handleCommit = async () => {
 - `notes`: textarea (optional)
 
 **Validation:**
+
 ```typescript
 const validate = () => {
   const errors: string[] = []
-  
+
   if (formData.primary_engine === 'workflow_api' && !formData.workflow_id) {
     errors.push('Workflow ID is required when using Workflow API engine')
   }
-  
+
   if (formData.primary_engine === 'agents_sdk' && !formData.agent_entry) {
     errors.push('Agent Entry is required when using Agents SDK engine')
   }
-  
-  if (formData.agent_entry && 
-      !['qgen_v2', 'improve_answer', 'clarity_assess_one', 'impact_analysis'].includes(formData.agent_entry)) {
-    errors.push('Invalid agent entry. Must be one of: qgen_v2, improve_answer, clarity_assess_one, impact_analysis')
+
+  if (
+    formData.agent_entry &&
+    !['qgen_v2', 'improve_answer', 'clarity_assess_one', 'impact_analysis'].includes(
+      formData.agent_entry
+    )
+  ) {
+    errors.push(
+      'Invalid agent entry. Must be one of: qgen_v2, improve_answer, clarity_assess_one, impact_analysis'
+    )
   }
-  
+
   return errors
 }
 ```
 
 **Save:**
+
 ```typescript
 const handleSave = async () => {
   const errors = validate()
@@ -308,6 +326,7 @@ const handleSave = async () => {
 **UI Options:**
 
 **Option A: Tree/List View (Simpler)**
+
 ```typescript
 // Hierarchical list of nodes
 // - System 1
@@ -322,11 +341,11 @@ const [links, setLinks] = useState<NodeLink[]>([])
 
 // Build tree structure
 const buildTree = (nodes: OrgNode[]) => {
-  const nodeMap = new Map(nodes.map(n => [n.id, n]))
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]))
   const roots: OrgNode[] = []
   const children = new Map<string, OrgNode[]>()
 
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     if (!node.parent_id) {
       roots.push(node)
     } else {
@@ -342,12 +361,13 @@ const buildTree = (nodes: OrgNode[]) => {
 ```
 
 **Option B: Visual Graph (Advanced, use @xyflow/react)**
+
 ```typescript
 import { ReactFlow, Node, Edge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
 // Convert OrgNode[] to ReactFlow nodes
-const flowNodes: Node[] = nodes.map(node => ({
+const flowNodes: Node[] = nodes.map((node) => ({
   id: node.id,
   type: 'default',
   data: { label: node.name, code: node.code },
@@ -366,12 +386,13 @@ const flowEdges: Edge[] = links.map((link, idx) => ({
 const handleNodeDragStop = async (event: any, node: Node) => {
   // Batch update positions (optional Phase 2.1)
   await updateNodesPositions(orgId, {
-    positions: [{ node_id: node.id, position_x: node.position.x, position_y: node.position.y }]
+    positions: [{ node_id: node.id, position_x: node.position.x, position_y: node.position.y }],
   })
 }
 ```
 
 **CRUD:**
+
 ```typescript
 // Create node
 const handleCreateNode = async (data: OrgNodeCreateRequest) => {
@@ -413,6 +434,7 @@ const handleDeleteNode = async (nodeId: string) => {
 **Path:** `app/org/[orgId]/projects/[projectId]/requirements/page.tsx`
 
 **Layout:**
+
 ```
 +-- Business Objectives (BO)
     +-- Business Requirements (BR)
@@ -421,13 +443,14 @@ const handleDeleteNode = async (nodeId: string) => {
 ```
 
 **Tree Structure:**
+
 ```typescript
 const buildRequirementTree = (requirements: Requirement[]) => {
-  const reqMap = new Map(requirements.map(r => [r.id, r]))
-  const rootBOs = requirements.filter(r => r.req_type === 'BO' && !r.parent_id)
-  
+  const reqMap = new Map(requirements.map((r) => [r.id, r]))
+  const rootBOs = requirements.filter((r) => r.req_type === 'BO' && !r.parent_id)
+
   const getChildren = (parentId: string): Requirement[] => {
-    return requirements.filter(r => r.parent_id === parentId)
+    return requirements.filter((r) => r.parent_id === parentId)
   }
 
   return { rootBOs, getChildren }
@@ -435,9 +458,13 @@ const buildRequirementTree = (requirements: Requirement[]) => {
 ```
 
 **Create Requirement:**
+
 ```typescript
 // Validation: hierarchy rules
-const canCreateUnder = (parentType: RequirementType | null, childType: RequirementType): boolean => {
+const canCreateUnder = (
+  parentType: RequirementType | null,
+  childType: RequirementType
+): boolean => {
   if (!parentType) return childType === 'BO' // Root must be BO
   if (parentType === 'BO' && (childType === 'BR' || childType === 'NFR')) return true
   if (parentType === 'BR' && (childType === 'FR' || childType === 'NFR')) return true
@@ -463,6 +490,7 @@ const handleCreate = async (data: RequirementCreateRequest) => {
 ```
 
 **Map Actors & Modules:**
+
 ```typescript
 // For each requirement, show:
 // - Actors: multi-select from org actors
@@ -484,6 +512,7 @@ const handleSaveModules = async (requirementId: string, nodeIds: string[]) => {
 ## 🛡️ Permission Checks
 
 ### Org Role Check
+
 ```typescript
 import { useOrg } from '@/contexts/OrgContext'
 
@@ -501,6 +530,7 @@ if (myRole === 'partner') {
 ```
 
 ### Project Role Check
+
 ```typescript
 // Get project from API, includes my_role
 const [project, setProject] = useState<ProjectDetail | null>(null)
@@ -511,6 +541,7 @@ if (project?.my_role === 'viewer') {
 ```
 
 ### Profile Status Check
+
 ```typescript
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -537,6 +568,7 @@ if (profile?.status === 'suspended') {
 ## 🎨 UI Components Available
 
 ### Atoms (from design system)
+
 - `Button` - variants: primary, secondary, outline, ghost, link; sizes: sm, base, lg
 - `Typography` - variants: xs, sm, base, lg, xl, 2xl
 - `Badge` - variants: success, warning, error, info, neutral; sizes: sm, base, lg
@@ -548,11 +580,13 @@ if (profile?.status === 'suspended') {
 - `Switch` - toggle switch
 
 ### Molecules
+
 - `Modal` - dialog modal
 - `TodoList` - todo list (if needed)
 - `EventCard`, `NotificationCard`, etc.
 
 ### Usage
+
 ```typescript
 import { Button } from '@/components/atoms/Button/Button'
 import { Typography } from '@/components/atoms/Typography/Typography'
@@ -575,16 +609,18 @@ import { Modal } from '@/components/molecules/Modal/Modal'
 ## 🔥 Pro Tips
 
 1. **Always use services, never direct fetch in components**
+
    ```typescript
    // ❌ Bad
    const res = await fetch(`${API_URL}/orgs/${orgId}`)
-   
+
    // ✅ Good
    import * as orgService from '@/services/org.service'
    const org = await orgService.getOrg(orgId)
    ```
 
 2. **Handle errors properly with Problem Details**
+
    ```typescript
    try {
      await service.action()
@@ -598,9 +634,10 @@ import { Modal } from '@/components/molecules/Modal/Modal'
    ```
 
 3. **Branch on error code for specific cases**
+
    ```typescript
    import { isConflictCode } from '@/lib/errorHandling'
-   
+
    if (isConflictCode(err, 'ALREADY_SUBMITTED')) {
      toast.error('Session already submitted.')
      return
@@ -608,16 +645,18 @@ import { Modal } from '@/components/molecules/Modal/Modal'
    ```
 
 4. **Use loading states everywhere**
+
    ```typescript
    const [isLoading, setIsLoading] = useState(false)
    const [isSaving, setIsSaving] = useState(false)
-   
+
    <Button onClick={handleSave} isLoading={isSaving}>
      Save
    </Button>
    ```
 
 5. **Empty states are important**
+
    ```typescript
    {items.length === 0 && (
      <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-8 text-center">

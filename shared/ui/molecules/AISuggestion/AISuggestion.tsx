@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import { Box } from '@/shared/ui/atoms/Box'
 import { Stack } from '@/shared/ui/atoms/Stack'
 import { Typography } from '@/shared/ui/atoms/Typography'
@@ -44,30 +44,18 @@ export const AISuggestion = React.forwardRef(
           background="transparent"
           radius={cardBorderRadius}
           shadow={cardShadow}
-          className={cn(
-            'bg-[#312C22] p-4 flex flex-col gap-3',
-            className
-          )}
+          className={cn('flex flex-col gap-3 bg-[#312C22] p-4', className)}
         >
           {/* Header */}
           <Stack direction="horizontal" spacing="sm" align="center">
-            {showIcon && (
-              <Sparkles size={16} className="text-[#d4f5a0]" />
-            )}
-            <Typography
-              variant="h6"
-              weight="normal"
-              className="text-[#d4f5a0] text-sm"
-            >
+            {showIcon && <Sparkles size={16} className="text-[#d4f5a0]" />}
+            <Typography variant="h6" weight="normal" className="text-sm text-[#d4f5a0]">
               {title}
             </Typography>
           </Stack>
 
           {/* Question */}
-          <Typography
-            variant="body"
-            className="text-[#C7C3BB] text-sm leading-relaxed"
-          >
+          <Typography variant="body" className="text-sm leading-relaxed text-[#C7C3BB]">
             {question}
           </Typography>
 
@@ -76,19 +64,17 @@ export const AISuggestion = React.forwardRef(
             {onYes && (
               <button
                 onClick={onYes}
-                className="text-[#f5a623] hover:text-[#ffb84d] transition-colors cursor-pointer text-sm font-normal"
+                className="cursor-pointer text-sm font-normal text-[#f5a623] transition-colors hover:text-[#ffb84d]"
                 aria-label={yesLabel}
               >
                 {yesLabel}
               </button>
             )}
-            {onYes && onNo && (
-              <span className="text-white text-sm">/</span>
-            )}
+            {onYes && onNo && <span className="text-sm text-white">/</span>}
             {onNo && (
               <button
                 onClick={onNo}
-                className="text-white hover:text-neutral-200 transition-colors cursor-pointer text-sm font-normal"
+                className="cursor-pointer text-sm font-normal text-white transition-colors hover:text-neutral-200"
                 aria-label={noLabel}
               >
                 {noLabel}
@@ -102,4 +88,3 @@ export const AISuggestion = React.forwardRef(
 )
 
 AISuggestion.displayName = 'AISuggestion'
-

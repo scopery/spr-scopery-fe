@@ -1,4 +1,4 @@
-import { isProblem, getProblemCode, type ProblemDetails } from '@/types/api'
+import { isProblem, getProblemCode, type ProblemDetails } from '@/shared/lib/api-types'
 
 export interface GovernanceErrorDetails {
   action_key?: string
@@ -42,7 +42,7 @@ export function getGovernanceBlockedMessage(err: unknown): string | undefined {
   }
 
   if (err && typeof err === 'object' && 'problem' in err) {
-    return getGovernanceBlockedMessage(err as import('@/types/api').ApiError)
+    return getGovernanceBlockedMessage(err as import('@/shared/lib/api-types').ApiError)
   }
 
   if (err && typeof err === 'object' && 'code' in err) {

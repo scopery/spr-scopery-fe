@@ -1,4 +1,4 @@
-import { PolymorphicComponentPropWithRef } from '@/utils'
+import { PolymorphicComponentPropWithRef } from '@/utils/polymorphic'
 
 export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
 export type AvatarShape = 'circle' | 'square'
@@ -34,4 +34,3 @@ export type AvatarProps<C extends React.ElementType = 'div'> = PolymorphicCompon
     status?: 'online' | 'offline' | 'away' | 'busy'
   }
 >
-

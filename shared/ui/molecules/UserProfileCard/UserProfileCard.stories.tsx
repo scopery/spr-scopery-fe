@@ -70,4 +70,3 @@ export const LongTitle: Story = {
     onNotificationClick: () => console.log('Notifications clicked'),
   },
 }
-

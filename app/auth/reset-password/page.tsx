@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Button, Typography, Stack } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 
 function ScoperyLogo({ className }: { className?: string }) {
   return (
@@ -27,15 +27,16 @@ function ScoperyLogo({ className }: { className?: string }) {
  */
 export default function ResetPasswordPage() {
   return (
-    <main className="min-h-screen flex flex-col lg:flex-row bg-neutral-50">
-      <div className="w-full min-h-screen flex items-center justify-center p-6">
+    <main className="flex min-h-screen flex-col bg-neutral-50 lg:flex-row">
+      <div className="flex min-h-screen w-full items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <ScoperyLogo className="mb-8" />
-          <Typography as="h1" className="text-neutral-900 text-xl font-semibold mb-2">
+          <Typography as="h1" className="mb-2 text-xl font-semibold text-neutral-900">
             Reset password
           </Typography>
           <Typography tone="muted" className="mb-6">
-            Use the link from your email to set a new password. If you didn’t receive it, check spam or request a new link from the sign-in page.
+            Use the link from your email to set a new password. If you didn’t receive it, check spam
+            or request a new link from the sign-in page.
           </Typography>
           <Stack direction="vertical" spacing="md">
             <Button asChild variant="primary">

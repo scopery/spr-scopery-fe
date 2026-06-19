@@ -11,4 +11,3 @@ export const shadows = {
 } as const
 
 export type ShadowToken = typeof shadows
-

@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Typography, Box, Stack, Button, Input } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { useAuth } from '@/contexts/AuthContext'
-import { useOrgActions } from '@/hooks/useOrgActions'
+import { useAuth } from '@/modules/auth'
+import { useOrgActions } from '@/modules/org'
 import { toast } from 'sonner'
-import { ApiError } from '@/types/api'
+import { ApiError } from '@/shared/lib/api-types'
 import { getPendingInviteToken } from '@/utils/inviteToken'
-import { JoinOrgPanel } from './_components/JoinOrgPanel'
-import { cn } from '@/utils'
+import { JoinOrgPanel } from '@/modules/org'
+import { cn } from '@/utils/cn'
 
 type TabId = 'create' | 'join'
 
@@ -52,7 +52,11 @@ export default function OnboardingPage() {
       router.replace(ROUTES.org.projects(org.id))
     } catch (err) {
       const msg =
-        err instanceof ApiError ? err.problem.detail : err instanceof Error ? err.message : 'Failed to create organization'
+        err instanceof ApiError
+          ? err.problem.detail
+          : err instanceof Error
+            ? err.message
+            : 'Failed to create organization'
       setCreateError(msg)
       toast.error(msg)
     } finally {
@@ -61,7 +65,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
+    <main className="flex min-h-screen items-center justify-center p-4">
       <Box
         as="section"
         padding="xl"
@@ -76,12 +80,12 @@ export default function OnboardingPage() {
           Create an organization or join one with an invite link.
         </Typography>
 
-        <div className="flex border-b border-neutral-200 mb-6">
+        <div className="mb-6 flex border-b border-neutral-200">
           <button
             type="button"
             onClick={() => setActiveTab('create')}
             className={cn(
-              'px-4 py-4 text-sm font-normal border-b-2 -mb-px transition-colors',
+              '-mb-px border-b-2 px-4 py-4 text-sm font-normal transition-colors',
               activeTab === 'create'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-neutral-600 hover:text-neutral-900'
@@ -93,7 +97,7 @@ export default function OnboardingPage() {
             type="button"
             onClick={() => setActiveTab('join')}
             className={cn(
-              'px-4 py-4 text-sm font-normal border-b-2 -mb-px transition-colors',
+              '-mb-px border-b-2 px-4 py-4 text-sm font-normal transition-colors',
               activeTab === 'join'
                 ? 'border-primary text-primary'
                 : 'border-transparent text-neutral-600 hover:text-neutral-900'
@@ -130,9 +134,7 @@ export default function OnboardingPage() {
           </form>
         )}
 
-        {activeTab === 'join' && (
-          <JoinOrgPanel initialValue={joinInitialValue} />
-        )}
+        {activeTab === 'join' && <JoinOrgPanel initialValue={joinInitialValue} />}
 
         {profile?.status === 'suspended' && (
           <Typography tone="error" variant="small" className="mt-4">

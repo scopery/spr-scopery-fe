@@ -51,7 +51,9 @@ describe('TodoList', () => {
 
   it('renders expanded content when item is expanded', () => {
     render(<TodoList items={mockItems} />)
-    expect(screen.getByText('Design low-fidelity wireframes for the new landing page')).toBeInTheDocument()
+    expect(
+      screen.getByText('Design low-fidelity wireframes for the new landing page')
+    ).toBeInTheDocument()
     expect(screen.getByText('Kaylynn Siphron')).toBeInTheDocument()
     expect(screen.getByText('(Assignee)')).toBeInTheDocument()
   })
@@ -60,10 +62,10 @@ describe('TodoList', () => {
     const user = userEvent.setup()
     const onAdd = vi.fn()
     render(<TodoList items={mockItems} onAdd={onAdd} />)
-    
+
     const addButton = screen.getByLabelText('Add new task')
     await user.click(addButton)
-    
+
     expect(onAdd).toHaveBeenCalledTimes(1)
   })
 
@@ -71,10 +73,10 @@ describe('TodoList', () => {
     const user = userEvent.setup()
     const onExpand = vi.fn()
     render(<TodoList items={mockItems} onExpand={onExpand} />)
-    
+
     const expandButton = screen.getByLabelText('Expand Update button styles to match guidelines')
     await user.click(expandButton)
-    
+
     expect(onExpand).toHaveBeenCalledWith('1', true)
   })
 
@@ -102,4 +104,3 @@ describe('TodoList', () => {
     expect(avatar).toBeInTheDocument()
   })
 })
-

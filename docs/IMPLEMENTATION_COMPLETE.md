@@ -1,3 +1,5 @@
+> **Out of date (2026):** This document references code removed during Safe Dead Code Cleanup (orphan hooks/services/components). See `CLAUDE.md` for current architecture.
+
 # ✅ Implementation Complete - AI + Traceability + Admin AI
 
 **Date:** 2026-02-16  
@@ -8,6 +10,7 @@
 ## 🎉 Summary
 
 **HOÀN THÀNH 100%** implementation cho:
+
 - ✅ Admin AI (5/5 pages)
 - ✅ AI Features (4/4 features - Impact đã có sẵn, session đã integrate)
 - ✅ Traceability (5/5 pages)
@@ -19,20 +22,24 @@
 ## 📁 Complete File List
 
 ### ✅ Types (3 files)
+
 1. `types/api-enums.ts` - Updated với 15+ enums mới
 2. `types/ai.ts` - **365 lines** - Complete AI types
 3. `types/traceability.ts` - **244 lines** - Complete Traceability types
 
 ### ✅ Services (3 files)
+
 4. `services/ai.service.ts` - **179 lines** - 10 functions (Improve, QGen, Clarity, Impact)
 5. `services/admin-ai.service.ts` - **68 lines** - 5 functions (Configs, Runs, Test)
 6. `services/traceability.service.ts` - **306 lines** - 17 functions (Nodes, Links, Scope, Actors, Requirements, Trace)
 
 ### ✅ Shared Components (2 files)
+
 7. `components/shared/ImproveAnswerModal.tsx` - **274 lines** - AI Improve Answer workflow
 8. `components/shared/ClarityAssessmentModal.tsx` - **203 lines** - Clarity Assessment UI
 
 ### ✅ Admin AI Pages (5 files) - 100% Complete
+
 9. `app/admin/ai/page.tsx` - **227 lines** - List all AI configs
 10. `app/admin/ai/runs/page.tsx` - **268 lines** - Audit log với filters
 11. `app/admin/ai/configs/[purpose]/edit/page.tsx` - **238 lines** - Edit config form với validation
@@ -40,11 +47,13 @@
 13. `app/admin/ai/runs/[runId]/page.tsx` - **239 lines** - Run detail với redacted payloads
 
 ### ✅ AI Features Pages (1 file + session integration)
+
 14. `app/org/[orgId]/projects/[projectId]/ai/questions/page.tsx` - **180 lines** - Generate Questions
 15. `app/org/[orgId]/projects/[projectId]/impact/page.tsx` - **599 lines** - ✅ ĐÃ CÓ SẴN
 16. `app/org/[orgId]/projects/[projectId]/sessions/[sessionId]/page.tsx` - ✅ ĐÃ INTEGRATE AIImproveModal, ClarityPanel
 
 ### ✅ Traceability Pages (5 files) - 100% Complete
+
 17. `app/org/[orgId]/landscape/page.tsx` - **285 lines** - Org nodes tree view với CRUD
 18. `app/org/[orgId]/actors/page.tsx` - **257 lines** - Actors list/CRUD với pagination
 19. `app/org/[orgId]/projects/[projectId]/scope/page.tsx` - **220 lines** - Multi-select scope roles
@@ -52,6 +61,7 @@
 21. `app/org/[orgId]/projects/[projectId]/trace/page.tsx` - **289 lines** - Full trace view + CRUD links
 
 ### ✅ Documentation (4 files)
+
 22. `.env.example` - Updated
 23. `docs/IMPLEMENTATION_SUMMARY.md` - Implementation status
 24. `docs/IMPLEMENTATION_GUIDE.md` - Patterns & examples
@@ -65,6 +75,7 @@
 ## 🎯 Feature Coverage
 
 ### Admin AI (100%)
+
 - ✅ List all AI configs (purpose, engines, models, timeouts)
 - ✅ Edit config với validation:
   - workflow_api requires workflow_id
@@ -75,6 +86,7 @@
 - ✅ Run detail với full metadata, error details, redacted payloads
 
 ### AI Features (100%)
+
 - ✅ **Improve Answer** - ImproveAnswerModal component:
   - User instruction (optional)
   - Generate AI suggestion
@@ -106,6 +118,7 @@
   - Accept/reject decisions + edit final_value
 
 ### Traceability (100%)
+
 - ✅ **Org Landscape** - Tree view:
   - Display nodes hierarchy (system → subsystem → module)
   - CRUD nodes (owner only)
@@ -149,12 +162,14 @@
 Tất cả pages đã implement:
 
 ### Permission Checks
+
 - ✅ Admin pages: check `profile.role === 'admin'` (403 if not)
 - ✅ Org mutations: check `myRole === 'owner'` (hide buttons for member/partner)
 - ✅ Project mutations: check `myRole` (editor/viewer) và org role
 - ✅ Suspended status: check `profile.status === 'suspended'` (disable mutations)
 
 ### Permission Matrix Coverage
+
 - ✅ **Partner (readonly)**: Buttons hidden, mutations return 403
 - ✅ **Viewer**: Only read access, edit buttons hidden
 - ✅ **Editor**: Full project mutations
@@ -162,6 +177,7 @@ Tất cả pages đã implement:
 - ✅ **Admin**: Access to `/admin/ai/*` pages
 
 ### UI Gating Examples
+
 ```typescript
 // Org owner only
 {isOwner && <Button onClick={handleCreate}>Create</Button>}
@@ -180,12 +196,14 @@ Tất cả pages đã implement:
 Tất cả pages implement full error handling:
 
 ### Problem Details (RFC 9457)
+
 - ✅ Parse `code` để branch logic
 - ✅ Display `request_id` trong error toasts
 - ✅ Field-level errors cho 422 validation
 - ✅ Toast messages cho từng error code
 
 ### Specific Error Codes Handled
+
 - ✅ 401: Auto redirect to login với returnTo
 - ✅ 403: "You don't have permission" toast
 - ✅ 404: "Not found" message
@@ -205,6 +223,7 @@ Tất cả pages implement full error handling:
 ## 🎨 UI/UX Features
 
 ### All Pages Include
+
 - ✅ Loading states (spinner/skeleton)
 - ✅ Empty states với helpful messages
 - ✅ Error states với request_id
@@ -215,6 +234,7 @@ Tất cả pages implement full error handling:
 - ✅ Filters where applicable
 
 ### Component Usage
+
 - ✅ Design system atoms: Button, Typography, Badge, Input, Textarea, Select, Checkbox, Radio, Switch
 - ✅ Modal molecule từ design system
 - ✅ Consistent styling với Tailwind tokens
@@ -224,22 +244,23 @@ Tất cả pages implement full error handling:
 
 ## 📊 Metrics
 
-| Category | Files Created | Lines of Code | Status |
-|----------|---------------|---------------|--------|
-| Types | 3 files | ~650 lines | ✅ Complete |
-| Services | 3 files | ~560 lines | ✅ Complete |
-| Components | 2 files | ~480 lines | ✅ Complete |
-| Admin AI Pages | 5 files | ~1,220 lines | ✅ Complete |
-| AI Features | 1 file | ~180 lines | ✅ Complete |
-| Traceability | 5 files | ~1,290 lines | ✅ Complete |
-| Documentation | 4 files | N/A | ✅ Complete |
-| **TOTAL** | **23 files** | **~4,380 lines** | **✅ 100%** |
+| Category       | Files Created | Lines of Code    | Status      |
+| -------------- | ------------- | ---------------- | ----------- |
+| Types          | 3 files       | ~650 lines       | ✅ Complete |
+| Services       | 3 files       | ~560 lines       | ✅ Complete |
+| Components     | 2 files       | ~480 lines       | ✅ Complete |
+| Admin AI Pages | 5 files       | ~1,220 lines     | ✅ Complete |
+| AI Features    | 1 file        | ~180 lines       | ✅ Complete |
+| Traceability   | 5 files       | ~1,290 lines     | ✅ Complete |
+| Documentation  | 4 files       | N/A              | ✅ Complete |
+| **TOTAL**      | **23 files**  | **~4,380 lines** | **✅ 100%** |
 
 ---
 
 ## 🧪 Testing Checklist (Ready for Manual Testing)
 
 ### Admin AI ✅
+
 - [ ] List configs → verify all 4 purposes shown
 - [ ] Edit config:
   - [ ] workflow_api without workflow_id → verify client-side validation
@@ -258,6 +279,7 @@ Tất cả pages implement full error handling:
   - [ ] Toggle payload/output → verify JSON viewers
 
 ### AI Features ✅
+
 - [ ] **Improve Answer:**
   - [ ] Click "AI Improve" button in session
   - [ ] Generate với/không user instruction
@@ -285,6 +307,7 @@ Tất cả pages implement full error handling:
   - [ ] Accept/reject decisions → verify commit
 
 ### Traceability ✅
+
 - [ ] **Landscape:**
   - [ ] View nodes tree
   - [ ] Create system/subsystem/module
@@ -324,6 +347,7 @@ Tất cả pages implement full error handling:
 ## 🔧 Integration Points
 
 ### Already Integrated in Existing Code
+
 - ✅ `app/org/[orgId]/projects/[projectId]/sessions/[sessionId]/page.tsx`
   - Has AIImproveModal, ClarityPanel, ClarityDetailsModal
   - Shows "AI Improve" buttons
@@ -331,23 +355,28 @@ Tất cả pages implement full error handling:
   - Has Clarity Summary tab (likely)
 
 ### API Client Already Configured
+
 - ✅ `lib/apiClient.ts` - apiFetch() đã ready
 - ✅ `lib/errorHandling.ts` - Problem Details handling complete
 - ✅ Auth context: useAuth() có profile
 - ✅ Org context: useOrg() có myRole
 
 ### Navigation (Cần thêm vào sidebar/menu)
+
 Các routes mới cần add vào navigation:
 
 **Admin AI:**
+
 - `/admin/ai` - AI Configuration
 - `/admin/ai/runs` - AI Audit Logs
 
 **Project AI:**
+
 - `/org/[orgId]/projects/[projectId]/ai/questions` - Generate Questions
 - `/org/[orgId]/projects/[projectId]/impact` - Impact Analysis ✅ đã có
 
 **Traceability:**
+
 - `/org/[orgId]/landscape` - Organization Landscape
 - `/org/[orgId]/actors` - Organization Actors
 - `/org/[orgId]/projects/[projectId]/scope` - Project Scope
@@ -359,12 +388,14 @@ Các routes mới cần add vào navigation:
 ## 📚 Documentation
 
 ### User Guides
+
 1. **`docs/IMPLEMENTATION_SUMMARY.md`** - Quick overview + status
 2. **`docs/IMPLEMENTATION_GUIDE.md`** - Patterns, examples, pro tips
 3. **`docs/DELIVERABLES.md`** - Detailed checklist, time estimates
 4. **`docs/IMPLEMENTATION_COMPLETE.md`** - This file (final summary)
 
 ### Technical Reference
+
 - **`docs/API_DOCUMENTATION.md`** - Backend API spec
 - **`docs/AI_ORCHESTRATION_STATUS.md`** - AI orchestrator details
 - **`docs/FE_INTEGRATION_AI_QUESTIONS.md`** - QGen integration guide
@@ -374,7 +405,9 @@ Các routes mới cần add vào navigation:
 ## 🚀 Next Steps (Post-Implementation)
 
 ### 1. Navigation Integration (1-2 hours)
+
 Thêm routes vào sidebar/navigation menu:
+
 ```typescript
 // In sidebar component
 const NAV_ITEMS = [
@@ -384,7 +417,7 @@ const NAV_ITEMS = [
     items: [
       { label: 'Generate Questions', href: '/org/[orgId]/projects/[projectId]/ai/questions' },
       { label: 'Impact Analysis', href: '/org/[orgId]/projects/[projectId]/impact' },
-    ]
+    ],
   },
   {
     section: 'Traceability',
@@ -394,24 +427,25 @@ const NAV_ITEMS = [
       { label: 'Project Scope', href: '/org/[orgId]/projects/[projectId]/scope' },
       { label: 'Requirements', href: '/org/[orgId]/projects/[projectId]/requirements' },
       { label: 'Trace View', href: '/org/[orgId]/projects/[projectId]/trace' },
-    ]
+    ],
   },
   {
     section: 'Admin',
-    items: [
-      { label: 'AI Configuration', href: '/admin/ai', adminOnly: true },
-    ]
-  }
+    items: [{ label: 'AI Configuration', href: '/admin/ai', adminOnly: true }],
+  },
 ]
 ```
 
 ### 2. Manual Testing (8-10 hours)
+
 Follow checklist ở trên để test từng feature:
+
 - Admin AI: configs, test runs, audit logs
 - AI Features: improve, questions, clarity, impact
 - Traceability: landscape, actors, scope, requirements, trace
 
 ### 3. Bug Fixes & Polish (4-6 hours)
+
 - Fix any bugs discovered trong testing
 - Add loading skeletons (optional)
 - Improve empty states
@@ -419,6 +453,7 @@ Follow checklist ở trên để test từng feature:
 - Add tooltips cho các field phức tạp
 
 ### 4. Performance Optimization (Optional, 2-3 hours)
+
 - Add React Query cho data caching (nếu cần)
 - Debounce search/filter inputs
 - Virtual scrolling cho large lists (optional)
@@ -429,6 +464,7 @@ Follow checklist ở trên để test từng feature:
 ## ✅ Definition of Done - ACHIEVED
 
 Tất cả pages đều đạt:
+
 - ✅ Code theo existing patterns (service layer, type safety)
 - ✅ Error handling với Problem Details (branch on code)
 - ✅ Permission gating (role-based UI)
@@ -449,7 +485,7 @@ Tất cả pages đều đạt:
 ✅ **Admin AI:** 5/5 pages (Configs, Runs, Edit, Test, Detail)  
 ✅ **AI Features:** 4/4 features (Improve, Questions, Clarity, Impact)  
 ✅ **Traceability:** 5/5 pages (Landscape, Actors, Scope, Requirements, Trace)  
-✅ **Documentation:** 4 comprehensive guides  
+✅ **Documentation:** 4 comprehensive guides
 
 **Code mới: ~4,400 lines, 23 files**
 

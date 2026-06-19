@@ -13,4 +13,3 @@ export const spacing = {
 } as const
 
 export type SpacingToken = typeof spacing
-

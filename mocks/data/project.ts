@@ -17,7 +17,8 @@ export const MOCK_PROJECT_1 = {
   ...base,
   id: MOCK_PROJECT_ID_1,
   name: 'E-Commerce Platform Redesign',
-  description: 'Redesign of the core e-commerce platform including checkout flow and product catalog.',
+  description:
+    'Redesign of the core e-commerce platform including checkout flow and product catalog.',
   status: 'active',
   latest_session_id: MOCK_SESSION_ID,
   active_session_id: MOCK_SESSION_ID,
@@ -145,7 +146,8 @@ export const MOCK_REQUIREMENTS = {
       id: 'mock-req-001',
       project_id: MOCK_PROJECT_ID_1,
       title: 'User Authentication',
-      description: 'Users must be able to register and login using email/password and Google OAuth.',
+      description:
+        'Users must be able to register and login using email/password and Google OAuth.',
       priority: 'high',
       status: 'active',
       category: 'functional',
@@ -158,7 +160,8 @@ export const MOCK_REQUIREMENTS = {
       id: 'mock-req-002',
       project_id: MOCK_PROJECT_ID_1,
       title: 'Product Search & Filtering',
-      description: 'Users should be able to search products by keyword and filter by category, price range, and availability.',
+      description:
+        'Users should be able to search products by keyword and filter by category, price range, and availability.',
       priority: 'high',
       status: 'active',
       category: 'functional',
@@ -188,7 +191,8 @@ export const MOCK_PROJECT_SCOPE = {
   in_scope: 'Redesign of checkout flow, product catalog, and user account management.',
   out_of_scope: 'Backend inventory management, supplier portal.',
   constraints: 'Must maintain backward compatibility with existing customer data.',
-  assumptions: 'Mobile-first design approach. Target browsers: Chrome, Safari, Firefox (last 2 versions).',
+  assumptions:
+    'Mobile-first design approach. Target browsers: Chrome, Safari, Firefox (last 2 versions).',
 }
 
 export const MOCK_ACTORS = {

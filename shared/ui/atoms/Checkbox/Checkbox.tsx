@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import { Typography } from '../Typography'
 import type { CheckboxProps } from './Checkbox.types'
 
@@ -103,9 +103,7 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
                 // Size
                 checkboxSizes[size],
                 // States: viền neutral-200, nền trắng; check màu đen
-                error
-                  ? 'border-error text-error bg-white'
-                  : 'border-neutral-200 bg-white',
+                error ? 'border-error bg-white text-error' : 'border-neutral-200 bg-white',
                 // Checked: giữ nền trắng, check đen (trong checkboxStyles)
                 'checked:border-neutral-200 checked:bg-white',
                 'indeterminate:border-neutral-200 indeterminate:bg-white',
@@ -115,32 +113,32 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
               {...props}
             />
 
-          {label && (
-            <label
-              htmlFor={checkboxId}
-              className={cn(
-                'cursor-pointer select-none',
-                disabled && 'cursor-not-allowed opacity-50'
-              )}
-            >
-              <Typography as="span" variant="small">
-                {label}
-              </Typography>
-            </label>
+            {label && (
+              <label
+                htmlFor={checkboxId}
+                className={cn(
+                  'cursor-pointer select-none',
+                  disabled && 'cursor-not-allowed opacity-50'
+                )}
+              >
+                <Typography as="span" variant="small">
+                  {label}
+                </Typography>
+              </label>
+            )}
+          </div>
+
+          {error && (
+            <Typography id={errorId} variant="small" tone="error" role="alert" aria-live="polite">
+              {error}
+            </Typography>
           )}
-        </div>
 
-        {error && (
-          <Typography id={errorId} variant="small" tone="error" role="alert" aria-live="polite">
-            {error}
-          </Typography>
-        )}
-
-        {helperText && !error && (
-          <Typography id={helperTextId} variant="small" tone="muted">
-            {helperText}
-          </Typography>
-        )}
+          {helperText && !error && (
+            <Typography id={helperTextId} variant="small" tone="muted">
+              {helperText}
+            </Typography>
+          )}
         </div>
       </>
     )
@@ -148,4 +146,3 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
 )
 
 Checkbox.displayName = 'Checkbox'
-

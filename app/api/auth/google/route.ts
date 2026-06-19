@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 function getBackendBase(): string {
-  return (process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+  return (
+    process.env.API_INTERNAL_URL ??
+    process.env.NEXT_PUBLIC_API_URL ??
+    'http://localhost:3000'
+  ).replace(/\/$/, '')
 }
 
 export async function GET(request: NextRequest) {

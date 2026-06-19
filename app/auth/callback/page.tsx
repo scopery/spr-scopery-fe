@@ -12,8 +12,8 @@ export default function AuthCallbackPage() {
   }, [])
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-white">
-      <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    <main className="flex min-h-screen items-center justify-center bg-white">
+      <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
     </main>
   )
 }

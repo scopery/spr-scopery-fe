@@ -1,4 +1,4 @@
-import { PolymorphicComponentPropWithRef } from '@/utils'
+import { PolymorphicComponentPropWithRef } from '@/utils/polymorphic'
 
 export type SelectSize = 'sm' | 'md' | 'lg'
 
@@ -44,4 +44,3 @@ export type SelectProps<C extends React.ElementType = 'div'> = PolymorphicCompon
     onValueChange?: (value: string) => void
   }
 >
-

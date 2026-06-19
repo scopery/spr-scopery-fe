@@ -19,21 +19,21 @@ Default: Next.js dev server (e.g. `http://localhost:3001`). FE calls BE at `NEXT
 
 ## Main route mapping
 
-| Route | Screen |
-|-------|--------|
-| `/auth/login`, `/auth/register` | Login / Register (email/password + Google OAuth URL) |
-| `/auth/callback` | OAuth callback |
-| `/onboarding`, `/onboarding/profile` | Onboarding + profile view/edit (display_name, avatar signed URL) |
-| `/org` (list) | Org list + create org |
-| `/org/[orgId]` | Org detail |
-| `/org/[orgId]/members` | Org members list |
-| `/org/[orgId]/invites` (owner-only) | Invites: create/list/revoke; accept flow via `/invites/[token]` |
-| `/org/[orgId]/projects` | Projects list + create project from template |
-| `/org/[orgId]/projects/[projectId]` | Project detail (my_role, counts, active/latest session) |
-| `/org/[orgId]/projects/[projectId]/questions` | Project questions (group by section, position); AI Generate Questions modal |
-| `/org/[orgId]/projects/[projectId]/sessions` | Sessions list + create session |
+| Route                                                    | Screen                                                                                                      |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `/auth/login`, `/auth/register`                          | Login / Register (email/password + Google OAuth URL)                                                        |
+| `/auth/callback`                                         | OAuth callback                                                                                              |
+| `/onboarding`, `/onboarding/profile`                     | Onboarding + profile view/edit (display_name, avatar signed URL)                                            |
+| `/org` (list)                                            | Org list + create org                                                                                       |
+| `/org/[orgId]`                                           | Org detail                                                                                                  |
+| `/org/[orgId]/members`                                   | Org members list                                                                                            |
+| `/org/[orgId]/invites` (owner-only)                      | Invites: create/list/revoke; accept flow via `/invites/[token]`                                             |
+| `/org/[orgId]/projects`                                  | Projects list + create project from template                                                                |
+| `/org/[orgId]/projects/[projectId]`                      | Project detail (my_role, counts, active/latest session)                                                     |
+| `/org/[orgId]/projects/[projectId]/questions`            | Project questions (group by section, position); AI Generate Questions modal                                 |
+| `/org/[orgId]/projects/[projectId]/sessions`             | Sessions list + create session                                                                              |
 | `/org/[orgId]/projects/[projectId]/sessions/[sessionId]` | Session detail: questions + answers, save/submit/lock/reopen, progress; AI Improve + Clarity assess/summary |
-| `/org/[orgId]/projects/[projectId]/impact` | Impact analysis: intake (paste/upload) → baseline → review proposals → commit |
+| `/org/[orgId]/projects/[projectId]/impact`               | Impact analysis: intake (paste/upload) → baseline → review proposals → commit                               |
 
 ## API client layer
 

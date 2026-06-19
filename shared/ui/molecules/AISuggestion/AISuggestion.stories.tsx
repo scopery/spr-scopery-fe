@@ -95,9 +95,9 @@ export const OnlyNo: Story = {
 
 export const LongQuestion: Story = {
   args: {
-    question: 'Would you like to set this task to High Priority and add a due date for this week? This will help you stay organized and ensure important tasks are completed on time.',
+    question:
+      'Would you like to set this task to High Priority and add a due date for this week? This will help you stay organized and ensure important tasks are completed on time.',
     onYes: () => console.log('Yes clicked'),
     onNo: () => console.log('No clicked'),
   },
 }
-

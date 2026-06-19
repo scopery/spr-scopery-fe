@@ -2,11 +2,10 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/modules/auth'
 import { ROUTES } from '@/constants/routes'
 import { ContentLoader } from '@/shared/ui'
-import { AuthGuard } from '@/shared/components/guards'
-import { AdminShell } from '@/shared/components/layout/AdminShell'
+import { AuthGuard, AdminShell } from '@/modules/platform'
 import { toast } from 'sonner'
 
 /**

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { Typography, Button, Badge, Select } from '@/shared/ui'
-import type { AiPurpose, AiRunStatus } from '@/types/ai'
+import type { AiPurpose, AiRunStatus } from '@/modules/admin'
 import { useRouter } from 'next/navigation'
 import { FEATURES } from '@/config/features'
-import { useAdminAiRuns } from '@/hooks/useAdminAi'
+import { useAdminAiRuns } from '@/modules/admin'
 
 export default function AdminAIRunsPage() {
   const router = useRouter()
@@ -17,7 +17,10 @@ export default function AdminAIRunsPage() {
   const [statusFilter, setStatusFilter] = useState<AiRunStatus | ''>('')
 
   useEffect(() => {
-    if (!FEATURES.aiAdminConfig) { router.replace('/admin/templates'); return }
+    if (!FEATURES.aiAdminConfig) {
+      router.replace('/admin/templates')
+      return
+    }
     void loadRuns({
       purpose: purposeFilter || undefined,
       status: statusFilter || undefined,
@@ -26,8 +29,12 @@ export default function AdminAIRunsPage() {
     })
   }, [purposeFilter, statusFilter, offset, loadRuns, router])
 
-  const handleNextPage = () => { setOffset((prev) => prev + 50) }
-  const handlePrevPage = () => { setOffset((prev) => Math.max(0, prev - 50)) }
+  const handleNextPage = () => {
+    setOffset((prev) => prev + 50)
+  }
+  const handlePrevPage = () => {
+    setOffset((prev) => Math.max(0, prev - 50))
+  }
 
   const STATUS_BADGE_VARIANT: Record<AiRunStatus, 'success' | 'warning' | 'error'> = {
     success: 'success',
@@ -131,25 +138,25 @@ export default function AdminAIRunsPage() {
             <table className="w-full">
               <thead className="bg-neutral-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-neutral-600">
                     Time
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-neutral-600">
                     Purpose
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-neutral-600">
                     Engine
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-neutral-600">
                     Status
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-neutral-600">
                     Latency
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-neutral-600">
                     Error
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-neutral-600">
                     Actions
                   </th>
                 </tr>
@@ -184,7 +191,7 @@ export default function AdminAIRunsPage() {
                     </td>
                     <td className="px-4 py-3">
                       {run.error_code && (
-                        <Typography variant="xs" className="font-mono text-error-600">
+                        <Typography variant="xs" className="text-error-600 font-mono">
                           {run.error_code}
                         </Typography>
                       )}

@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Avatar } from './Avatar';
+import type { Meta, StoryObj } from '@storybook/react'
+import { Avatar } from './Avatar'
 
 const meta = {
   title: 'Atoms/Avatar',
@@ -25,107 +25,107 @@ const meta = {
       description: 'Status indicator',
     },
   },
-} satisfies Meta<typeof Avatar>;
+} satisfies Meta<typeof Avatar>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
     fallback: 'JD',
   },
-};
+}
 
 export const WithImage: Story = {
   args: {
     src: 'https://i.pravatar.cc/150?img=1',
     alt: 'John Doe',
   },
-};
+}
 
 export const WithFallback: Story = {
   args: {
     fallback: 'AB',
     alt: 'Alice Brown',
   },
-};
+}
 
 export const Online: Story = {
   args: {
     fallback: 'JD',
     status: 'online',
   },
-};
+}
 
 export const Offline: Story = {
   args: {
     fallback: 'JD',
     status: 'offline',
   },
-};
+}
 
 export const Away: Story = {
   args: {
     fallback: 'JD',
     status: 'away',
   },
-};
+}
 
 export const Busy: Story = {
   args: {
     fallback: 'JD',
     status: 'busy',
   },
-};
+}
 
 export const Square: Story = {
   args: {
     fallback: 'AB',
     shape: 'square',
   },
-};
+}
 
 export const ExtraSmall: Story = {
   args: {
     fallback: 'XS',
     size: 'xs',
   },
-};
+}
 
 export const Small: Story = {
   args: {
     fallback: 'SM',
     size: 'sm',
   },
-};
+}
 
 export const Medium: Story = {
   args: {
     fallback: 'MD',
     size: 'md',
   },
-};
+}
 
 export const Large: Story = {
   args: {
     fallback: 'LG',
     size: 'lg',
   },
-};
+}
 
 export const ExtraLarge: Story = {
   args: {
     fallback: 'XL',
     size: 'xl',
   },
-};
+}
 
 export const TwoExtraLarge: Story = {
   args: {
     fallback: '2X',
     size: '2xl',
   },
-};
+}
 
 export const AllSizes: Story = {
   render: () => (
@@ -138,7 +138,7 @@ export const AllSizes: Story = {
       <Avatar size="2xl" fallback="2X" />
     </div>
   ),
-};
+}
 
 export const AllStatuses: Story = {
   render: () => (
@@ -149,5 +149,4 @@ export const AllStatuses: Story = {
       <Avatar fallback="BS" status="busy" />
     </div>
   ),
-};
-
+}

@@ -1,4 +1,4 @@
-import { PolymorphicComponentPropWithRef } from '@/utils'
+import { PolymorphicComponentPropWithRef } from '@/utils/polymorphic'
 
 export type SchedulingCardProps<C extends React.ElementType = 'div'> =
   PolymorphicComponentPropWithRef<
@@ -51,4 +51,3 @@ export type SchedulingCardProps<C extends React.ElementType = 'div'> =
       cardShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl'
     }
   >
-

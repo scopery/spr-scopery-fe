@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import type { ContentLoaderProps } from './ContentLoader.types'
 
 /**
@@ -33,18 +33,7 @@ const EASEOUT_CELL_COUNT = 8
  * ```
  */
 export const ContentLoader = React.forwardRef<HTMLDivElement, ContentLoaderProps>(
-  (
-    {
-      variant = 'default',
-      animated = true,
-      width,
-      height,
-      className,
-      style,
-      ...props
-    },
-    ref
-  ) => {
+  ({ variant = 'default', animated = true, width, height, className, style, ...props }, ref) => {
     const inlineStyles: React.CSSProperties = {
       ...(typeof width !== 'undefined' && {
         width: typeof width === 'number' ? `${width}px` : width,
@@ -108,10 +97,7 @@ export const ContentLoader = React.forwardRef<HTMLDivElement, ContentLoaderProps
         {...props}
       >
         {GRID_CELLS.map((bgClass, index) => (
-          <div
-            key={index}
-            className={cn('aspect-square w-full', bgClass)}
-          />
+          <div key={index} className={cn('aspect-square w-full', bgClass)} />
         ))}
       </div>
     )

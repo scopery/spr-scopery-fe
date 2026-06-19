@@ -1,8 +1,17 @@
-import { PolymorphicComponentPropWithRef } from '@/utils'
+import { PolymorphicComponentPropWithRef } from '@/utils/polymorphic'
 
 export type BadgeVariant = 'solid' | 'outline' | 'soft'
 export type BadgeSize = 'sm' | 'md' | 'lg'
-export type BadgeTone = 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'progress' | 'neutral'
+export type BadgeTone =
+  | 'default'
+  | 'primary'
+  | 'secondary'
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'info'
+  | 'progress'
+  | 'neutral'
 
 export type BadgeProps<C extends React.ElementType = 'span'> = PolymorphicComponentPropWithRef<
   C,
@@ -29,4 +38,3 @@ export type BadgeProps<C extends React.ElementType = 'span'> = PolymorphicCompon
     dot?: boolean
   }
 >
-

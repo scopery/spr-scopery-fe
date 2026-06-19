@@ -1,6 +1,6 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Stack } from './Stack';
-import { Button } from '../Button';
+import type { Meta, StoryObj } from '@storybook/react'
+import { Stack } from './Stack'
+import { Button } from '../Button'
 
 const meta = {
   title: 'Atoms/Stack',
@@ -35,14 +35,14 @@ const meta = {
       description: 'Allow wrapping',
     },
   },
-} satisfies Meta<typeof Stack>;
+} satisfies Meta<typeof Stack>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 const BoxItem = ({ children }: { children: React.ReactNode }) => (
-  <div className="p-md bg-primary text-white rounded">{children}</div>
-);
+  <div className="rounded bg-primary p-md text-white">{children}</div>
+)
 
 export const Vertical: Story = {
   args: {
@@ -56,7 +56,7 @@ export const Vertical: Story = {
       </>
     ),
   },
-};
+}
 
 export const Horizontal: Story = {
   args: {
@@ -70,7 +70,7 @@ export const Horizontal: Story = {
       </>
     ),
   },
-};
+}
 
 export const SmallSpacing: Story = {
   args: {
@@ -84,7 +84,7 @@ export const SmallSpacing: Story = {
       </>
     ),
   },
-};
+}
 
 export const LargeSpacing: Story = {
   args: {
@@ -98,7 +98,7 @@ export const LargeSpacing: Story = {
       </>
     ),
   },
-};
+}
 
 export const CenterAligned: Story = {
   args: {
@@ -108,12 +108,12 @@ export const CenterAligned: Story = {
     children: (
       <>
         <BoxItem>Short</BoxItem>
-        <div className="p-lg bg-primary text-white rounded">Tall item</div>
+        <div className="rounded bg-primary p-lg text-white">Tall item</div>
         <BoxItem>Short</BoxItem>
       </>
     ),
   },
-};
+}
 
 export const SpaceBetween: Story = {
   args: {
@@ -134,7 +134,7 @@ export const SpaceBetween: Story = {
       </div>
     ),
   ],
-};
+}
 
 export const Centered: Story = {
   args: {
@@ -156,7 +156,7 @@ export const Centered: Story = {
       </div>
     ),
   ],
-};
+}
 
 export const WithWrap: Story = {
   args: {
@@ -181,7 +181,7 @@ export const WithWrap: Story = {
       </div>
     ),
   ],
-};
+}
 
 export const ButtonGroup: Story = {
   args: {
@@ -195,7 +195,7 @@ export const ButtonGroup: Story = {
       </>
     ),
   },
-};
+}
 
 export const FormLayout: Story = {
   args: {
@@ -204,12 +204,12 @@ export const FormLayout: Story = {
     children: (
       <>
         <div>
-          <label className="block mb-xs font-medium">Name</label>
-          <input type="text" className="w-full p-sm border rounded" />
+          <label className="mb-xs block font-medium">Name</label>
+          <input type="text" className="w-full rounded border p-sm" />
         </div>
         <div>
-          <label className="block mb-xs font-medium">Email</label>
-          <input type="email" className="w-full p-sm border rounded" />
+          <label className="mb-xs block font-medium">Email</label>
+          <input type="email" className="w-full rounded border p-sm" />
         </div>
         <Button>Submit</Button>
       </>
@@ -222,4 +222,4 @@ export const FormLayout: Story = {
       </div>
     ),
   ],
-};
+}

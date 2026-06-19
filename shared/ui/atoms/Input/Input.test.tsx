@@ -225,13 +225,7 @@ describe('Input', () => {
   describe('Accessibility', () => {
     it('has proper ARIA attributes', () => {
       render(
-        <Input
-          label="Email"
-          required
-          error="Invalid email"
-          placeholder="Input"
-          id="email-input"
-        />
+        <Input label="Email" required error="Invalid email" placeholder="Input" id="email-input" />
       )
       const input = screen.getByPlaceholderText('Input')
 
@@ -256,4 +250,3 @@ describe('Input', () => {
     })
   })
 })
-

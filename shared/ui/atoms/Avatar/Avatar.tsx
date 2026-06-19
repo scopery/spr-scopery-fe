@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import type { AvatarProps } from './Avatar.types'
 
 const avatarSizes = {
@@ -63,11 +63,7 @@ export const Avatar = React.forwardRef(
     const showImage = src && !imageError
 
     return (
-      <Component
-        ref={ref}
-        className={cn('relative inline-flex', className)}
-        {...props}
-      >
+      <Component ref={ref} className={cn('relative inline-flex', className)} {...props}>
         <div
           className={cn(
             'flex items-center justify-center overflow-hidden bg-neutral-200 font-medium text-neutral-700',
@@ -112,4 +108,3 @@ export const Avatar = React.forwardRef(
 )
 
 Avatar.displayName = 'Avatar'
-

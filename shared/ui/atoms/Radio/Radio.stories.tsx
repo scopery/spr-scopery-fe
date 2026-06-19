@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Radio } from './Radio';
+import type { Meta, StoryObj } from '@storybook/react'
+import { Radio } from './Radio'
 
 const meta = {
   title: 'Atoms/Radio',
@@ -19,10 +19,10 @@ const meta = {
       description: 'Whether the radio is disabled',
     },
   },
-} satisfies Meta<typeof Radio>;
+} satisfies Meta<typeof Radio>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
@@ -30,7 +30,7 @@ export const Default: Story = {
     value: 'option1',
     label: 'Option 1',
   },
-};
+}
 
 export const WithHelperText: Story = {
   args: {
@@ -39,7 +39,7 @@ export const WithHelperText: Story = {
     label: 'Premium Plan',
     helperText: 'Recommended for teams',
   },
-};
+}
 
 export const WithError: Story = {
   args: {
@@ -48,7 +48,7 @@ export const WithError: Story = {
     label: 'Invalid option',
     error: 'This option is not available',
   },
-};
+}
 
 export const Checked: Story = {
   args: {
@@ -57,7 +57,7 @@ export const Checked: Story = {
     label: 'Selected option',
     defaultChecked: true,
   },
-};
+}
 
 export const Disabled: Story = {
   args: {
@@ -66,7 +66,7 @@ export const Disabled: Story = {
     label: 'Disabled option',
     disabled: true,
   },
-};
+}
 
 export const DisabledChecked: Story = {
   args: {
@@ -76,7 +76,7 @@ export const DisabledChecked: Story = {
     disabled: true,
     defaultChecked: true,
   },
-};
+}
 
 export const Small: Story = {
   args: {
@@ -85,7 +85,7 @@ export const Small: Story = {
     label: 'Small radio',
     size: 'sm',
   },
-};
+}
 
 export const Medium: Story = {
   args: {
@@ -94,7 +94,7 @@ export const Medium: Story = {
     label: 'Medium radio',
     size: 'md',
   },
-};
+}
 
 export const Large: Story = {
   args: {
@@ -103,7 +103,7 @@ export const Large: Story = {
     label: 'Large radio',
     size: 'lg',
   },
-};
+}
 
 export const RadioGroup: Story = {
   render: () => (
@@ -113,5 +113,4 @@ export const RadioGroup: Story = {
       <Radio name="plan" value="enterprise" label="Enterprise" helperText="All features" />
     </div>
   ),
-};
-
+}

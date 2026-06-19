@@ -1,8 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { AuthGuard } from '@/shared/components/guards'
-import { AppShell } from '@/shared/components/layout/AppShell'
+import { AuthGuard, AppShell } from '@/modules/platform'
 
 export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const params = useParams()

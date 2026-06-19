@@ -22,23 +22,12 @@ describe('SchedulingCard', () => {
   })
 
   it('renders description', () => {
-    render(
-      <SchedulingCard
-        description="You have one scheduled event today"
-        event={mockEvent}
-      />
-    )
+    render(<SchedulingCard description="You have one scheduled event today" event={mockEvent} />)
     expect(screen.getByText('You have one scheduled event today')).toBeInTheDocument()
   })
 
   it('renders day and date', () => {
-    render(
-      <SchedulingCard
-        day="FRIDAY"
-        date="Mar 28"
-        event={mockEvent}
-      />
-    )
+    render(<SchedulingCard day="FRIDAY" date="Mar 28" event={mockEvent} />)
     expect(screen.getByText('FRIDAY')).toBeInTheDocument()
     expect(screen.getByText('Mar 28')).toBeInTheDocument()
   })
@@ -79,39 +68,23 @@ describe('SchedulingCard', () => {
   })
 
   it('renders action button when onAction is provided', () => {
-    render(
-      <SchedulingCard
-        event={mockEvent}
-        onAction={() => {}}
-      />
-    )
+    render(<SchedulingCard event={mockEvent} onAction={() => {}} />)
     expect(screen.getByText('Mark this event')).toBeInTheDocument()
   })
 
   it('calls onAction when button is clicked', async () => {
     const user = userEvent.setup()
     const onAction = vi.fn()
-    render(
-      <SchedulingCard
-        event={mockEvent}
-        onAction={onAction}
-      />
-    )
-    
+    render(<SchedulingCard event={mockEvent} onAction={onAction} />)
+
     const button = screen.getByText('Mark this event')
     await user.click(button)
-    
+
     expect(onAction).toHaveBeenCalledTimes(1)
   })
 
   it('uses custom action label', () => {
-    render(
-      <SchedulingCard
-        event={mockEvent}
-        actionLabel="Custom Action"
-        onAction={() => {}}
-      />
-    )
+    render(<SchedulingCard event={mockEvent} actionLabel="Custom Action" onAction={() => {}} />)
     expect(screen.getByText('Custom Action')).toBeInTheDocument()
   })
 
@@ -144,4 +117,3 @@ describe('SchedulingCard', () => {
     expect(screen.getByText('Some location')).toBeInTheDocument()
   })
 })
-

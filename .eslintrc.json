@@ -11,6 +11,80 @@
     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
     "@typescript-eslint/no-explicit-any": "error",
     "@typescript-eslint/explicit-module-boundary-types": "off"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["app/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/services/*"],
+                "message": "Routes must use @/modules/{slice} instead of @/services."
+              },
+              {
+                "group": [
+                  "@/modules/*/api/*",
+                  "@/modules/*/hooks/*",
+                  "@/modules/*/model/*",
+                  "@/modules/*/ui/*",
+                  "@/modules/*/context/*"
+                ],
+                "message": "Import from @/modules/{slice} public index only."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["shared/ui/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/services/*", "@/modules/*"],
+                "message": "Design system must not import business modules or services."
+              },
+              {
+                "group": ["@/types/*"],
+                "message": "Design system must not import business types."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["modules/**/*.{ts,tsx}"],
+      "excludedFiles": ["modules/**/api/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/services/*"],
+                "message": "Use modules/{slice}/api instead of @/services."
+              },
+              {
+                "group": [
+                  "@/modules/*/*/api/*",
+                  "@/modules/*/*/hooks/*",
+                  "@/modules/*/*/model/*",
+                  "@/modules/*/*/ui/*",
+                  "@/modules/*/*/lib/*"
+                ],
+                "message": "Import from @/modules/{context}/{sub-module} index, or use relative imports within the same sub-module."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }
-

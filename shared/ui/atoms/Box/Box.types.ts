@@ -1,4 +1,4 @@
-import { PolymorphicComponentPropWithRef } from '@/utils'
+import { PolymorphicComponentPropWithRef } from '@/utils/polymorphic'
 
 export type BoxDisplay = 'block' | 'inline-block' | 'flex' | 'inline-flex' | 'grid' | 'inline-grid'
 export type BoxPadding = 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
@@ -47,4 +47,3 @@ export type BoxProps<C extends React.ElementType = 'div'> = PolymorphicComponent
     borderWidth?: 'none' | '1' | '2'
   }
 >
-

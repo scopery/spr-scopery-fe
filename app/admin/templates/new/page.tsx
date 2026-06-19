@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Typography, Button, Input } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { createTemplate } from '@/services/template.service'
+import { createTemplate } from '@/modules/admin'
 import { toast } from 'sonner'
 import { getProblemToastMessage, getFieldErrors } from '@/shared/lib/errorHandling'
 
@@ -44,10 +44,10 @@ export default function AdminTemplatesNewPage() {
   }
 
   return (
-    <div className="p-6 max-w-lg mx-auto">
+    <div className="mx-auto max-w-lg p-6">
       <Link
         href={ROUTES.admin.templates}
-        className="inline-flex items-center gap-1 text-primary hover:underline mb-4"
+        className="mb-4 inline-flex items-center gap-1 text-primary hover:underline"
       >
         <ArrowLeft size={20} />
         Back to templates
@@ -81,11 +81,7 @@ export default function AdminTemplatesNewPage() {
           <Button type="submit" variant="primary" loading={loading}>
             Create draft
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => router.push(ROUTES.admin.templates)}
-          >
+          <Button type="button" variant="ghost" onClick={() => router.push(ROUTES.admin.templates)}>
             Cancel
           </Button>
         </div>

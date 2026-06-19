@@ -16,9 +16,7 @@ describe('parseInviteToken', () => {
     expect(parseInviteToken('https://x/invites/Abc123def_GHI-456?foo=bar')).toBe(
       'Abc123def_GHI-456'
     )
-    expect(parseInviteToken('https://x/invites/Abc123def_GHI-456#hash')).toBe(
-      'Abc123def_GHI-456'
-    )
+    expect(parseInviteToken('https://x/invites/Abc123def_GHI-456#hash')).toBe('Abc123def_GHI-456')
   })
 
   it('uses segment after last /invites/ when multiple', () => {

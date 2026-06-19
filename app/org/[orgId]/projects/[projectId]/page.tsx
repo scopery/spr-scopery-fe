@@ -6,13 +6,16 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Play, Plus } from 'lucide-react'
 import { Typography, Button, Badge, ContentLoader } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import * as sessionService from '@/services/session.service'
-import { useProject } from '@/hooks/useProject'
-import { useOrg } from '@/hooks/useOrg'
-import { useSessions } from '@/hooks/useSessions'
+import { useProject } from '@/modules/projects'
+import { useSessions, SESSION_STATUS_LABEL } from '@/modules/sessions'
+import { useOrg } from '@/modules/org'
 import { canEditProject, isOrgReadonly, resolveProjectRole } from '@/utils/permissions'
-import { ProjectStepIndicator, buildProjectFlowSteps, PROJECT_FLOW_STEP_IDS } from './_components/ProjectStepIndicator'
-import { CreateSessionModal } from './sessions/_components/CreateSessionModal'
+import {
+  ProjectStepIndicator,
+  buildProjectFlowSteps,
+  PROJECT_FLOW_STEP_IDS,
+} from '@/modules/projects'
+import { CreateSessionModal } from '@/modules/sessions'
 
 export default function ProjectDetailPage() {
   const params = useParams()
@@ -71,37 +74,56 @@ export default function ProjectDetailPage() {
         description={project.description ?? undefined}
         badges={
           <>
-            <Badge className="rounded-none" variant="solid" tone={projectRole === 'editor' ? 'info' : 'neutral'} size="sm">
+            <Badge
+              className="rounded-none"
+              variant="solid"
+              tone={projectRole === 'editor' ? 'info' : 'neutral'}
+              size="sm"
+            >
               {projectRole}
             </Badge>
-            <Badge variant="soft" tone="neutral" size="sm">{project.status}</Badge>
+            <Badge variant="soft" tone="neutral" size="sm">
+              {project.status}
+            </Badge>
           </>
         }
         steps={flowSteps}
       />
 
       {/* Navigation tabs — simplified MVP */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="mb-6 flex flex-wrap gap-2">
         <Link href={ROUTES.org.projectQuestions(orgId, projectId)}>
-          <Button variant="neutral-flat" size="sm">Questions</Button>
+          <Button variant="neutral-flat" size="sm">
+            Questions
+          </Button>
         </Link>
         <Link href={ROUTES.org.projectDocuments(orgId, projectId)}>
-          <Button variant="neutral-flat" size="sm">Documents</Button>
+          <Button variant="neutral-flat" size="sm">
+            Documents
+          </Button>
         </Link>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4 lg:grid-cols-6 mb-8">
+      <div className="mb-8 grid gap-4 sm:grid-cols-4 lg:grid-cols-6">
         <div className="border border-neutral-200 bg-white p-4">
-          <Typography variant="small" tone="muted">Questions</Typography>
-          <Typography size="xl" weight="normal">{project.questions_count}</Typography>
+          <Typography variant="small" tone="muted">
+            Questions
+          </Typography>
+          <Typography size="xl" weight="normal">
+            {project.questions_count}
+          </Typography>
         </div>
         <div className="border border-neutral-200 bg-white p-4">
-          <Typography variant="small" tone="muted">Answered</Typography>
-          <Typography size="xl" weight="normal">{project.answered_count}</Typography>
+          <Typography variant="small" tone="muted">
+            Answered
+          </Typography>
+          <Typography size="xl" weight="normal">
+            {project.answered_count}
+          </Typography>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
         <div>
           <Typography as="h2" weight="semibold" className="text-neutral-900">
             Sessions
@@ -113,7 +135,12 @@ export default function ProjectDetailPage() {
 
         <div className="flex flex-wrap gap-2">
           {canCreateSession && (
-            <Button variant="neutral-flat" size="md" onClick={() => setCreateModalOpen(true)} className="flex items-center gap-2">
+            <Button
+              variant="neutral-flat"
+              size="md"
+              onClick={() => setCreateModalOpen(true)}
+              className="flex items-center gap-2"
+            >
               <Plus size={16} />
               Create session
             </Button>
@@ -130,7 +157,7 @@ export default function ProjectDetailPage() {
       </div>
 
       {sessions.length === 0 ? (
-        <div className="border border-neutral-200 bg-white p-12 text-center mb-8">
+        <div className="mb-8 border border-neutral-200 bg-white p-12 text-center">
           <Typography as="h3" weight="medium" className="mb-2">
             No sessions yet
           </Typography>
@@ -144,29 +171,33 @@ export default function ProjectDetailPage() {
           )}
         </div>
       ) : (
-        <div className="border-neutral-200 overflow-hidden mb-8">
+        <div className="mb-8 overflow-hidden border-neutral-200">
           <table className="w-full">
             <thead className="border-b border-neutral-500">
               <tr>
-                <th className="text-left py-3 px-4 text-sm font-normal text-neutral-700">Name</th>
-                <th className="text-left py-3 px-4 text-sm font-normal text-neutral-700">Status</th>
-                <th className="text-left py-3 px-4 text-sm font-normal text-neutral-700">Created</th>
-                <th className="text-left py-3 px-4 text-sm font-normal text-neutral-700">Submitted</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-neutral-700">Name</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-neutral-700">Status</th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-neutral-700">
+                  Created
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-normal text-neutral-700">
+                  Submitted
+                </th>
                 <th className="w-24" />
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-neutral-200">
+            <tbody className="divide-y divide-neutral-200 bg-white">
               {sessions.map((s) => (
                 <tr key={s.id} className="hover:bg-neutral-50/80 transition-colors">
-                  <td className="py-3 px-4">
+                  <td className="px-4 py-3">
                     <Link
                       href={ROUTES.org.session(orgId, projectId, s.id)}
-                      className="text-primary hover:underline text-sm"
+                      className="text-sm text-primary hover:underline"
                     >
                       {s.name}
                     </Link>
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="px-4 py-3">
                     <Badge
                       variant="solid"
                       tone={
@@ -178,18 +209,20 @@ export default function ProjectDetailPage() {
                       }
                       size="sm"
                     >
-                      {sessionService.SESSION_STATUS_LABEL[s.status]}
+                      {SESSION_STATUS_LABEL[s.status]}
                     </Badge>
                   </td>
-                  <td className="py-3 px-4 text-sm text-neutral-600">
+                  <td className="px-4 py-3 text-sm text-neutral-600">
                     {new Date(s.created_at).toLocaleDateString()}
                   </td>
-                  <td className="py-3 px-4 text-sm text-neutral-600">
+                  <td className="px-4 py-3 text-sm text-neutral-600">
                     {s.submitted_at ? new Date(s.submitted_at).toLocaleDateString() : '—'}
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="px-4 py-3">
                     <Link href={ROUTES.org.session(orgId, projectId, s.id)}>
-                      <Typography variant="small" className="text-primary hover:underline">Open</Typography>
+                      <Typography variant="small" className="text-primary hover:underline">
+                        Open
+                      </Typography>
                     </Link>
                   </td>
                 </tr>

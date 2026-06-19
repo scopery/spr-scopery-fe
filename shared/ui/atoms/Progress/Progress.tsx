@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import { Typography } from '../Typography'
 import type { ProgressProps } from './Progress.types'
 
@@ -63,10 +63,7 @@ export const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
           aria-valuemin={0}
           aria-valuemax={max}
           aria-label={indeterminate ? 'Loading...' : `${Math.round(percentage)}%`}
-          className={cn(
-            'w-full overflow-hidden rounded-full bg-neutral-200',
-            progressSizes[size]
-          )}
+          className={cn('w-full overflow-hidden rounded-full bg-neutral-200', progressSizes[size])}
         >
           <div
             className={cn(
@@ -85,4 +82,3 @@ export const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
 )
 
 Progress.displayName = 'Progress'
-

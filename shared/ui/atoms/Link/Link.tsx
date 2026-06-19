@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import type { LinkProps } from './Link.types'
 
 const linkVariants = {
@@ -66,7 +66,7 @@ export const Link = React.forwardRef(
           // Size
           linkSizes[size],
           // Disabled
-          disabled && 'pointer-events-none opacity-50 cursor-not-allowed',
+          disabled && 'pointer-events-none cursor-not-allowed opacity-50',
           className
         )}
         aria-disabled={disabled}
@@ -96,4 +96,3 @@ export const Link = React.forwardRef(
 )
 
 Link.displayName = 'Link'
-

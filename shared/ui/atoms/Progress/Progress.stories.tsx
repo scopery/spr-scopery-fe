@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Progress } from './Progress';
+import type { Meta, StoryObj } from '@storybook/react'
+import { Progress } from './Progress'
 
 const meta = {
   title: 'Atoms/Progress',
@@ -43,37 +43,37 @@ const meta = {
       </div>
     ),
   ],
-} satisfies Meta<typeof Progress>;
+} satisfies Meta<typeof Progress>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
     value: 50,
   },
-};
+}
 
 export const WithValue: Story = {
   args: {
     value: 75,
     showValue: true,
   },
-};
+}
 
 export const Primary: Story = {
   args: {
     value: 60,
     tone: 'primary',
   },
-};
+}
 
 export const Secondary: Story = {
   args: {
     value: 60,
     tone: 'secondary',
   },
-};
+}
 
 export const Success: Story = {
   args: {
@@ -81,55 +81,55 @@ export const Success: Story = {
     tone: 'success',
     showValue: true,
   },
-};
+}
 
 export const Warning: Story = {
   args: {
     value: 70,
     tone: 'warning',
   },
-};
+}
 
 export const Error: Story = {
   args: {
     value: 30,
     tone: 'error',
   },
-};
+}
 
 export const Info: Story = {
   args: {
     value: 45,
     tone: 'info',
   },
-};
+}
 
 export const Small: Story = {
   args: {
     value: 50,
     size: 'sm',
   },
-};
+}
 
 export const Medium: Story = {
   args: {
     value: 50,
     size: 'md',
   },
-};
+}
 
 export const Large: Story = {
   args: {
     value: 50,
     size: 'lg',
   },
-};
+}
 
 export const Indeterminate: Story = {
   args: {
     indeterminate: true,
   },
-};
+}
 
 export const Complete: Story = {
   args: {
@@ -137,14 +137,14 @@ export const Complete: Story = {
     tone: 'success',
     showValue: true,
   },
-};
+}
 
 export const Empty: Story = {
   args: {
     value: 0,
     showValue: true,
   },
-};
+}
 
 export const AllTones: Story = {
   render: () => (
@@ -157,4 +157,4 @@ export const AllTones: Story = {
       <Progress value={60} tone="info" showValue />
     </div>
   ),
-};
+}

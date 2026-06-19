@@ -1,0 +1,33 @@
+'use client'
+
+import { useCallback, useEffect, useState } from 'react'
+import * as governanceApi from '../api/governance.api'
+import type { GovernancePolicy, GovernanceRule } from '../model/governance'
+
+export function useGovernancePolicy(orgId: string | null, policyId: string | null) {
+  const [policy, setPolicy] = useState<GovernancePolicy | null>(null)
+  const [rules, setRules] = useState<GovernanceRule[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    if (!orgId || !policyId) return
+    setLoading(true)
+    setError(null)
+    try {
+      const detail = await governanceApi.getGovernancePolicy(orgId, policyId)
+      setPolicy(detail.policy)
+      setRules(detail.rules)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load policy')
+    } finally {
+      setLoading(false)
+    }
+  }, [orgId, policyId])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  return { policy, rules, loading, error, refetch: load }
+}

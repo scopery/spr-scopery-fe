@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Badge } from './Badge';
+import type { Meta, StoryObj } from '@storybook/react'
+import { Badge } from './Badge'
 
 const meta = {
   title: 'Atoms/Badge',
@@ -29,58 +29,58 @@ const meta = {
       description: 'Show dot indicator',
     },
   },
-} satisfies Meta<typeof Badge>;
+} satisfies Meta<typeof Badge>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
     children: 'Default',
   },
-};
+}
 
 export const Primary: Story = {
   args: {
     children: 'Primary',
     tone: 'primary',
   },
-};
+}
 
 export const Secondary: Story = {
   args: {
     children: 'Secondary',
     tone: 'secondary',
   },
-};
+}
 
 export const Success: Story = {
   args: {
     children: 'Success',
     tone: 'success',
   },
-};
+}
 
 export const Warning: Story = {
   args: {
     children: 'Warning',
     tone: 'warning',
   },
-};
+}
 
 export const Error: Story = {
   args: {
     children: 'Error',
     tone: 'error',
   },
-};
+}
 
 export const Info: Story = {
   args: {
     children: 'Info',
     tone: 'info',
   },
-};
+}
 
 export const Outline: Story = {
   args: {
@@ -88,7 +88,7 @@ export const Outline: Story = {
     variant: 'outline',
     tone: 'primary',
   },
-};
+}
 
 export const Soft: Story = {
   args: {
@@ -96,28 +96,28 @@ export const Soft: Story = {
     variant: 'soft',
     tone: 'primary',
   },
-};
+}
 
 export const Small: Story = {
   args: {
     children: 'Small',
     size: 'sm',
   },
-};
+}
 
 export const Medium: Story = {
   args: {
     children: 'Medium',
     size: 'md',
   },
-};
+}
 
 export const Large: Story = {
   args: {
     children: 'Large',
     size: 'lg',
   },
-};
+}
 
 export const WithDot: Story = {
   args: {
@@ -125,7 +125,7 @@ export const WithDot: Story = {
     dot: true,
     tone: 'success',
   },
-};
+}
 
 export const AllVariants: Story = {
   render: () => (
@@ -141,7 +141,7 @@ export const AllVariants: Story = {
       </Badge>
     </div>
   ),
-};
+}
 
 export const AllTones: Story = {
   render: () => (
@@ -155,5 +155,4 @@ export const AllTones: Story = {
       <Badge tone="info">Info</Badge>
     </div>
   ),
-};
-
+}

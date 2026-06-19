@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Divider } from './Divider';
+import type { Meta, StoryObj } from '@storybook/react'
+import { Divider } from './Divider'
 
 const meta = {
   title: 'Atoms/Divider',
@@ -31,45 +31,45 @@ const meta = {
       </div>
     ),
   ],
-} satisfies Meta<typeof Divider>;
+} satisfies Meta<typeof Divider>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {},
-};
+}
 
 export const Solid: Story = {
   args: {
     variant: 'solid',
   },
-};
+}
 
 export const Dashed: Story = {
   args: {
     variant: 'dashed',
   },
-};
+}
 
 export const Dotted: Story = {
   args: {
     variant: 'dotted',
   },
-};
+}
 
 export const WithLabel: Story = {
   args: {
     label: 'OR',
   },
-};
+}
 
 export const WithLabelDashed: Story = {
   args: {
     label: 'OR',
     variant: 'dashed',
   },
-};
+}
 
 export const Vertical: Story = {
   args: {
@@ -82,7 +82,7 @@ export const Vertical: Story = {
       </div>
     ),
   ],
-};
+}
 
 export const VerticalDashed: Story = {
   args: {
@@ -96,7 +96,7 @@ export const VerticalDashed: Story = {
       </div>
     ),
   ],
-};
+}
 
 export const InContent: Story = {
   render: () => (
@@ -106,7 +106,7 @@ export const InContent: Story = {
       <p>This is some content below the divider.</p>
     </div>
   ),
-};
+}
 
 export const WithLabelInContent: Story = {
   render: () => (
@@ -116,7 +116,7 @@ export const WithLabelInContent: Story = {
       <p>Sign in with social media</p>
     </div>
   ),
-};
+}
 
 export const VerticalInContent: Story = {
   render: () => (
@@ -126,5 +126,4 @@ export const VerticalInContent: Story = {
       <div>Right content</div>
     </div>
   ),
-};
-
+}

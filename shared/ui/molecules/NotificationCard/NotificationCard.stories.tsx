@@ -49,7 +49,8 @@ export const Default: Story = {
       name: 'Charlie Herwitz',
       role: 'PRODUCT DIRECTOR',
     },
-    message: 'Would you like them formatted for a specific use case, like a project management tool?',
+    message:
+      'Would you like them formatted for a specific use case, like a project management tool?',
     timeAgo: '5 mins',
     read: true,
     onSend: () => console.log('Send clicked'),
@@ -99,7 +100,8 @@ export const LongMessage: Story = {
       name: 'Bob Wilson',
       role: 'PROJECT MANAGER',
     },
-    message: 'This is a very long notification message that should wrap properly within the message bubble. It contains multiple sentences and should display nicely with proper text wrapping and spacing.',
+    message:
+      'This is a very long notification message that should wrap properly within the message bubble. It contains multiple sentences and should display nicely with proper text wrapping and spacing.',
     timeAgo: '30 mins',
     read: true,
   },
@@ -126,4 +128,3 @@ export const WithoutReadStatus: Story = {
     timeAgo: '15 mins',
   },
 }
-

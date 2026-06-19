@@ -26,13 +26,13 @@ describe('Avatar', () => {
     it('shows fallback when image fails to load', async () => {
       render(<Avatar src="/invalid.jpg" fallback="JD" />)
       const img = screen.getByRole('img')
-      
+
       // Simulate image error
       await new Promise((resolve) => {
         img.addEventListener('error', resolve)
         img.dispatchEvent(new Event('error'))
       })
-      
+
       // After error, fallback should appear
       await screen.findByText('JD')
       expect(screen.getByText('JD')).toBeInTheDocument()
@@ -174,4 +174,3 @@ describe('Avatar', () => {
     })
   })
 })
-

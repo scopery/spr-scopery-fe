@@ -40,7 +40,12 @@ export const MOCK_DOCUMENT_1 = {
       },
       {
         type: 'paragraph',
-        content: [{ type: 'text', text: 'This document outlines the functional and non-functional requirements for the E-Commerce Platform Redesign project.' }],
+        content: [
+          {
+            type: 'text',
+            text: 'This document outlines the functional and non-functional requirements for the E-Commerce Platform Redesign project.',
+          },
+        ],
       },
     ],
   },
@@ -64,7 +69,9 @@ export const MOCK_DOCUMENT_2 = {
       },
       {
         type: 'paragraph',
-        content: [{ type: 'text', text: 'High-level technical architecture for the redesigned platform.' }],
+        content: [
+          { type: 'text', text: 'High-level technical architecture for the redesigned platform.' },
+        ],
       },
     ],
   },

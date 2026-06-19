@@ -32,9 +32,7 @@ describe('Select', () => {
   })
 
   it('renders with custom className', () => {
-    const { container } = render(
-      <Select options={options} className="custom-class" />
-    )
+    const { container } = render(<Select options={options} className="custom-class" />)
     expect(container.firstChild).toBeInTheDocument()
   })
 
@@ -46,4 +44,3 @@ describe('Select', () => {
     expect(screen.getByRole('combobox')).toBeInTheDocument()
   })
 })
-

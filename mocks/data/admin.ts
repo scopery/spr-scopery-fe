@@ -67,7 +67,13 @@ export const MOCK_ADMIN_TEMPLATES_LIST = {
 
 // ─── Admin AI Configs ────────────────────────────────────────────────────────
 
-const AI_PURPOSES = ['generate_questions', 'improve_answer', 'assess_clarity', 'summarize_document', 'generate_document']
+const AI_PURPOSES = [
+  'generate_questions',
+  'improve_answer',
+  'assess_clarity',
+  'summarize_document',
+  'generate_document',
+]
 
 export const MOCK_AI_CONFIGS_LIST = {
   items: AI_PURPOSES.map((purpose, i) => ({
@@ -282,7 +288,8 @@ export const MOCK_AI_AGENT_VERSION_DETAIL = {
   temperature: 0.3,
   maxOutputTokens: 4096,
   systemPrompt: 'You are an expert requirements analyst. Generate precise, clarifying questions.',
-  userPromptTemplate: 'Context: {{project_context}}\n\nGenerate {{max_items}} clarifying questions.',
+  userPromptTemplate:
+    'Context: {{project_context}}\n\nGenerate {{max_items}} clarifying questions.',
   outputFormat: 'json',
   createdAt: '2025-05-01T08:00:00Z',
   publishedAt: '2025-05-15T10:00:00Z',
@@ -383,8 +390,8 @@ export const MOCK_AI_BUDGETS_LIST = {
       project_id: 'mock-project-001',
       name: 'E-Commerce Project Budget',
       limit_usd: 150.0,
-      spent_usd: 45.20,
-      remaining_usd: 104.80,
+      spent_usd: 45.2,
+      remaining_usd: 104.8,
       utilization_pct: 30.1,
       period: 'monthly',
       status: 'active',

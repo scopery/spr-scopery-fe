@@ -15,7 +15,7 @@ export default function OrgRedirectPage() {
   }, [orgId, router])
 
   return (
-    <main className="min-h-screen bg-neutral-50 flex items-center justify-center">
+    <main className="flex min-h-screen items-center justify-center bg-neutral-50">
       <ContentLoader variant="easeOut" className="w-20" />
     </main>
   )

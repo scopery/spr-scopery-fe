@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { ApiError } from '@/types/api'
-import {
-  getJoinErrorMessage,
-  JOIN_INVITE_ERROR_BY_CODE,
-} from './joinInviteErrors'
+import { ApiError } from '@/shared/lib/api-types'
+import { getJoinErrorMessage, JOIN_INVITE_ERROR_BY_CODE } from './joinInviteErrors'
 
 describe('getJoinErrorMessage', () => {
   it('returns code-specific message for known invite codes', () => {

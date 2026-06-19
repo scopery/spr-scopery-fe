@@ -460,11 +460,13 @@ const ROUTES: Route[] = [
     handler: () => documentData.MOCK_COLLABORATION_SUGGESTIONS,
   },
   {
-    pattern: '/api/v2/orgs/:orgId/documents/:documentId/collaboration/suggestions/:suggestionId/accept',
+    pattern:
+      '/api/v2/orgs/:orgId/documents/:documentId/collaboration/suggestions/:suggestionId/accept',
     handler: () => null,
   },
   {
-    pattern: '/api/v2/orgs/:orgId/documents/:documentId/collaboration/suggestions/:suggestionId/reject',
+    pattern:
+      '/api/v2/orgs/:orgId/documents/:documentId/collaboration/suggestions/:suggestionId/reject',
     handler: () => null,
   },
   {
@@ -979,6 +981,32 @@ const ROUTES: Route[] = [
     pattern: '/api/v2/orgs/:orgId/controlled-lists/:listId/values/:valueId',
     handler: () => miscData.MOCK_CONTROLLED_LIST_DETAIL.values[0],
   },
+  {
+    pattern: '/api/v2/projects/:projectId/controlled-lists',
+    handler: (_, method) => {
+      if (method === 'POST') return miscData.MOCK_CONTROLLED_LISTS.items[0]
+      return miscData.MOCK_CONTROLLED_LISTS
+    },
+  },
+  {
+    pattern: '/api/v2/projects/:projectId/controlled-lists/:listId',
+    handler: () => miscData.MOCK_CONTROLLED_LIST_DETAIL,
+  },
+  {
+    pattern: '/api/v2/controlled-lists/:listId',
+    handler: () => miscData.MOCK_CONTROLLED_LIST_DETAIL,
+  },
+  {
+    pattern: '/api/v2/controlled-lists/:listId/values',
+    handler: (_, method) => {
+      if (method === 'POST') return miscData.MOCK_CONTROLLED_LIST_DETAIL.values[0]
+      return { items: miscData.MOCK_CONTROLLED_LIST_DETAIL.values }
+    },
+  },
+  {
+    pattern: '/api/v2/controlled-values/:valueId',
+    handler: () => miscData.MOCK_CONTROLLED_LIST_DETAIL.values[0],
+  },
 
   // ── Stakeholders ──────────────────────────────────────────────────────────
   {
@@ -1014,7 +1042,10 @@ const ROUTES: Route[] = [
   },
   {
     pattern: '/api/v2/orgs/:orgId/projects/:projectId/items/:itemId/attachments/upload-url',
-    handler: () => ({ upload_url: 'https://mock-storage.example.com/upload', key: 'mock-attachment' }),
+    handler: () => ({
+      upload_url: 'https://mock-storage.example.com/upload',
+      key: 'mock-attachment',
+    }),
   },
 
   // ── Change Requests ───────────────────────────────────────────────────────

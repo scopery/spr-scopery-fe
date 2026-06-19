@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import { Box } from '@/shared/ui/atoms/Box'
 import { Stack } from '@/shared/ui/atoms/Stack'
 import { Typography } from '@/shared/ui/atoms/Typography'
@@ -56,10 +56,7 @@ export const NotificationCard = React.forwardRef(
         >
           {/* Header */}
           {title && (
-            <Box
-              display="flex"
-              className="mb-[10px]"
-            >
+            <Box display="flex" className="mb-[10px]">
               <Typography variant="h6" weight="semibold" className="text-black">
                 {title}
               </Typography>
@@ -89,7 +86,7 @@ export const NotificationCard = React.forwardRef(
                   {sender.name}
                 </Typography>
                 {sender.role && (
-                  <Typography className="text-[#ac6021] uppercase text-xs">
+                  <Typography className="text-xs uppercase text-[#ac6021]">
                     {sender.role}
                   </Typography>
                 )}
@@ -105,17 +102,14 @@ export const NotificationCard = React.forwardRef(
                   e.stopPropagation()
                   onSend()
                 }}
-                className="bg-[#f3f3f3] hover:bg-[#e5e5e5] rounded-full p-1"
+                className="rounded-full bg-[#f3f3f3] p-1 hover:bg-[#e5e5e5]"
                 aria-label="Send message"
               />
             )}
           </Stack>
 
           {/* Message Bubble */}
-          <Box
-            display="block"
-            className="bg-[#f6f6f6] rounded-[10px] p-[10px] mb-[10px]"
-          >
+          <Box display="block" className="mb-[10px] rounded-[10px] bg-[#f6f6f6] p-[10px]">
             <Typography variant="small" className="text-[#55544e]">
               {message}
             </Typography>
@@ -123,22 +117,14 @@ export const NotificationCard = React.forwardRef(
 
           {/* Footer - Time and Read Status */}
           {(timeAgo || read) && (
-            <Stack
-              direction="horizontal"
-              spacing="sm"
-              align="center"
-              justify="left"
-            >
+            <Stack direction="horizontal" spacing="sm" align="center" justify="left">
               {timeAgo && (
                 <Typography variant="caption" className="text-[#5a5651]">
                   {timeAgo}
                 </Typography>
               )}
               {timeAgo && read && (
-                <Box
-                  display="block"
-                  className="w-0.5 h-0.5 rounded-full bg-[#5a5651]"
-                />
+                <Box display="block" className="h-0.5 w-0.5 rounded-full bg-[#5a5651]" />
               )}
               {read && (
                 <Stack direction="horizontal" spacing="xs" align="center">
@@ -157,4 +143,3 @@ export const NotificationCard = React.forwardRef(
 )
 
 NotificationCard.displayName = 'NotificationCard'
-

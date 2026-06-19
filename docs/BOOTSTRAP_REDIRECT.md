@@ -18,12 +18,12 @@ Tránh: mỗi page một kiểu redirect → dễ loop (vd. `/` redirect onboard
 
 ## Redirect rules (trong AuthContext effect)
 
-| bootstrapStatus   | Điều kiện path              | Hành động                          |
-|-------------------|-----------------------------|------------------------------------|
-| needs_login       | Không phải suspended, không /invites/* | Replace → `/auth/login`           |
-| suspended         | —                           | Replace → `/suspended`             |
-| needs_onboarding  | Path không bắt đầu /onboarding | Replace → `/onboarding`           |
-| ready             | Path là `/` hoặc ''         | Replace → `/org/{orgId}/projects`  |
-| (public path)     | ready / needs_onboarding / suspended | Redirect tương ứng (projects / onboarding / suspended) |
+| bootstrapStatus  | Điều kiện path                          | Hành động                                              |
+| ---------------- | --------------------------------------- | ------------------------------------------------------ |
+| needs_login      | Không phải suspended, không /invites/\* | Replace → `/auth/login`                                |
+| suspended        | —                                       | Replace → `/suspended`                                 |
+| needs_onboarding | Path không bắt đầu /onboarding          | Replace → `/onboarding`                                |
+| ready            | Path là `/` hoặc ''                     | Replace → `/org/{orgId}/projects`                      |
+| (public path)    | ready / needs_onboarding / suspended    | Redirect tương ứng (projects / onboarding / suspended) |
 
 Invite path (`/invites/*`) không bị force về login khi needs_login (để user có thể thấy trang invite rồi redirect login với returnTo).

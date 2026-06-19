@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Skeleton } from './Skeleton';
+import type { Meta, StoryObj } from '@storybook/react'
+import { Skeleton } from './Skeleton'
 
 const meta = {
   title: 'Atoms/Skeleton',
@@ -27,10 +27,10 @@ const meta = {
       description: 'Disable animation',
     },
   },
-} satisfies Meta<typeof Skeleton>;
+} satisfies Meta<typeof Skeleton>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 export const Text: Story = {
   args: {
@@ -44,7 +44,7 @@ export const Text: Story = {
       </div>
     ),
   ],
-};
+}
 
 export const Circular: Story = {
   args: {
@@ -52,7 +52,7 @@ export const Circular: Story = {
     width: 40,
     height: 40,
   },
-};
+}
 
 export const Rectangular: Story = {
   args: {
@@ -60,7 +60,7 @@ export const Rectangular: Story = {
     width: 300,
     height: 200,
   },
-};
+}
 
 export const NoAnimation: Story = {
   args: {
@@ -69,7 +69,7 @@ export const NoAnimation: Story = {
     height: 100,
     noAnimation: true,
   },
-};
+}
 
 export const Avatar: Story = {
   args: {
@@ -77,7 +77,7 @@ export const Avatar: Story = {
     width: 48,
     height: 48,
   },
-};
+}
 
 export const Card: Story = {
   render: () => (
@@ -90,7 +90,7 @@ export const Card: Story = {
       </div>
     </div>
   ),
-};
+}
 
 export const UserProfile: Story = {
   render: () => (
@@ -103,13 +103,13 @@ export const UserProfile: Story = {
       </div>
     </div>
   ),
-};
+}
 
 export const List: Story = {
   render: () => (
     <div style={{ width: '400px' }}>
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="flex items-center gap-md mb-md">
+        <div key={i} className="mb-md flex items-center gap-md">
           <Skeleton variant="circular" width={40} height={40} />
           <div className="flex-1">
             <Skeleton variant="text" width="60%" />
@@ -119,7 +119,7 @@ export const List: Story = {
       ))}
     </div>
   ),
-};
+}
 
 export const Article: Story = {
   render: () => (
@@ -136,7 +136,7 @@ export const Article: Story = {
       <Skeleton variant="text" width="80%" />
     </div>
   ),
-};
+}
 
 export const Grid: Story = {
   render: () => (
@@ -150,4 +150,4 @@ export const Grid: Story = {
       ))}
     </div>
   ),
-};
+}

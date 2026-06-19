@@ -1,3 +1,5 @@
+> **Out of date (2026):** This document references code removed during Safe Dead Code Cleanup (orphan hooks/services/components). See `CLAUDE.md` for current architecture.
+
 # Implementation Deliverables & Checklist
 
 **Project:** Scopery FE - AI + Traceability + Admin AI Features  
@@ -9,11 +11,13 @@
 ## 📊 Overall Progress
 
 ### Phase 1: Infrastructure ✅ 100% Complete
+
 - ✅ ENV configuration
 - ✅ Type system (enums + DTOs)
 - ✅ Service layer (3 service files)
 
 ### Phase 2: AI Features 🟡 33% Complete
+
 - ✅ Improve Answer Modal component
 - ⏳ Session integration (TODO)
 - ⏳ Generate Questions page (TODO)
@@ -21,6 +25,7 @@
 - ⏳ Impact Analysis page (TODO)
 
 ### Phase 3: Admin AI 🟡 40% Complete
+
 - ✅ Configs list page
 - ✅ Runs audit page
 - ⏳ Edit config page (TODO)
@@ -28,6 +33,7 @@
 - ⏳ Run detail page (TODO)
 
 ### Phase 4: Traceability 🟡 20% Complete
+
 - ✅ Landscape page (basic tree view)
 - ⏳ Actors page (TODO)
 - ⏳ Project Scope page (TODO)
@@ -41,31 +47,18 @@
 ### ✅ Completed Files (12 files)
 
 **Configuration:**
+
 1. `.env.example` - Updated with AI guidelines
 
-**Types:**
-2. `types/api-enums.ts` - Added AI & Traceability enums
-3. `types/ai.ts` - Complete AI types (365 lines)
-4. `types/traceability.ts` - Complete Traceability types (244 lines)
+**Types:** 2. `types/api-enums.ts` - Added AI & Traceability enums 3. `types/ai.ts` - Complete AI types (365 lines) 4. `types/traceability.ts` - Complete Traceability types (244 lines)
 
-**Services:**
-5. `services/ai.service.ts` - AI features service (179 lines)
-6. `services/admin-ai.service.ts` - Admin AI service (68 lines)
-7. `services/traceability.service.ts` - Traceability service (306 lines)
+**Services:** 5. `services/ai.service.ts` - AI features service (179 lines) 6. `services/admin-ai.service.ts` - Admin AI service (68 lines) 7. `services/traceability.service.ts` - Traceability service (306 lines)
 
-**Components:**
-8. `components/shared/ImproveAnswerModal.tsx` - AI Improve Answer modal (274 lines)
-9. `components/shared/ClarityAssessmentModal.tsx` - Clarity Assessment modal (203 lines)
+**Components:** 8. `components/shared/ImproveAnswerModal.tsx` - AI Improve Answer modal (274 lines) 9. `components/shared/ClarityAssessmentModal.tsx` - Clarity Assessment modal (203 lines)
 
-**Pages:**
-10. `app/admin/ai/page.tsx` - AI Configs list (227 lines)
-11. `app/admin/ai/runs/page.tsx` - AI Runs audit (268 lines)
-12. `app/org/[orgId]/landscape/page.tsx` - Org Landscape tree view (285 lines)
+**Pages:** 10. `app/admin/ai/page.tsx` - AI Configs list (227 lines) 11. `app/admin/ai/runs/page.tsx` - AI Runs audit (268 lines) 12. `app/org/[orgId]/landscape/page.tsx` - Org Landscape tree view (285 lines)
 
-**Documentation:**
-13. `docs/IMPLEMENTATION_SUMMARY.md` - Implementation status & plan
-14. `docs/IMPLEMENTATION_GUIDE.md` - Detailed implementation guide
-15. `docs/DELIVERABLES.md` - This file
+**Documentation:** 13. `docs/IMPLEMENTATION_SUMMARY.md` - Implementation status & plan 14. `docs/IMPLEMENTATION_GUIDE.md` - Detailed implementation guide 15. `docs/DELIVERABLES.md` - This file
 
 **Total Lines of Code:** ~2,619 lines
 
@@ -78,6 +71,7 @@
 **File:** `app/org/[orgId]/projects/[projectId]/sessions/[sessionId]/page.tsx`
 
 **Tasks:**
+
 - [ ] Add "AI Improve" button next to each answered question
   - Check: session status = in_progress
   - Check: user role = editor or owner
@@ -104,6 +98,7 @@
 **File:** `app/org/[orgId]/projects/[projectId]/ai/questions/page.tsx`
 
 **Tasks:**
+
 - [ ] Create form with fields:
   - engine: select (legacy | agentkit_v2_file)
   - base_session_id: select from project sessions (required for v2)
@@ -137,6 +132,7 @@
 **File:** `app/org/[orgId]/projects/[projectId]/ai/impact/page.tsx`
 
 **Tasks:**
+
 - [ ] **Step 1: Intake Creation**
   - Tab 1: Paste Text
     - Textarea for raw_text
@@ -179,6 +175,7 @@
 **File:** `app/admin/ai/configs/[purpose]/edit/page.tsx`
 
 **Tasks:**
+
 - [ ] Load current config via `listAiConfigs()` (filter by purpose)
 
 - [ ] Form fields:
@@ -213,6 +210,7 @@
 **File:** `app/admin/ai/configs/[purpose]/test/page.tsx`
 
 **Tasks:**
+
 - [ ] JSON editor for input (use textarea with JSON.stringify/parse or a library like `react-json-view`)
   - Placeholder: example input based on purpose
   - improve_answer: `{ "question_id": "...", "current_value": "...", "question": {...} }`
@@ -241,6 +239,7 @@
 **File:** `app/admin/ai/runs/[runId]/page.tsx`
 
 **Tasks:**
+
 - [ ] Load run via `getAiRun(runId)`
 
 - [ ] Display fields:
@@ -274,6 +273,7 @@
 **File:** `app/org/[orgId]/actors/page.tsx`
 
 **Tasks:**
+
 - [ ] List actors via `listOrgActors(orgId)`
   - Pagination: limit, offset
   - Filter: kind (persona | system | team | external)
@@ -303,6 +303,7 @@
 **File:** `app/org/[orgId]/projects/[projectId]/scope/page.tsx`
 
 **Tasks:**
+
 - [ ] Load org nodes via `listOrgNodes(orgId)`
 - [ ] Load current scope via `getProjectScope(orgId, projectId)`
 
@@ -329,6 +330,7 @@
 **File:** `app/org/[orgId]/projects/[projectId]/requirements/page.tsx`
 
 **Tasks:**
+
 - [ ] Load requirements via `listRequirements(orgId, projectId)`
 - [ ] Load actors via `listOrgActors(orgId)`
 - [ ] Load nodes via `listOrgNodes(orgId)`
@@ -369,6 +371,7 @@
 **File:** `app/org/[orgId]/projects/[projectId]/trace/page.tsx`
 
 **Tasks:**
+
 - [ ] Load full trace via `getTraceView(orgId, projectId)`
   - Returns: landscape, project_scope, catalog (requirements, actors, mappings), trace_links
 
@@ -402,6 +405,7 @@
 ### Manual Testing
 
 **AI Features:**
+
 - [ ] Improve Answer: generate → edit → accept → verify answer updated
 - [ ] Improve Answer: reject → verify no changes
 - [ ] Generate Questions: legacy engine → verify questions created
@@ -412,6 +416,7 @@
 - [ ] Impact Analysis: upload file → run → verify proposals
 
 **Admin AI:**
+
 - [ ] List configs → verify all purposes shown
 - [ ] Edit config: primary_engine=workflow_api without workflow_id → verify 422 error
 - [ ] Edit config: agents_sdk without agent_entry → verify 422 error
@@ -420,6 +425,7 @@
 - [ ] View run detail → verify all fields displayed, redacted payloads
 
 **Traceability:**
+
 - [ ] Create system node → verify shown in tree
 - [ ] Create subsystem under system → verify parent-child relationship
 - [ ] Archive node with children → verify 409 NODE_HAS_CHILDREN
@@ -477,18 +483,19 @@
 
 ## 📊 Estimated Time
 
-| Phase | Tasks | Est. Hours | Status |
-|-------|-------|------------|--------|
-| Phase 1: Infrastructure | 7 tasks | 8-10h | ✅ Complete |
-| Phase 2: AI Features | 4 pages | 18-24h | 🟡 33% |
-| Phase 3: Admin AI | 3 pages | 10-13h | 🟡 40% |
-| Phase 4: Traceability | 5 pages | 30-37h | 🟡 20% |
-| Testing & Polish | QA + fixes | 16-20h | ⏳ Pending |
-| **Total** | | **82-104h** | 🟡 ~35% |
+| Phase                   | Tasks      | Est. Hours  | Status      |
+| ----------------------- | ---------- | ----------- | ----------- |
+| Phase 1: Infrastructure | 7 tasks    | 8-10h       | ✅ Complete |
+| Phase 2: AI Features    | 4 pages    | 18-24h      | 🟡 33%      |
+| Phase 3: Admin AI       | 3 pages    | 10-13h      | 🟡 40%      |
+| Phase 4: Traceability   | 5 pages    | 30-37h      | 🟡 20%      |
+| Testing & Polish        | QA + fixes | 16-20h      | ⏳ Pending  |
+| **Total**               |            | **82-104h** | 🟡 ~35%     |
 
 **Current Progress:** ~30h completed, ~60-70h remaining
 
 **Recommended Sprint Plan:**
+
 - Sprint 1 (Week 1): Complete Phase 2 (AI Features)
 - Sprint 2 (Week 2): Complete Phase 3 (Admin AI)
 - Sprint 3 (Week 3-4): Complete Phase 4 (Traceability)

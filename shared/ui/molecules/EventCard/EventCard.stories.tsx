@@ -141,10 +141,10 @@ export const LongTitle: Story = {
 export const LongDescription: Story = {
   args: {
     title: 'Product Launch',
-    description: 'This is a very long description that contains multiple sentences and should wrap properly within the card layout. It provides detailed information about the event.',
+    description:
+      'This is a very long description that contains multiple sentences and should wrap properly within the card layout. It provides detailed information about the event.',
     time: '01:00 pm - 02:30 pm',
     image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800',
     showCopyLink: true,
   },
 }
-

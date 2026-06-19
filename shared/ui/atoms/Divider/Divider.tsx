@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import { Typography } from '../Typography'
 import type { DividerProps } from './Divider.types'
 
@@ -21,16 +21,7 @@ const dividerVariants = {
  * ```
  */
 export const Divider = React.forwardRef<HTMLHRElement, DividerProps>(
-  (
-    {
-      orientation = 'horizontal',
-      variant = 'solid',
-      label,
-      className,
-      ...props
-    },
-    ref
-  ) => {
+  ({ orientation = 'horizontal', variant = 'solid', label, className, ...props }, ref) => {
     if (label && orientation === 'horizontal') {
       return (
         <div
@@ -40,23 +31,13 @@ export const Divider = React.forwardRef<HTMLHRElement, DividerProps>(
         >
           <hr
             ref={ref}
-            className={cn(
-              'flex-1 border-neutral-200',
-              dividerVariants[variant],
-              'border-t'
-            )}
+            className={cn('flex-1 border-neutral-200', dividerVariants[variant], 'border-t')}
             {...props}
           />
           <Typography variant="small" tone="muted">
             {label}
           </Typography>
-          <hr
-            className={cn(
-              'flex-1 border-neutral-200',
-              dividerVariants[variant],
-              'border-t'
-            )}
-          />
+          <hr className={cn('flex-1 border-neutral-200', dividerVariants[variant], 'border-t')} />
         </div>
       )
     }
@@ -69,9 +50,7 @@ export const Divider = React.forwardRef<HTMLHRElement, DividerProps>(
         className={cn(
           'border-neutral-200',
           dividerVariants[variant],
-          orientation === 'horizontal'
-            ? 'w-full border-t'
-            : 'h-full border-l',
+          orientation === 'horizontal' ? 'w-full border-t' : 'h-full border-l',
           className
         )}
         {...props}
@@ -81,4 +60,3 @@ export const Divider = React.forwardRef<HTMLHRElement, DividerProps>(
 )
 
 Divider.displayName = 'Divider'
-

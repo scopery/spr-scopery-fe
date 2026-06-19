@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import { Box } from '@/shared/ui/atoms/Box'
 import { Stack } from '@/shared/ui/atoms/Stack'
 import { Typography } from '@/shared/ui/atoms/Typography'
@@ -48,23 +48,23 @@ export const TodoList = React.forwardRef(
     ref?: React.Ref<HTMLDivElement>
   ) => {
     const Component = as || 'div'
-    
+
     // Internal state to manage expanded items
     const [expandedItems, setExpandedItems] = React.useState<Set<string>>(
-      new Set(items.filter(item => item.expanded).map(item => item.id))
+      new Set(items.filter((item) => item.expanded).map((item) => item.id))
     )
 
     // Update internal state when items change
     React.useEffect(() => {
-      setExpandedItems(new Set(items.filter(item => item.expanded).map(item => item.id)))
+      setExpandedItems(new Set(items.filter((item) => item.expanded).map((item) => item.id)))
     }, [items])
 
     const handleExpand = (id: string) => {
       const isCurrentlyExpanded = expandedItems.has(id)
       const newExpanded = !isCurrentlyExpanded
-      
+
       // Update internal state
-      setExpandedItems(prev => {
+      setExpandedItems((prev) => {
         const next = new Set(prev)
         if (newExpanded) {
           next.add(id)
@@ -73,7 +73,7 @@ export const TodoList = React.forwardRef(
         }
         return next
       })
-      
+
       // Call parent callback
       onExpand?.(id, newExpanded)
     }
@@ -125,41 +125,40 @@ export const TodoList = React.forwardRef(
                     {/* Main Task Row */}
                     <Stack direction="horizontal" spacing="xs" align="start">
                       {/* Expand/Collapse Icon */}
-                      <Box
-                        display="flex"
-                        className="flex-shrink-0 pt-0.5"
-                      >
+                      <Box display="flex" className="flex-shrink-0 pt-0.5">
                         <Button
                           variant="ghost"
                           size="sm"
                           iconOnly
                           icon={
-                            <Plus 
-                              size={16} 
+                            <Plus
+                              size={16}
                               className={cn(
                                 'text-neutral-400 transition-transform duration-200',
                                 isExpanded && 'rotate-45'
-                              )} 
+                              )}
                             />
                           }
                           onClick={(e: React.MouseEvent) => {
                             e.stopPropagation()
                             handleExpand(item.id)
                           }}
-                          className="h-4 w-4 p-0 border-0 bg-transparent hover:opacity-70"
-                          aria-label={isExpanded ? `Collapse ${item.title}` : `Expand ${item.title}`}
+                          className="h-4 w-4 border-0 bg-transparent p-0 hover:opacity-70"
+                          aria-label={
+                            isExpanded ? `Collapse ${item.title}` : `Expand ${item.title}`
+                          }
                         />
                       </Box>
 
                       {/* Task Content */}
-                      <Stack direction="vertical" spacing="sm" className="flex-1 min-w-0">
+                      <Stack direction="vertical" spacing="sm" className="min-w-0 flex-1">
                         <Typography
                           variant="small"
                           size="sm"
                           weight={isExpanded ? 'medium' : 'normal'}
                           className={cn(
                             'text-[#595552]',
-                            item.completed && 'line-through text-neutral-500'
+                            item.completed && 'text-neutral-500 line-through'
                           )}
                         >
                           {item.title}
@@ -198,11 +197,11 @@ export const TodoList = React.forwardRef(
                         {/* Connector Line */}
                         <Box
                           display="flex"
-                          className="items-start justify-center w-3.5 flex-shrink-0 pt-1"
+                          className="w-3.5 flex-shrink-0 items-start justify-center pt-1"
                         >
                           <Box
                             display="block"
-                            className="w-px min-h-[60px] border-l-[1.5px] border-dashed border-neutral-300"
+                            className="min-h-[60px] w-px border-l-[1.5px] border-dashed border-neutral-300"
                           />
                         </Box>
 
@@ -227,10 +226,20 @@ export const TodoList = React.forwardRef(
                                   .join('')
                                   .toUpperCase()}
                               />
-                              <Typography variant="small" size="xs" className="text-[#5a5651]" weight="medium">
+                              <Typography
+                                variant="small"
+                                size="xs"
+                                className="text-[#5a5651]"
+                                weight="medium"
+                              >
                                 {item.assignee.name}
                               </Typography>
-                              <Typography variant="small" size="xs" className="text-[#256650]" weight="medium">
+                              <Typography
+                                variant="small"
+                                size="xs"
+                                className="text-[#256650]"
+                                weight="medium"
+                              >
                                 (Assignee)
                               </Typography>
                             </Stack>
@@ -239,7 +248,6 @@ export const TodoList = React.forwardRef(
                       </Stack>
                     )}
                   </Stack>
-
                 </React.Fragment>
               )
             })}

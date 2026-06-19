@@ -175,7 +175,15 @@ describe('Textarea', () => {
 
   describe('Accessibility', () => {
     it('has proper ARIA attributes', () => {
-      render(<Textarea label="Comment" required error="Required" id="comment" placeholder="Enter comment" />)
+      render(
+        <Textarea
+          label="Comment"
+          required
+          error="Required"
+          id="comment"
+          placeholder="Enter comment"
+        />
+      )
       const textarea = screen.getByPlaceholderText('Enter comment')
 
       expect(textarea).toHaveAttribute('aria-invalid', 'true')
@@ -198,4 +206,3 @@ describe('Textarea', () => {
     })
   })
 })
-

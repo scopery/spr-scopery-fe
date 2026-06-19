@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import { Box } from '@/shared/ui/atoms/Box'
 import { Stack } from '@/shared/ui/atoms/Stack'
 import { Typography } from '@/shared/ui/atoms/Typography'
@@ -52,28 +52,21 @@ export const EventCard = React.forwardRef(
           background="white"
           radius={cardBorderRadius}
           shadow={cardShadow}
-          className={cn('w-full overflow-hidden p-[10px] gap-[10px] flex flex-col', className)}
+          className={cn('flex w-full flex-col gap-[10px] overflow-hidden p-[10px]', className)}
         >
           {/* Image Section */}
           {image && (
             <Box
               display="block"
-              className="w-full h-[429px] relative overflow-hidden rounded-[12px] p-[10px]"
+              className="relative h-[429px] w-full overflow-hidden rounded-[12px] p-[10px]"
             >
-              <Box
-                display="block"
-                className="absolute inset-0 rounded-[12px] overflow-hidden"
-              >
-                <img
-                  src={image}
-                  alt={imageAlt || title}
-                  className="w-full h-full object-cover"
-                />
+              <Box display="block" className="absolute inset-0 overflow-hidden rounded-[12px]">
+                <img src={image} alt={imageAlt || title} className="h-full w-full object-cover" />
               </Box>
               {showShareButton && (
                 <Box
                   display="flex"
-                  className="relative z-10 bg-[rgba(255,255,255,0.42)] rounded-full w-[43px] h-[43px] items-center justify-center"
+                  className="relative z-10 h-[43px] w-[43px] items-center justify-center rounded-full bg-[rgba(255,255,255,0.42)]"
                 >
                   <Button
                     variant="ghost"
@@ -84,7 +77,7 @@ export const EventCard = React.forwardRef(
                       e.stopPropagation()
                       onShare?.()
                     }}
-                    className="bg-transparent hover:bg-transparent p-0 w-full h-full text-neutral-700"
+                    className="h-full w-full bg-transparent p-0 text-neutral-700 hover:bg-transparent"
                     aria-label="Share event"
                   />
                 </Box>
@@ -93,10 +86,7 @@ export const EventCard = React.forwardRef(
           )}
 
           {/* Content Section */}
-          <Box
-            display="block"
-            className="p-[10px]"
-          >
+          <Box display="block" className="p-[10px]">
             <Stack direction="vertical" spacing="xs" className="gap-[5px]">
               {/* Title and Time Row */}
               <Stack
@@ -106,18 +96,11 @@ export const EventCard = React.forwardRef(
                 align="center"
                 className="h-[18px]"
               >
-                <Typography
-                  variant="h6"
-                  weight="semibold"
-                  className=" text-[#202020]"
-                >
+                <Typography variant="h6" weight="semibold" className=" text-[#202020]">
                   {title}
                 </Typography>
                 {time && (
-                  <Typography
-                    variant="caption"
-                    className="text-[#5a5651]"
-                  >
+                  <Typography variant="caption" className="text-[#5a5651]">
                     {time}
                   </Typography>
                 )}
@@ -125,17 +108,9 @@ export const EventCard = React.forwardRef(
 
               {/* Description and Copy Link Row */}
               {(description || showCopyLink) && (
-                <Stack
-                  direction="horizontal"
-                  spacing="sm"
-                  align="center"
-                  className="gap-[10px]"
-                >
+                <Stack direction="horizontal" spacing="sm" align="center" className="gap-[10px]">
                   {description && (
-                    <Typography
-                      variant="small"
-                      className="text-[#5a5651]"
-                    >
+                    <Typography variant="small" className="text-[#5a5651]">
                       {description}
                     </Typography>
                   )}
@@ -147,7 +122,7 @@ export const EventCard = React.forwardRef(
                         e.stopPropagation()
                         onCopyLink?.()
                       }}
-                      className="bg-[#d2f8ed] text-[#2a6554] px-[5px] py-[3px] rounded-[2px] hover:bg-[#c0f0e0] h-auto gap-[5px]"
+                      className="h-auto gap-[5px] rounded-[2px] bg-[#d2f8ed] px-[5px] py-[3px] text-[#2a6554] hover:bg-[#c0f0e0]"
                     >
                       <Copy size={11} />
                       {copyLinkText}
@@ -164,4 +139,3 @@ export const EventCard = React.forwardRef(
 )
 
 EventCard.displayName = 'EventCard'
-

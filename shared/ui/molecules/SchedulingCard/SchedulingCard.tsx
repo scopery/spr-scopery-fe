@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import { Box } from '@/shared/ui/atoms/Box'
 import { Stack } from '@/shared/ui/atoms/Stack'
 import { Typography } from '@/shared/ui/atoms/Typography'
@@ -62,15 +62,21 @@ export const SchedulingCard = React.forwardRef(
                   {title}
                 </Typography>
                 {description && (
-                  <Typography variant="small" className="text-neutral-600 text-sm">
+                  <Typography variant="small" className="text-sm text-neutral-600">
                     {description}
                   </Typography>
                 )}
               </Stack>
               {(day || date) && (
-                <Stack direction="vertical" spacing="none" align="start" justify="end" className="h-full">
+                <Stack
+                  direction="vertical"
+                  spacing="none"
+                  align="start"
+                  justify="end"
+                  className="h-full"
+                >
                   {day && (
-                    <Typography variant="small" className="text-neutral-500 text-xs uppercase">
+                    <Typography variant="small" className="text-xs uppercase text-neutral-500">
                       {day}
                     </Typography>
                   )}
@@ -87,13 +93,13 @@ export const SchedulingCard = React.forwardRef(
             {event.image && (
               <Box
                 display="block"
-                className="w-full rounded-lg overflow-hidden mb-4"
+                className="mb-4 w-full overflow-hidden rounded-lg"
                 style={{ aspectRatio: '16/9' }}
               >
                 <img
                   src={event.image}
                   alt={event.imageAlt || event.title}
-                  className="w-full h-full object-cover"
+                  className="h-full w-full object-cover"
                 />
               </Box>
             )}
@@ -103,21 +109,21 @@ export const SchedulingCard = React.forwardRef(
               <Typography variant="h6" weight="semibold" className="text-neutral-900">
                 {event.title}
               </Typography>
-              
+
               {(event.location || event.time) && (
                 <Stack direction="vertical" spacing="xs" className="gap-2">
                   {event.location && (
                     <Stack direction="horizontal" spacing="sm" align="center">
-                      <MapPin size={16} className="text-neutral-600 flex-shrink-0" />
-                      <Typography variant="small" className="text-neutral-700 text-sm">
+                      <MapPin size={16} className="flex-shrink-0 text-neutral-600" />
+                      <Typography variant="small" className="text-sm text-neutral-700">
                         {event.location}
                       </Typography>
                     </Stack>
                   )}
                   {event.time && (
                     <Stack direction="horizontal" spacing="sm" align="center">
-                      <Clock size={16} className="text-neutral-600 flex-shrink-0" />
-                      <Typography variant="small" className="text-neutral-700 text-sm">
+                      <Clock size={16} className="flex-shrink-0 text-neutral-600" />
+                      <Typography variant="small" className="text-sm text-neutral-700">
                         {event.time}
                       </Typography>
                     </Stack>
@@ -132,7 +138,7 @@ export const SchedulingCard = React.forwardRef(
                 <Button
                   variant="ghost"
                   onClick={onAction}
-                  className="text-[#2d5016] hover:text-[#3a6b1f] font-normal"
+                  className="font-normal text-[#2d5016] hover:text-[#3a6b1f]"
                 >
                   {actionLabel}
                 </Button>
@@ -146,4 +152,3 @@ export const SchedulingCard = React.forwardRef(
 )
 
 SchedulingCard.displayName = 'SchedulingCard'
-

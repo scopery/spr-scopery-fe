@@ -27,7 +27,6 @@
       "@/shared/lib/*": ["./shared/lib/*"],
       "@/shared/tokens": ["./shared/tokens/index.ts"],
       "@/shared/tokens/*": ["./shared/tokens/*"],
-      "@/shared/utils/*": ["./shared/utils/*"],
       "@/modules/*": ["./modules/*"],
 
       "@/tokens/*": ["./shared/tokens/*"],
@@ -37,4 +36,3 @@
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules", "vitest.config.ts"]
 }
-

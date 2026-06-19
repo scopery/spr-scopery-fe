@@ -1,3 +1,5 @@
+> **Out of date (2026):** This document references code removed during Safe Dead Code Cleanup (orphan hooks/services/components). See `CLAUDE.md` for current architecture.
+
 # 🗂️ Implementation Index - File Navigator
 
 Quick reference để navigate toàn bộ implementation.
@@ -6,14 +8,14 @@ Quick reference để navigate toàn bộ implementation.
 
 ## 📖 Documentation (Read First)
 
-| File | Purpose | Lines |
-|------|---------|-------|
-| **`QUICK_REFERENCE.md`** | 1-page quick start guide | Must Read |
-| **`FINAL_IMPLEMENTATION_REPORT.md`** | Executive summary | Must Read |
-| **`PROGRESS_TRACKER.md`** | Visual progress chart | Reference |
-| `docs/IMPLEMENTATION_COMPLETE.md` | Full implementation details | Reference |
-| `docs/IMPLEMENTATION_GUIDE.md` | Code patterns & examples | Reference |
-| `docs/DELIVERABLES.md` | Testing checklist | Must Read |
+| File                                 | Purpose                     | Lines     |
+| ------------------------------------ | --------------------------- | --------- |
+| **`QUICK_REFERENCE.md`**             | 1-page quick start guide    | Must Read |
+| **`FINAL_IMPLEMENTATION_REPORT.md`** | Executive summary           | Must Read |
+| **`PROGRESS_TRACKER.md`**            | Visual progress chart       | Reference |
+| `docs/IMPLEMENTATION_COMPLETE.md`    | Full implementation details | Reference |
+| `docs/IMPLEMENTATION_GUIDE.md`       | Code patterns & examples    | Reference |
+| `docs/DELIVERABLES.md`               | Testing checklist           | Must Read |
 
 **Start with:** `QUICK_REFERENCE.md` → `FINAL_IMPLEMENTATION_REPORT.md` → `docs/DELIVERABLES.md`
 
@@ -24,15 +26,18 @@ Quick reference để navigate toàn bộ implementation.
 ### 1. Admin AI Management
 
 **Types:**
+
 - `types/ai.ts` → `AiConfig`, `AiRun`, `AiPurpose`, etc.
 - `types/api-enums.ts` → `AiEngineType`, `AiRunStatus`
 
 **Services:**
+
 - `services/admin-ai.service.ts` → 5 functions
   - `listAiConfigs()`, `updateAiConfig()`, `testRunAiConfig()`
   - `listAiRuns()`, `getAiRun()`
 
 **Pages:**
+
 - `app/admin/ai/page.tsx` - List all configs
 - `app/admin/ai/runs/page.tsx` - Audit logs
 - `app/admin/ai/configs/[purpose]/edit/page.tsx` - Edit form
@@ -40,6 +45,7 @@ Quick reference để navigate toàn bộ implementation.
 - `app/admin/ai/runs/[runId]/page.tsx` - Run details
 
 **Routes:**
+
 ```
 /admin/ai
 /admin/ai/runs
@@ -53,9 +59,11 @@ Quick reference để navigate toàn bộ implementation.
 ### 2. AI Features
 
 **Types:**
+
 - `types/ai.ts` → Improve, QGen, Clarity, Impact types
 
 **Services:**
+
 - `services/ai.service.ts` → 10 functions
   - `improveAnswer()`, `commitImproveAnswer()`
   - `generateQuestions()`, `commitGeneratedQuestions()`
@@ -64,15 +72,18 @@ Quick reference để navigate toàn bộ implementation.
   - `runImpactAnalysis()`, `commitImpactAnalysis()`
 
 **Components:**
+
 - `components/shared/ImproveAnswerModal.tsx` - Improve workflow
 - `components/shared/ClarityAssessmentModal.tsx` - Clarity UI
 
 **Pages:**
+
 - `app/org/[orgId]/projects/[projectId]/ai/questions/page.tsx` - Generate questions
 - `app/org/[orgId]/projects/[projectId]/impact/page.tsx` - ✅ Existing (Impact analysis)
 - `app/org/[orgId]/projects/[projectId]/sessions/[sessionId]/page.tsx` - ✅ Integrated
 
 **Routes:**
+
 ```
 /org/[orgId]/projects/[projectId]/ai/questions
 /org/[orgId]/projects/[projectId]/impact
@@ -87,10 +98,12 @@ Quick reference để navigate toàn bộ implementation.
 ### 3. Traceability
 
 **Types:**
+
 - `types/traceability.ts` → All traceability types (244 lines)
 - `types/api-enums.ts` → Node, Actor, Requirement, Trace enums
 
 **Services:**
+
 - `services/traceability.service.ts` → 17 functions
   - Nodes: `listOrgNodes()`, `createOrgNode()`, `updateOrgNode()`, `deleteOrgNode()`
   - Links: `listNodeLinks()`, `createNodeLink()`, `updateNodeLink()`, `deleteNodeLink()`
@@ -101,6 +114,7 @@ Quick reference để navigate toàn bộ implementation.
   - Trace: `listTraceLinks()`, `createTraceLink()`, `updateTraceLink()`, `deleteTraceLink()`, `getTraceView()`
 
 **Pages:**
+
 - `app/org/[orgId]/landscape/page.tsx` - Org nodes tree
 - `app/org/[orgId]/actors/page.tsx` - Org actors table
 - `app/org/[orgId]/projects/[projectId]/scope/page.tsx` - Project scope
@@ -108,6 +122,7 @@ Quick reference để navigate toàn bộ implementation.
 - `app/org/[orgId]/projects/[projectId]/trace/page.tsx` - Full trace view
 
 **Routes:**
+
 ```
 /org/[orgId]/landscape
 /org/[orgId]/actors
@@ -121,12 +136,14 @@ Quick reference để navigate toàn bộ implementation.
 ## 🔧 Utilities & Infrastructure
 
 **Already Existing (Leveraged):**
+
 - `lib/apiClient.ts` - API fetch với auth + error handling
 - `lib/errorHandling.ts` - Problem Details parsing
 - `contexts/AuthContext.tsx` - Auth state
 - `contexts/OrgContext.tsx` - Org context
 
 **Created/Updated:**
+
 - `.env.example` - AI guidelines
 - `types/api-enums.ts` - 15+ new enums
 
@@ -190,22 +207,28 @@ Scopery-FE/
 ## 🔍 Quick Find
 
 ### Need to understand AI Improve workflow?
+
 → `components/shared/ImproveAnswerModal.tsx` (274 lines)
 
 ### Need to see service layer pattern?
+
 → `services/ai.service.ts` (179 lines)
 
 ### Need to check type definitions?
+
 → `types/ai.ts` (365 lines) + `types/traceability.ts` (244 lines)
 
 ### Need to see page pattern?
+
 → `app/admin/ai/page.tsx` (227 lines) - Simple list
 → `app/org/[orgId]/projects/[projectId]/requirements/page.tsx` (238 lines) - Complex tree
 
 ### Need error handling examples?
+
 → Any page (all use `getProblemToastMessage()` + `isConflictCode()`)
 
 ### Need testing guide?
+
 → `docs/DELIVERABLES.md` section "Testing Checklist"
 
 ---
@@ -215,23 +238,27 @@ Scopery-FE/
 ### For New Developers
 
 **Day 1: Understanding**
+
 1. Read `QUICK_REFERENCE.md`
 2. Read `FINAL_IMPLEMENTATION_REPORT.md`
 3. Review `docs/API_DOCUMENTATION.md` (BE spec)
 
 **Day 2: Code Review**
+
 1. Start with types: `types/ai.ts`, `types/traceability.ts`
 2. Review services: `services/ai.service.ts`, `services/traceability.service.ts`
 3. Check one simple page: `app/admin/ai/page.tsx`
 4. Check one complex page: `app/org/.../requirements/page.tsx`
 
 **Day 3: Hands-On**
+
 1. Run `npm run dev`
 2. Navigate to pages
 3. Test one feature end-to-end
 4. Try breaking it (error testing)
 
 **Day 4: Deep Dive**
+
 1. Read `docs/IMPLEMENTATION_GUIDE.md`
 2. Understand patterns
 3. Try modifying one page
@@ -242,6 +269,7 @@ Scopery-FE/
 ## 🚀 Deployment Checklist
 
 ### Pre-Deployment
+
 - [x] All code written
 - [x] Types defined
 - [x] Services implemented
@@ -252,6 +280,7 @@ Scopery-FE/
 - [ ] Bug fixes applied
 
 ### Deployment Steps
+
 1. [ ] `npm run lint` - Pass
 2. [ ] `npm run build` - Pass
 3. [ ] Deploy to staging
@@ -261,6 +290,7 @@ Scopery-FE/
 7. [ ] User training (if needed)
 
 ### Post-Deployment
+
 - [ ] Monitor `/admin/ai/runs` for errors
 - [ ] Check error rate in admin dashboard
 - [ ] Gather user feedback
@@ -271,17 +301,20 @@ Scopery-FE/
 ## 📞 Support
 
 ### Have Questions?
+
 1. Check `QUICK_REFERENCE.md` first
 2. Check `docs/IMPLEMENTATION_GUIDE.md` for patterns
 3. Check `docs/API_DOCUMENTATION.md` for API details
 
 ### Found a Bug?
+
 1. Note down: page, steps to reproduce, error message, request_id
 2. Check console errors
 3. Check network tab (API calls)
 4. Create ticket with details
 
 ### Need to Extend?
+
 1. Follow patterns trong `docs/IMPLEMENTATION_GUIDE.md`
 2. Copy existing page as template
 3. Use service layer functions
@@ -317,6 +350,7 @@ Scopery-FE/
 ---
 
 **Quick Links:**
+
 - [Quick Reference](./QUICK_REFERENCE.md)
 - [Final Report](./FINAL_IMPLEMENTATION_REPORT.md)
 - [Progress Tracker](./PROGRESS_TRACKER.md)

@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import type { BoxProps } from './Box.types'
 
 const displayStyles = {
@@ -150,4 +150,3 @@ export const Box = React.forwardRef(
 )
 
 Box.displayName = 'Box'
-

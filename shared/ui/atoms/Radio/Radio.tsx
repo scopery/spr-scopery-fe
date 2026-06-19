@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import { Typography } from '../Typography'
 import type { RadioProps } from './Radio.types'
 
@@ -20,19 +20,7 @@ const radioSizes = {
  * ```
  */
 export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
-  (
-    {
-      size = 'md',
-      label,
-      helperText,
-      error,
-      disabled = false,
-      className,
-      id,
-      ...props
-    },
-    ref
-  ) => {
+  ({ size = 'md', label, helperText, error, disabled = false, className, id, ...props }, ref) => {
     const generatedId = React.useId()
     const radioId = id ?? `radio-${generatedId}`
     const errorId = error ? `${radioId}-error` : undefined
@@ -55,9 +43,7 @@ export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
               // Size
               radioSizes[size],
               // States
-              error
-                ? 'border-error text-error'
-                : 'border-neutral-300 text-neutral-800',
+              error ? 'border-error text-error' : 'border-neutral-300 text-neutral-800',
               // Checked state
               'checked:border-neutral-800 checked:bg-neutral-800',
               // Disabled
@@ -98,4 +84,3 @@ export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
 )
 
 Radio.displayName = 'Radio'
-

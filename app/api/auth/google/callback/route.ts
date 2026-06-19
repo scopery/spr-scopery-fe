@@ -14,9 +14,7 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error')
 
   if (error) {
-    return NextResponse.redirect(
-      new URL(`/auth/login?error=${encodeURIComponent(error)}`, origin),
-    )
+    return NextResponse.redirect(new URL(`/auth/login?error=${encodeURIComponent(error)}`, origin))
   }
 
   if (!code) {
@@ -35,9 +33,7 @@ export async function GET(request: NextRequest) {
     if (!res.ok) {
       const body = (await res.json().catch(() => ({}))) as Record<string, unknown>
       const msg = String(body.detail ?? body.error ?? 'Sign-in failed')
-      return NextResponse.redirect(
-        new URL(`/auth/login?error=${encodeURIComponent(msg)}`, origin),
-      )
+      return NextResponse.redirect(new URL(`/auth/login?error=${encodeURIComponent(msg)}`, origin))
     }
 
     const data = (await res.json()) as { access_token: string; user: { id: string; email: string } }
@@ -63,8 +59,6 @@ export async function GET(request: NextRequest) {
     return response
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'OAuth sign-in failed'
-    return NextResponse.redirect(
-      new URL(`/auth/login?error=${encodeURIComponent(msg)}`, origin),
-    )
+    return NextResponse.redirect(new URL(`/auth/login?error=${encodeURIComponent(msg)}`, origin))
   }
 }

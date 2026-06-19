@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Typography, Box, Stack, Button, Input } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { useAuth } from '@/contexts/AuthContext'
-import { useProfile } from '@/hooks/useProfile'
-import { ApiError } from '@/types/api'
+import { useAuth } from '@/modules/auth'
+import { useProfile } from '@/modules/auth'
+import { ApiError } from '@/shared/lib/api-types'
 import { toast } from 'sonner'
 
 export default function OnboardingProfilePage() {
@@ -32,7 +32,12 @@ export default function OnboardingProfilePage() {
       await refreshBootstrap()
       router.replace(ROUTES.onboarding)
     } catch (err) {
-      const msg = err instanceof ApiError ? err.problem.detail : err instanceof Error ? err.message : 'Failed to update profile'
+      const msg =
+        err instanceof ApiError
+          ? err.problem.detail
+          : err instanceof Error
+            ? err.message
+            : 'Failed to update profile'
       setError(msg)
       toast.error(msg)
     } finally {
@@ -41,8 +46,14 @@ export default function OnboardingProfilePage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
-      <Box as="section" padding="xl" background="white" shadow="xl" className="w-full max-w-lg border border-neutral-100">
+    <main className="flex min-h-screen items-center justify-center p-4">
+      <Box
+        as="section"
+        padding="xl"
+        background="white"
+        shadow="xl"
+        className="w-full max-w-lg border border-neutral-100"
+      >
         <Typography as="h1" size="lg" weight="bold" className="mb-2">
           Set up your profile
         </Typography>
@@ -62,7 +73,13 @@ export default function OnboardingProfilePage() {
               fullWidth
               autoComplete="name"
             />
-            <Button type="submit" variant="primary" fullWidth loading={loading} disabled={!displayName.trim()}>
+            <Button
+              type="submit"
+              variant="primary"
+              fullWidth
+              loading={loading}
+              disabled={!displayName.trim()}
+            >
               Continue
             </Button>
           </Stack>

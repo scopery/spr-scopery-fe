@@ -26,4 +26,3 @@ export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputE
    */
   indeterminate?: boolean
 }
-

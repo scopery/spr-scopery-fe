@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Textarea } from './Textarea';
+import type { Meta, StoryObj } from '@storybook/react'
+import { Textarea } from './Textarea'
 
 const meta = {
   title: 'Atoms/Textarea',
@@ -37,23 +37,23 @@ const meta = {
       description: 'Full width textarea',
     },
   },
-} satisfies Meta<typeof Textarea>;
+} satisfies Meta<typeof Textarea>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
     placeholder: 'Enter your message...',
   },
-};
+}
 
 export const WithLabel: Story = {
   args: {
     label: 'Description',
     placeholder: 'Enter description',
   },
-};
+}
 
 export const Required: Story = {
   args: {
@@ -61,7 +61,7 @@ export const Required: Story = {
     placeholder: 'Enter your comments',
     required: true,
   },
-};
+}
 
 export const WithHelperText: Story = {
   args: {
@@ -69,7 +69,7 @@ export const WithHelperText: Story = {
     placeholder: 'Tell us about yourself',
     helperText: 'Maximum 500 characters',
   },
-};
+}
 
 export const WithError: Story = {
   args: {
@@ -77,7 +77,7 @@ export const WithError: Story = {
     placeholder: 'Enter message',
     error: 'Message is required',
   },
-};
+}
 
 export const Disabled: Story = {
   args: {
@@ -86,35 +86,35 @@ export const Disabled: Story = {
     disabled: true,
     defaultValue: 'This is disabled',
   },
-};
+}
 
 export const Small: Story = {
   args: {
     size: 'sm',
     placeholder: 'Small textarea',
   },
-};
+}
 
 export const Medium: Story = {
   args: {
     size: 'md',
     placeholder: 'Medium textarea',
   },
-};
+}
 
 export const Large: Story = {
   args: {
     size: 'lg',
     placeholder: 'Large textarea',
   },
-};
+}
 
 export const Filled: Story = {
   args: {
     variant: 'filled',
     placeholder: 'Filled variant',
   },
-};
+}
 
 export const NoResize: Story = {
   args: {
@@ -122,7 +122,7 @@ export const NoResize: Story = {
     placeholder: 'Cannot resize',
     resize: 'none',
   },
-};
+}
 
 export const HorizontalResize: Story = {
   args: {
@@ -130,7 +130,7 @@ export const HorizontalResize: Story = {
     placeholder: 'Resize horizontally',
     resize: 'horizontal',
   },
-};
+}
 
 export const BothResize: Story = {
   args: {
@@ -138,7 +138,7 @@ export const BothResize: Story = {
     placeholder: 'Resize in both directions',
     resize: 'both',
   },
-};
+}
 
 export const FullWidth: Story = {
   args: {
@@ -149,7 +149,7 @@ export const FullWidth: Story = {
   parameters: {
     layout: 'padded',
   },
-};
+}
 
 export const CustomRows: Story = {
   args: {
@@ -157,5 +157,4 @@ export const CustomRows: Story = {
     placeholder: 'This has 10 rows',
     rows: 10,
   },
-};
-
+}

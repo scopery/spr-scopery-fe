@@ -1,0 +1,15 @@
+/** Public facade — app imports only from here. */
+export * from './ai-config'
+export * from './ai-agents'
+export * from './ai-budgets'
+export * from './ai-routing'
+export * from './ai-playground'
+export * from './ai-feedback'
+export * from './admin-templates'
+
+export * as adminAiApi from './ai-config/api/admin-ai.api'
+export * as aiAgentsApi from './ai-agents/api/ai-agents.api'
+export * as aiBudgetsApi from './ai-budgets/api/ai-budgets.api'
+export * as adminTemplatesApi from './admin-templates/api/admin-templates.api'
+export { testRunAiConfig } from './ai-config/api/admin-ai.api'
+export { createTemplate } from './admin-templates/api/admin-templates.api'

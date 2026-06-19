@@ -1,7 +1,7 @@
 'use client'
 
 import { Toaster } from 'sonner'
-import { AuthProvider } from '@/contexts/AuthContext'
+import { AuthProvider } from '@/modules/auth'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (

@@ -6,10 +6,10 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { Plus, Pencil, Eye } from 'lucide-react'
 import { Typography, Button, Badge, ContentLoader } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { useAuth } from '@/contexts/AuthContext'
-import { useProjects } from '@/hooks/useProjects'
+import { useAuth } from '@/modules/auth'
+import { useProjects } from '@/modules/projects'
 import { isOrgReadonly } from '@/utils/permissions'
-import { CreateProjectModal } from './_components/CreateProjectModal'
+import { CreateProjectModal } from '@/modules/projects'
 
 function ProjectsContent() {
   const params = useParams()
@@ -33,7 +33,7 @@ function ProjectsContent() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-4 mb-6 border-b-[1px] border-neutral-200 pb-6">
+      <div className="mb-6 flex flex-wrap items-center gap-4 border-b-[1px] border-neutral-200 pb-6">
         <Typography as="h1" size="xl" weight="bold">
           Projects
         </Typography>
@@ -73,9 +73,9 @@ function ProjectsContent() {
             <Link
               key={p.id}
               href={ROUTES.org.project(orgId, p.id)}
-              className="group project-card-hover block border border-neutral-200 bg-white p-5 transition-all duration-300"
+              className="project-card-hover group block border border-neutral-200 bg-white p-5 transition-all duration-300"
             >
-              <div className="flex items-start justify-between gap-2 mb-3">
+              <div className="mb-3 flex items-start justify-between gap-2">
                 <Badge
                   variant="solid"
                   tone={p.my_role === 'editor' ? 'info' : 'neutral'}
@@ -95,15 +95,26 @@ function ProjectsContent() {
                   )}
                 </Badge>
               </div>
-              <Typography weight="semibold" className="mb-1 transition-colors duration-300 group-hover:text-white">
+              <Typography
+                weight="semibold"
+                className="mb-1 transition-colors duration-300 group-hover:text-white"
+              >
                 {p.name}
               </Typography>
               {p.description ? (
-                <Typography variant="small" tone="muted" className="line-clamp-2 mb-3 transition-colors duration-300 group-hover:text-white/90">
+                <Typography
+                  variant="small"
+                  tone="muted"
+                  className="mb-3 line-clamp-2 transition-colors duration-300 group-hover:text-white/90"
+                >
                   {p.description}
                 </Typography>
               ) : (
-                <Typography variant="small" tone="muted" className="mb-3 transition-colors duration-300 group-hover:text-white/90">
+                <Typography
+                  variant="small"
+                  tone="muted"
+                  className="mb-3 transition-colors duration-300 group-hover:text-white/90"
+                >
                   Elicitation project for scoping requirements.
                 </Typography>
               )}
@@ -127,11 +138,13 @@ function ProjectsContent() {
 
 export default function ProjectsListPage() {
   return (
-    <Suspense fallback={
-      <div className="flex justify-center py-12">
-        <ContentLoader variant="easeOut" className="w-20" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-12">
+          <ContentLoader variant="easeOut" className="w-20" />
+        </div>
+      }
+    >
       <ProjectsContent />
     </Suspense>
   )

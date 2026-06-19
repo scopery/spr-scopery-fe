@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Typography, Button, Stack } from '@/shared/ui'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/modules/auth'
 import { ROUTES } from '@/constants/routes'
 
 /**
@@ -13,7 +13,7 @@ export default function SuspendedPage() {
   const { logout } = useAuth()
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-neutral-50 p-6">
+    <main className="flex min-h-screen items-center justify-center bg-neutral-50 p-6">
       <Stack direction="vertical" spacing="lg" className="max-w-md text-center">
         <Typography as="h1" size="xl" weight="bold" className="text-neutral-900">
           Account suspended

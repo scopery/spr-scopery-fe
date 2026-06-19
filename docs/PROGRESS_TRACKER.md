@@ -1,3 +1,5 @@
+> **Out of date (2026):** This document references code removed during Safe Dead Code Cleanup (orphan hooks/services/components). See `CLAUDE.md` for current architecture.
+
 # 📊 Progress Tracker - Visual Summary
 
 **Last Updated:** 2026-02-16  
@@ -38,6 +40,7 @@ Documentation:   ████████████████████ 10
 ## ✅ Completed Checklist
 
 ### Infrastructure (7/7) ✅
+
 - [x] Update `.env.example`
 - [x] Add AI enums to `types/api-enums.ts`
 - [x] Create `types/ai.ts`
@@ -47,10 +50,12 @@ Documentation:   ████████████████████ 10
 - [x] Create `services/traceability.service.ts`
 
 ### Components (2/2) ✅
+
 - [x] Create `ImproveAnswerModal.tsx`
 - [x] Create `ClarityAssessmentModal.tsx`
 
 ### Admin AI Pages (5/5) ✅
+
 - [x] `/admin/ai/page.tsx` - List configs
 - [x] `/admin/ai/runs/page.tsx` - Audit logs
 - [x] `/admin/ai/configs/[purpose]/edit/page.tsx` - Edit config
@@ -58,12 +63,14 @@ Documentation:   ████████████████████ 10
 - [x] `/admin/ai/runs/[runId]/page.tsx` - Run detail
 
 ### AI Features (4/4) ✅
+
 - [x] Improve Answer modal - Created & ready
 - [x] `/ai/questions/page.tsx` - Generate questions
 - [x] Clarity Assessment modal - Created & ready
 - [x] `/impact/page.tsx` - Impact analysis ✅ existing
 
 ### Traceability Pages (5/5) ✅
+
 - [x] `/landscape/page.tsx` - Org nodes tree
 - [x] `/actors/page.tsx` - Org actors CRUD
 - [x] `/scope/page.tsx` - Project scope
@@ -71,6 +78,7 @@ Documentation:   ████████████████████ 10
 - [x] `/trace/page.tsx` - Trace view
 
 ### Documentation (5/5) ✅
+
 - [x] `IMPLEMENTATION_SUMMARY.md`
 - [x] `IMPLEMENTATION_GUIDE.md`
 - [x] `DELIVERABLES.md`
@@ -82,6 +90,7 @@ Documentation:   ████████████████████ 10
 ## 🔲 Remaining Tasks (Post-Implementation)
 
 ### Navigation Integration (1-2h)
+
 - [ ] Add Admin AI routes to admin menu
 - [ ] Add AI Features to project menu
 - [ ] Add Traceability to project menu
@@ -89,6 +98,7 @@ Documentation:   ████████████████████ 10
 - [ ] Add breadcrumbs (optional)
 
 ### Manual Testing (8-10h)
+
 - [ ] Admin AI: configs, test run, audit
 - [ ] Generate Questions: legacy + v2 engines
 - [ ] Improve Answer: generate, edit, accept/reject
@@ -103,12 +113,14 @@ Documentation:   ████████████████████ 10
 - [ ] Error testing: all conflict codes
 
 ### Bug Fixes (4-6h)
+
 - [ ] Fix any issues found during testing
 - [ ] Polish UI based on feedback
 - [ ] Add missing error messages
 - [ ] Improve loading states
 
 ### Optional Enhancements (4-6h)
+
 - [ ] Add React Query for caching
 - [ ] Add loading skeletons
 - [ ] Add tooltips for complex fields
@@ -120,6 +132,7 @@ Documentation:   ████████████████████ 10
 ## 📈 Detailed Progress by Feature
 
 ### Admin AI Management
+
 ```
 List Configs:     ████████████████████ 100% ✅
 Edit Config:      ████████████████████ 100% ✅
@@ -129,6 +142,7 @@ Run Detail:       ████████████████████ 1
 ```
 
 ### AI Features
+
 ```
 Improve Answer:   ████████████████████ 100% ✅
 Generate Q's:     ████████████████████ 100% ✅
@@ -137,6 +151,7 @@ Impact Analysis:  ████████████████████ 1
 ```
 
 ### Traceability
+
 ```
 Org Landscape:    ████████████████████ 100% ✅
 Org Actors:       ████████████████████ 100% ✅
@@ -150,6 +165,7 @@ Trace View:       ████████████████████ 1
 ## 🎯 Feature Completion by Priority
 
 ### High Priority (Must Have)
+
 - ✅ AI Improve Answer - **DONE**
 - ✅ Generate Questions - **DONE**
 - ✅ Admin AI Config - **DONE**
@@ -157,12 +173,14 @@ Trace View:       ████████████████████ 1
 - ✅ Requirements - **DONE**
 
 ### Medium Priority (Should Have)
+
 - ✅ Clarity Assessment - **DONE**
 - ✅ Impact Analysis - **DONE** (existing)
 - ✅ Project Scope - **DONE**
 - ✅ Trace View - **DONE**
 
 ### Lower Priority (Nice to Have)
+
 - ✅ Admin Test Run - **DONE**
 - ✅ Admin Audit Logs - **DONE**
 - ✅ Org Actors - **DONE**
@@ -171,13 +189,13 @@ Trace View:       ████████████████████ 1
 
 ## 🚦 Status Legend
 
-| Symbol | Meaning |
-|--------|---------|
-| ✅ | Complete & tested |
-| 🟢 | Complete, needs testing |
-| 🟡 | In progress |
-| 🔴 | Blocked |
-| ⏳ | Planned |
+| Symbol | Meaning                 |
+| ------ | ----------------------- |
+| ✅     | Complete & tested       |
+| 🟢     | Complete, needs testing |
+| 🟡     | In progress             |
+| 🔴     | Blocked                 |
+| ⏳     | Planned                 |
 
 ### Current Status: All Green! 🟢
 
@@ -195,6 +213,7 @@ Documentation:      ✅✅✅✅✅ (5/5)
 ## 📅 Timeline
 
 ### Completed (2026-02-16)
+
 - ✅ Phase 1: Infrastructure (2-3h)
 - ✅ Phase 2: Admin AI Pages (4-5h)
 - ✅ Phase 3: AI Features Pages (3-4h)
@@ -204,6 +223,7 @@ Documentation:      ✅✅✅✅✅ (5/5)
 **Total Implementation Time:** ~16-22 hours
 
 ### Remaining
+
 - 🔲 Navigation Integration (1-2h)
 - 🔲 Manual Testing (8-10h)
 - 🔲 Bug Fixes (4-6h)
@@ -232,6 +252,7 @@ Beyond the basic requirements, đã implement thêm:
 ## 📦 Deliverables Summary
 
 ### Code Deliverables ✅
+
 ```
 ✅ 3 Type definition files
 ✅ 3 Service layer files
@@ -244,6 +265,7 @@ Beyond the basic requirements, đã implement thêm:
 ```
 
 ### Documentation Deliverables ✅
+
 ```
 ✅ QUICK_REFERENCE.md - 1-page guide
 ✅ FINAL_IMPLEMENTATION_REPORT.md - Executive summary
@@ -258,17 +280,20 @@ Beyond the basic requirements, đã implement thêm:
 ## 🎯 Next Actions
 
 ### Immediate (Dev Team)
+
 1. **Pull code** - Review 23 new files
 2. **Add navigation** - Link pages to menu (1-2h)
 3. **Start testing** - Follow `docs/DELIVERABLES.md` checklist
 
 ### Short-term (QA Team)
+
 1. **Manual testing** - All features (8-10h)
 2. **Permission testing** - All roles
 3. **Error testing** - All conflict codes
 4. **Report bugs** - Create tickets
 
 ### Medium-term (Product Team)
+
 1. **User acceptance testing**
 2. **Gather feedback**
 3. **Plan enhancements**
@@ -279,6 +304,7 @@ Beyond the basic requirements, đã implement thêm:
 ## 🏅 Quality Metrics
 
 ### Code Quality
+
 - ✅ TypeScript Coverage: **100%**
 - ✅ Error Handling: **100%** (25+ codes)
 - ✅ Permission Checks: **100%** (all pages)
@@ -287,12 +313,14 @@ Beyond the basic requirements, đã implement thêm:
 - ✅ Type Safety: **100%** (no `any`)
 
 ### Feature Completeness
+
 - ✅ Admin AI: **5/5 pages** (100%)
 - ✅ AI Features: **4/4 features** (100%)
 - ✅ Traceability: **5/5 pages** (100%)
 - ✅ Documentation: **5/5 docs** (100%)
 
 ### Architecture Compliance
+
 - ✅ Clean architecture: **Yes**
 - ✅ Service layer: **Yes**
 - ✅ No direct fetch: **Yes**

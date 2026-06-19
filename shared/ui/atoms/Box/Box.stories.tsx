@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Box } from './Box';
+import type { Meta, StoryObj } from '@storybook/react'
+import { Box } from './Box'
 
 const meta = {
   title: 'Atoms/Box',
@@ -55,17 +55,17 @@ const meta = {
       description: 'Border color',
     },
   },
-} satisfies Meta<typeof Box>;
+} satisfies Meta<typeof Box>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
     children: 'Box content',
     padding: 'md',
   },
-};
+}
 
 export const WithShadow: Story = {
   args: {
@@ -75,7 +75,7 @@ export const WithShadow: Story = {
     radius: 'md',
     background: 'white',
   },
-};
+}
 
 export const WithBorder: Story = {
   args: {
@@ -85,13 +85,13 @@ export const WithBorder: Story = {
     borderColor: 'neutral-200',
     radius: 'md',
   },
-};
+}
 
 export const Card: Story = {
   args: {
     children: (
       <div>
-        <h3 className="text-lg font-bold mb-2">Card Title</h3>
+        <h3 className="mb-2 text-lg font-bold">Card Title</h3>
         <p>This is a card-like box with shadow and padding.</p>
       </div>
     ),
@@ -100,7 +100,7 @@ export const Card: Story = {
     radius: 'lg',
     background: 'white',
   },
-};
+}
 
 export const FlexContainer: Story = {
   args: {
@@ -108,13 +108,13 @@ export const FlexContainer: Story = {
     padding: 'md',
     children: (
       <>
-        <div className="p-sm bg-primary text-white rounded">Item 1</div>
-        <div className="p-sm bg-primary text-white rounded">Item 2</div>
-        <div className="p-sm bg-primary text-white rounded">Item 3</div>
+        <div className="rounded bg-primary p-sm text-white">Item 1</div>
+        <div className="rounded bg-primary p-sm text-white">Item 2</div>
+        <div className="rounded bg-primary p-sm text-white">Item 3</div>
       </>
     ),
   },
-};
+}
 
 export const ColoredBackground: Story = {
   args: {
@@ -123,7 +123,7 @@ export const ColoredBackground: Story = {
     background: 'primary',
     radius: 'md',
   },
-};
+}
 
 export const RoundedFull: Story = {
   args: {
@@ -133,7 +133,7 @@ export const RoundedFull: Story = {
     background: 'neutral-100',
     display: 'inline-flex',
   },
-};
+}
 
 export const LargeShadow: Story = {
   args: {
@@ -143,7 +143,7 @@ export const LargeShadow: Story = {
     radius: 'lg',
     background: 'white',
   },
-};
+}
 
 export const CustomPadding: Story = {
   args: {
@@ -153,7 +153,7 @@ export const CustomPadding: Story = {
     background: 'neutral-50',
     radius: 'md',
   },
-};
+}
 
 export const AsSection: Story = {
   args: {
@@ -164,5 +164,4 @@ export const AsSection: Story = {
     borderWidth: '1',
     borderColor: 'neutral-200',
   },
-};
-
+}

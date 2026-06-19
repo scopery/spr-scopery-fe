@@ -17,11 +17,20 @@ function safeString(v: unknown): string {
 /**
  * Single/multi select: get options from schema for label lookup.
  */
-function getOptionsFromSchema(schema: Record<string, unknown>): Array<{ value: string; label?: string }> {
-  const opts = (schema.options ?? schema.enum) as Array<{ value?: string; label?: string } | string> | undefined
+function getOptionsFromSchema(
+  schema: Record<string, unknown>
+): Array<{ value: string; label?: string }> {
+  const opts = (schema.options ?? schema.enum) as
+    | Array<{ value?: string; label?: string } | string>
+    | undefined
   if (!Array.isArray(opts)) return []
   return opts.map((o) =>
-    typeof o === 'string' ? { value: o, label: o } : { value: String((o as { value?: string }).value ?? ''), label: (o as { label?: string }).label }
+    typeof o === 'string'
+      ? { value: o, label: o }
+      : {
+          value: String((o as { value?: string }).value ?? ''),
+          label: (o as { label?: string }).label,
+        }
   )
 }
 
@@ -34,7 +43,11 @@ function getOptionsFromSchema(schema: Record<string, unknown>): Array<{ value: s
  * - date: value.date or String(value)
  * - fallback: JSON.stringify (do not log)
  */
-export function toAnswerText(qType: string, value: unknown, answerSchema?: Record<string, unknown>): string {
+export function toAnswerText(
+  qType: string,
+  value: unknown,
+  answerSchema?: Record<string, unknown>
+): string {
   if (value == null) return ''
 
   if (typeof value === 'object' && value !== null && 'text' in value) {
@@ -49,7 +62,7 @@ export function toAnswerText(qType: string, value: unknown, answerSchema?: Recor
   if (typeof value === 'boolean' || typeof value === 'number') return String(value)
 
   if (qType === 'single_select' || qType === 'select') {
-    const str = typeof value === 'string' ? value : (value as { select?: string })?.select ?? ''
+    const str = typeof value === 'string' ? value : ((value as { select?: string })?.select ?? '')
     const schema = answerSchema ?? {}
     const options = getOptionsFromSchema(schema)
     const opt = options.find((o) => o.value === str)

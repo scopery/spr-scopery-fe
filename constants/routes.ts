@@ -31,8 +31,10 @@ export const ROUTES = {
     projects: (orgId: string) => `/org/${orgId}/projects`,
     members: (orgId: string) => `/org/${orgId}/members`,
     project: (orgId: string, projectId: string) => `/org/${orgId}/projects/${projectId}`,
-    projectQuestions: (orgId: string, projectId: string) => `/org/${orgId}/projects/${projectId}/questions`,
-    projectDocuments: (orgId: string, projectId: string) => `/org/${orgId}/projects/${projectId}/documents`,
+    projectQuestions: (orgId: string, projectId: string) =>
+      `/org/${orgId}/projects/${projectId}/questions`,
+    projectDocuments: (orgId: string, projectId: string) =>
+      `/org/${orgId}/projects/${projectId}/documents`,
     document: (orgId: string, documentId: string, projectId?: string) => {
       const base = `/org/${orgId}/documents/${documentId}`
       if (projectId) return `${base}?projectId=${encodeURIComponent(projectId)}`
@@ -52,8 +54,7 @@ export const ROUTES = {
     settingsControlledListDetail: (orgId: string, listId: string, projectId?: string | null) =>
       `/org/${orgId}/settings/controlled-lists/${listId}${projectId ? `?project=${projectId}` : ''}`,
     governance: (orgId: string) => `/org/${orgId}/governance`,
-    governancePolicy: (orgId: string, policyId: string) =>
-      `/org/${orgId}/governance/${policyId}`,
+    governancePolicy: (orgId: string, policyId: string) => `/org/${orgId}/governance/${policyId}`,
     agentControl: (orgId: string) => `/org/${orgId}/agent-control`,
   },
 } as const

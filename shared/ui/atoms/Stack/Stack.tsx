@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import type { StackProps } from './Stack.types'
 
 const stackSpacing = {
@@ -82,4 +82,3 @@ export const Stack = React.forwardRef(
 )
 
 Stack.displayName = 'Stack'
-

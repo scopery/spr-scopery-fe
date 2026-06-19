@@ -17,32 +17,17 @@ describe('EventCard', () => {
   })
 
   it('renders description', () => {
-    render(
-      <EventCard
-        title={defaultProps.title}
-        description={defaultProps.description}
-      />
-    )
+    render(<EventCard title={defaultProps.title} description={defaultProps.description} />)
     expect(screen.getByText('Design system updates & development')).toBeInTheDocument()
   })
 
   it('renders time', () => {
-    render(
-      <EventCard
-        title={defaultProps.title}
-        time={defaultProps.time}
-      />
-    )
+    render(<EventCard title={defaultProps.title} time={defaultProps.time} />)
     expect(screen.getByText('09:00 am - 09:30 am')).toBeInTheDocument()
   })
 
   it('renders image', () => {
-    render(
-      <EventCard
-        title={defaultProps.title}
-        image={defaultProps.image}
-      />
-    )
+    render(<EventCard title={defaultProps.title} image={defaultProps.image} />)
     const img = screen.getByAltText('Meeting with Gilbert')
     expect(img).toBeInTheDocument()
     expect(img).toHaveAttribute('src', 'https://example.com/image.jpg')
@@ -50,61 +35,35 @@ describe('EventCard', () => {
 
   it('uses custom alt text for image', () => {
     render(
-      <EventCard
-        title={defaultProps.title}
-        image={defaultProps.image}
-        imageAlt="Custom alt text"
-      />
+      <EventCard title={defaultProps.title} image={defaultProps.image} imageAlt="Custom alt text" />
     )
     const img = screen.getByAltText('Custom alt text')
     expect(img).toBeInTheDocument()
   })
 
   it('renders copy link button when showCopyLink is true', () => {
-    render(
-      <EventCard
-        title={defaultProps.title}
-        showCopyLink={true}
-      />
-    )
+    render(<EventCard title={defaultProps.title} showCopyLink={true} />)
     expect(screen.getByText('Copy the link')).toBeInTheDocument()
   })
 
   it('does not render copy link button when showCopyLink is false', () => {
-    render(
-      <EventCard
-        title={defaultProps.title}
-        showCopyLink={false}
-      />
-    )
+    render(<EventCard title={defaultProps.title} showCopyLink={false} />)
     expect(screen.queryByText('Copy the link')).not.toBeInTheDocument()
   })
 
   it('calls onCopyLink when copy link button is clicked', async () => {
     const user = userEvent.setup()
     const onCopyLink = vi.fn()
-    render(
-      <EventCard
-        title={defaultProps.title}
-        showCopyLink={true}
-        onCopyLink={onCopyLink}
-      />
-    )
-    
+    render(<EventCard title={defaultProps.title} showCopyLink={true} onCopyLink={onCopyLink} />)
+
     const copyButton = screen.getByText('Copy the link')
     await user.click(copyButton)
-    
+
     expect(onCopyLink).toHaveBeenCalledTimes(1)
   })
 
   it('uses custom copy link text', () => {
-    render(
-      <EventCard
-        title={defaultProps.title}
-        showCopyLink={true}
-        copyLinkText="Copy URL"
-      />
-    )
+    render(<EventCard title={defaultProps.title} showCopyLink={true} copyLinkText="Copy URL" />)
     expect(screen.getByText('Copy URL')).toBeInTheDocument()
   })
 
@@ -125,22 +84,14 @@ describe('EventCard', () => {
 
   it('renders share button when showShareButton is true', () => {
     render(
-      <EventCard
-        title={defaultProps.title}
-        image={defaultProps.image}
-        showShareButton={true}
-      />
+      <EventCard title={defaultProps.title} image={defaultProps.image} showShareButton={true} />
     )
     expect(screen.getByLabelText('Share event')).toBeInTheDocument()
   })
 
   it('does not render share button when showShareButton is false', () => {
     render(
-      <EventCard
-        title={defaultProps.title}
-        image={defaultProps.image}
-        showShareButton={false}
-      />
+      <EventCard title={defaultProps.title} image={defaultProps.image} showShareButton={false} />
     )
     expect(screen.queryByLabelText('Share event')).not.toBeInTheDocument()
   })
@@ -156,11 +107,10 @@ describe('EventCard', () => {
         onShare={onShare}
       />
     )
-    
+
     const shareButton = screen.getByLabelText('Share event')
     await user.click(shareButton)
-    
+
     expect(onShare).toHaveBeenCalledTimes(1)
   })
 })
-

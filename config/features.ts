@@ -3,8 +3,7 @@
  * In mock mode (NEXT_PUBLIC_DATA_MODE=mock) all flags are enabled so every page
  * renders with mock data. In production only the explicitly enabled flags are on.
  */
-const isMock =
-  typeof process !== 'undefined' && process.env.NEXT_PUBLIC_DATA_MODE === 'mock'
+const isMock = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_DATA_MODE === 'mock'
 
 export const FEATURES = {
   aiImproveAnswer: true,

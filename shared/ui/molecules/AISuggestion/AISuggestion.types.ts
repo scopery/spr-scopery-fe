@@ -1,4 +1,4 @@
-import { PolymorphicComponentPropWithRef } from '@/utils'
+import { PolymorphicComponentPropWithRef } from '@/utils/polymorphic'
 
 export type AISuggestionProps<C extends React.ElementType = 'div'> =
   PolymorphicComponentPropWithRef<
@@ -47,4 +47,3 @@ export type AISuggestionProps<C extends React.ElementType = 'div'> =
       cardShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl'
     }
   >
-

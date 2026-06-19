@@ -52,7 +52,8 @@ export const Default: Story = {
     folder: {
       name: 'Visual Vault',
       fileCount: 362,
-      description: 'A curated collection of all creative essentials - images, photos, icons, and visual elements. Everything visual lives here.',
+      description:
+        'A curated collection of all creative essentials - images, photos, icons, and visual elements. Everything visual lives here.',
       previewImages: [
         'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
         'https://images.unsplash.com/photo-1534361960057-19889c4d8d90?w=300',
@@ -100,9 +101,7 @@ export const WithoutNavigation: Story = {
       name: 'Single Folder',
       fileCount: 50,
       description: 'A simple folder without navigation.',
-      previewImages: [
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
-      ],
+      previewImages: ['https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300'],
     },
     onAction: () => console.log('Open clicked'),
   },
@@ -140,4 +139,3 @@ export const LargeFileCount: Story = {
     onAction: () => console.log('Open clicked'),
   },
 }
-

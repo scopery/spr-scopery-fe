@@ -1,10 +1,10 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
-import { TemplateEditor } from '@/shared/components/document-templates/TemplateEditor'
+import { useAuth } from '@/modules/auth'
+import { TemplateEditor } from '@/modules/documents'
 import { ROUTES } from '@/constants/routes'
-import type { DocumentTemplate } from '@/types/document-template'
+import type { DocumentTemplate } from '@/modules/documents'
 
 export default function NewTemplatePage() {
   const params = useParams()
@@ -17,7 +17,7 @@ export default function NewTemplatePage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="mx-auto max-w-5xl">
       <TemplateEditor
         orgId={orgId}
         mode="create"

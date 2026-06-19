@@ -34,4 +34,3 @@ export const fontWeight = {
 export type FontSizeToken = typeof fontSize
 export type LineHeightToken = typeof lineHeight
 export type FontWeightToken = typeof fontWeight
-

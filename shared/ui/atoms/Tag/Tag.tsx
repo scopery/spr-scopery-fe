@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '@/utils'
+import { cn } from '@/utils/cn'
 import type { TagProps } from './Tag.types'
 
 const tagVariants = {
@@ -104,7 +104,12 @@ export const Tag = React.forwardRef(
               stroke="currentColor"
               aria-hidden="true"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         )}
@@ -114,4 +119,3 @@ export const Tag = React.forwardRef(
 )
 
 Tag.displayName = 'Tag'
-
