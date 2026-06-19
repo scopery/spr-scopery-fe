@@ -1,13 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
 import { Typography, Button, ContentLoader, Input, Select, ConfirmDialog } from '@/shared/ui'
-import * as aiRoutingApi from '../api/ai-routing.api'
-import * as aiAgentsApi from '@/modules/admin/ai-agents/api/ai-agents.api'
-import { toast } from 'sonner'
-import { getProblemToastMessage } from '@/shared/lib/errorHandling'
-import type { AIRoutingDryRunResult, AIRoutingListItem } from '@/modules/admin/ai-routing'
-import type { AIModelSelectItem } from '@/modules/admin/ai-agents'
+import { useAIAgentRoutingPanel } from '../hooks/useAIAgentRoutingPanel'
 
 interface AIAgentRoutingPanelProps {
   agentId: string
@@ -16,117 +10,7 @@ interface AIAgentRoutingPanelProps {
 }
 
 export function AIAgentRoutingPanel({ agentId, agentKey, orgId }: AIAgentRoutingPanelProps) {
-  const [rules, setRules] = useState<AIRoutingListItem[]>([])
-  const [models, setModels] = useState<AIModelSelectItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [formOpen, setFormOpen] = useState(false)
-  const [dryRunResult, setDryRunResult] = useState<AIRoutingDryRunResult | null>(null)
-  const [dryRunning, setDryRunning] = useState(false)
-  const [activateTarget, setActivateTarget] = useState<AIRoutingListItem | null>(null)
-  const [form, setForm] = useState({
-    name: '',
-    target_model_id: '',
-    priority: '100',
-    budget_state: '',
-    fallback_enabled: false,
-    fallback_model_id: '',
-  })
-
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [rulesRes, modelsRes] = await Promise.all([
-        aiRoutingApi.listRoutingRules({ agent_id: agentId, org_id: orgId }),
-        aiAgentsApi.listModels(),
-      ])
-      setRules(rulesRes.items)
-      setModels(modelsRes.items.filter((m) => m.active))
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    } finally {
-      setLoading(false)
-    }
-  }, [agentId, orgId])
-
-  useEffect(() => {
-    load()
-  }, [load])
-
-  const handleCreate = async () => {
-    if (!form.name.trim() || !form.target_model_id) {
-      toast.error('Name and target model are required.')
-      return
-    }
-    try {
-      await aiRoutingApi.createRoutingRule({
-        org_id: orgId ?? null,
-        agent_id: agentId,
-        name: form.name.trim(),
-        target_model_id: form.target_model_id,
-        priority: Number(form.priority) || 100,
-        condition_json: form.budget_state
-          ? { budgetState: form.budget_state as 'normal' | 'warning' }
-          : {},
-        fallback_enabled: form.fallback_enabled,
-        fallback_model_id: form.fallback_enabled ? form.fallback_model_id || null : null,
-        active: false,
-      })
-      toast.success('Routing rule created (inactive by default).')
-      setFormOpen(false)
-      await load()
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    }
-  }
-
-  const toggleActive = async (rule: AIRoutingListItem) => {
-    if (!rule.active) {
-      setActivateTarget(rule)
-      return
-    }
-    try {
-      await aiRoutingApi.updateRoutingRule(rule.ruleId, { active: false })
-      toast.success('Rule deactivated.')
-      await load()
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    }
-  }
-
-  const confirmActivate = async () => {
-    if (!activateTarget) return
-    try {
-      await aiRoutingApi.updateRoutingRule(activateTarget.ruleId, { active: true })
-      toast.success('Rule activated.')
-      setActivateTarget(null)
-      await load()
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    }
-  }
-
-  const runDryRun = async () => {
-    setDryRunning(true)
-    setDryRunResult(null)
-    try {
-      const result = await aiRoutingApi.dryRunRouting({
-        agent_key: agentKey,
-        mode: 'generate',
-        org_id: orgId,
-        budget_state: form.budget_state || undefined,
-      })
-      setDryRunResult(result)
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    } finally {
-      setDryRunning(false)
-    }
-  }
-
-  const modelOptions = models.map((m) => ({
-    value: m.id,
-    label: `${m.displayName ?? m.modelName} (${m.modelTier})`,
-  }))
+  const panel = useAIAgentRoutingPanel({ agentId, agentKey, orgId })
 
   const budgetStateOptions = [
     { value: '', label: 'Any budget state' },
@@ -134,9 +18,9 @@ export function AIAgentRoutingPanel({ agentId, agentKey, orgId }: AIAgentRouting
     { value: 'warning', label: 'Warning' },
   ]
 
-  const fallbackModelOptions = [{ value: '', label: 'Select fallback model' }, ...modelOptions]
+  const fallbackModelOptions = [{ value: '', label: 'Select fallback model' }, ...panel.modelOptions]
 
-  if (loading) return <ContentLoader />
+  if (panel.loading) return <ContentLoader />
 
   return (
     <div className="space-y-6">
@@ -147,27 +31,27 @@ export function AIAgentRoutingPanel({ agentId, agentKey, orgId }: AIAgentRouting
       </Typography>
 
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" onClick={() => setFormOpen(true)}>
+        <Button size="sm" onClick={() => panel.setFormOpen(true)}>
           Create routing rule
         </Button>
-        <Button size="sm" variant="outline" onClick={runDryRun} disabled={dryRunning}>
-          {dryRunning ? 'Dry running…' : 'Dry-run routing'}
+        <Button size="sm" variant="outline" onClick={() => void panel.runDryRun()} disabled={panel.dryRunning}>
+          {panel.dryRunning ? 'Dry running…' : 'Dry-run routing'}
         </Button>
       </div>
 
-      {dryRunResult ? (
+      {panel.dryRunResult ? (
         <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm">
           <Typography weight="medium" className="mb-2">
             Dry-run result
           </Typography>
-          <p>Default: {dryRunResult.defaultModelName}</p>
-          <p>Selected: {dryRunResult.selectedModelName}</p>
-          <p>Routing applied: {dryRunResult.routingApplied ? 'Yes' : 'No'}</p>
-          <p>{dryRunResult.routingReason}</p>
+          <p>Default: {panel.dryRunResult.defaultModelName}</p>
+          <p>Selected: {panel.dryRunResult.selectedModelName}</p>
+          <p>Routing applied: {panel.dryRunResult.routingApplied ? 'Yes' : 'No'}</p>
+          <p>{panel.dryRunResult.routingReason}</p>
         </div>
       ) : null}
 
-      {rules.length === 0 ? (
+      {panel.rules.length === 0 ? (
         <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-6 text-center">
           <Typography tone="muted">No routing rules for this agent.</Typography>
         </div>
@@ -186,7 +70,7 @@ export function AIAgentRoutingPanel({ agentId, agentKey, orgId }: AIAgentRouting
               </tr>
             </thead>
             <tbody>
-              {rules.map((rule) => (
+              {panel.rules.map((rule) => (
                 <tr key={rule.ruleId} className="border-b border-neutral-100">
                   <td className="px-4 py-3">{rule.name}</td>
                   <td className="px-4 py-3">{rule.priority}</td>
@@ -197,7 +81,7 @@ export function AIAgentRoutingPanel({ agentId, agentKey, orgId }: AIAgentRouting
                   </td>
                   <td className="px-4 py-3">{rule.active ? 'Active' : 'Inactive'}</td>
                   <td className="px-4 py-3">
-                    <Button size="sm" variant="outline" onClick={() => toggleActive(rule)}>
+                    <Button size="sm" variant="outline" onClick={() => void panel.toggleActive(rule)}>
                       {rule.active ? 'Deactivate' : 'Activate'}
                     </Button>
                   </td>
@@ -208,7 +92,7 @@ export function AIAgentRoutingPanel({ agentId, agentKey, orgId }: AIAgentRouting
         </div>
       )}
 
-      {formOpen ? (
+      {panel.formOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-lg border border-neutral-200 bg-white p-6 shadow-lg">
             <Typography as="h2" size="lg" weight="semibold" className="mb-4">
@@ -217,64 +101,64 @@ export function AIAgentRoutingPanel({ agentId, agentKey, orgId }: AIAgentRouting
             <div className="space-y-3">
               <Input
                 placeholder="Rule name"
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                value={panel.form.name}
+                onChange={(e) => panel.setForm((f) => ({ ...f, name: e.target.value }))}
               />
               <Select
-                options={[{ value: '', label: 'Select target model' }, ...modelOptions]}
-                value={form.target_model_id}
-                onValueChange={(v: string) => setForm((f) => ({ ...f, target_model_id: v }))}
+                options={[{ value: '', label: 'Select target model' }, ...panel.modelOptions]}
+                value={panel.form.target_model_id}
+                onValueChange={(v: string) => panel.setForm((f) => ({ ...f, target_model_id: v }))}
                 className="w-full"
                 size="sm"
               />
               <Input
                 type="number"
                 placeholder="Priority (lower = first)"
-                value={form.priority}
-                onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
+                value={panel.form.priority}
+                onChange={(e) => panel.setForm((f) => ({ ...f, priority: e.target.value }))}
               />
               <Select
                 options={budgetStateOptions}
-                value={form.budget_state}
-                onValueChange={(v: string) => setForm((f) => ({ ...f, budget_state: v }))}
+                value={panel.form.budget_state}
+                onValueChange={(v: string) => panel.setForm((f) => ({ ...f, budget_state: v }))}
                 className="w-full"
                 size="sm"
               />
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  checked={form.fallback_enabled}
-                  onChange={(e) => setForm((f) => ({ ...f, fallback_enabled: e.target.checked }))}
+                  checked={panel.form.fallback_enabled}
+                  onChange={(e) => panel.setForm((f) => ({ ...f, fallback_enabled: e.target.checked }))}
                 />
                 Enable fallback on provider failure
               </label>
-              {form.fallback_enabled ? (
+              {panel.form.fallback_enabled ? (
                 <Select
                   options={fallbackModelOptions}
-                  value={form.fallback_model_id}
-                  onValueChange={(v: string) => setForm((f) => ({ ...f, fallback_model_id: v }))}
+                  value={panel.form.fallback_model_id}
+                  onValueChange={(v: string) => panel.setForm((f) => ({ ...f, fallback_model_id: v }))}
                   className="w-full"
                   size="sm"
                 />
               ) : null}
             </div>
             <div className="mt-6 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setFormOpen(false)}>
+              <Button variant="outline" onClick={() => panel.setFormOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreate}>Save</Button>
+              <Button onClick={() => void panel.handleCreate()}>Save</Button>
             </div>
           </div>
         </div>
       ) : null}
 
       <ConfirmDialog
-        open={activateTarget != null}
-        onClose={() => setActivateTarget(null)}
+        open={panel.activateTarget != null}
+        onClose={() => panel.setActivateTarget(null)}
         title="Activate routing rule?"
         message="Active rules can change which model future AI runs use for this agent. Review conditions and target model before activating."
         confirmLabel="Activate"
-        onConfirm={confirmActivate}
+        onConfirm={() => void panel.confirmActivate()}
       />
     </div>
   )

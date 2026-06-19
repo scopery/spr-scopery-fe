@@ -13,7 +13,7 @@ import {
   buildAIPermissions,
   canManageProjectContentFallback,
   resolveProjectRole,
-} from '@/utils/permissions'
+} from '@/modules/permissions'
 import { ProjectAIActionsMenu } from '@/modules/ai-document-intelligence'
 import {
   ProjectStepIndicator,

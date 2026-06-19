@@ -1,34 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Sparkles } from 'lucide-react'
 import { Button, Modal, Select } from '@/shared/ui'
-import { ROUTES } from '@/constants/routes'
-import { sessionsApi } from '@/modules/sessions'
-import type { SessionListItem } from '@/modules/sessions'
-import * as aiDocumentIntelligenceApi from '@/modules/ai-document-intelligence/document-ai/api/ai-document-intelligence.api'
-import type {
-  AIDocumentCreatedResponse,
-  AIStructuredPreview,
-  ProjectAIActionsMenuProps,
-} from '@/modules/ai-document-intelligence/document-ai/model/ai-document-intelligence'
+import type { ProjectAIActionsMenuProps } from '@/modules/ai-document-intelligence/document-ai/model/ai-document-intelligence'
 import { AIPreviewDialog } from '@/modules/ai-document-intelligence/document-ai/ui/AIPreviewDialog'
-import { ApiError } from '@/shared/lib/api-types'
-import { toast } from 'sonner'
+import { useProjectAIActionsMenu } from '../hooks/useProjectAIActionsMenu'
 
 export function ProjectAIActionsMenu({ orgId, projectId, permissions }: ProjectAIActionsMenuProps) {
-  const router = useRouter()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [sessionDialog, setSessionDialog] = useState<'qa' | 'clarity' | 'readiness' | null>(null)
-  const [sessions, setSessions] = useState<SessionListItem[]>([])
-  const [sessionId, setSessionId] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [previewOpen, setPreviewOpen] = useState(false)
-  const [preview, setPreview] = useState<AIStructuredPreview | null>(null)
-  const [generationId, setGenerationId] = useState<string | null>(null)
-  const [warnings, setWarnings] = useState<string[]>([])
-  const [previewOrigin, setPreviewOrigin] = useState<'brief' | 'summary'>('brief')
+  const menu = useProjectAIActionsMenu({ orgId, projectId })
 
   const hasAny =
     permissions.canGenerateProjectBrief ||
@@ -37,124 +16,7 @@ export function ProjectAIActionsMenu({ orgId, projectId, permissions }: ProjectA
     permissions.canSaveClarityReport ||
     permissions.canSaveReadinessReport
 
-  useEffect(() => {
-    if (!sessionDialog) return
-    sessionsApi
-      .listSessions(orgId, projectId, { limit: 50 })
-      .then((res) => setSessions(res.items))
-      .catch(() => setSessions([]))
-  }, [sessionDialog, orgId, projectId])
-
   if (!hasAny) return null
-
-  const handleError = (err: unknown) => {
-    const msg =
-      err instanceof ApiError
-        ? err.problem.detail
-        : err instanceof Error
-          ? err.message
-          : 'AI action failed'
-    toast.error(msg)
-  }
-
-  const runProjectBrief = async () => {
-    setMenuOpen(false)
-    setLoading(true)
-    setPreviewOpen(true)
-    setPreview(null)
-    try {
-      const res = await aiDocumentIntelligenceApi.generateProjectBrief(orgId, projectId, {
-        save: false,
-      })
-      if ('preview' in res) {
-        setPreview(res.preview)
-        setGenerationId(res.generationId)
-        setWarnings(res.warnings ?? [])
-        setPreviewOrigin('brief')
-      }
-    } catch (err) {
-      setPreviewOpen(false)
-      handleError(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const runSummarizeDocuments = async () => {
-    setMenuOpen(false)
-    setLoading(true)
-    setPreviewOpen(true)
-    setPreview(null)
-    try {
-      const res = await aiDocumentIntelligenceApi.summarizeProjectDocuments(orgId, projectId, {
-        save: false,
-      })
-      if ('preview' in res) {
-        setPreview(res.preview)
-        setGenerationId(res.generationId)
-        setWarnings(res.warnings ?? [])
-        setPreviewOrigin('summary')
-      }
-    } catch (err) {
-      setPreviewOpen(false)
-      handleError(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const savePreview = async () => {
-    if (!preview || !generationId) {
-      toast.error('Nothing to save')
-      return
-    }
-    setLoading(true)
-    try {
-      const res = await aiDocumentIntelligenceApi.saveAIPreviewAsDocument(orgId, {
-        generation_id: generationId,
-        project_id: projectId,
-        title: preview.title,
-        sections: preview.sections,
-        origin_type: previewOrigin === 'brief' ? 'project_summary' : 'document_summary',
-        document_type: previewOrigin === 'brief' ? 'project_doc' : 'summary',
-      })
-      toast.success('Document created')
-      setPreviewOpen(false)
-      router.push(ROUTES.org.document(orgId, res.document.id, projectId))
-    } catch (err) {
-      handleError(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const runSessionReport = async () => {
-    if (!sessionId || !sessionDialog) return
-    setLoading(true)
-    try {
-      let res: AIDocumentCreatedResponse
-      if (sessionDialog === 'qa') {
-        res = await aiDocumentIntelligenceApi.saveQASummary(orgId, projectId, {
-          session_id: sessionId,
-        })
-      } else if (sessionDialog === 'clarity') {
-        res = await aiDocumentIntelligenceApi.saveClarityReport(orgId, projectId, {
-          session_id: sessionId,
-        })
-      } else {
-        res = await aiDocumentIntelligenceApi.saveReadinessReport(orgId, projectId, {
-          session_id: sessionId,
-        })
-      }
-      toast.success('Document created')
-      setSessionDialog(null)
-      router.push(ROUTES.org.document(orgId, res.document.id, projectId))
-    } catch (err) {
-      handleError(err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   return (
     <>
@@ -162,25 +24,25 @@ export function ProjectAIActionsMenu({ orgId, projectId, permissions }: ProjectA
         variant="outline"
         size="sm"
         icon={<Sparkles size={16} />}
-        onClick={() => setMenuOpen(true)}
+        onClick={() => menu.setMenuOpen(true)}
       >
         AI actions
       </Button>
 
       <Modal
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
+        open={menu.menuOpen}
+        onClose={() => menu.setMenuOpen(false)}
         title="AI document actions"
         size="sm"
       >
         <div className="flex flex-col gap-2">
           {permissions.canGenerateProjectBrief && (
-            <Button variant="ghost" className="justify-start" onClick={runProjectBrief}>
+            <Button variant="ghost" className="justify-start" onClick={() => void menu.runProjectBrief()}>
               Generate project brief
             </Button>
           )}
           {permissions.canSummarizeProjectDocuments && (
-            <Button variant="ghost" className="justify-start" onClick={runSummarizeDocuments}>
+            <Button variant="ghost" className="justify-start" onClick={() => void menu.runSummarizeDocuments()}>
               Summarize project documents
             </Button>
           )}
@@ -189,8 +51,8 @@ export function ProjectAIActionsMenu({ orgId, projectId, permissions }: ProjectA
               variant="ghost"
               className="justify-start"
               onClick={() => {
-                setMenuOpen(false)
-                setSessionDialog('qa')
+                menu.setMenuOpen(false)
+                menu.setSessionDialog('qa')
               }}
             >
               Save QA summary as document
@@ -201,8 +63,8 @@ export function ProjectAIActionsMenu({ orgId, projectId, permissions }: ProjectA
               variant="ghost"
               className="justify-start"
               onClick={() => {
-                setMenuOpen(false)
-                setSessionDialog('clarity')
+                menu.setMenuOpen(false)
+                menu.setSessionDialog('clarity')
               }}
             >
               Save clarity report as document
@@ -213,8 +75,8 @@ export function ProjectAIActionsMenu({ orgId, projectId, permissions }: ProjectA
               variant="ghost"
               className="justify-start"
               onClick={() => {
-                setMenuOpen(false)
-                setSessionDialog('readiness')
+                menu.setMenuOpen(false)
+                menu.setSessionDialog('readiness')
               }}
             >
               Save readiness report as document
@@ -224,12 +86,12 @@ export function ProjectAIActionsMenu({ orgId, projectId, permissions }: ProjectA
       </Modal>
 
       <Modal
-        open={Boolean(sessionDialog)}
-        onClose={() => setSessionDialog(null)}
+        open={Boolean(menu.sessionDialog)}
+        onClose={() => menu.setSessionDialog(null)}
         title={
-          sessionDialog === 'qa'
+          menu.sessionDialog === 'qa'
             ? 'Save QA summary'
-            : sessionDialog === 'clarity'
+            : menu.sessionDialog === 'clarity'
               ? 'Save clarity report'
               : 'Save readiness report'
         }
@@ -238,22 +100,22 @@ export function ProjectAIActionsMenu({ orgId, projectId, permissions }: ProjectA
         <div className="space-y-4">
           <Select
             label="Session"
-            value={sessionId}
-            onValueChange={setSessionId}
+            value={menu.sessionId}
+            onValueChange={menu.setSessionId}
             options={[
               { value: '', label: 'Select a session' },
-              ...sessions.map((s) => ({ value: s.id, label: `${s.name} (${s.status})` })),
+              ...menu.sessions.map((s) => ({ value: s.id, label: `${s.name} (${s.status})` })),
             ]}
           />
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setSessionDialog(null)}>
+            <Button variant="outline" onClick={() => menu.setSessionDialog(null)}>
               Cancel
             </Button>
             <Button
               variant="primary"
-              loading={loading}
-              disabled={!sessionId}
-              onClick={runSessionReport}
+              loading={menu.loading}
+              disabled={!menu.sessionId}
+              onClick={() => void menu.runSessionReport()}
             >
               Create document
             </Button>
@@ -262,12 +124,12 @@ export function ProjectAIActionsMenu({ orgId, projectId, permissions }: ProjectA
       </Modal>
 
       <AIPreviewDialog
-        open={previewOpen}
-        onOpenChange={setPreviewOpen}
-        preview={preview}
-        warnings={warnings}
-        loading={loading && !preview}
-        onSave={generationId ? savePreview : undefined}
+        open={menu.previewOpen}
+        onOpenChange={menu.setPreviewOpen}
+        preview={menu.preview}
+        warnings={menu.warnings}
+        loading={menu.loading && !menu.preview}
+        onSave={menu.generationId ? () => void menu.savePreview() : undefined}
       />
     </>
   )

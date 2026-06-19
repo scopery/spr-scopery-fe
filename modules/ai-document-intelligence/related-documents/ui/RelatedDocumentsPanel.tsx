@@ -1,15 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Typography } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { DocumentTypeBadge } from '@/modules/documents'
-import * as aiDocumentIntelligenceApi from '@/modules/ai-document-intelligence/document-ai/api/ai-document-intelligence.api'
-import type {
-  RelatedDocumentItem,
-  RelatedDocumentsPanelProps,
-} from '@/modules/ai-document-intelligence/document-ai/model/ai-document-intelligence'
+import type { RelatedDocumentsPanelProps } from '@/modules/ai-document-intelligence/document-ai/model/ai-document-intelligence'
+import { useRelatedDocumentsPanel } from '../hooks/useRelatedDocumentsPanel'
 
 export function RelatedDocumentsPanel({
   orgId,
@@ -17,18 +13,12 @@ export function RelatedDocumentsPanel({
   projectId,
   enabled,
 }: RelatedDocumentsPanelProps) {
-  const [items, setItems] = useState<RelatedDocumentItem[]>([])
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (!enabled) return
-    setLoading(true)
-    aiDocumentIntelligenceApi
-      .findRelatedDocuments(orgId, documentId, { project_id: projectId, limit: 8 })
-      .then((res) => setItems(res.items))
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false))
-  }, [enabled, orgId, documentId, projectId])
+  const { items, loading } = useRelatedDocumentsPanel({
+    orgId,
+    documentId,
+    projectId,
+    enabled,
+  })
 
   if (!enabled) return null
 

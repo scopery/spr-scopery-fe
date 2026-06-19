@@ -5,6 +5,7 @@ import { ApiError } from '@/shared/lib/api-types'
 import type { DocumentRelationType } from '@/modules/documents/document-links'
 import { toast } from 'sonner'
 import * as evidenceApi from '../api/evidence-documents.api'
+import { getEvidenceDocumentTypeLabel } from '../lib/evidence-document-labels'
 import type {
   BulkLinkEvidenceDocumentsDialogProps,
   EvidenceDocumentRow,
@@ -55,7 +56,7 @@ export function useBulkLinkEvidenceDocumentsDialog({
     return documents.filter(
       (d) =>
         d.title.toLowerCase().includes(q) ||
-        evidenceApi.getEvidenceDocumentTypeLabel(d.document_type).toLowerCase().includes(q)
+        getEvidenceDocumentTypeLabel(d.document_type).toLowerCase().includes(q)
     )
   }, [documents, search])
 

@@ -60,6 +60,36 @@
       }
     },
     {
+      "files": ["modules/**/ui/**/*.{ts,tsx}"],
+      "excludedFiles": ["modules/**/ui/**/*.test.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@/shared/lib/apiClient",
+                "message": "UI must not call apiClient directly — use a hook in ../hooks/."
+              }
+            ],
+            "patterns": [
+              {
+                "group": [
+                  "**/api/*.api",
+                  "**/api/*.api.ts",
+                  "@/modules/**/api/*.api",
+                  "@/modules/**/api/*.api.ts",
+                  "../api/*.api",
+                  "../api/*.api.ts"
+                ],
+                "message": "UI must not import API modules directly — use hooks."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["modules/**/*.{ts,tsx}"],
       "excludedFiles": ["modules/**/api/**/*.{ts,tsx}"],
       "rules": {

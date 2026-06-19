@@ -1,3 +1,4 @@
+export { OrgRedirectView } from './ui/OrgRedirectView'
 export { OrgMembersView } from './ui/OrgMembersView'
 export { useOrg } from './hooks/useOrg'
 export { useOrgMembers } from './hooks/useOrgMembers'

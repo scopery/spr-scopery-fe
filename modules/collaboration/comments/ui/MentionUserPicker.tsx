@@ -1,12 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Select, Typography } from '@/shared/ui'
-import * as collaborationApi from '@/modules/collaboration/core/api/collaboration.api'
-import type {
-  MentionableUser,
-  MentionUserPickerProps,
-} from '@/modules/collaboration/core/model/collaboration'
+import type { MentionUserPickerProps } from '@/modules/collaboration/core/model/collaboration'
+import { useMentionUserSearch } from '@/modules/collaboration/core/hooks'
 
 export function MentionUserPicker({
   orgId,
@@ -15,15 +12,8 @@ export function MentionUserPicker({
   onChange,
   disabled,
 }: MentionUserPickerProps) {
-  const [users, setUsers] = useState<MentionableUser[]>([])
   const [selected, setSelected] = useState('')
-
-  useEffect(() => {
-    collaborationApi
-      .listMentionableUsers(orgId, { project_id: projectId })
-      .then((res) => setUsers(res.items))
-      .catch(() => setUsers([]))
-  }, [orgId, projectId])
+  const { users } = useMentionUserSearch(orgId, projectId)
 
   const available = users.filter((u) => !value.includes(u.user_id))
 

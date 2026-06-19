@@ -4,7 +4,7 @@ import {
   type DocumentRelationType,
   type LinkedDocumentForEntity,
 } from '@/modules/documents/document-links'
-import { DOCUMENT_TYPE_LABEL, type DocumentType } from '@/modules/documents/document'
+import { getEvidenceDocumentTypeLabel } from '../lib/evidence-document-labels'
 import { restoreDocument } from '@/modules/documents/document/api/documents.api'
 import {
   exportRequirementEvidencePack,
@@ -39,7 +39,7 @@ export async function listEvidenceDocumentOptions(
   const res = await listProjectDocumentsGrouped(orgId, projectId, { status: 'active' })
   return flattenUniqueProjectDocuments(res).map((d) => ({
     value: d.document_id,
-    label: `${d.title} (${DOCUMENT_TYPE_LABEL[d.document_type as DocumentType] ?? d.document_type})`,
+    label: `${d.title} (${getEvidenceDocumentTypeLabel(d.document_type)})`,
   }))
 }
 
@@ -141,8 +141,5 @@ export async function exportEvidencePack(
   }
 }
 
-export function getEvidenceDocumentTypeLabel(documentType: string) {
-  return DOCUMENT_TYPE_LABEL[documentType as DocumentType] ?? documentType
-}
-
+export { getEvidenceDocumentTypeLabel } from '../lib/evidence-document-labels'
 export { DOCUMENT_RELATION_LABELS }

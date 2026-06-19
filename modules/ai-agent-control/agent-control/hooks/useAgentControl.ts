@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { accessApi } from '@/modules/permissions'
-import { hasPermission, PERMISSIONS } from '@/utils/permissions'
+import { hasPermission, PERMISSIONS } from '@/modules/permissions'
 import type {
   AgentControlMetadata,
   AgentControlPreset,

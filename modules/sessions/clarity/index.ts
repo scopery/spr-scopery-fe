@@ -1,6 +1,7 @@
 export { ClarityBadge } from './ui/ClarityBadge'
 export { ClarityPanel } from './ui/ClarityPanel'
 export { ClarityDetailsModal } from './ui/ClarityDetailsModal'
+export { useSessionClarity } from './hooks/useSessionClarity'
 export type {
   ClarityLabel,
   ClarityAssessment,

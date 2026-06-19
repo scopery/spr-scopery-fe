@@ -2,11 +2,14 @@
 
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/modules/auth'
+import { LoadingProvider } from '@/modules/platform'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      {children}
+      <LoadingProvider>
+        {children}
+      </LoadingProvider>
       <Toaster
         position="top-center"
         richColors

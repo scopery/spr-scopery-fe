@@ -1,18 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { toast } from 'sonner'
 import { Box, Button, Input, Select, Typography, Badge } from '@/shared/ui'
-import * as agentControlApi from '@/modules/ai-agent-control/agent-control/api/agent-control.api'
-import type {
-  OrgAgentListItem,
-  PromptPreset,
-  PromptRegistryMetadata,
-  PromptTemplateDetail,
-  PromptTemplateListItem,
-  TemplatePromptBinding,
-} from '@/modules/ai-agent-control/agent-control/model/agent-control-types'
-import { ApiError } from '@/shared/lib/api-types'
+import type { OrgAgentListItem } from '@/modules/ai-agent-control/agent-control/model/agent-control-types'
+import { usePromptRegistryPanel } from '../hooks/usePromptRegistryPanel'
 
 type Props = {
   orgId: string
@@ -21,165 +11,9 @@ type Props = {
 }
 
 export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
-  const [loading, setLoading] = useState(true)
-  const [metadata, setMetadata] = useState<PromptRegistryMetadata | null>(null)
-  const [prompts, setPrompts] = useState<PromptTemplateListItem[]>([])
-  const [presets, setPresets] = useState<PromptPreset[]>([])
-  const [templateBindings, setTemplateBindings] = useState<TemplatePromptBinding[]>([])
-  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null)
-  const [promptDetail, setPromptDetail] = useState<PromptTemplateDetail | null>(null)
-  const [search, setSearch] = useState('')
-  const [showCreateForm, setShowCreateForm] = useState(false)
-  const [promptKey, setPromptKey] = useState('')
-  const [promptName, setPromptName] = useState('')
-  const [promptCategory, setPromptCategory] = useState('writing')
-  const [versionSystem, setVersionSystem] = useState('')
-  const [versionUser, setVersionUser] = useState('')
-  const [bindingAgentId, setBindingAgentId] = useState('')
-  const [bindingKey, setBindingKey] = useState('default')
-  const [bindingPromptId, setBindingPromptId] = useState('')
-  const [saving, setSaving] = useState(false)
+  const panel = usePromptRegistryPanel({ orgId, canManage, agents })
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [meta, promptsRes, presetsRes, bindingsRes] = await Promise.all([
-        agentControlApi.getPromptRegistryMetadata(orgId),
-        agentControlApi.listPromptTemplates(orgId, {
-          search: search.trim() || undefined,
-        }),
-        agentControlApi.listPromptPresets(orgId),
-        agentControlApi.listTemplatePromptBindings(orgId),
-      ])
-      setMetadata(meta)
-      setPrompts(promptsRes.items)
-      setPresets(presetsRes)
-      setTemplateBindings(bindingsRes.items)
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to load prompt registry')
-    } finally {
-      setLoading(false)
-    }
-  }, [orgId, search])
-
-  useEffect(() => {
-    void load()
-  }, [load])
-
-  const loadDetail = async (promptId: string) => {
-    try {
-      const detail = await agentControlApi.getPromptTemplate(orgId, promptId)
-      setSelectedPromptId(promptId)
-      setPromptDetail(detail)
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to load prompt detail')
-    }
-  }
-
-  const handleCreatePrompt = async () => {
-    if (!promptKey.trim() || !promptName.trim()) {
-      toast.error('Prompt key and name are required')
-      return
-    }
-    setSaving(true)
-    try {
-      const created = await agentControlApi.createPromptTemplate(orgId, {
-        prompt_key: promptKey.trim(),
-        name: promptName.trim(),
-        category: promptCategory,
-        status: 'draft',
-      })
-      toast.success('Prompt template created')
-      setShowCreateForm(false)
-      setPromptKey('')
-      setPromptName('')
-      await load()
-      await loadDetail(created.id)
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to create prompt')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleCreateVersion = async () => {
-    if (!selectedPromptId) return
-    setSaving(true)
-    try {
-      const validation = await agentControlApi.validatePromptPlaceholders(orgId, {
-        system_prompt: versionSystem || null,
-        user_prompt_template: versionUser || null,
-      })
-      if (validation.errors.length > 0) {
-        toast.error(validation.errors.join('; '))
-        return
-      }
-      await agentControlApi.createPromptVersion(orgId, selectedPromptId, {
-        system_prompt: versionSystem || null,
-        user_prompt_template: versionUser || null,
-        output_format: 'markdown',
-        variables_json: validation.placeholders,
-      })
-      toast.success('Version created')
-      setVersionSystem('')
-      setVersionUser('')
-      await loadDetail(selectedPromptId)
-      await load()
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to create version')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleSetCurrent = async (versionId: string) => {
-    if (!selectedPromptId) return
-    try {
-      await agentControlApi.setCurrentPromptVersion(orgId, selectedPromptId, versionId)
-      toast.success('Current version updated')
-      await loadDetail(selectedPromptId)
-      await load()
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to set current version')
-    }
-  }
-
-  const handleApplyPreset = async (presetKey: string) => {
-    setSaving(true)
-    try {
-      await agentControlApi.applyPromptPreset(orgId, presetKey)
-      toast.success('Prompt preset applied (inactive)')
-      await load()
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to apply preset')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleCreateAgentBinding = async () => {
-    if (!bindingAgentId || !bindingPromptId || !bindingKey.trim()) {
-      toast.error('Agent, prompt, and binding key are required')
-      return
-    }
-    setSaving(true)
-    try {
-      await agentControlApi.createAgentPromptBinding(orgId, bindingAgentId, {
-        prompt_template_id: bindingPromptId,
-        binding_key: bindingKey.trim(),
-      })
-      toast.success('Agent prompt binding created')
-      setBindingAgentId('')
-      setBindingPromptId('')
-      setBindingKey('default')
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to create binding')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  if (loading) {
+  if (panel.loading) {
     return (
       <Typography variant="small" tone="muted">
         Loading prompt registry…
@@ -197,38 +31,38 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
       <div className="grid gap-3 md:grid-cols-2">
         <Input
           label="Search prompts"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={panel.search}
+          onChange={(e) => panel.setSearch(e.target.value)}
           placeholder="Name or prompt_key"
         />
         {canManage ? (
           <div className="flex items-end">
-            <Button variant="outline" size="sm" onClick={() => setShowCreateForm((v) => !v)}>
-              {showCreateForm ? 'Cancel' : 'New prompt template'}
+            <Button variant="outline" size="sm" onClick={() => panel.setShowCreateForm((v) => !v)}>
+              {panel.showCreateForm ? 'Cancel' : 'New prompt template'}
             </Button>
           </div>
         ) : null}
       </div>
 
-      {showCreateForm && canManage ? (
+      {panel.showCreateForm && canManage ? (
         <div className="border-border space-y-3 rounded-md border p-4">
           <Input
             label="Prompt key"
-            value={promptKey}
-            onChange={(e) => setPromptKey(e.target.value)}
+            value={panel.promptKey}
+            onChange={(e) => panel.setPromptKey(e.target.value)}
           />
-          <Input label="Name" value={promptName} onChange={(e) => setPromptName(e.target.value)} />
+          <Input label="Name" value={panel.promptName} onChange={(e) => panel.setPromptName(e.target.value)} />
           <Select
             label="Category"
-            value={promptCategory}
-            onValueChange={(v: string) => setPromptCategory(v)}
-            options={(metadata?.categories ?? ['writing']).map((c) => ({ value: c, label: c }))}
+            value={panel.promptCategory}
+            onValueChange={(v: string) => panel.setPromptCategory(v)}
+            options={(panel.metadata?.categories ?? ['writing']).map((c) => ({ value: c, label: c }))}
           />
           <Button
             variant="primary"
             size="sm"
-            loading={saving}
-            onClick={() => void handleCreatePrompt()}
+            loading={panel.saving}
+            onClick={() => void panel.handleCreatePrompt()}
           >
             Create draft prompt
           </Button>
@@ -238,20 +72,20 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-2">
           <Typography variant="small" className="font-medium">
-            Prompt templates ({prompts.length})
+            Prompt templates ({panel.prompts.length})
           </Typography>
-          {prompts.length === 0 ? (
+          {panel.prompts.length === 0 ? (
             <Typography variant="small" tone="muted">
               No prompts yet. Apply a preset or create one.
             </Typography>
           ) : (
             <ul className="space-y-2">
-              {prompts.map((prompt) => (
+              {panel.prompts.map((prompt) => (
                 <li key={prompt.id} className="border-border rounded-md border p-3">
                   <button
                     type="button"
                     className="w-full text-left"
-                    onClick={() => void loadDetail(prompt.id)}
+                    onClick={() => void panel.loadDetail(prompt.id)}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <Typography variant="small" className="font-medium">
@@ -271,23 +105,7 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
                       variant="ghost"
                       size="sm"
                       className="mt-2"
-                      onClick={() =>
-                        void agentControlApi
-                          .archivePromptTemplate(orgId, prompt.id)
-                          .then(() => {
-                            toast.success('Prompt archived')
-                            if (selectedPromptId === prompt.id) {
-                              setSelectedPromptId(null)
-                              setPromptDetail(null)
-                            }
-                            void load()
-                          })
-                          .catch((err) =>
-                            toast.error(
-                              err instanceof ApiError ? err.message : 'Failed to archive prompt'
-                            )
-                          )
-                      }
+                      onClick={() => void panel.archivePrompt(prompt.id)}
                     >
                       Archive
                     </Button>
@@ -302,17 +120,18 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
           <Typography variant="small" className="font-medium">
             Prompt detail
           </Typography>
-          {!promptDetail ? (
+          {!panel.promptDetail ? (
             <Typography variant="small" tone="muted">
               Select a prompt to view versions and content.
             </Typography>
           ) : (
             <>
               <Typography variant="small" tone="muted">
-                {promptDetail.prompt_key} · current v{promptDetail.current_version_number ?? '—'}
+                {panel.promptDetail.prompt_key} · current v
+                {panel.promptDetail.current_version_number ?? '—'}
               </Typography>
               <ul className="space-y-2">
-                {promptDetail.versions.map((version) => (
+                {panel.promptDetail.versions.map((version) => (
                   <li key={version.id} className="border-border rounded border p-2 text-sm">
                     <div className="flex items-center justify-between">
                       <span>
@@ -320,11 +139,11 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
                         {version.version_label ? ` (${version.version_label})` : ''} ·{' '}
                         {version.output_format}
                       </span>
-                      {canManage && promptDetail.current_version_id !== version.id ? (
+                      {canManage && panel.promptDetail!.current_version_id !== version.id ? (
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => void handleSetCurrent(version.id)}
+                          onClick={() => void panel.handleSetCurrent(version.id)}
                         >
                           Set current
                         </Button>
@@ -345,19 +164,19 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
                   </Typography>
                   <Input
                     label="System prompt"
-                    value={versionSystem}
-                    onChange={(e) => setVersionSystem(e.target.value)}
+                    value={panel.versionSystem}
+                    onChange={(e) => panel.setVersionSystem(e.target.value)}
                   />
                   <Input
                     label="User prompt template"
-                    value={versionUser}
-                    onChange={(e) => setVersionUser(e.target.value)}
+                    value={panel.versionUser}
+                    onChange={(e) => panel.setVersionUser(e.target.value)}
                   />
                   <Button
                     variant="primary"
                     size="sm"
-                    loading={saving}
-                    onClick={() => void handleCreateVersion()}
+                    loading={panel.saving}
+                    onClick={() => void panel.handleCreateVersion()}
                   >
                     Create version
                   </Button>
@@ -375,8 +194,8 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
           </Typography>
           <Select
             label="Agent"
-            value={bindingAgentId}
-            onValueChange={(v: string) => setBindingAgentId(v)}
+            value={panel.bindingAgentId}
+            onValueChange={(v: string) => panel.setBindingAgentId(v)}
             options={[
               { value: '', label: 'Select agent' },
               ...agents.map((a) => ({ value: a.id, label: `${a.name} (${a.agent_key})` })),
@@ -384,38 +203,38 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
           />
           <Select
             label="Prompt template"
-            value={bindingPromptId}
-            onValueChange={(v: string) => setBindingPromptId(v)}
+            value={panel.bindingPromptId}
+            onValueChange={(v: string) => panel.setBindingPromptId(v)}
             options={[
               { value: '', label: 'Select prompt' },
-              ...prompts
+              ...panel.prompts
                 .filter((p) => p.status !== 'archived')
                 .map((p) => ({ value: p.id, label: `${p.name} (${p.prompt_key})` })),
             ]}
           />
           <Input
             label="Binding key"
-            value={bindingKey}
-            onChange={(e) => setBindingKey(e.target.value)}
+            value={panel.bindingKey}
+            onChange={(e) => panel.setBindingKey(e.target.value)}
           />
           <Button
             variant="outline"
             size="sm"
-            loading={saving}
-            onClick={() => void handleCreateAgentBinding()}
+            loading={panel.saving}
+            onClick={() => void panel.handleCreateAgentBinding()}
           >
             Create binding
           </Button>
         </div>
       ) : null}
 
-      {templateBindings.length > 0 ? (
+      {panel.templateBindings.length > 0 ? (
         <div className="space-y-2">
           <Typography variant="small" className="font-medium">
-            Template prompt bindings ({templateBindings.length})
+            Template prompt bindings ({panel.templateBindings.length})
           </Typography>
           <ul className="space-y-2">
-            {templateBindings.map((binding) => (
+            {panel.templateBindings.map((binding) => (
               <li key={binding.id} className="border-border rounded border p-2 text-sm">
                 {binding.binding_key} · template {binding.template_key ?? '—'} · deliverable{' '}
                 {binding.deliverable_type ?? '—'} · section {binding.section_type ?? '—'}
@@ -425,13 +244,13 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
         </div>
       ) : null}
 
-      {presets.length > 0 && canManage ? (
+      {panel.presets.length > 0 && canManage ? (
         <div className="space-y-2">
           <Typography variant="small" className="font-medium">
             Prompt presets (inactive by default)
           </Typography>
           <ul className="space-y-2">
-            {presets.map((preset) => (
+            {panel.presets.map((preset) => (
               <li
                 key={preset.preset_key}
                 className="border-border flex flex-wrap items-center justify-between gap-2 rounded border p-3"
@@ -447,8 +266,8 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
                 <Button
                   variant="outline"
                   size="sm"
-                  loading={saving}
-                  onClick={() => void handleApplyPreset(preset.preset_key)}
+                  loading={panel.saving}
+                  onClick={() => void panel.handleApplyPreset(preset.preset_key)}
                 >
                   Apply preset
                 </Button>

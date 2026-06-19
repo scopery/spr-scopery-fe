@@ -5,7 +5,7 @@ import {
   DOCUMENT_RELATION_OPTIONS,
   type DocumentRelationType,
 } from '@/modules/documents/document-links'
-import { getEvidenceDocumentTypeLabel } from '../api/evidence-documents.api'
+import { getEvidenceDocumentTypeLabel } from '../lib/evidence-document-labels'
 import { useBulkLinkEvidenceDocumentsDialog } from '../hooks/useBulkLinkEvidenceDocumentsDialog'
 import type { BulkLinkEvidenceDocumentsDialogProps } from '../model/evidence-documents'
 

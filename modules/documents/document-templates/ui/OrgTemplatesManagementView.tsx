@@ -32,7 +32,7 @@ import {
   canEditTemplate,
   canPublishTemplate,
   isPlatformAdmin,
-} from '@/utils/template-permissions'
+} from '@/modules/documents'
 import { ApiError } from '@/shared/lib/api-types'
 
 type ScopeTab = 'all' | 'system' | 'personal'

@@ -14,15 +14,25 @@
 
 import type { ProblemDetails } from '@/shared/lib/api-types'
 import { ApiError } from '@/shared/lib/api-types'
+import {
+  runErrorInterceptors,
+  runRequestInterceptors,
+  runResponseInterceptors,
+  type ApiRequestInit,
+} from '@/shared/lib/apiInterceptors'
+import { SCOPERY_SESSION_COOKIE } from '@/shared/lib/auth-cookies'
+import { trackGlobalLoading } from '@/shared/lib/globalLoading'
 import { isMockMode, MOCK_DELAY_MS } from './dataMode'
 import { resolveMock, MOCK_SESSION_COOKIE_VALUE } from '../../mocks'
+
+export type { ApiRequestInit } from '@/shared/lib/apiInterceptors'
 
 const LOGIN_PATH = '/auth/login'
 
 /** Paths that contain sensitive tokens — do not use as returnTo */
 const TOKEN_PATH_PREFIX = '/invites/'
 
-const SESSION_COOKIE_NAME = 'scopery_session'
+const SESSION_COOKIE_NAME = SCOPERY_SESSION_COOKIE
 /** 7 days in seconds */
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60
 
@@ -209,8 +219,6 @@ function parseProblemDetails(body: unknown, status: number): ProblemDetails {
   }
 }
 
-export type ApiRequestInit = RequestInit & { parseJson?: boolean; skipAuthRedirect?: boolean }
-
 /**
  * Client-side: rewrite external BE URLs to /api/proxy/* so the Next.js BFF
  * can inject the HttpOnly scopery_token as an Authorization header.
@@ -227,80 +235,91 @@ function toProxyUrl(url: string): string {
 }
 
 async function request<T>(url: string, options: ApiRequestInit = {}): Promise<T> {
-  const { parseJson = true, skipAuthRedirect, ...init } = options
+  const ctx = await runRequestInterceptors({ url, init: options })
+  const {
+    parseJson = true,
+    skipAuthRedirect,
+    skipGlobalLoading,
+    ...init
+  } = ctx.init
 
-  // ── Mock mode intercept ─────────────────────────────────────────────────
-  if (isMockMode) {
-    const method = (init.method ?? 'GET').toUpperCase()
-    let body: unknown
-    try {
-      body = init.body ? JSON.parse(init.body as string) : undefined
-    } catch {
-      body = undefined
-    }
-    const mockResult = resolveMock(url, method, body)
-    if (mockResult !== undefined) {
-      // Simulate realistic network latency
+  const endLoading = trackGlobalLoading(!skipGlobalLoading)
+
+  try {
+    // ── Mock mode intercept ─────────────────────────────────────────────────
+    if (isMockMode) {
+      const method = (init.method ?? 'GET').toUpperCase()
+      let body: unknown
+      try {
+        body = init.body ? JSON.parse(init.body as string) : undefined
+      } catch {
+        body = undefined
+      }
+      const mockResult = resolveMock(ctx.url, method, body)
+      if (mockResult !== undefined) {
+        await new Promise<void>((resolve) => setTimeout(resolve, MOCK_DELAY_MS))
+        if (!parseJson) return undefined as T
+        return runResponseInterceptors(ctx, mockResult as T)
+      }
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(`[mock] No mock registered for ${method} ${ctx.url}`)
+      }
       await new Promise<void>((resolve) => setTimeout(resolve, MOCK_DELAY_MS))
-      if (!parseJson) return undefined as T
-      return mockResult as T
+      return undefined as T
     }
-    // For unmatched routes in mock mode, log a warning and return empty/null
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn(`[mock] No mock registered for ${method} ${url}`)
+    // ── End mock mode intercept ─────────────────────────────────────────────
+
+    const proxyUrl = toProxyUrl(ctx.url)
+    const isProxied = proxyUrl !== ctx.url
+
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...(init.headers as Record<string, string>),
     }
-    await new Promise<void>((resolve) => setTimeout(resolve, MOCK_DELAY_MS))
-    return undefined as T
-  }
-  // ── End mock mode intercept ─────────────────────────────────────────────
-
-  const proxyUrl = toProxyUrl(url)
-  const isProxied = proxyUrl !== url
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(init.headers as Record<string, string>),
-  }
-  // Authorization is added by the proxy on proxied requests.
-  // For direct calls (SSR / non-API URLs), fall back to cookie token.
-  if (!isProxied) {
-    const token = getAccessToken()
-    if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
-  }
-
-  const res = await fetch(proxyUrl, { ...init, headers })
-
-  if (!res.ok) {
-    const contentType = res.headers.get('content-type') ?? ''
-    const isProblemJson = contentType.includes('application/problem+json')
-    let body: unknown
-    try {
-      const text = await res.text()
-      body = text ? JSON.parse(text) : {}
-    } catch {
-      body = {}
+    if (!isProxied) {
+      const token = getAccessToken()
+      if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
     }
-    const problem = parseProblemDetails(isProblemJson ? body : {}, res.status)
-    const err = new ApiError(res.status, problem)
-    if (err.isAuthError && typeof window !== 'undefined' && !skipAuthRedirect) {
-      clearSessionStorage()
-      const path = window.location.pathname || ''
-      const returnTo =
-        path && !path.startsWith(TOKEN_PATH_PREFIX)
-          ? `${LOGIN_PATH}?returnTo=${encodeURIComponent(path)}`
-          : LOGIN_PATH
-      window.location.href = returnTo
+
+    const res = await fetch(proxyUrl, { ...init, headers })
+
+    if (!res.ok) {
+      const contentType = res.headers.get('content-type') ?? ''
+      const isProblemJson = contentType.includes('application/problem+json')
+      let body: unknown
+      try {
+        const text = await res.text()
+        body = text ? JSON.parse(text) : {}
+      } catch {
+        body = {}
+      }
+      const problem = parseProblemDetails(isProblemJson ? body : {}, res.status)
+      const err = new ApiError(res.status, problem)
+      if (err.isAuthError && typeof window !== 'undefined' && !skipAuthRedirect) {
+        clearSessionStorage()
+        const path = window.location.pathname || ''
+        const returnTo =
+          path && !path.startsWith(TOKEN_PATH_PREFIX)
+            ? `${LOGIN_PATH}?returnTo=${encodeURIComponent(path)}`
+            : LOGIN_PATH
+        window.location.href = returnTo
+      }
+      throw err
     }
-    throw err
-  }
 
-  if (!parseJson) {
-    return undefined as T
-  }
+    if (!parseJson) {
+      return undefined as T
+    }
 
-  const text = await res.text()
-  if (!text) return undefined as T
-  return JSON.parse(text) as T
+    const text = await res.text()
+    if (!text) return undefined as T
+    const data = JSON.parse(text) as T
+    return runResponseInterceptors(ctx, data)
+  } catch (error) {
+    throw await runErrorInterceptors(ctx, error)
+  } finally {
+    endLoading()
+  }
 }
 
 /** Base URL for v2 API (no trailing slash). Prefers NEXT_PUBLIC_API_URL, then NEXT_PUBLIC_API_BASE_URL. */

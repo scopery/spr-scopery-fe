@@ -1,6 +1,7 @@
 export { GovernancePolicyDetailView } from './ui/GovernancePolicyDetailView'
 export { GovernanceListView } from './ui/GovernanceListView'
 export { useGovernancePolicy } from './hooks/useGovernancePolicy'
+export { useGovernanceConditionJsonEditor } from './hooks/useGovernanceConditionJsonEditor'
 export { GovernanceStatusBanner } from './ui/GovernanceStatusBanner'
 export { GovernanceConditionBuilder } from './ui/GovernanceConditionBuilder'
 export { GovernanceConditionJsonEditor } from './ui/GovernanceConditionJsonEditor'

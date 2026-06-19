@@ -1,17 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { Modal, Typography, Button } from '@/shared/ui'
 import { DocumentReadOnlyRenderer } from '@/modules/documents/document/ui/editor/DocumentReadOnlyRenderer'
-import * as documentTemplatesApi from '../api/document-templates.api'
-import type { DocumentTemplate, TemplateVariablePreview } from '../model/document-templates'
+import type { DocumentTemplate } from '../model/document-templates'
 import { DocumentTypeBadge } from '@/modules/documents/document/ui/DocumentTypeBadge'
 import { TemplateCategoryBadge } from './TemplateCategoryBadge'
 import { TemplateScopeBadge } from './TemplateScopeBadge'
 import { TemplateStatusBadge } from './TemplateStatusBadge'
 import { TemplateVariableWarnings } from './TemplateVariableWarnings'
-
-type PreviewMode = 'raw' | 'resolved'
+import { useTemplatePreviewDialog } from '../hooks/useTemplatePreviewDialog'
 
 export interface TemplatePreviewDialogProps {
   template: DocumentTemplate | null
@@ -28,43 +25,9 @@ export function TemplatePreviewDialog({
   orgId,
   projectId,
 }: TemplatePreviewDialogProps) {
-  const [previewMode, setPreviewMode] = useState<PreviewMode>('raw')
-  const [resolvedPreview, setResolvedPreview] = useState<TemplateVariablePreview | null>(null)
-  const [loadingResolved, setLoadingResolved] = useState(false)
-
-  useEffect(() => {
-    if (!open) {
-      setPreviewMode('raw')
-      setResolvedPreview(null)
-    }
-  }, [open])
-
-  useEffect(() => {
-    if (!open || !template || !orgId || previewMode !== 'resolved') {
-      return
-    }
-
-    setLoadingResolved(true)
-    void documentTemplatesApi
-      .previewTemplateVariables(orgId, template.id, {
-        project_id: projectId,
-        document_title: template.title,
-        mode: 'preview',
-      })
-      .then(setResolvedPreview)
-      .catch(() => setResolvedPreview(null))
-      .finally(() => setLoadingResolved(false))
-  }, [open, template, orgId, projectId, previewMode])
+  const preview = useTemplatePreviewDialog({ template, open, orgId, projectId })
 
   if (!template) return null
-
-  const previewContent =
-    previewMode === 'resolved' && resolvedPreview
-      ? resolvedPreview.resolved_content
-      : template.content
-
-  const previewTitle =
-    previewMode === 'resolved' && resolvedPreview ? resolvedPreview.resolved_title : template.title
 
   return (
     <Modal
@@ -84,17 +47,17 @@ export function TemplatePreviewDialog({
             <Button
               type="button"
               size="sm"
-              variant={previewMode === 'raw' ? 'primary' : 'outline'}
-              onClick={() => setPreviewMode('raw')}
+              variant={preview.previewMode === 'raw' ? 'primary' : 'outline'}
+              onClick={() => preview.setPreviewMode('raw')}
             >
               Raw template
             </Button>
             <Button
               type="button"
               size="sm"
-              variant={previewMode === 'resolved' ? 'primary' : 'outline'}
-              onClick={() => setPreviewMode('resolved')}
-              loading={loadingResolved}
+              variant={preview.previewMode === 'resolved' ? 'primary' : 'outline'}
+              onClick={() => preview.setPreviewMode('resolved')}
+              loading={preview.loadingResolved}
             >
               Resolved preview
             </Button>
@@ -109,7 +72,7 @@ export function TemplatePreviewDialog({
         </div>
 
         <div>
-          <Typography weight="semibold">{previewTitle}</Typography>
+          <Typography weight="semibold">{preview.previewTitle}</Typography>
           {template.description && (
             <Typography variant="small" tone="muted" className="mt-1">
               {template.description}
@@ -117,15 +80,15 @@ export function TemplatePreviewDialog({
           )}
         </div>
 
-        {previewMode === 'resolved' && resolvedPreview && (
+        {preview.previewMode === 'resolved' && preview.resolvedPreview && (
           <TemplateVariableWarnings
-            unknownVariables={resolvedPreview.unresolved_variables}
-            warnings={resolvedPreview.warnings}
+            unknownVariables={preview.resolvedPreview.unresolved_variables}
+            warnings={preview.resolvedPreview.warnings}
           />
         )}
 
         <div className="overflow-hidden rounded-lg border border-neutral-200">
-          <DocumentReadOnlyRenderer content={previewContent} />
+          <DocumentReadOnlyRenderer content={preview.previewContent} />
         </div>
       </div>
     </Modal>

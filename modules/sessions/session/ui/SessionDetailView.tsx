@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { CloudCheck, AlertCircle, CircleArrowOutUpLeft } from 'lucide-react'
 import {
@@ -15,23 +15,20 @@ import {
   Divider,
 } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import * as sessionsApi from '@/modules/sessions/session/api/sessions.api'
-import * as aiClarityApi from '@/modules/sessions/clarity/api/ai-clarity.api'
 import { useSessionDetail } from '../hooks/useSessionDetail'
-import { SESSION_STATUS_LABEL, type AnswerItem } from '../model/session'
-import type { ClarityAssessment, ClaritySummary } from '@/modules/sessions/clarity'
+import { useSessionAnswerSave } from '../hooks/useSessionAnswerSave'
+import { useSessionClarity } from '@/modules/sessions/clarity'
+import { SESSION_STATUS_LABEL } from '../model/session'
 import { useProject, type ProjectQuestion, ProjectStepIndicator } from '@/modules/projects'
 import {
   canEditProject,
   isOrgReadonly,
   resolveProjectRole,
   buildDocumentSpacePermissions,
-} from '@/utils/permissions'
-import { ApiError, getProblemCode } from '@/shared/lib/api-types'
+} from '@/modules/permissions'
 import { useOrg } from '@/modules/org'
 import { useEffectivePermissions } from '@/modules/permissions'
 import { FEATURES } from '@/config/features'
-import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { toAnswerText } from '@/utils/answerText'
 import { toast } from 'sonner'
 import { cn } from '@/utils/cn'
@@ -43,322 +40,12 @@ import { ClarityDetailsModal } from '@/modules/sessions/clarity/ui/ClarityDetail
 import { Lock, Sparkles, ClipboardCheck, Download } from 'lucide-react'
 import Image from 'next/image'
 import * as XLSX from 'xlsx'
-import { EntityEvidenceDocumentsPanel, AnswerEvidenceStrip } from '@/modules/documents'
-
-type AnswerStatus = 'answered' | 'skipped' | 'na'
-
-/** Compare answer values so we don't overwrite user input with stale save response. */
-function answerValuesEqual(local: unknown, server: unknown): boolean {
-  if (local === server) return true
-  if (local == null && server == null) return true
-  if (local == null || server == null) return false
-  const toStr = (v: unknown): string => {
-    if (typeof v === 'string') return v
-    if (v !== null && typeof v === 'object' && 'text' in v)
-      return String((v as { text?: unknown }).text ?? '')
-    try {
-      return JSON.stringify(v)
-    } catch {
-      return String(v)
-    }
-  }
-  return toStr(local) === toStr(server)
-}
-
-/** Display order of sections (same as admin template — not alphabetical). */
-const SECTION_ORDER = ['overview', 'scope', 'risks', 'timeline', 'assumptions', 'general']
-
-function sectionSortIndex(section: string): number {
-  const i = SECTION_ORDER.indexOf(section || 'general')
-  return i >= 0 ? i : SECTION_ORDER.length
-}
-
-/** Default value shape per q_type when switching back to "Answered" so we never send empty by mistake */
-function getDefaultValueForType(qType: string): unknown {
-  switch (qType) {
-    case 'text':
-    case 'textarea':
-      return { text: '' }
-    case 'number':
-      return { number: undefined }
-    case 'boolean':
-      return { boolean: false }
-    case 'date':
-      return { date: '' }
-    case 'select':
-    case 'single_select':
-      return ''
-    default:
-      return {}
-  }
-}
-
-function QuestionItem({
-  q,
-  answer,
-  onChange,
-  readonly,
-  onAiImprove,
-  showAiButton,
-  questionOrder: _questionOrder,
-  clarityAssessment,
-  onAssessClarity,
-  assessClarityLoading,
-  onOpenClarityModal,
-  showAssessClarityButton,
-  clarityFeatureDisabled,
-  orgId,
-  projectId,
-  sessionId,
-  linkPermissions,
-}: {
-  q: ProjectQuestion
-  answer: AnswerItem | undefined
-  onChange: (status: AnswerStatus, value: unknown, skipReason?: string) => void
-  readonly: boolean
-  onAiImprove?: (q: ProjectQuestion) => void
-  showAiButton?: boolean
-  questionOrder?: number
-  clarityAssessment?: ClarityAssessment | null
-  onAssessClarity?: () => void
-  assessClarityLoading?: boolean
-  onOpenClarityModal?: () => void
-  showAssessClarityButton?: boolean
-  clarityFeatureDisabled?: boolean
-  orgId?: string
-  projectId?: string
-  sessionId?: string
-  linkPermissions?: {
-    canView: boolean
-    canCreate: boolean
-    canRemove: boolean
-    canRestoreDocument?: boolean
-    canExport?: boolean
-  }
-}) {
-  const status = (answer?.answer_status ?? 'answered') as AnswerStatus
-  const value = answer?.value
-  const skipReason = answer?.skip_reason ?? ''
-  const isAnswered = status === 'answered'
-  // Preserve last typed value when user toggles Skipped/N/A then back to Answered (otherwise we'd send value: null → empty)
-  const lastAnsweredValueRef = useRef<unknown>(null)
-
-  const handleStatusChange = (s: AnswerStatus) => {
-    if (readonly) return
-    if (s === 'skipped' || s === 'na') {
-      onChange(s, null, '')
-    } else {
-      // When switching back to "Answered", use current value or last typed value so we don't send empty
-      const valueToUse = value ?? lastAnsweredValueRef.current ?? getDefaultValueForType(q.q_type)
-      onChange('answered', valueToUse, undefined)
-    }
-  }
-
-  const handleValueChange = (v: unknown) => {
-    if (readonly) return
-    lastAnsweredValueRef.current = v
-    onChange('answered', v, undefined)
-  }
-
-  const renderInput = () => {
-    if (status === 'skipped' || status === 'na') return null
-    const disabled = readonly
-    switch (q.q_type) {
-      case 'text':
-        return (
-          <Input
-            value={(value as { text?: string })?.text ?? (typeof value === 'string' ? value : '')}
-            onChange={(e) => handleValueChange({ text: e.target.value })}
-            placeholder="Your answer"
-            fullWidth
-            disabled={disabled}
-          />
-        )
-      case 'textarea':
-        return (
-          <Textarea
-            value={(value as { text?: string })?.text ?? (typeof value === 'string' ? value : '')}
-            onChange={(e) => handleValueChange({ text: e.target.value })}
-            placeholder="Your answer"
-            fullWidth
-            disabled={disabled}
-            className="border-none"
-          />
-        )
-      case 'number':
-        return (
-          <Input
-            type="number"
-            value={
-              (value as { number?: number })?.number ?? (typeof value === 'number' ? value : '')
-            }
-            onChange={(e) => handleValueChange({ number: e.target.valueAsNumber || undefined })}
-            placeholder="Number"
-            fullWidth
-            disabled={disabled}
-          />
-        )
-      case 'boolean':
-        return (
-          <Switch
-            checked={!!(value as { boolean?: boolean })?.boolean || value === true}
-            onChange={(e) => handleValueChange({ boolean: e.target.checked })}
-            disabled={disabled}
-          />
-        )
-      case 'date':
-        return (
-          <Input
-            type="date"
-            value={(value as { date?: string })?.date ?? (typeof value === 'string' ? value : '')}
-            onChange={(e) => handleValueChange({ date: e.target.value })}
-            fullWidth
-            disabled={disabled}
-          />
-        )
-      case 'select':
-      case 'single_select': {
-        const schema = (q.answer_schema || {}) as {
-          enum?: string[]
-          options?: Array<{ value: string; label?: string }>
-        }
-        const options =
-          schema.options?.map((o) => ({ value: o.value, label: o.label ?? o.value })) ??
-          schema.enum?.map((v) => ({ value: v, label: v })) ??
-          []
-        const selectValue =
-          typeof value === 'string' ? value : ((value as { select?: string })?.select ?? '')
-        return (
-          <Select
-            options={options}
-            value={selectValue || undefined}
-            placeholder="Select an option"
-            disabled={disabled}
-            onValueChange={(v: string) => handleValueChange(v)}
-            className="w-full"
-          />
-        )
-      }
-      default:
-        return (
-          <Textarea
-            value={typeof value === 'object' ? JSON.stringify(value) : String(value ?? '')}
-            onChange={(e) => {
-              try {
-                const parsed = e.target.value ? JSON.parse(e.target.value) : null
-                handleValueChange(parsed)
-              } catch {
-                // invalid json, keep as-is
-              }
-            }}
-            placeholder="JSON"
-            fullWidth
-            disabled={disabled}
-          />
-        )
-    }
-  }
-
-  return (
-    <div className="bg-white">
-      <div className="mb-3 flex items-start justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-2">
-          {q.required && (
-            <Badge variant="solid" tone="warning" size="sm" className="shrink-0">
-              Required
-            </Badge>
-          )}
-          <Typography weight="semibold">{q.prompt}</Typography>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-          {FEATURES.aiClarityAssessment &&
-            showAssessClarityButton &&
-            onAssessClarity != null &&
-            !clarityFeatureDisabled && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onAssessClarity}
-                loading={assessClarityLoading}
-                disabled={!isAnswered}
-                className="gap-1"
-                title={!isAnswered ? 'Answer required to assess' : undefined}
-                aria-label={!isAnswered ? 'Answer required to assess' : 'Assess clarity'}
-              >
-                <ClipboardCheck size={14} />
-                Assess clarity
-              </Button>
-            )}
-          {FEATURES.aiClarityAssessment && clarityAssessment && (
-            <ClarityBadge
-              label={clarityAssessment.clarity_label}
-              score={clarityAssessment.clarity_score}
-              onClick={onOpenClarityModal}
-            />
-          )}
-          {FEATURES.aiImproveAnswer && showAiButton && onAiImprove && (
-            <Button variant="ghost" size="sm" onClick={() => onAiImprove(q)} className="gap-1">
-              <Sparkles size={14} />
-              AI Improve
-            </Button>
-          )}
-        </div>
-      </div>
-      {q.help_text && (
-        <Typography variant="small" tone="muted" className="mb-1">
-          {q.help_text}
-        </Typography>
-      )}
-      {clarityAssessment && clarityAssessment.ambiguity_tags.length > 0 && (
-        <Typography variant="small" tone="muted" className="mb-3">
-          {clarityAssessment.ambiguity_tags[0]}
-        </Typography>
-      )}
-      <div className="mb-3 flex gap-2">
-        {(['answered', 'skipped', 'na'] as const).map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => handleStatusChange(s)}
-            disabled={readonly}
-            className={cn(
-              'px-3 py-1.5 text-sm',
-              status === s
-                ? 'bg-primary text-white'
-                : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-            )}
-          >
-            {{ answered: 'Answered', skipped: 'Skipped', na: 'N/A' }[s]}
-          </button>
-        ))}
-      </div>
-      {(status === 'skipped' || status === 'na') && (
-        <Input
-          label="Reason (optional)"
-          value={skipReason}
-          onChange={(e) => onChange(status, null, e.target.value)}
-          placeholder="Why skipped?"
-          fullWidth
-          disabled={readonly}
-        />
-      )}
-      <Divider />
-      {renderInput()}
-      {orgId && projectId && sessionId && linkPermissions && (
-        <AnswerEvidenceStrip
-          orgId={orgId}
-          projectId={projectId}
-          sessionId={sessionId}
-          questionId={q.id}
-          canView={linkPermissions.canView}
-          canCreateLink={linkPermissions.canCreate}
-          canRemoveLink={linkPermissions.canRemove}
-          canRestoreDocument={linkPermissions.canRestoreDocument}
-        />
-      )}
-    </div>
-  )
-}
+import { EntityEvidenceDocumentsPanel } from '@/modules/documents'
+import {
+  SECTION_ORDER,
+  sectionSortIndex,
+} from '../lib/session-answer-utils'
+import { SessionQuestionItem } from './SessionQuestionItem'
 
 export type SessionDetailViewProps = {
   orgId: string
@@ -379,42 +66,48 @@ export function SessionDetailView({ orgId, projectId, sessionId }: SessionDetail
     refetch: refetchSession,
     refetchProgress,
   } = useSessionDetail(orgId, projectId, sessionId)
-  const [saving, setSaving] = useState(false)
-  const [lockLoading, setLockLoading] = useState(false)
-  const [reopenLoading, setReopenLoading] = useState(false)
-  const [pendingSave, setPendingSave] = useState(false)
-  const [lastSaveSuccess, setLastSaveSuccess] = useState(false)
-  const [sessionLockedFrom409, setSessionLockedFrom409] = useState(false)
   const [aiImproveQuestion, setAiImproveQuestion] = useState<ProjectQuestion | null>(null)
   const [aiImproveAllOpen, setAiImproveAllOpen] = useState(false)
   const [rightPanelTab, setRightPanelTab] = useState<
     'progress' | 'outline' | 'clarity' | 'evidence'
   >('progress')
-  const [claritySummary, setClaritySummary] = useState<ClaritySummary | null>(null)
-  const [claritySummaryLoading, setClaritySummaryLoading] = useState(false)
-  const [claritySummaryError, setClaritySummaryError] = useState(false)
-  const [assessmentsByOrder, setAssessmentsByOrder] = useState<Record<number, ClarityAssessment>>(
-    {}
-  )
-  const [loadingByOrder, setLoadingByOrder] = useState<Record<number, boolean>>({})
-  const [featureDisabled, setFeatureDisabled] = useState(false)
-  const [clarityModalOrder, setClarityModalOrder] = useState<number | null>(null)
-  const [bulkAssessLoading, setBulkAssessLoading] = useState(false)
-  const bulkAssessAbortRef = useRef(false)
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const saveIdRef = useRef(0)
-  const answersRef = useRef(answers)
-  answersRef.current = answers
 
   const projectRole = resolveProjectRole(project?.my_role)
   const editable = project ? canEditProject(projectRole) : false
   const orgReadonly = org ? isOrgReadonly(org.my_role) : false
   const isOrgOwner = org?.my_role === 'owner'
-  const canSave = editable && session?.status === 'in_progress' && !sessionLockedFrom409
+  const canSaveBase = editable && session?.status === 'in_progress'
   const canLock = editable && (session?.status === 'in_progress' || session?.status === 'submitted')
   const canReopen = isOrgOwner && (session?.status === 'submitted' || session?.status === 'locked')
-  const readonly = !canSave
   const canAssessClarity = editable && !orgReadonly
+
+  const {
+    saving,
+    lockLoading,
+    reopenLoading,
+    pendingSave,
+    lastSaveSuccess,
+    canSave,
+    handleAnswerChange,
+    handleSave,
+    handleLock,
+    handleReopen,
+    markSessionLocked,
+  } = useSessionAnswerSave({
+    orgId,
+    projectId,
+    sessionId,
+    session,
+    canSaveBase: !!canSaveBase,
+    canLock: !!canLock,
+    canReopen: !!canReopen,
+    answers,
+    setAnswers,
+    refetchSession,
+    refetchProgress,
+  })
+
+  const readonly = !canSave
 
   const linkPerms = useMemo(() => {
     const fallback = canEditProject(projectRole)
@@ -486,187 +179,29 @@ export function SessionDetailView({ orgId, projectId, sessionId }: SessionDetail
     return order.filter((k) => bySection[k]?.length).map((k) => [k, bySection[k]])
   }, [questionsBySection])
 
-  const loadClaritySummary = useCallback(() => {
-    if (!FEATURES.aiClarityAssessment) return
-    if (!orgId || !projectId || !sessionId) return
-    setClaritySummaryLoading(true)
-    setClaritySummaryError(false)
-    aiClarityApi
-      .getClaritySummary(orgId, projectId, sessionId)
-      .then(setClaritySummary)
-      .catch(() => setClaritySummaryError(true))
-      .finally(() => setClaritySummaryLoading(false))
-  }, [orgId, projectId, sessionId])
-
-  useEffect(() => {
-    if (session?.id && FEATURES.aiClarityAssessment) loadClaritySummary()
-  }, [session?.id, loadClaritySummary])
-
-  useEffect(() => {
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    }
-  }, [])
-
-  const saveAnswers = useCallback(
-    async (
-      newAnswers: Array<{
-        question_id: string
-        answer_status: AnswerStatus
-        value: unknown
-        skip_reason?: string | null
-      }>
-    ) => {
-      if (!canSave || newAnswers.length === 0) return
-      saveIdRef.current += 1
-      const thisSaveId = saveIdRef.current
-      setSaving(true)
-      try {
-        // API expects value as plain string for text/textarea (validation: "must be string"), not { text: "..." }
-        const serializeValueForApi = (a: (typeof newAnswers)[0]): unknown => {
-          const question = session?.questions?.find((q) => q.id === a.question_id)
-          if (question && (question.q_type === 'text' || question.q_type === 'textarea')) {
-            if (typeof a.value === 'string') return a.value
-            if (a.value !== null && typeof a.value === 'object' && 'text' in a.value)
-              return (a.value as { text?: string }).text ?? ''
-            return ''
-          }
-          return a.value
-        }
-        const res = await sessionsApi.putAnswers(orgId, projectId, sessionId, {
-          answers: newAnswers.map((a) => ({
-            question_id: a.question_id,
-            answer_status: a.answer_status,
-            value: serializeValueForApi(a),
-            skip_reason: a.skip_reason ?? null,
-          })),
-        })
-        if (thisSaveId !== saveIdRef.current) return
-        setAnswers((prev) => {
-          const next = { ...prev }
-          res.answers.forEach((a) => {
-            const existing = prev[a.question_id]
-            if (!existing) {
-              next[a.question_id] = a
-              return
-            }
-            // If user kept typing after we sent save, server returns older value — don't overwrite local
-            if (answerValuesEqual(existing.value, a.value)) {
-              next[a.question_id] = a
-            } else {
-              next[a.question_id] = { ...a, value: existing.value }
-            }
-          })
-          return next
-        })
-        setLastSaveSuccess(true)
-        refetchProgress()
-      } catch (err) {
-        if (thisSaveId !== saveIdRef.current) return
-        if (
-          err instanceof ApiError &&
-          (getProblemCode(err) === 'SESSION_LOCKED' || err.problem.type?.includes('session-locked'))
-        ) {
-          setSessionLockedFrom409(true)
-          toast.error('Session locked')
-          refetchSession()
-        } else {
-          toast.error('Failed to save')
-        }
-        setLastSaveSuccess(false)
-      } finally {
-        if (thisSaveId === saveIdRef.current) {
-          setSaving(false)
-          setPendingSave(false)
-        }
-      }
-    },
-    [orgId, projectId, sessionId, canSave, session?.questions, refetchSession, refetchProgress]
-  )
-
-  const handleAnswerChange = useCallback(
-    (questionId: string, status: AnswerStatus, value: unknown, skipReason?: string) => {
-      const newAnswer = {
-        question_id: questionId,
-        answer_status: status,
-        value,
-        skip_reason: status === 'skipped' || status === 'na' ? (skipReason ?? null) : null,
-      }
-      setAnswers((prev) => ({
-        ...prev,
-        [questionId]: {
-          ...prev[questionId],
-          ...newAnswer,
-          answered_by: '',
-          answered_at: new Date().toISOString(),
-        } as AnswerItem,
-      }))
-      setPendingSave(true)
-      setLastSaveSuccess(false)
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-      saveTimerRef.current = setTimeout(() => {
-        // Use current state at save time so we never send stale/empty value (e.g. closure had old value)
-        const current = answersRef.current[questionId]
-        const toSave = current
-          ? {
-              question_id: current.question_id,
-              answer_status: current.answer_status as AnswerStatus,
-              value: current.value,
-              skip_reason: current.skip_reason ?? null,
-            }
-          : newAnswer
-        saveAnswers([toSave])
-        saveTimerRef.current = null
-        setPendingSave(false)
-      }, 3000)
-    },
-    [saveAnswers]
-  )
-
-  const cancelPendingAutosave = useCallback(() => {
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current)
-      saveTimerRef.current = null
-    }
-    setPendingSave(false)
-  }, [])
-
-  const handleAssessClarity = useCallback(
-    async (order: number, q: ProjectQuestion, answer: AnswerItem | undefined) => {
-      if (!orgId || !projectId || !sessionId || featureDisabled) return
-      const answerText = toAnswerText(
-        q.q_type,
-        answer?.value,
-        q.answer_schema as Record<string, unknown>
-      )
-      setLoadingByOrder((prev) => ({ ...prev, [order]: true }))
-      try {
-        const res = await aiClarityApi.assessOne(orgId, projectId, sessionId, {
-          question_order: order,
-          section: q.section || 'general',
-          question_text: q.prompt,
-          answer_text: answerText,
-          q_type: q.q_type || null,
-          required: !!q.required,
-        })
-        setAssessmentsByOrder((prev) => ({ ...prev, [res.question_order]: res.assessment }))
-        loadClaritySummary()
-      } catch (err) {
-        const code = getProblemCode(err)
-        if (err instanceof ApiError && err.status === 409 && code === 'AI_FEATURE_DISABLED') {
-          setFeatureDisabled(true)
-          toast.error(getProblemToastMessage(err))
-        } else if (err instanceof ApiError && err.status === 403) {
-          toast.error(getProblemToastMessage(err))
-        } else {
-          toast.error(getProblemToastMessage(err))
-        }
-      } finally {
-        setLoadingByOrder((prev) => ({ ...prev, [order]: false }))
-      }
-    },
-    [orgId, projectId, sessionId, featureDisabled, loadClaritySummary]
-  )
+  const {
+    claritySummary,
+    claritySummaryLoading,
+    claritySummaryError,
+    assessmentsByOrder,
+    loadingByOrder,
+    featureDisabled,
+    clarityModalOrder,
+    setClarityModalOrder,
+    bulkAssessLoading,
+    loadClaritySummary,
+    handleAssessClarity,
+    handleBulkAssess,
+  } = useSessionClarity({
+    orgId,
+    projectId,
+    sessionId,
+    sessionIdReady: !!session?.id,
+    canAssessClarity,
+    orderedQuestions,
+    questionOrderMap,
+    answers,
+  })
 
   const scrollToQuestion = useCallback((order: number) => {
     const el = document.getElementById(`question-order-${order}`)
@@ -706,125 +241,6 @@ export function SessionDetailView({ orgId, projectId, sessionId }: SessionDetail
     XLSX.writeFile(wb, `${safeName}-questions.xlsx`)
     toast.success('Export downloaded')
   }, [orderedQuestions, questionOrderMap, answers, session?.name])
-
-  const handleBulkAssess = useCallback(() => {
-    if (
-      !session?.questions ||
-      !orgId ||
-      !projectId ||
-      !sessionId ||
-      featureDisabled ||
-      !canAssessClarity
-    )
-      return
-    const toAssess = orderedQuestions.filter((q) => {
-      const order = questionOrderMap[q.id]
-      if (!order || !q.required) return false
-      const ans = answers[q.id]
-      if (ans?.answer_status !== 'answered') return false
-      if (assessmentsByOrder[order]) return false
-      return true
-    })
-    if (toAssess.length === 0) {
-      toast.info('No missing required answers to assess.')
-      return
-    }
-    bulkAssessAbortRef.current = false
-    setBulkAssessLoading(true)
-    let done = 0
-    const run = async () => {
-      for (const q of toAssess) {
-        if (bulkAssessAbortRef.current) break
-        const order = questionOrderMap[q.id]!
-        const ans = answers[q.id]
-        try {
-          const res = await aiClarityApi.assessOne(orgId, projectId, sessionId, {
-            question_order: order,
-            section: q.section || 'general',
-            question_text: q.prompt,
-            answer_text: toAnswerText(
-              q.q_type,
-              ans?.value,
-              q.answer_schema as Record<string, unknown>
-            ),
-            q_type: q.q_type || null,
-            required: !!q.required,
-          })
-          setAssessmentsByOrder((prev) => ({ ...prev, [res.question_order]: res.assessment }))
-        } catch (err) {
-          const code = getProblemCode(err)
-          if (err instanceof ApiError && err.status === 409 && code === 'AI_FEATURE_DISABLED') {
-            setFeatureDisabled(true)
-            toast.error(getProblemToastMessage(err))
-            break
-          }
-          toast.error(getProblemToastMessage(err))
-        }
-        done += 1
-      }
-      setBulkAssessLoading(false)
-      if (done > 0) loadClaritySummary()
-    }
-    run()
-  }, [
-    session?.questions,
-    orgId,
-    projectId,
-    sessionId,
-    featureDisabled,
-    canAssessClarity,
-    orderedQuestions,
-    questionOrderMap,
-    answers,
-    assessmentsByOrder,
-    loadClaritySummary,
-  ])
-
-  const handleSave = useCallback(() => {
-    cancelPendingAutosave()
-    const toSave = Object.values(answersRef.current).map((a) => ({
-      question_id: a.question_id,
-      answer_status: a.answer_status as AnswerStatus,
-      value: a.value,
-      skip_reason: a.skip_reason ?? null,
-    }))
-    if (toSave.length > 0) saveAnswers(toSave)
-    else toast.info('No answers to save')
-  }, [saveAnswers])
-
-  const handleLock = async () => {
-    if (!canLock) return
-    cancelPendingAutosave()
-    setLockLoading(true)
-    try {
-      await sessionsApi.lockSession(orgId, projectId, sessionId)
-      toast.success('Session locked')
-      setSessionLockedFrom409(false)
-      void refetchSession()
-      void refetchProgress()
-    } catch {
-      toast.error('Failed to lock session')
-    } finally {
-      setLockLoading(false)
-    }
-  }
-
-  const handleReopen = async () => {
-    if (!canReopen) return
-    cancelPendingAutosave()
-    setSessionLockedFrom409(false)
-    setReopenLoading(true)
-    try {
-      await sessionsApi.reopenSession(orgId, projectId, sessionId)
-      toast.success('Session reopened')
-      void refetchSession()
-      void refetchProgress()
-    } catch {
-      toast.error('Failed to reopen session')
-    } finally {
-      setReopenLoading(false)
-    }
-  }
 
   if (loading) {
     return (
@@ -993,7 +409,7 @@ export function SessionDetailView({ orgId, projectId, sessionId }: SessionDetail
                     const order = questionOrderMap[q.id]
                     return (
                       <div key={q.id} id={order != null ? `question-order-${order}` : undefined}>
-                        <QuestionItem
+                        <SessionQuestionItem
                           q={q}
                           answer={answers[q.id]}
                           onChange={(status, value, skipReason) =>
@@ -1238,7 +654,7 @@ export function SessionDetailView({ orgId, projectId, sessionId }: SessionDetail
           question={aiImproveQuestion}
           currentAnswer={answers[aiImproveQuestion.id]}
           onSessionLocked={() => {
-            setSessionLockedFrom409(true)
+            markSessionLocked()
             refetchSession()
           }}
           onSuccess={() => {
@@ -1258,7 +674,7 @@ export function SessionDetailView({ orgId, projectId, sessionId }: SessionDetail
           questions={orderedQuestions}
           answers={answers}
           onSessionLocked={() => {
-            setSessionLockedFrom409(true)
+            markSessionLocked()
             refetchSession()
           }}
           onSuccess={() => {

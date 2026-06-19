@@ -2,12 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { toast } from 'sonner'
 import { Box, Button, Input, Select, Typography, ContentLoader, Badge } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import * as agentControlApi from '../api/agent-control.api'
 import { useAgentControl } from '../hooks/useAgentControl'
-import { ApiError } from '@/shared/lib/api-types'
+import { useAgentControlMutations } from '../hooks/useAgentControlMutations'
 import { PromptRegistryPanel } from '@/modules/ai-agent-control/prompt-registry/ui/PromptRegistryPanel'
 import { RuntimeUsagePanel } from '@/modules/ai-agent-control/runtime/ui/RuntimeUsagePanel'
 
@@ -35,87 +33,8 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
     loading,
     refetch: reload,
   } = useAgentControl(orgId, { search, status: statusFilter })
-  const [showAgentForm, setShowAgentForm] = useState(false)
-  const [showPolicyForm, setShowPolicyForm] = useState(false)
-  const [agentKey, setAgentKey] = useState('')
-  const [agentName, setAgentName] = useState('')
-  const [agentPurpose, setAgentPurpose] = useState('')
-  const [policyKey, setPolicyKey] = useState('')
-  const [policyName, setPolicyName] = useState('')
-  const [policyProvider, setPolicyProvider] = useState('openai')
-  const [policyModel, setPolicyModel] = useState('gpt-4o-mini')
-  const [policyMode, setPolicyMode] = useState('balanced')
-  const [saving, setSaving] = useState(false)
-  const [applyingPreset, setApplyingPreset] = useState(false)
 
-  const handleCreateAgent = async () => {
-    if (!agentKey.trim() || !agentName.trim() || !agentPurpose.trim()) {
-      toast.error('Agent key, name, and purpose are required')
-      return
-    }
-    setSaving(true)
-    try {
-      await agentControlApi.createOrgAgent(orgId, {
-        agent_key: agentKey.trim(),
-        name: agentName.trim(),
-        purpose: agentPurpose.trim(),
-        status: 'inactive',
-      })
-      toast.success('Agent created (inactive)')
-      setShowAgentForm(false)
-      setAgentKey('')
-      setAgentName('')
-      setAgentPurpose('')
-      void reload()
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to create agent')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleCreatePolicy = async () => {
-    if (!policyKey.trim() || !policyName.trim()) {
-      toast.error('Policy key and name are required')
-      return
-    }
-    setSaving(true)
-    try {
-      await agentControlApi.createOrgModelPolicy(orgId, {
-        policy_key: policyKey.trim(),
-        name: policyName.trim(),
-        provider: policyProvider,
-        model_name: policyModel.trim(),
-        mode: policyMode,
-        status: 'inactive',
-      })
-      toast.success('Model policy created (inactive)')
-      setShowPolicyForm(false)
-      setPolicyKey('')
-      setPolicyName('')
-      void reload()
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to create model policy')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleApplyPreset = async (presetKey: string) => {
-    setApplyingPreset(true)
-    try {
-      await agentControlApi.applyAgentControlPreset(orgId, {
-        preset_key: presetKey,
-        activate: false,
-      })
-      toast.success('Preset applied as inactive configuration')
-      void reload()
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to apply preset')
-    } finally {
-      setApplyingPreset(false)
-    }
-  }
+  const mutations = useAgentControlMutations(orgId, () => void reload())
 
   if (loading) {
     return (
@@ -214,79 +133,87 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
           {canManage ? (
             <div className="flex flex-wrap gap-2">
               {tab === 'agents' ? (
-                <Button variant="outline" size="sm" onClick={() => setShowAgentForm((v) => !v)}>
-                  {showAgentForm ? 'Cancel agent' : 'New agent'}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => mutations.setShowAgentForm((v) => !v)}
+                >
+                  {mutations.showAgentForm ? 'Cancel agent' : 'New agent'}
                 </Button>
               ) : (
-                <Button variant="outline" size="sm" onClick={() => setShowPolicyForm((v) => !v)}>
-                  {showPolicyForm ? 'Cancel policy' : 'New model policy'}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => mutations.setShowPolicyForm((v) => !v)}
+                >
+                  {mutations.showPolicyForm ? 'Cancel policy' : 'New model policy'}
                 </Button>
               )}
             </div>
           ) : null}
 
-          {showAgentForm && canManage ? (
+          {mutations.showAgentForm && canManage ? (
             <div className="border-border space-y-3 rounded-md border p-4">
               <Input
                 label="Agent key"
-                value={agentKey}
-                onChange={(e) => setAgentKey(e.target.value)}
+                value={mutations.agentKey}
+                onChange={(e) => mutations.setAgentKey(e.target.value)}
               />
               <Input
                 label="Name"
-                value={agentName}
-                onChange={(e) => setAgentName(e.target.value)}
+                value={mutations.agentName}
+                onChange={(e) => mutations.setAgentName(e.target.value)}
               />
               <Input
                 label="Purpose"
-                value={agentPurpose}
-                onChange={(e) => setAgentPurpose(e.target.value)}
+                value={mutations.agentPurpose}
+                onChange={(e) => mutations.setAgentPurpose(e.target.value)}
               />
               <Button
                 variant="primary"
                 size="sm"
-                loading={saving}
-                onClick={() => void handleCreateAgent()}
+                loading={mutations.saving}
+                onClick={() => void mutations.handleCreateAgent()}
               >
                 Create inactive agent
               </Button>
             </div>
           ) : null}
 
-          {showPolicyForm && canManage ? (
+          {mutations.showPolicyForm && canManage ? (
             <div className="border-border space-y-3 rounded-md border p-4">
               <Input
                 label="Policy key"
-                value={policyKey}
-                onChange={(e) => setPolicyKey(e.target.value)}
+                value={mutations.policyKey}
+                onChange={(e) => mutations.setPolicyKey(e.target.value)}
               />
               <Input
                 label="Name"
-                value={policyName}
-                onChange={(e) => setPolicyName(e.target.value)}
+                value={mutations.policyName}
+                onChange={(e) => mutations.setPolicyName(e.target.value)}
               />
               <Select
                 label="Provider"
-                value={policyProvider}
-                onValueChange={(v: string) => setPolicyProvider(v)}
+                value={mutations.policyProvider}
+                onValueChange={(v: string) => mutations.setPolicyProvider(v)}
                 options={(metadata?.providers ?? ['openai']).map((p) => ({ value: p, label: p }))}
               />
               <Input
                 label="Model name"
-                value={policyModel}
-                onChange={(e) => setPolicyModel(e.target.value)}
+                value={mutations.policyModel}
+                onChange={(e) => mutations.setPolicyModel(e.target.value)}
               />
               <Select
                 label="Mode"
-                value={policyMode}
-                onValueChange={(v: string) => setPolicyMode(v)}
+                value={mutations.policyMode}
+                onValueChange={(v: string) => mutations.setPolicyMode(v)}
                 options={(metadata?.modes ?? ['balanced']).map((m) => ({ value: m, label: m }))}
               />
               <Button
                 variant="primary"
                 size="sm"
-                loading={saving}
-                onClick={() => void handleCreatePolicy()}
+                loading={mutations.saving}
+                onClick={() => void mutations.handleCreatePolicy()}
               >
                 Create inactive policy
               </Button>
@@ -329,21 +256,7 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              void agentControlApi
-                                .archiveOrgAgent(orgId, agent.id)
-                                .then(() => {
-                                  toast.success('Agent archived')
-                                  void reload()
-                                })
-                                .catch((err) =>
-                                  toast.error(
-                                    err instanceof ApiError
-                                      ? err.message
-                                      : 'Failed to archive agent'
-                                  )
-                                )
-                            }
+                            onClick={() => void mutations.archiveAgent(agent.id)}
                           >
                             Archive
                           </Button>
@@ -391,19 +304,7 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() =>
-                            void agentControlApi
-                              .archiveOrgModelPolicy(orgId, policy.id)
-                              .then(() => {
-                                toast.success('Model policy archived')
-                                void reload()
-                              })
-                              .catch((err) =>
-                                toast.error(
-                                  err instanceof ApiError ? err.message : 'Failed to archive policy'
-                                )
-                              )
-                          }
+                          onClick={() => void mutations.archivePolicy(policy.id)}
                         >
                           Archive
                         </Button>
@@ -438,8 +339,8 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      loading={applyingPreset}
-                      onClick={() => void handleApplyPreset(preset.preset_key)}
+                      loading={mutations.applyingPreset}
+                      onClick={() => void mutations.handleApplyPreset(preset.preset_key)}
                     >
                       Apply preset
                     </Button>

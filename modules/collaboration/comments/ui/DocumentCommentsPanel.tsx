@@ -1,12 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button, Textarea, Typography, ContentLoader } from '@/shared/ui'
-import * as collaborationApi from '@/modules/collaboration/core/api/collaboration.api'
-import type {
-  CollaborationPermissions,
-  DocumentComment,
-} from '@/modules/collaboration/core/model/collaboration'
+import type { CollaborationPermissions } from '@/modules/collaboration/core/model/collaboration'
+import { useDocumentComments } from '@/modules/collaboration/core/hooks'
 import { DocumentCommentThread } from './DocumentCommentThread'
 import { MentionUserPicker } from './MentionUserPicker'
 import { ApiError } from '@/shared/lib/api-types'
@@ -25,45 +22,26 @@ export function DocumentCommentsPanel({
   projectId,
   permissions,
 }: DocumentCommentsPanelProps) {
-  const [comments, setComments] = useState<DocumentComment[]>([])
-  const [loading, setLoading] = useState(true)
   const [body, setBody] = useState('')
   const [mentions, setMentions] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [showResolved, setShowResolved] = useState(false)
 
-  const load = useCallback(async () => {
-    if (!permissions.canViewComments) return
-    setLoading(true)
-    try {
-      const res = await collaborationApi.listComments(orgId, documentId, {
-        project_id: projectId,
-        include_resolved: showResolved,
-      })
-      setComments(res.items)
-    } catch {
-      toast.error('Failed to load comments')
-    } finally {
-      setLoading(false)
-    }
-  }, [orgId, documentId, projectId, permissions.canViewComments, showResolved])
-
-  useEffect(() => {
-    void load()
-  }, [load])
+  const { comments, loading, createComment, resolveComment, reopenComment } = useDocumentComments({
+    orgId,
+    documentId,
+    projectId,
+    canViewComments: permissions.canViewComments,
+    includeResolved: showResolved,
+  })
 
   const handleCreate = async () => {
     if (!body.trim()) return
     setSubmitting(true)
     try {
-      await collaborationApi.createComment(orgId, documentId, {
-        body: body.trim(),
-        project_id: projectId,
-        mentioned_user_ids: mentions,
-      })
+      await createComment(body.trim(), mentions)
       setBody('')
       setMentions([])
-      await load()
     } catch (err) {
       const msg = err instanceof ApiError ? err.problem.detail : 'Failed to post comment'
       toast.error(msg)
@@ -73,13 +51,7 @@ export function DocumentCommentsPanel({
   }
 
   const handleReply = async (parentId: string, replyBody: string, mentionedUserIds: string[]) => {
-    await collaborationApi.createComment(orgId, documentId, {
-      body: replyBody,
-      project_id: projectId,
-      parent_id: parentId,
-      mentioned_user_ids: mentionedUserIds,
-    })
-    await load()
+    await createComment(replyBody, mentionedUserIds, parentId)
   }
 
   if (!permissions.canViewComments) {
@@ -142,14 +114,8 @@ export function DocumentCommentsPanel({
               orgId={orgId}
               projectId={projectId}
               onReply={handleReply}
-              onResolve={async (id) => {
-                await collaborationApi.resolveComment(orgId, documentId, id, projectId)
-                await load()
-              }}
-              onReopen={async (id) => {
-                await collaborationApi.reopenComment(orgId, documentId, id, projectId)
-                await load()
-              }}
+              onResolve={resolveComment}
+              onReopen={reopenComment}
             />
           ))}
         </div>

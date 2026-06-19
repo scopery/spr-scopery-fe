@@ -1,12 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
 import { Avatar, Typography, ContentLoader } from '@/shared/ui'
-import * as collaborationApi from '@/modules/collaboration/core/api/collaboration.api'
 import type {
   CollaborationPermissions,
   DocumentActivity,
 } from '@/modules/collaboration/core/model/collaboration'
+import { useDocumentActivity } from '@/modules/collaboration/core/hooks'
 
 const ACTION_LABELS: Record<string, string> = {
   comment_created: 'created a comment',
@@ -40,26 +39,12 @@ export function DocumentActivityPanel({
   projectId,
   permissions,
 }: DocumentActivityPanelProps) {
-  const [items, setItems] = useState<DocumentActivity[]>([])
-  const [loading, setLoading] = useState(true)
-
-  const load = useCallback(async () => {
-    if (!permissions.canViewActivity) return
-    setLoading(true)
-    try {
-      const res = await collaborationApi.listActivity(orgId, documentId, {
-        project_id: projectId,
-        limit: 50,
-      })
-      setItems(res.items)
-    } finally {
-      setLoading(false)
-    }
-  }, [orgId, documentId, projectId, permissions.canViewActivity])
-
-  useEffect(() => {
-    void load()
-  }, [load])
+  const { items, loading } = useDocumentActivity({
+    orgId,
+    documentId,
+    projectId,
+    canViewActivity: permissions.canViewActivity,
+  })
 
   if (!permissions.canViewActivity) {
     return <Typography tone="muted">You do not have access to activity.</Typography>

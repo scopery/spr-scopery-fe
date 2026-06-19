@@ -1,3 +1,5 @@
+export { OrgTemplateNewPageView } from './ui/OrgTemplateNewPageView'
+export { OrgTemplateDetailPageView } from './ui/OrgTemplateDetailPageView'
 export { OrgTemplatesManagementView } from './ui/OrgTemplatesManagementView'
 export { TemplateEditor } from './ui/TemplateEditor'
 export { TemplatePicker } from './ui/TemplatePicker'
@@ -9,6 +11,9 @@ export { TemplateCategoryBadge } from './ui/TemplateCategoryBadge'
 export { TemplateScopeBadge } from './ui/TemplateScopeBadge'
 export { TemplateStatusBadge } from './ui/TemplateStatusBadge'
 export { useDocumentTemplates, useDocumentTemplateDetail } from './hooks/useDocumentTemplates'
+export { useTemplatePreviewDialog } from './hooks/useTemplatePreviewDialog'
+export { useTemplatePicker } from './hooks/useTemplatePicker'
+export { useTemplateEditor } from './hooks/useTemplateEditor'
 export type {
   DocumentTemplate,
   DocumentTemplateWithVariableScan,

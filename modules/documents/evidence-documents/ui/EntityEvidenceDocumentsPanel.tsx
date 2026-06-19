@@ -13,10 +13,7 @@ import {
 } from 'lucide-react'
 import { Typography, Button, Badge, ContentLoader, ConfirmDialog } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import {
-  DOCUMENT_RELATION_LABELS,
-  getEvidenceDocumentTypeLabel,
-} from '../api/evidence-documents.api'
+import { DOCUMENT_RELATION_LABELS } from '@/modules/documents/document-links'
 import type { DocumentType } from '@/modules/documents/document'
 import type { EntityEvidenceDocumentsPanelProps } from '../model/evidence-documents'
 import { useEntityEvidenceDocumentsPanel } from '../hooks/useEntityEvidenceDocumentsPanel'

@@ -1,17 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
 import { Typography, Button, ContentLoader, Select } from '@/shared/ui'
-import * as feedbackApi from '../api/ai-run-feedback.api'
-import { toast } from 'sonner'
-import { getProblemToastMessage } from '@/shared/lib/errorHandling'
-import type {
-  AIRunFeedbackListItem,
-  AIQualitySummary,
-  AIFeedbackStatus,
-  AIPromptVersionQualityItem,
-} from '@/modules/admin/ai-feedback'
+import type { AIFeedbackStatus } from '@/modules/admin/ai-feedback'
 import { FEEDBACK_STATUSES } from '@/modules/admin/ai-feedback'
+import { useAIAgentQualityPanel } from '../hooks/useAIAgentQualityPanel'
 
 interface AIAgentQualityPanelProps {
   agentId: string
@@ -24,58 +16,11 @@ function pct(value: number | null): string {
 }
 
 export function AIAgentQualityPanel({ agentId, orgId }: AIAgentQualityPanelProps) {
-  const [summary, setSummary] = useState<AIQualitySummary | null>(null)
-  const [feedback, setFeedback] = useState<AIRunFeedbackListItem[]>([])
-  const [versions, setVersions] = useState<AIPromptVersionQualityItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState('')
-  const [selected, setSelected] = useState<AIRunFeedbackListItem | null>(null)
-  const [updating, setUpdating] = useState(false)
+  const panel = useAIAgentQualityPanel({ agentId, orgId })
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [summaryRes, feedbackRes, versionsRes] = await Promise.all([
-        feedbackApi.getAgentQualitySummary(agentId, { org_id: orgId }),
-        feedbackApi.listAgentFeedback(agentId, {
-          org_id: orgId,
-          status: statusFilter || undefined,
-          limit: 25,
-        }),
-        feedbackApi.getAgentVersionQuality(agentId, orgId),
-      ])
-      setSummary(summaryRes)
-      setFeedback(feedbackRes.items)
-      setVersions(versionsRes.items)
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    } finally {
-      setLoading(false)
-    }
-  }, [agentId, orgId, statusFilter])
+  if (panel.loading || !panel.summary) return <ContentLoader />
 
-  useEffect(() => {
-    load()
-  }, [load])
-
-  const updateStatus = async (status: AIFeedbackStatus) => {
-    if (!selected) return
-    setUpdating(true)
-    try {
-      await feedbackApi.updateFeedbackStatus(selected.feedbackId, { status })
-      toast.success('Feedback status updated.')
-      setSelected(null)
-      await load()
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    } finally {
-      setUpdating(false)
-    }
-  }
-
-  if (loading || !summary) return <ContentLoader />
-
-  const topCategory = summary.feedbackByCategory[0]
+  const topCategory = panel.summary.feedbackByCategory[0]
 
   return (
     <div className="space-y-6">
@@ -86,9 +31,9 @@ export function AIAgentQualityPanel({ agentId, orgId }: AIAgentQualityPanelProps
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: 'Total feedback', value: summary.totalFeedback },
-          { label: 'Negative feedback', value: summary.negativeCount },
-          { label: 'Negative rate', value: pct(summary.negativeRate) },
+          { label: 'Total feedback', value: panel.summary.totalFeedback },
+          { label: 'Negative feedback', value: panel.summary.negativeCount },
+          { label: 'Negative rate', value: pct(panel.summary.negativeRate) },
           { label: 'Top issue', value: topCategory?.category ?? '—' },
         ].map((card) => (
           <div key={card.label} className="rounded-lg border border-neutral-200 bg-white p-4">
@@ -118,7 +63,7 @@ export function AIAgentQualityPanel({ agentId, orgId }: AIAgentQualityPanelProps
                 </tr>
               </thead>
               <tbody>
-                {versions.map((version) => (
+                {panel.versions.map((version) => (
                   <tr key={version.agentVersionId} className="border-b border-neutral-50">
                     <td className="py-2 pr-3">
                       v{version.versionNumber} ({version.versionStatus})
@@ -137,11 +82,11 @@ export function AIAgentQualityPanel({ agentId, orgId }: AIAgentQualityPanelProps
           <Typography weight="medium" className="mb-3">
             Run health
           </Typography>
-          <Typography variant="small">Failed runs: {summary.failedRuns}</Typography>
+          <Typography variant="small">Failed runs: {panel.summary.failedRuns}</Typography>
           <Typography variant="small">
-            Failed runs with feedback: {summary.failedRunsWithFeedback}
+            Failed runs with feedback: {panel.summary.failedRunsWithFeedback}
           </Typography>
-          <Typography variant="small">Runs with feedback: {summary.runsWithFeedback}</Typography>
+          <Typography variant="small">Runs with feedback: {panel.summary.runsWithFeedback}</Typography>
         </div>
       </div>
 
@@ -150,15 +95,15 @@ export function AIAgentQualityPanel({ agentId, orgId }: AIAgentQualityPanelProps
           <label className="mb-2 block text-sm font-medium text-neutral-700">Status filter</label>
           <Select
             options={[{ value: '', label: 'All statuses' }, ...FEEDBACK_STATUSES]}
-            value={statusFilter}
-            onValueChange={setStatusFilter}
+            value={panel.statusFilter}
+            onValueChange={panel.setStatusFilter}
             className="w-full"
             size="sm"
           />
         </div>
       </div>
 
-      {feedback.length === 0 ? (
+      {panel.feedback.length === 0 ? (
         <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-6 text-center">
           <Typography tone="muted">No feedback yet for this agent.</Typography>
         </div>
@@ -176,7 +121,7 @@ export function AIAgentQualityPanel({ agentId, orgId }: AIAgentQualityPanelProps
               </tr>
             </thead>
             <tbody>
-              {feedback.map((item) => (
+              {panel.feedback.map((item) => (
                 <tr key={item.feedbackId} className="border-b border-neutral-100">
                   <td className="px-4 py-3">{new Date(item.createdAt).toLocaleString()}</td>
                   <td className="px-4 py-3">{item.rating}</td>
@@ -184,7 +129,7 @@ export function AIAgentQualityPanel({ agentId, orgId }: AIAgentQualityPanelProps
                   <td className="max-w-xs truncate px-4 py-3">{item.feedbackTextPreview ?? '—'}</td>
                   <td className="px-4 py-3">{item.status}</td>
                   <td className="px-4 py-3">
-                    <Button size="sm" variant="outline" onClick={() => setSelected(item)}>
+                    <Button size="sm" variant="outline" onClick={() => panel.setSelected(item)}>
                       Review
                     </Button>
                   </td>
@@ -195,18 +140,18 @@ export function AIAgentQualityPanel({ agentId, orgId }: AIAgentQualityPanelProps
         </div>
       )}
 
-      {selected ? (
+      {panel.selected ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-lg rounded-lg border border-neutral-200 bg-white p-6 shadow-lg">
             <Typography as="h2" size="lg" weight="semibold" className="mb-4">
               Feedback detail
             </Typography>
             <div className="space-y-2 text-sm">
-              <p>Run ID: {selected.runId}</p>
-              <p>Rating: {selected.rating}</p>
-              <p>Category: {selected.feedbackCategory ?? '—'}</p>
-              <p>Comment: {selected.feedbackTextPreview ?? '—'}</p>
-              <p>Run status: {selected.runStatus ?? '—'}</p>
+              <p>Run ID: {panel.selected.runId}</p>
+              <p>Rating: {panel.selected.rating}</p>
+              <p>Category: {panel.selected.feedbackCategory ?? '—'}</p>
+              <p>Comment: {panel.selected.feedbackTextPreview ?? '—'}</p>
+              <p>Run status: {panel.selected.runStatus ?? '—'}</p>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {(['reviewed', 'action_required', 'resolved', 'dismissed'] as AIFeedbackStatus[]).map(
@@ -215,8 +160,8 @@ export function AIAgentQualityPanel({ agentId, orgId }: AIAgentQualityPanelProps
                     key={status}
                     size="sm"
                     variant="outline"
-                    disabled={updating}
-                    onClick={() => updateStatus(status)}
+                    disabled={panel.updating}
+                    onClick={() => void panel.updateStatus(status)}
                   >
                     Mark {status.replace('_', ' ')}
                   </Button>
@@ -224,7 +169,7 @@ export function AIAgentQualityPanel({ agentId, orgId }: AIAgentQualityPanelProps
               )}
             </div>
             <div className="mt-4 flex justify-end">
-              <Button variant="outline" onClick={() => setSelected(null)}>
+              <Button variant="outline" onClick={() => panel.setSelected(null)}>
                 Close
               </Button>
             </div>

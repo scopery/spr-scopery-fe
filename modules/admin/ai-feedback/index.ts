@@ -1,5 +1,7 @@
 export { AIAgentQualityPanel } from './ui/ai-agent-quality-panel'
 export { AIRunFeedbackControls } from './ui/ai-run-feedback-controls'
+export { useAIAgentQualityPanel } from './hooks/useAIAgentQualityPanel'
+export { useAIRunFeedbackControls } from './hooks/useAIRunFeedbackControls'
 export type {
   AIQualitySummary,
   AIRunFeedbackListItem,

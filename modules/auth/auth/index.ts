@@ -1,3 +1,7 @@
+export { AuthCallbackView } from './ui/AuthCallbackView'
+export { SuspendedView } from './ui/SuspendedView'
+export { ResetPasswordView } from './ui/ResetPasswordView'
+export { ForgotPasswordView } from './ui/ForgotPasswordView'
 export { LoginView } from './ui/LoginView'
 export { RegisterView } from './ui/RegisterView'
 export { AuthProvider, useAuth } from './context/AuthContext'

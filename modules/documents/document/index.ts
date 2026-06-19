@@ -1,3 +1,4 @@
+export { GlobalDocumentRedirectView } from './ui/GlobalDocumentRedirectView'
 export { OrgDocumentDetailView } from './ui/OrgDocumentDetailView'
 export { DocumentEditor } from './ui/DocumentEditor'
 export { AttachDocumentModal } from './ui/AttachDocumentModal'

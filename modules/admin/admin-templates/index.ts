@@ -1,3 +1,5 @@
+export { AdminTemplateNewView } from './ui/AdminTemplateNewView'
+export { AdminTemplatesListView } from './ui/AdminTemplatesListView'
 export { useAdminTemplates, useAdminTemplateDetail } from './hooks/useAdminTemplates'
 export { AdminTemplateDetailView } from './ui/AdminTemplateDetailView'
 export type { TemplateListItem, TemplateDetail } from './api/admin-templates.api'

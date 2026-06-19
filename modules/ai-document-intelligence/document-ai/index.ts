@@ -1,5 +1,6 @@
 export { DocumentAIPanel } from './ui/DocumentAIPanel'
 export { AIGeneratedBadge, originLabel } from './ui/AIGeneratedBadge'
+export { useDocumentAIPanel } from './hooks/useDocumentAIPanel'
 export type {
   AIStructuredPreview,
   DocumentAIPanelProps,

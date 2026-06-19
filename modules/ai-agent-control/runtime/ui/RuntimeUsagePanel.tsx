@@ -1,16 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { toast } from 'sonner'
 import { Box, Button, Input, Select, Typography, Badge } from '@/shared/ui'
-import * as agentControlApi from '@/modules/ai-agent-control/agent-control/api/agent-control.api'
-import type {
-  OrgAgentRuntimeMetadata,
-  OrgAgentRun,
-  OrgRuntimeResolution,
-  OrgRuntimeUsageSummary,
-} from '@/modules/ai-agent-control/agent-control/model/agent-control-types'
-import { ApiError } from '@/shared/lib/api-types'
+import { useRuntimeUsagePanel } from '../hooks/useRuntimeUsagePanel'
 
 type Props = {
   orgId: string
@@ -20,62 +11,9 @@ type Props = {
 }
 
 export function RuntimeUsagePanel({ orgId, canViewRuntime, canViewUsage, canViewPrompts }: Props) {
-  const [loading, setLoading] = useState(true)
-  const [metadata, setMetadata] = useState<OrgAgentRuntimeMetadata | null>(null)
-  const [runs, setRuns] = useState<OrgAgentRun[]>([])
-  const [summary, setSummary] = useState<OrgRuntimeUsageSummary | null>(null)
-  const [featureKey, setFeatureKey] = useState('answer_improve')
-  const [orgAgentKey, setOrgAgentKey] = useState('')
-  const [bindingKey, setBindingKey] = useState('default')
-  const [preview, setPreview] = useState<OrgRuntimeResolution | null>(null)
-  const [previewLoading, setPreviewLoading] = useState(false)
-  const [statusFilter, setStatusFilter] = useState('')
+  const panel = useRuntimeUsagePanel({ orgId, canViewRuntime, canViewUsage })
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [meta, runsRes, summaryRes] = await Promise.all([
-        canViewRuntime ? agentControlApi.getRuntimeMetadata(orgId) : Promise.resolve(null),
-        canViewUsage
-          ? agentControlApi.listOrgAgentRuns(orgId, {
-              status: statusFilter || undefined,
-              limit: 50,
-            })
-          : Promise.resolve({ items: [], total: 0 }),
-        canViewUsage ? agentControlApi.getRuntimeUsageSummary(orgId) : Promise.resolve(null),
-      ])
-      setMetadata(meta)
-      setRuns(runsRes.items)
-      setSummary(summaryRes)
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to load runtime data')
-    } finally {
-      setLoading(false)
-    }
-  }, [orgId, canViewRuntime, canViewUsage, statusFilter])
-
-  useEffect(() => {
-    void load()
-  }, [load])
-
-  const handlePreview = async () => {
-    if (!canViewRuntime) return
-    setPreviewLoading(true)
-    try {
-      const result = await agentControlApi.previewRuntimeResolution(orgId, {
-        feature_key: featureKey,
-        org_agent_key: orgAgentKey.trim() || undefined,
-        binding_key: bindingKey.trim() || undefined,
-      })
-      setPreview(result)
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to preview resolution')
-    } finally {
-      setPreviewLoading(false)
-    }
-  }
-
-  if (loading) {
+  if (panel.loading) {
     return (
       <Typography variant="small" tone="muted">
         Loading runtime & usage…
@@ -90,14 +28,14 @@ export function RuntimeUsagePanel({ orgId, canViewRuntime, canViewUsage, canView
         estimates only — not billing. Budget enforcement is deferred to a later phase.
       </div>
 
-      {metadata ? (
+      {panel.metadata ? (
         <div className="border-border rounded border p-3 text-sm">
           <Typography variant="small" className="font-medium">
             Runtime status
           </Typography>
           <Typography variant="small" tone="muted">
-            Org runtime: {metadata.org_runtime_enabled ? 'enabled' : 'disabled'} · Strict mode:{' '}
-            {metadata.org_runtime_strict ? 'on' : 'off'} · Budget: {metadata.budget_enforcement}
+            Org runtime: {panel.metadata.org_runtime_enabled ? 'enabled' : 'disabled'} · Strict mode:{' '}
+            {panel.metadata.org_runtime_strict ? 'on' : 'off'} · Budget: {panel.metadata.budget_enforcement}
           </Typography>
         </div>
       ) : null}
@@ -109,54 +47,55 @@ export function RuntimeUsagePanel({ orgId, canViewRuntime, canViewUsage, canView
           </Typography>
           <Select
             label="Feature key"
-            value={featureKey}
-            onValueChange={(v: string) => setFeatureKey(v)}
-            options={(metadata?.feature_keys ?? ['answer_improve']).map((key) => ({
+            value={panel.featureKey}
+            onValueChange={(v: string) => panel.setFeatureKey(v)}
+            options={(panel.metadata?.feature_keys ?? ['answer_improve']).map((key) => ({
               value: key,
               label: key,
             }))}
           />
           <Input
             label="Org agent key (optional)"
-            value={orgAgentKey}
-            onChange={(e) => setOrgAgentKey(e.target.value)}
+            value={panel.orgAgentKey}
+            onChange={(e) => panel.setOrgAgentKey(e.target.value)}
           />
           <Input
             label="Binding key"
-            value={bindingKey}
-            onChange={(e) => setBindingKey(e.target.value)}
+            value={panel.bindingKey}
+            onChange={(e) => panel.setBindingKey(e.target.value)}
           />
           <Button
             variant="outline"
             size="sm"
-            loading={previewLoading}
-            onClick={() => void handlePreview()}
+            loading={panel.previewLoading}
+            onClick={() => void panel.handlePreview()}
           >
             Preview resolution
           </Button>
-          {preview ? (
+          {panel.preview ? (
             <div className="border-border space-y-1 rounded border p-3 text-sm">
               <div>
                 Source:{' '}
                 <Badge variant="soft" size="sm">
-                  {preview.resolution_source}
+                  {panel.preview.resolution_source}
                 </Badge>
               </div>
               <Typography variant="small" tone="muted">
-                Provider/model: {preview.provider}/{preview.model_name} · mode {preview.mode ?? '—'}
+                Provider/model: {panel.preview.provider}/{panel.preview.model_name} · mode{' '}
+                {panel.preview.mode ?? '—'}
               </Typography>
               <Typography variant="small" tone="muted">
-                Org agent: {preview.org_agent_key ?? 'none'} · Prompt template:{' '}
-                {preview.prompt_template_id ?? 'none'}
+                Org agent: {panel.preview.org_agent_key ?? 'none'} · Prompt template:{' '}
+                {panel.preview.prompt_template_id ?? 'none'}
               </Typography>
-              {preview.fallback_reason ? (
+              {panel.preview.fallback_reason ? (
                 <Typography variant="small" tone="muted">
-                  Fallback: {preview.fallback_reason}
+                  Fallback: {panel.preview.fallback_reason}
                 </Typography>
               ) : null}
-              {preview.warnings.length > 0 ? (
+              {panel.preview.warnings.length > 0 ? (
                 <Typography variant="small" tone="muted">
-                  Warnings: {preview.warnings.join('; ')}
+                  Warnings: {panel.preview.warnings.join('; ')}
                 </Typography>
               ) : null}
               {!canViewPrompts ? (
@@ -171,14 +110,14 @@ export function RuntimeUsagePanel({ orgId, canViewRuntime, canViewUsage, canView
 
       {canViewUsage ? (
         <>
-          {summary ? (
+          {panel.summary ? (
             <div className="grid gap-3 md:grid-cols-3">
               <div className="border-border rounded border p-3">
                 <Typography variant="small" tone="muted">
                   Total runs
                 </Typography>
                 <Typography variant="small" className="font-medium">
-                  {summary.total_runs}
+                  {panel.summary.total_runs}
                 </Typography>
               </div>
               <div className="border-border rounded border p-3">
@@ -186,15 +125,15 @@ export function RuntimeUsagePanel({ orgId, canViewRuntime, canViewUsage, canView
                   Total tokens
                 </Typography>
                 <Typography variant="small" className="font-medium">
-                  {summary.total_tokens}
+                  {panel.summary.total_tokens}
                 </Typography>
               </div>
               <div className="border-border rounded border p-3">
                 <Typography variant="small" tone="muted">
-                  Est. cost ({summary.currency})
+                  Est. cost ({panel.summary.currency})
                 </Typography>
                 <Typography variant="small" className="font-medium">
-                  {summary.estimated_cost_total ?? '—'}
+                  {panel.summary.estimated_cost_total ?? '—'}
                 </Typography>
               </div>
             </div>
@@ -202,8 +141,8 @@ export function RuntimeUsagePanel({ orgId, canViewRuntime, canViewUsage, canView
 
           <Select
             label="Run status filter"
-            value={statusFilter}
-            onValueChange={(v: string) => setStatusFilter(v)}
+            value={panel.statusFilter}
+            onValueChange={(v: string) => panel.setStatusFilter(v)}
             options={[
               { value: '', label: 'All statuses' },
               { value: 'succeeded', label: 'Succeeded' },
@@ -213,15 +152,15 @@ export function RuntimeUsagePanel({ orgId, canViewRuntime, canViewUsage, canView
           />
 
           <Typography variant="small" className="font-medium">
-            Run history ({runs.length})
+            Run history ({panel.runs.length})
           </Typography>
-          {runs.length === 0 ? (
+          {panel.runs.length === 0 ? (
             <Typography variant="small" tone="muted">
               No org runtime runs recorded yet.
             </Typography>
           ) : (
             <ul className="space-y-2">
-              {runs.map((run) => (
+              {panel.runs.map((run) => (
                 <li key={run.id} className="border-border rounded border p-3 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span>{run.feature_key}</span>

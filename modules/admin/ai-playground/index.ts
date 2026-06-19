@@ -1,4 +1,5 @@
 export { AIAgentPlaygroundPanel } from './ui/ai-agent-playground-panel'
+export { useAIAgentPlaygroundPanel } from './hooks/useAIAgentPlaygroundPanel'
 export type {
   PromptPlaygroundContext,
   PromptDryRunResult,

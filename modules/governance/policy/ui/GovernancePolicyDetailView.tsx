@@ -18,7 +18,7 @@ import {
   type GovernanceRule,
 } from '@/modules/governance'
 import { useEffectivePermissions } from '@/modules/permissions'
-import { hasPermission, PERMISSIONS } from '@/utils/permissions'
+import { hasPermission, PERMISSIONS } from '@/modules/permissions'
 import { GOVERNANCE_ACTION_KEYS, GOVERNANCE_EFFECTS } from '@/constants/governance.constants'
 import { ApiError } from '@/shared/lib/api-types'
 

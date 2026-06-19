@@ -15,7 +15,7 @@ import {
   canEditDocumentFromPermissions,
   canManageProjectContentFallback,
   resolveProjectRole,
-} from '@/utils/permissions'
+} from '@/modules/permissions'
 
 export function OrgDocumentDetailView() {
   const params = useParams()

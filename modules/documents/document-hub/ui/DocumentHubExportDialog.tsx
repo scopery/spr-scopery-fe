@@ -1,13 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Button, Modal, Select, Typography, ContentLoader } from '@/shared/ui'
 import type { DocumentExportFormat, ExportPackageFormat } from '@/utils/exportDownload'
-import * as documentHubApi from '../api/document-hub.api'
+import { useDocumentHubExportPreview } from '../hooks/useDocumentHubExportPreview'
 import type {
   DocumentHubExportDialogProps,
   DocumentHubExportOptions,
-  DocumentHubExportPreviewResult,
 } from '../model/document-hub'
 
 export function DocumentHubExportDialog({
@@ -27,9 +26,6 @@ export function DocumentHubExportDialog({
   const [packageFormat, setPackageFormat] = useState<ExportPackageFormat>('zip')
   const [includeEvidenceIndex, setIncludeEvidenceIndex] = useState(true)
   const [includeArchived, setIncludeArchived] = useState(lifecycleStatus === 'archived')
-  const [previewLoading, setPreviewLoading] = useState(false)
-  const [preview, setPreview] = useState<DocumentHubExportPreviewResult | null>(null)
-  const [previewError, setPreviewError] = useState<string | null>(null)
 
   const exportMode = selectionMode === 'filtered_all' ? 'filtered' : 'selected'
   const exportDocumentCount = selectionMode === 'filtered_all' ? totalCount : selectedCount
@@ -56,33 +52,13 @@ export function DocumentHubExportDialog({
     ]
   )
 
-  useEffect(() => {
-    if (!open) {
-      setPreview(null)
-      setPreviewError(null)
-      return
-    }
-
-    if (exportMode === 'selected' && documentIds.length === 0) {
-      setPreview(null)
-      return
-    }
-
-    const timer = setTimeout(() => {
-      setPreviewLoading(true)
-      setPreviewError(null)
-      documentHubApi
-        .previewDocumentHubExport(orgId, buildPreviewBody())
-        .then((result) => setPreview(result))
-        .catch((err: unknown) => {
-          setPreview(null)
-          setPreviewError(err instanceof Error ? err.message : 'Failed to load export preview')
-        })
-        .finally(() => setPreviewLoading(false))
-    }, 300)
-
-    return () => clearTimeout(timer)
-  }, [open, orgId, buildPreviewBody, exportMode, documentIds.length])
+  const { preview, previewLoading, previewError, formatExportSize } = useDocumentHubExportPreview({
+    open,
+    orgId,
+    exportMode,
+    documentIds,
+    buildPreviewBody,
+  })
 
   const buildOptions = (): DocumentHubExportOptions => ({
     format,
@@ -172,7 +148,7 @@ export function DocumentHubExportDialog({
                 <div>Evidence links: {preview.evidence_link_count}</div>
               )}
               {estimatedSize !== undefined && (
-                <div>Estimated size: {documentHubApi.formatExportSize(estimatedSize)}</div>
+                <div>Estimated size: {formatExportSize(estimatedSize)}</div>
               )}
               {preview.suggested_filename && (
                 <div className="truncate">File: {preview.suggested_filename}</div>

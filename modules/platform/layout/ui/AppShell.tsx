@@ -29,7 +29,7 @@ import { ROUTES } from '@/constants/routes'
 import { useAuth } from '@/modules/auth'
 import { orgApi } from '@/modules/org'
 import { accessApi } from '@/modules/permissions'
-import { buildDocumentSpacePermissions } from '@/utils/permissions'
+import { buildDocumentSpacePermissions } from '@/modules/permissions'
 import { cn } from '@/utils/cn'
 import { HelpGuideModal } from './HelpGuideModal'
 

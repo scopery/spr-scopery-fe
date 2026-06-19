@@ -1,3 +1,5 @@
+export { AdminAiHubView } from './ui/AdminAiHubView'
+export { AiRunsListView } from './ui/AiRunsListView'
 export { AdminAiConfigTestView } from './ui/AdminAiConfigTestView'
 export { AiRunDetailView } from './ui/AiRunDetailView'
 export { AdminAiConfigEditView } from './ui/AdminAiConfigEditView'

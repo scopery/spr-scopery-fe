@@ -1,3 +1,4 @@
+export { AdminAiAgentsListView } from './ui/AdminAiAgentsListView'
 export { AdminAIAgentVersionView } from './ui/AdminAIAgentVersionView'
 export { useAiAgentsList, useAiAgentDetail, useAiAgentVersion } from './hooks/useAiAgents'
 export { AdminAIAgentDetailView } from './ui/AdminAIAgentDetailView'

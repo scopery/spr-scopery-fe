@@ -1,3 +1,5 @@
+export { ProjectsListView } from './ui/ProjectsListView'
+export { ProjectDetailView } from './ui/ProjectDetailView'
 export { useProjects } from './hooks/useProjects'
 export { useProject } from './hooks/useProject'
 export { useCreateProjectModal } from './hooks/useCreateProjectModal'

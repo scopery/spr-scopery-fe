@@ -11,5 +11,6 @@ export {
   buildDocumentSpacePermissions,
   buildAIPermissions,
   buildCollaborationPermissions,
+  canEditDocumentFromPermissions,
 } from './access/lib/permissions'
 export type { PermissionKey, EffectivePermissions } from './access/lib/permissions'

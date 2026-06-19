@@ -14,7 +14,7 @@ import {
   buildDocumentSpacePermissions,
   canManageProjectContentFallback,
   resolveProjectRole,
-} from '@/utils/permissions'
+} from '@/modules/permissions'
 import { EntityEvidenceDocumentsPanel } from '@/modules/documents'
 import { ProjectStepIndicator } from '@/modules/projects'
 

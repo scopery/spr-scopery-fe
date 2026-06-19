@@ -1,5 +1,8 @@
+export { DocumentHubPageView } from './ui/DocumentHubPageView'
 export { DocumentHubView } from './ui/DocumentHubView'
+export { useDocumentHub } from './hooks/useDocumentHub'
 export { DocumentHubExportDialog } from './ui/DocumentHubExportDialog'
+export { useDocumentHubExportPreview } from './hooks/useDocumentHubExportPreview'
 export type {
   DocumentHubViewProps,
   DocumentHubExportDialogProps,

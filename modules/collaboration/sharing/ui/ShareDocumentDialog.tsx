@@ -1,15 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button, Modal, Select, Typography } from '@/shared/ui'
-import * as collaborationApi from '@/modules/collaboration/core/api/collaboration.api'
-import type {
-  DocumentCollaborator,
-  MentionableUser,
-  ShareDocumentDialogProps,
-} from '@/modules/collaboration/core/model/collaboration'
-import { ApiError } from '@/shared/lib/api-types'
-import { toast } from 'sonner'
+import type { ShareDocumentDialogProps } from '@/modules/collaboration/core/model/collaboration'
+import { useShareDocument } from '@/modules/collaboration/core/hooks'
 
 export function ShareDocumentDialog({
   open,
@@ -19,53 +13,24 @@ export function ShareDocumentDialog({
   projectId,
   canManageCollaborators,
 }: ShareDocumentDialogProps) {
-  const [users, setUsers] = useState<MentionableUser[]>([])
-  const [collaborators, setCollaborators] = useState<DocumentCollaborator[]>([])
   const [selectedUser, setSelectedUser] = useState('')
   const [role, setRole] = useState<'viewer' | 'commenter' | 'editor'>('commenter')
-  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (!open) return
-    Promise.all([
-      collaborationApi.listMentionableUsers(orgId, { project_id: projectId }),
-      collaborationApi.listCollaborators(orgId, documentId, projectId).catch(() => ({ items: [] })),
-    ]).then(([usersRes, collabRes]) => {
-      setUsers(usersRes.items)
-      setCollaborators(collabRes.items)
-    })
-  }, [open, orgId, documentId, projectId])
+  const { users, collaborators, loading, shareDocument, removeCollaborator } = useShareDocument({
+    open,
+    orgId,
+    documentId,
+    projectId,
+    canManageCollaborators,
+  })
 
   const handleShare = async () => {
     if (!selectedUser) return
-    setLoading(true)
     try {
-      await collaborationApi.shareDocument(orgId, documentId, {
-        user_id: selectedUser,
-        role,
-        project_id: projectId,
-      })
-      toast.success('Document shared')
-      const collabRes = await collaborationApi.listCollaborators(orgId, documentId, projectId)
-      setCollaborators(collabRes.items)
+      await shareDocument(selectedUser, role)
       setSelectedUser('')
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.problem.detail : 'Failed to share document'
-      toast.error(msg)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleRemove = async (userId: string) => {
-    if (!canManageCollaborators) return
-    try {
-      await collaborationApi.removeCollaborator(orgId, documentId, userId, projectId)
-      setCollaborators((prev) => prev.filter((c) => c.user_id !== userId))
-      toast.success('Collaborator removed')
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.problem.detail : 'Failed to remove collaborator'
-      toast.error(msg)
+    } catch {
+      // Error toast handled in hook
     }
   }
 
@@ -119,7 +84,7 @@ export function ShareDocumentDialog({
                   {c.display_name || c.email || c.user_id} — {c.role}
                 </Typography>
                 {canManageCollaborators && (
-                  <Button variant="ghost" size="sm" onClick={() => void handleRemove(c.user_id)}>
+                  <Button variant="ghost" size="sm" onClick={() => void removeCollaborator(c.user_id)}>
                     Remove
                   </Button>
                 )}

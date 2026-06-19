@@ -1,12 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Avatar, Badge, Button, Input, Textarea, Typography, ContentLoader } from '@/shared/ui'
-import * as collaborationApi from '@/modules/collaboration/core/api/collaboration.api'
 import type {
   CollaborationPermissions,
   DocumentSuggestion,
 } from '@/modules/collaboration/core/model/collaboration'
+import { useDocumentSuggestions } from '@/modules/collaboration/core/hooks'
 import { MentionUserPicker } from '@/modules/collaboration/comments/ui/MentionUserPicker'
 import { ApiError } from '@/shared/lib/api-types'
 import { toast } from 'sonner'
@@ -78,47 +78,27 @@ export function DocumentSuggestionsPanel({
   projectId,
   permissions,
 }: DocumentSuggestionsPanelProps) {
-  const [suggestions, setSuggestions] = useState<DocumentSuggestion[]>([])
-  const [loading, setLoading] = useState(true)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [mentions, setMentions] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
 
-  const load = useCallback(async () => {
-    if (!permissions.canViewSuggestions) return
-    setLoading(true)
-    try {
-      const res = await collaborationApi.listSuggestions(orgId, documentId, {
-        project_id: projectId,
-        include_closed: true,
-      })
-      setSuggestions(res.items)
-    } catch {
-      toast.error('Failed to load suggestions')
-    } finally {
-      setLoading(false)
-    }
-  }, [orgId, documentId, projectId, permissions.canViewSuggestions])
-
-  useEffect(() => {
-    void load()
-  }, [load])
+  const { suggestions, loading, createSuggestion, acceptSuggestion, rejectSuggestion } =
+    useDocumentSuggestions({
+      orgId,
+      documentId,
+      projectId,
+      canViewSuggestions: permissions.canViewSuggestions,
+    })
 
   const handleCreate = async () => {
     if (!description.trim()) return
     setSubmitting(true)
     try {
-      await collaborationApi.createSuggestion(orgId, documentId, {
-        title: title.trim() || null,
-        description: description.trim(),
-        project_id: projectId,
-        mentioned_user_ids: mentions,
-      })
+      await createSuggestion(title.trim() || null, description.trim(), mentions)
       setTitle('')
       setDescription('')
       setMentions([])
-      await load()
     } catch (err) {
       const msg = err instanceof ApiError ? err.problem.detail : 'Failed to create suggestion'
       toast.error(msg)
@@ -184,14 +164,8 @@ export function DocumentSuggestionsPanel({
               key={s.id}
               suggestion={s}
               permissions={permissions}
-              onAccept={async (id) => {
-                await collaborationApi.acceptSuggestion(orgId, documentId, id, projectId)
-                await load()
-              }}
-              onReject={async (id) => {
-                await collaborationApi.rejectSuggestion(orgId, documentId, id, projectId)
-                await load()
-              }}
+              onAccept={acceptSuggestion}
+              onReject={rejectSuggestion}
             />
           ))}
         </div>

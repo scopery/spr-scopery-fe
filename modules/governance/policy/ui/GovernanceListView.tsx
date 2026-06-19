@@ -16,7 +16,7 @@ import {
   type GovernanceStatusResult,
 } from '@/modules/governance'
 import { useEffectivePermissions } from '@/modules/permissions'
-import { hasPermission, PERMISSIONS } from '@/utils/permissions'
+import { hasPermission, PERMISSIONS } from '@/modules/permissions'
 import { ApiError } from '@/shared/lib/api-types'
 
 export function GovernanceListView() {

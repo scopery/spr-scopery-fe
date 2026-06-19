@@ -1,13 +1,8 @@
 'use client'
 
-import { useState } from 'react'
 import { Button, Typography } from '@/shared/ui'
-import { SAMPLE_GOVERNANCE_CONDITION } from '@/constants/governance.constants'
-import type { GovernanceConditionGroup } from '@/modules/governance/policy'
-import { ApiError } from '@/shared/lib/api-types'
-import * as governanceApi from '../api/governance.api'
+import { useGovernanceConditionJsonEditor } from '../hooks/useGovernanceConditionJsonEditor'
 import type { GovernanceConditionJsonEditorProps } from '../model/governance'
-import { formatConditionsJson, parseConditionsJson } from '../model/governance-conditions'
 
 export function GovernanceConditionJsonEditor({
   orgId,
@@ -16,63 +11,7 @@ export function GovernanceConditionJsonEditor({
   onValidGroup,
   disabled = false,
 }: GovernanceConditionJsonEditorProps) {
-  const [validationErrors, setValidationErrors] = useState<string[]>([])
-  const [validationOk, setValidationOk] = useState<string | null>(null)
-  const [validating, setValidating] = useState(false)
-
-  const runValidate = async () => {
-    const local = parseConditionsJson(value)
-    if (local.errors.length > 0 || !local.group) {
-      setValidationErrors(local.errors.length > 0 ? local.errors : ['Invalid JSON syntax'])
-      setValidationOk(null)
-      return
-    }
-
-    if (!orgId) {
-      setValidationErrors([])
-      setValidationOk('Conditions are valid.')
-      onValidGroup?.(local.group)
-      return
-    }
-
-    setValidating(true)
-    try {
-      const backend = await governanceApi.validateGovernanceConditions(orgId, local.group)
-      if (!backend.valid) {
-        setValidationErrors(backend.errors.length > 0 ? backend.errors : ['Invalid conditions'])
-        setValidationOk(null)
-        return
-      }
-      setValidationErrors([])
-      setValidationOk('Conditions are valid (confirmed by server).')
-      onValidGroup?.(backend.normalized ?? local.group)
-    } catch (err) {
-      setValidationErrors([err instanceof ApiError ? err.message : 'Validation request failed'])
-      setValidationOk(null)
-    } finally {
-      setValidating(false)
-    }
-  }
-
-  const runFormat = () => {
-    const result = parseConditionsJson(value)
-    if (result.group) {
-      onChange(formatConditionsJson(result.group))
-      setValidationErrors([])
-      setValidationOk('Formatted.')
-    } else {
-      setValidationErrors(result.errors.length ? result.errors : ['Invalid JSON'])
-      setValidationOk(null)
-    }
-  }
-
-  const loadSample = () => {
-    onChange(
-      formatConditionsJson(SAMPLE_GOVERNANCE_CONDITION as unknown as GovernanceConditionGroup)
-    )
-    setValidationErrors([])
-    setValidationOk(null)
-  }
+  const editor = useGovernanceConditionJsonEditor({ orgId, value, onChange, onValidGroup })
 
   return (
     <div className="space-y-2">
@@ -81,27 +20,24 @@ export function GovernanceConditionJsonEditor({
         <textarea
           className="border-border min-h-32 w-full rounded border p-2 font-mono text-xs"
           value={value}
-          onChange={(e) => {
-            onChange(e.target.value)
-            setValidationOk(null)
-          }}
+          onChange={(e) => editor.handleChange(e.target.value)}
           disabled={disabled}
         />
       </label>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" disabled={disabled} onClick={runFormat}>
+        <Button variant="outline" size="sm" disabled={disabled} onClick={editor.runFormat}>
           Format JSON
         </Button>
         <Button
           variant="outline"
           size="sm"
           disabled={disabled}
-          loading={validating}
-          onClick={() => void runValidate()}
+          loading={editor.validating}
+          onClick={() => void editor.runValidate()}
         >
           Validate
         </Button>
-        <Button variant="ghost" size="sm" disabled={disabled} onClick={loadSample}>
+        <Button variant="ghost" size="sm" disabled={disabled} onClick={editor.loadSample}>
           Load sample
         </Button>
       </div>
@@ -109,14 +45,14 @@ export function GovernanceConditionJsonEditor({
         Allowed fields: actor_role, workflow_status, readiness_status, partner_access,
         export_format, package_format, selected_document_count, and others from governance metadata.
       </Typography>
-      {validationOk ? (
+      {editor.validationOk ? (
         <Typography variant="small" className="text-green-700">
-          {validationOk}
+          {editor.validationOk}
         </Typography>
       ) : null}
-      {validationErrors.length > 0 ? (
+      {editor.validationErrors.length > 0 ? (
         <ul className="text-destructive list-disc pl-4 text-sm">
-          {validationErrors.map((error) => (
+          {editor.validationErrors.map((error) => (
             <li key={error}>{error}</li>
           ))}
         </ul>
