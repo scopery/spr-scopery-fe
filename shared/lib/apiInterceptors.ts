@@ -3,6 +3,8 @@ export type ApiRequestInit = RequestInit & {
   skipAuthRedirect?: boolean
   /** Skip the global top loading bar (e.g. debounced autosave). */
   skipGlobalLoading?: boolean
+  /** Skip global error toast (hook handles its own messaging). */
+  skipErrorToast?: boolean
 }
 
 export type ApiRequestContext = {

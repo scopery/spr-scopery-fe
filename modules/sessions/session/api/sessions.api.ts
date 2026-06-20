@@ -1,5 +1,5 @@
 import { SESSION_ENDPOINTS } from './endpoints'
-import { apiClient } from '@/shared/lib/apiClient'
+import { apiClient, type ApiRequestInit } from '@/shared/lib/apiClient'
 import type {
   SessionListResponse,
   SessionDetail,
@@ -48,10 +48,11 @@ export async function putAnswers(
   orgId: string,
   projectId: string,
   sessionId: string,
-  payload: PutAnswersPayload
+  payload: PutAnswersPayload,
+  init?: ApiRequestInit
 ): Promise<{ answers: AnswerItem[] }> {
   const url = SESSION_ENDPOINTS.putAnswers(orgId, projectId, sessionId)
-  return apiClient.put<{ answers: AnswerItem[] }>(url, payload)
+  return apiClient.put<{ answers: AnswerItem[] }>(url, payload, init)
 }
 
 export async function submitSession(

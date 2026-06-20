@@ -87,14 +87,20 @@ export function useSessionAnswerSave({
       const thisSaveId = saveIdRef.current
       setSaving(true)
       try {
-        const res = await sessionsApi.putAnswers(orgId, projectId, sessionId, {
-          answers: newAnswers.map((a) => ({
-            question_id: a.question_id,
-            answer_status: a.answer_status,
-            value: serializeValueForApi(a),
-            skip_reason: a.skip_reason ?? null,
-          })),
-        })
+        const res = await sessionsApi.putAnswers(
+          orgId,
+          projectId,
+          sessionId,
+          {
+            answers: newAnswers.map((a) => ({
+              question_id: a.question_id,
+              answer_status: a.answer_status,
+              value: serializeValueForApi(a),
+              skip_reason: a.skip_reason ?? null,
+            })),
+          },
+          { skipGlobalLoading: true, skipErrorToast: true }
+        )
         if (thisSaveId !== saveIdRef.current) return
         setAnswers((prev) => {
           const next = { ...prev }

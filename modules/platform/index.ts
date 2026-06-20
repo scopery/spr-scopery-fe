@@ -1,4 +1,5 @@
 export * from './layout'
 export * from './guards'
 export * from './loading'
+export { ApiErrorProvider } from './providers/ApiErrorProvider'
 export { PLATFORM_ROUTES, ROUTES } from '@/constants/routes'
