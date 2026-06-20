@@ -24,6 +24,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+# Environment (keep .env.example as the committed template)
+.env
 .env*.local
 
 # vercel
