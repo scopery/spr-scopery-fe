@@ -1,6 +1,5 @@
 'use client'
 
-import type { Value } from 'platejs'
 import { KEYS } from 'platejs'
 import {
   BasicBlocksPlugin,
@@ -52,6 +51,9 @@ import {
   ToggleElement,
 } from './plate-elements'
 import { SlashCommandMenu } from './SlashCommandMenu'
+import { ResourceMentionPlugin, SyncedBlockPlugin } from './resource-embed-plugins'
+
+export { emptyPlateValue } from './empty-plate-value'
 
 const LIST_TARGET_PLUGINS = [...KEYS.heading, KEYS.p, KEYS.blockquote, KEYS.codeBlock, KEYS.toggle]
 
@@ -61,10 +63,6 @@ const slashTriggerQuery = (editor: SlateEditor) =>
   !editor.api.some({
     match: { type: editor.getType(KEYS.codeBlock) },
   })
-
-export function emptyPlateValue(): Value {
-  return [{ type: 'p', children: [{ text: '' }] }] as Value
-}
 
 function buildEditorPlugins() {
   return [
@@ -127,6 +125,8 @@ function buildEditorPlugins() {
     TableRowPlugin.withComponent(TableRowElement),
     TableCellPlugin.withComponent(TableCellElement),
     TableCellHeaderPlugin.withComponent(TableHeaderCellElement),
+    ResourceMentionPlugin,
+    SyncedBlockPlugin,
   ]
 }
 
@@ -138,7 +138,7 @@ export function createEditorPlugins() {
 }
 
 export const plateContentClassName = cn(
-  'min-h-[320px] w-full px-4 py-3 text-neutral-900',
+  'min-h-[min(70vh,640px)] w-full flex-1 px-5 py-5 text-base leading-relaxed text-neutral-900 sm:px-8 sm:py-6',
   'focus:outline-none',
   '[&_p]:mb-2 [&_p:last-child]:mb-0',
   '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-2',

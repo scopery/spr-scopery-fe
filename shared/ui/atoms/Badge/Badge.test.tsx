@@ -16,9 +16,9 @@ describe('Badge', () => {
   })
 
   describe('Variants', () => {
-    it('applies solid variant by default', () => {
-      render(<Badge>Solid</Badge>)
-      expect(screen.getByText('Solid')).toHaveClass('bg-neutral-900', 'text-white')
+    it('applies soft variant by default', () => {
+      render(<Badge>Soft</Badge>)
+      expect(screen.getByText('Soft')).toHaveClass('bg-neutral-100', 'text-neutral-900')
     })
 
     it('applies outline variant', () => {
@@ -27,9 +27,9 @@ describe('Badge', () => {
       expect(badge).toHaveClass('border-2', 'border-neutral-900', 'bg-transparent')
     })
 
-    it('applies soft variant', () => {
-      render(<Badge variant="soft">Soft</Badge>)
-      expect(screen.getByText('Soft')).toHaveClass('bg-neutral-100', 'text-neutral-900')
+    it('applies solid variant', () => {
+      render(<Badge variant="solid">Solid</Badge>)
+      expect(screen.getByText('Solid')).toHaveClass('bg-neutral-900', 'text-white')
     })
   })
 
@@ -41,7 +41,7 @@ describe('Badge', () => {
 
     it('applies md size by default', () => {
       render(<Badge>Medium</Badge>)
-      expect(screen.getByText('Medium')).toHaveClass('px-md', 'py-xs', 'text-sm')
+      expect(screen.getByText('Medium')).toHaveClass('px-sm', 'py-xs', 'text-[13px]')
     })
 
     it('applies lg size', () => {
@@ -53,32 +53,32 @@ describe('Badge', () => {
   describe('Tones', () => {
     it('applies default tone', () => {
       render(<Badge tone="default">Default</Badge>)
-      expect(screen.getByText('Default')).toHaveClass('bg-neutral-900')
+      expect(screen.getByText('Default')).toHaveClass('bg-neutral-100', 'text-neutral-900')
     })
 
     it('applies primary tone', () => {
       render(<Badge tone="primary">Primary</Badge>)
-      expect(screen.getByText('Primary')).toHaveClass('bg-primary')
+      expect(screen.getByText('Primary')).toHaveClass('bg-primary/10', 'text-primary')
     })
 
     it('applies success tone', () => {
       render(<Badge tone="success">Success</Badge>)
-      expect(screen.getByText('Success')).toHaveClass('bg-success')
+      expect(screen.getByText('Success')).toHaveClass('bg-success/10', 'text-success')
     })
 
     it('applies warning tone', () => {
       render(<Badge tone="warning">Warning</Badge>)
-      expect(screen.getByText('Warning')).toHaveClass('bg-warning')
+      expect(screen.getByText('Warning')).toHaveClass('bg-warning/10', 'text-warning')
     })
 
     it('applies error tone', () => {
       render(<Badge tone="error">Error</Badge>)
-      expect(screen.getByText('Error')).toHaveClass('bg-error')
+      expect(screen.getByText('Error')).toHaveClass('bg-error/10', 'text-error')
     })
 
     it('applies info tone', () => {
       render(<Badge tone="info">Info</Badge>)
-      expect(screen.getByText('Info')).toHaveClass('bg-info')
+      expect(screen.getByText('Info')).toHaveClass('bg-info/10', 'text-info')
     })
   })
 
@@ -147,7 +147,7 @@ describe('Badge', () => {
       render(<Badge className="custom-class">Custom</Badge>)
       const badge = screen.getByText('Custom')
       expect(badge).toHaveClass('custom-class')
-      expect(badge).toHaveClass('bg-neutral-900')
+      expect(badge).toHaveClass('bg-neutral-100')
     })
   })
 })

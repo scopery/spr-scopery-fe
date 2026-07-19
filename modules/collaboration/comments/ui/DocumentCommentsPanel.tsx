@@ -1,7 +1,9 @@
 'use client'
 
+import { Eye, Send } from 'lucide-react'
+
 import { useState } from 'react'
-import { Button, Textarea, Typography, ContentLoader } from '@/shared/ui'
+import { Button, Textarea, Typography, Skeleton } from '@/shared/ui'
 import type { CollaborationPermissions } from '@/modules/collaboration/core/model/collaboration'
 import { useDocumentComments } from '@/modules/collaboration/core/hooks'
 import { DocumentCommentThread } from './DocumentCommentThread'
@@ -61,7 +63,7 @@ export function DocumentCommentsPanel({
   if (loading) {
     return (
       <div className="flex justify-center py-8">
-        <ContentLoader variant="easeOut" className="w-16" />
+        <Skeleton variant="rectangular" width="100%" height={80} />
       </div>
     )
   }
@@ -70,7 +72,7 @@ export function DocumentCommentsPanel({
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <Typography weight="semibold">Comments ({comments.length})</Typography>
-        <Button variant="ghost" size="sm" onClick={() => setShowResolved((v) => !v)}>
+        <Button variant="ghost" onClick={() => setShowResolved((v) => !v)} icon={<Eye size={16} />}>
           {showResolved ? 'Hide resolved' : 'Show resolved'}
         </Button>
       </div>
@@ -92,10 +94,8 @@ export function DocumentCommentsPanel({
           />
           <Button
             variant="primary"
-            size="sm"
             loading={submitting}
-            onClick={() => void handleCreate()}
-          >
+            onClick={() => void handleCreate()} icon={<Send size={16} />}>
             Post comment
           </Button>
         </div>

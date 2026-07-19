@@ -1,7 +1,7 @@
 import {
   GOVERNANCE_CONDITION_FIELDS,
   GOVERNANCE_CONDITION_OPERATORS,
-} from '@/constants/governance.constants'
+} from '@/modules/governance/policy/lib/governance-constants'
 import type { GovernanceConditionClause, GovernanceConditionGroup } from './governance-types'
 
 const ALLOWED_FIELDS = new Set<string>(GOVERNANCE_CONDITION_FIELDS)

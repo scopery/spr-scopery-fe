@@ -1,1 +1,5 @@
 export type { TraceLinksListResponse } from './model/traceability'
+export { TraceabilityMatrixView } from './ui/TraceabilityMatrixView'
+export { ApplicationRegistryView } from './ui/ApplicationRegistryView'
+export { useTraceabilityMatrix, useApplicationRegistry } from './hooks/useTraceability'
+export * as traceabilityApi from './api/traceability.api'

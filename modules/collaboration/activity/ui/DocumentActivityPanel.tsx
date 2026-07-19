@@ -1,6 +1,6 @@
 'use client'
 
-import { Avatar, Typography, ContentLoader } from '@/shared/ui'
+import { Avatar, Typography, Skeleton } from '@/shared/ui'
 import type {
   CollaborationPermissions,
   DocumentActivity,
@@ -53,7 +53,7 @@ export function DocumentActivityPanel({
   if (loading) {
     return (
       <div className="flex justify-center py-8">
-        <ContentLoader variant="easeOut" className="w-16" />
+        <Skeleton variant="rectangular" width="100%" height={80} />
       </div>
     )
   }

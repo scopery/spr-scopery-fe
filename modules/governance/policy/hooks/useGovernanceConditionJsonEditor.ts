@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { SAMPLE_GOVERNANCE_CONDITION } from '@/constants/governance.constants'
+import { SAMPLE_GOVERNANCE_CONDITION } from '@/modules/governance/policy/lib/governance-constants'
 import type { GovernanceConditionGroup } from '@/modules/governance/policy'
 import { ApiError } from '@/shared/lib/api-types'
 import * as governanceApi from '../api/governance.api'

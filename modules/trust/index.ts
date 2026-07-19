@@ -1,0 +1,5 @@
+export { TrustDashboardView } from './presentation/ui/TrustDashboardView'
+export { PrivacyRequestCenterView } from './presentation/ui/PrivacyRequestCenterView'
+export { useTrustDashboard } from './presentation/hooks/useTrustDashboard'
+export { usePrivacyRequests } from './presentation/hooks/usePrivacyRequests'
+export * as trustApi from './infrastructure/api/trust.api'

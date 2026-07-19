@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { CircleArrowOutUpLeft, Download } from 'lucide-react'
+import { Archive, CircleArrowOutUpLeft, Download, RotateCcw, Save } from 'lucide-react'
 import { Typography, Button, Input, Select, Badge, ConfirmDialog } from '@/shared/ui'
 import {
   DOCUMENT_TYPE_OPTIONS,
@@ -84,17 +84,14 @@ export function DocumentEditor({
           {canEdit && (
             <Button
               variant="primary"
-              size="sm"
               loading={saveStatus === 'saving'}
-              onClick={handleManualSave}
-            >
+              onClick={handleManualSave} icon={<Save size={16} />}>
               Save
             </Button>
           )}
           {canExport && (
             <Button
               variant="outline"
-              size="sm"
               icon={<Download size={14} />}
               loading={exporting}
               onClick={() => void handleExport()}
@@ -103,17 +100,15 @@ export function DocumentEditor({
             </Button>
           )}
           {canArchive && initialDoc.status === 'active' && (
-            <Button variant="outline" size="sm" tone="error" onClick={() => setArchiveOpen(true)}>
+            <Button variant="outline" tone="error" onClick={() => setArchiveOpen(true)} icon={<Archive size={16} />}>
               Archive
             </Button>
           )}
           {canArchive && initialDoc.status === 'archived' && (
             <Button
               variant="outline"
-              size="sm"
               loading={restoring}
-              onClick={() => void handleRestore()}
-            >
+              onClick={() => void handleRestore()} icon={<RotateCcw size={16} />}>
               Restore
             </Button>
           )}
@@ -128,11 +123,11 @@ export function DocumentEditor({
             originType={initialDoc.origin_type}
           />
           {!canEdit && (
-            <Badge variant="soft" tone="neutral" size="sm">
+            <Badge variant="soft" tone="neutral">
               Read-only
             </Badge>
           )}
-          <Badge variant="soft" tone="neutral" size="sm">
+          <Badge variant="soft" tone="neutral">
             Updated {new Date(updatedAt).toLocaleString()}
           </Badge>
         </div>

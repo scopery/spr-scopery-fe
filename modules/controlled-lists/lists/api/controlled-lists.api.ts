@@ -1,4 +1,4 @@
-import { CONTROLLED_LIST_ENDPOINTS } from './endpoints'
+import { CONTROLLED_LIST_ENDPOINTS } from '../../endpoints'
 import { apiClient } from '@/shared/lib/apiClient'
 import type {
   ControlledList,

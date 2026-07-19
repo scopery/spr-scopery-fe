@@ -1,4 +1,5 @@
 export { OrgRedirectView } from './ui/OrgRedirectView'
+/** @deprecated Prefer WorkspaceMembersView */
 export { OrgMembersView } from './ui/OrgMembersView'
 export { useOrg } from './hooks/useOrg'
 export { useOrgMembers } from './hooks/useOrgMembers'

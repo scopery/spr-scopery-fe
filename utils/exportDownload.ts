@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from '@/shared/lib/apiClient'
-import { getGovernanceBlockedMessage } from '@/utils/governanceError'
+import { apiPath } from '@/shared/lib/api-paths'
+import { getGovernanceBlockedMessage } from '@/modules/governance/policy/lib/governance-error'
 import type { ProblemDetails } from '@/shared/lib/api-types'
 
 export type DocumentExportFormat = 'markdown' | 'text'
@@ -66,17 +67,22 @@ export async function downloadSingleDocumentExport(
   documentId: string,
   params?: { format?: DocumentExportFormat; project_id?: string }
 ): Promise<void> {
+  // Legacy org-scoped export was removed. Prefer workbench version download when wired.
+  const projectId = params?.project_id
+  if (!projectId) {
+    throw new Error('Export requires a project context')
+  }
   const search = new URLSearchParams()
   if (params?.format) search.set('format', params.format)
-  if (params?.project_id) search.set('project_id', params.project_id)
   const q = search.toString()
+  // No dedicated export route on BE — keep call project-scoped so proxies don't hit /orgs.
   const url =
-    toProxyUrl(`${getApiBaseUrl()}/api/v2/orgs/${orgId}/documents/${documentId}/export`) +
-    (q ? `?${q}` : '')
+    toProxyUrl(apiPath(`/projects/${projectId}/documents/${documentId}`)) + (q ? `?${q}` : '')
 
+  void orgId
   const res = await fetch(url)
   if (!res.ok) {
-    let message = 'Export failed'
+    let message = 'Export is not available for this document'
     try {
       const body = (await res.json()) as unknown
       message = parseExportErrorMessage(body, message)

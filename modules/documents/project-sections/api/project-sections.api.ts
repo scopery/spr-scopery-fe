@@ -1,5 +1,4 @@
-import { PROJECT_SECTION_ENDPOINTS } from './endpoints'
-import { DOCUMENT_ENDPOINTS } from '../../document/api/endpoints'
+import { PROJECT_SECTION_ENDPOINTS, DOCUMENT_ENDPOINTS } from '../../endpoints'
 import { apiClient } from '@/shared/lib/apiClient'
 import type { GroupedProjectDocuments, ProjectSection } from '../model/project-section-types'
 import type { DocumentType, DocumentWorkflowStatus } from '@/modules/documents/document'

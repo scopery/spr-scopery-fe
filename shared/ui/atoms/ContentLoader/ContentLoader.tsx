@@ -26,6 +26,10 @@ const EASEOUT_CELL_COUNT = 8
  * - default: 2×4 grid + pulse.
  * - easeOut: 2×3 grid, 4-frame animation with ease-out (based on 4 variant frames).
  *
+ * Use ONLY for true full-viewport takeover (auth gates, admin access shell, blocking
+ * redirects). Prefer `PageSkeleton` for in-shell page/content loading, and the top
+ * `GlobalLoadingBar` for navigation + API feedback.
+ *
  * @example
  * ```tsx
  * <ContentLoader />

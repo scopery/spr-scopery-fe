@@ -70,7 +70,6 @@ export const EventCard = React.forwardRef(
                 >
                   <Button
                     variant="ghost"
-                    size="sm"
                     iconOnly
                     icon={<ArrowUpRight size={24} />}
                     onClick={(e: React.MouseEvent) => {
@@ -117,7 +116,6 @@ export const EventCard = React.forwardRef(
                   {showCopyLink && (
                     <Button
                       variant="ghost"
-                      size="sm"
                       onClick={(e: React.MouseEvent) => {
                         e.stopPropagation()
                         onCopyLink?.()

@@ -1,24 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Plus, ChevronUp, ChevronDown, Trash2, Sparkles, CircleArrowOutUpLeft } from 'lucide-react'
-import {
-  Typography,
-  Button,
-  Badge,
-  ContentLoader,
-  Input,
-  Textarea,
-  Select,
-  ConfirmDialog,
-} from '@/shared/ui'
-import { ROUTES } from '@/constants/routes'
-import { questionsApi } from '@/modules/projects'
-import { useProject, useProjectQuestions } from '@/modules/projects'
-import type { ProjectQuestion } from '@/modules/projects'
-import { canEditProject } from '@/modules/permissions'
+import { ChevronDown, ChevronUp, Pencil, Plus, Save, Sparkles, Trash2 } from 'lucide-react'
+import { Typography, Button, Badge, Input, Textarea, Select, ConfirmDialog, PageSkeleton } from '@/shared/ui'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import * as questionsApi from '@/modules/projects/questions/api/questions.api'
+import { useProject } from '@/modules/projects/project/hooks/useProject'
+import { useProjectQuestions } from '@/modules/projects/questions/hooks/useProjectQuestions'
+import type { ProjectQuestion } from '@/modules/projects/questions/model/questions'
+import { canEditProject } from '@/modules/permissions/access/lib/permissions'
 import { ApiError, getProblemCode } from '@/shared/lib/api-types'
 import { toast } from 'sonner'
 import { AIGenerateQuestionsModal } from './AIGenerateQuestionsModal'
@@ -57,7 +48,7 @@ function questionToSections(questions: ProjectQuestion[]): Record<string, Projec
 
 export function ProjectQuestionsView() {
   const params = useParams()
-  const orgId = params.orgId as string
+  const orgId = params.workspaceId as string
   const projectId = params.projectId as string
 
   const { project, loading: projectLoading } = useProject(orgId, projectId)
@@ -121,9 +112,7 @@ export function ProjectQuestionsView() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <ContentLoader variant="easeOut" className="w-20" />
-      </div>
+      <PageSkeleton variant="list" />
     )
   }
 
@@ -137,16 +126,14 @@ export function ProjectQuestionsView() {
 
   return (
     <div>
+      <WorkspaceHierarchyBreadcrumb
+        workspaceId={orgId}
+        project={{ id: projectId, name: project.name }}
+        current="Questions"
+      />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <Link
-            href={ROUTES.org.project(orgId, projectId)}
-            className="mb-2 inline-flex text-primary hover:opacity-80"
-            aria-label="Back to project"
-          >
-            <CircleArrowOutUpLeft size={24} />
-          </Link>
-          <Typography as="h1" size="xl" weight="bold">
+          <Typography as="h1" size="lg" weight="semibold">
             Questions
           </Typography>
           <Typography variant="small" tone="muted" className="mt-0.5">
@@ -158,7 +145,6 @@ export function ProjectQuestionsView() {
             {FEATURES.aiGenerateQuestions && (
               <Button
                 variant="neutral-flat"
-                size="sm"
                 onClick={() => setAiGenerateOpen(true)}
                 className="gap-1"
               >
@@ -166,7 +152,7 @@ export function ProjectQuestionsView() {
                 AI Generate Questions
               </Button>
             )}
-            <Button variant="primary" size="sm" onClick={() => setCreateModalOpen(true)}>
+            <Button variant="primary" onClick={() => setCreateModalOpen(true)}>
               <Plus size={16} />
               Add question
             </Button>
@@ -208,16 +194,16 @@ export function ProjectQuestionsView() {
                   <div className="min-w-0 flex-1">
                     <Typography weight="medium">{q.prompt}</Typography>
                     <div className="mt-1 flex gap-2">
-                      <Badge variant="soft" size="sm">
+                      <Badge variant="soft">
                         {q.q_type}
                       </Badge>
                       {q.required && (
-                        <Badge variant="solid" tone="warning" size="sm">
+                        <Badge tone="warning">
                           Required
                         </Badge>
                       )}
                       {q.source !== 'manual' && (
-                        <Badge variant="soft" tone="default" size="sm">
+                        <Badge variant="soft" tone="default">
                           {q.source}
                         </Badge>
                       )}
@@ -226,13 +212,12 @@ export function ProjectQuestionsView() {
                   {canEdit && (
                     <div className="flex shrink-0 gap-2">
                       {q.source === 'manual' && (
-                        <Button variant="ghost" size="sm" onClick={() => setEditQuestion(q)}>
+                        <Button variant="ghost" onClick={() => setEditQuestion(q)} icon={<Pencil size={16} />}>
                           Edit
                         </Button>
                       )}
                       <Button
                         variant="ghost"
-                        size="sm"
                         tone="error"
                         onClick={() => setConfirmArchive(q)}
                       >
@@ -251,7 +236,7 @@ export function ProjectQuestionsView() {
         <div className="rounded-lg border border-neutral-200 bg-white p-12 text-center">
           <Typography tone="muted">No active questions. Add one to get started.</Typography>
           {canEdit && (
-            <Button variant="primary" className="mt-4" onClick={() => setCreateModalOpen(true)}>
+            <Button variant="primary" className="mt-4" onClick={() => setCreateModalOpen(true)} icon={<Plus size={16} />}>
               Add question
             </Button>
           )}
@@ -452,7 +437,7 @@ function QuestionFormModal({
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleSubmit} loading={loading}>
+          <Button variant="primary" onClick={handleSubmit} loading={loading} icon={<Save size={16} />}>
             Save
           </Button>
         </div>

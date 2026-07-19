@@ -1,6 +1,8 @@
 'use client'
 
-import { Modal, Input, Select, Typography, Button, ContentLoader } from '@/shared/ui'
+import { Eye, Plus } from 'lucide-react'
+
+import { Modal, Input, Select, Typography, Button, Skeleton } from '@/shared/ui'
 import { DELIVERABLE_TYPE_LABELS, type DeliverableType } from '@/modules/documents/deliverables'
 import { DeliverableDocumentSetSummary } from './DeliverableDocumentSetSummary'
 import { DeliverableDocumentSetPicker } from './DeliverableDocumentSetPicker'
@@ -52,7 +54,7 @@ export function CreateDeliverableDialogView({
   return (
     <Modal open={open} onClose={onClose} title="Create deliverable" size="lg">
       <div className="space-y-4">
-        <Typography variant="body-sm" className="text-muted-foreground">
+        <Typography variant="small" tone="muted">
           Generate a structured draft from a controlled template using existing project data. Not AI
           generation.
         </Typography>
@@ -83,27 +85,27 @@ export function CreateDeliverableDialogView({
           />
         ) : (
           <div className="border-border rounded-md border p-3">
-            <Typography variant="body-sm" className="font-medium">
+            <Typography variant="small" weight="medium">
               {DELIVERABLE_TYPE_LABELS[lockDeliverableType]}
             </Typography>
           </div>
         )}
 
         {templatesLoading ? (
-          <ContentLoader />
+          <Skeleton variant="rectangular" width="100%" height={80} />
         ) : selectedTemplate ? (
           <div className="border-border rounded-md border p-3">
-            <Typography variant="body-sm" className="font-medium">
+            <Typography variant="small" weight="medium">
               {selectedTemplate.title}
             </Typography>
             {selectedTemplate.description ? (
-              <Typography variant="body-sm" className="text-muted-foreground mt-1">
+              <Typography variant="small" tone="muted" className="mt-1">
                 {selectedTemplate.description}
               </Typography>
             ) : null}
           </div>
         ) : (
-          <Typography variant="body-sm" className="text-destructive">
+          <Typography variant="small" tone="error">
             No published template found. Run template seed if needed.
           </Typography>
         )}
@@ -117,7 +119,7 @@ export function CreateDeliverableDialogView({
 
         {effectiveSource === 'session' && !initialSourceEntityId ? (
           sourcesLoading ? (
-            <ContentLoader />
+            <Skeleton variant="rectangular" width="100%" height={80} />
           ) : (
             <Select
               label="Elicitation session"
@@ -130,7 +132,7 @@ export function CreateDeliverableDialogView({
 
         {effectiveSource === 'requirement' && !initialSourceEntityId ? (
           sourcesLoading ? (
-            <ContentLoader />
+            <Skeleton variant="rectangular" width="100%" height={80} />
           ) : (
             <Select
               label="Requirement"
@@ -175,54 +177,53 @@ export function CreateDeliverableDialogView({
             type="button"
             variant="secondary"
             onClick={onPreview}
-            disabled={previewLoading || !selectedTemplate}
-          >
+            disabled={previewLoading || !selectedTemplate} icon={<Eye size={16} />}>
             {previewLoading ? 'Previewing…' : 'Preview'}
           </Button>
           <Button
             type="button"
             onClick={onCreate}
             disabled={creating || !selectedTemplate || governanceDenied}
-          >
+           icon={<Plus size={16} />}>
             {creating ? 'Creating…' : 'Create draft'}
           </Button>
         </div>
 
         {preview ? (
           <div className="border-border space-y-3 rounded-md border p-3">
-            <Typography variant="body-sm" className="font-medium">
+            <Typography variant="small" weight="medium">
               Preview — {preview.title}
             </Typography>
             <DeliverableReadinessWarnings readiness={preview.readiness} />
             {governanceDenied && governanceBlockedReasons.length > 0 ? (
-              <ul className="text-destructive space-y-1 text-sm">
+              <Typography as="ul" variant="small" tone="error" className="space-y-1">
                 {governanceBlockedReasons.map((reason) => (
                   <li key={reason}>{reason}</li>
                 ))}
-              </ul>
+              </Typography>
             ) : null}
             {governanceWarnings.map((warning, index) => (
               <Typography
                 key={`gov-warning-${index}`}
-                variant="body-sm"
+                variant="small"
                 className="text-amber-700 dark:text-amber-400"
               >
                 {warning}
               </Typography>
             ))}
             {preview.warnings.length > 0 ? (
-              <ul className="space-y-1 text-sm text-amber-700 dark:text-amber-400">
+              <Typography as="ul" variant="small" className="space-y-1 text-amber-700 dark:text-amber-400">
                 {preview.warnings.map((warning, index) => (
                   <li key={`${warning.code}-${index}`}>{warning.message}</li>
                 ))}
-              </ul>
+              </Typography>
             ) : null}
             {preview.blocking_errors.length > 0 ? (
-              <ul className="text-destructive space-y-1 text-sm">
+              <Typography as="ul" variant="small" tone="error" className="space-y-1">
                 {preview.blocking_errors.map((error) => (
                   <li key={error}>{error}</li>
                 ))}
-              </ul>
+              </Typography>
             ) : null}
             <pre
               className={cn(

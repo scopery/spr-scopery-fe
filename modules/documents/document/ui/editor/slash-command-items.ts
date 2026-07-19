@@ -27,6 +27,8 @@ export type SlashCommandGroup =
   | 'Data'
   | 'Link'
   | 'Variables'
+  | 'Media'
+  | 'Reusable'
 
 export interface SlashCommandItem {
   id: string

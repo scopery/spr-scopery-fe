@@ -1,10 +1,10 @@
-export { AdminAiHubView } from './ui/AdminAiHubView'
-export { AiRunsListView } from './ui/AiRunsListView'
-export { AdminAiConfigTestView } from './ui/AdminAiConfigTestView'
-export { AiRunDetailView } from './ui/AiRunDetailView'
-export { AdminAiConfigEditView } from './ui/AdminAiConfigEditView'
-export { useAdminAiConfigs, useAdminAiRuns } from './hooks/useAdminAi'
-export { useAiRunDetail } from './hooks/useAiRunDetail'
+export { AdminAiHubView } from './presentation/ui/AdminAiHubView'
+export { AiRunsListView } from './presentation/ui/AiRunsListView'
+export { AdminAiConfigTestView } from './presentation/ui/AdminAiConfigTestView'
+export { AiRunDetailView } from './presentation/ui/AiRunDetailView'
+export { AdminAiConfigEditView } from './presentation/ui/AdminAiConfigEditView'
+export { useAdminAiConfigs, useAdminAiRuns } from './presentation/hooks/useAdminAi'
+export { useAiRunDetail } from './presentation/hooks/useAiRunDetail'
 export type {
   AiConfig,
   AiRun,
@@ -15,6 +15,6 @@ export type {
   AiTestRunRequest,
   AiTestRunResponse,
   AiRunsListRequest,
-} from './model/ai'
-export * as adminAiApi from './api/admin-ai.api'
-export { testRunAiConfig } from './api/admin-ai.api'
+} from './domain/model/ai'
+export * as adminAiApi from './infrastructure/api/admin-ai.api'
+export { testRunAiConfig } from './infrastructure/api/admin-ai.api'

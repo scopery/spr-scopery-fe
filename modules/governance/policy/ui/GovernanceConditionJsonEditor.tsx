@@ -1,5 +1,7 @@
 'use client'
 
+import { CheckCircle, ChevronDown, Code } from 'lucide-react'
+
 import { Button, Typography } from '@/shared/ui'
 import { useGovernanceConditionJsonEditor } from '../hooks/useGovernanceConditionJsonEditor'
 import type { GovernanceConditionJsonEditorProps } from '../model/governance'
@@ -25,19 +27,17 @@ export function GovernanceConditionJsonEditor({
         />
       </label>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" disabled={disabled} onClick={editor.runFormat}>
+        <Button variant="outline" disabled={disabled} onClick={editor.runFormat} icon={<Code size={16} />}>
           Format JSON
         </Button>
         <Button
           variant="outline"
-          size="sm"
           disabled={disabled}
           loading={editor.validating}
-          onClick={() => void editor.runValidate()}
-        >
+          onClick={() => void editor.runValidate()} icon={<CheckCircle size={16} />}>
           Validate
         </Button>
-        <Button variant="ghost" size="sm" disabled={disabled} onClick={editor.loadSample}>
+        <Button variant="ghost" disabled={disabled} onClick={editor.loadSample} icon={<ChevronDown size={16} />}>
           Load sample
         </Button>
       </div>
@@ -51,9 +51,13 @@ export function GovernanceConditionJsonEditor({
         </Typography>
       ) : null}
       {editor.validationErrors.length > 0 ? (
-        <ul className="text-destructive list-disc pl-4 text-sm">
+        <ul className="list-disc space-y-1 pl-4">
           {editor.validationErrors.map((error) => (
-            <li key={error}>{error}</li>
+            <li key={error}>
+              <Typography as="span" variant="small" tone="error">
+                {error}
+              </Typography>
+            </li>
           ))}
         </ul>
       ) : null}

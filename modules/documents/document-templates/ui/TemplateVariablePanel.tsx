@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Braces, Copy } from 'lucide-react'
-import { Badge, Button, Input, Typography } from '@/shared/ui'
+import { Braces, Copy, CornerDownLeft } from 'lucide-react'
+import { Badge, Button, Input, Typography, Select } from '@/shared/ui'
 import { formatVariableToken } from '../model/template-variables/extract-template-variables'
 import type { TemplateVariableDefinition } from '@/modules/documents/document-templates'
 import { toast } from 'sonner'
@@ -85,21 +85,18 @@ export function TemplateVariablePanel({
         fullWidth
       />
 
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by category">
-        {categories.map((cat) => (
-          <Button
-            key={cat}
-            type="button"
-            size="sm"
-            variant={category === cat ? 'primary' : 'outline'}
-            onClick={() => setCategory(cat)}
-          >
-            {cat === 'all'
-              ? 'All'
-              : (CATEGORY_LABEL[cat as TemplateVariableDefinition['category']] ?? cat)}
-          </Button>
-        ))}
-      </div>
+      <Select
+        value={category}
+        onValueChange={setCategory}
+        options={categories.map((cat) => ({
+          value: cat,
+          label:
+            cat === 'all'
+              ? 'All categories'
+              : (CATEGORY_LABEL[cat as TemplateVariableDefinition['category']] ?? cat),
+        }))}
+        placeholder="All categories"
+      />
 
       <div className="max-h-[420px] space-y-3 overflow-y-auto">
         {filtered.length === 0 ? (
@@ -121,7 +118,7 @@ export function TemplateVariablePanel({
                       {token}
                     </Typography>
                   </div>
-                  <Badge tone="neutral" size="sm">
+                  <Badge tone="neutral">
                     {CATEGORY_LABEL[variable.category]}
                   </Badge>
                 </div>
@@ -132,12 +129,11 @@ export function TemplateVariablePanel({
                   Example: {variable.example}
                 </Typography>
                 <div className="flex gap-2">
-                  <Button type="button" size="sm" variant="primary" onClick={() => onInsert(token)}>
+                  <Button type="button" variant="primary" onClick={() => onInsert(token)} icon={<CornerDownLeft size={16} />}>
                     Insert
                   </Button>
                   <Button
                     type="button"
-                    size="sm"
                     variant="outline"
                     onClick={() => void copyToken(token)}
                     aria-label={`Copy ${token}`}

@@ -34,6 +34,7 @@ export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
             type="radio"
             id={radioId}
             disabled={disabled}
+            aria-invalid={error ? 'true' : undefined}
             aria-describedby={cn(errorId, helperTextId)}
             className={cn(
               // Base styles

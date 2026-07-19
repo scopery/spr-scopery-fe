@@ -1,10 +1,12 @@
 'use client'
 
-import { Button, Select } from '@/shared/ui'
+import { Plus, Trash2 } from 'lucide-react'
+
+import { Button, Select, Typography } from '@/shared/ui'
 import {
   GOVERNANCE_CONDITION_FIELDS,
   GOVERNANCE_CONDITION_OPERATORS,
-} from '@/constants/governance.constants'
+} from '@/modules/governance/policy/lib/governance-constants'
 import type { GovernanceConditionBuilderProps } from '../model/governance'
 import { operatorNeedsValue } from '../model/governance-conditions'
 
@@ -92,24 +94,26 @@ export function GovernanceConditionBuilder({
               />
             </label>
           ) : (
-            <div className="text-muted-foreground self-end pb-2 text-sm md:col-span-2">
+            <Typography
+              as="div"
+              variant="small"
+              className="text-muted-foreground self-end pb-2 md:col-span-2"
+            >
               No value required
-            </div>
+            </Typography>
           )}
           <div className="md:col-span-4">
             <Button
               variant="ghost"
-              size="sm"
               disabled={disabled || clauses.length <= 1}
-              onClick={() => removeClause(index)}
-            >
+              onClick={() => removeClause(index)} icon={<Trash2 size={16} />}>
               Remove condition
             </Button>
           </div>
         </div>
       ))}
 
-      <Button variant="outline" size="sm" disabled={disabled} onClick={addClause}>
+      <Button variant="outline" disabled={disabled} onClick={addClause} icon={<Plus size={16} />}>
         Add condition
       </Button>
     </div>

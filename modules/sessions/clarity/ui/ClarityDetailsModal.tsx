@@ -76,7 +76,6 @@ export function ClarityDetailsModal({
                     ? 'warning'
                     : 'error'
             }
-            size="sm"
           >
             {labelDisplay} {formatScore(a.clarity_score)}
           </Badge>
@@ -91,16 +90,24 @@ export function ClarityDetailsModal({
             </Typography>
             <div className="bg-neutral-50/50 space-y-3 border border-neutral-200 p-3">
               {a.answer_guidance.length > 0 && (
-                <ul className="list-inside list-disc space-y-1 text-sm text-neutral-700">
+                <ul className="list-inside list-disc space-y-1">
                   {a.answer_guidance.map((g, i) => (
-                    <li key={i}>{g}</li>
+                    <li key={i}>
+                      <Typography as="span" variant="small" className="text-neutral-700">
+                        {g}
+                      </Typography>
+                    </li>
                   ))}
                 </ul>
               )}
               {a.ambiguity_tags.length > 0 && (
-                <ul className="list-inside list-disc space-y-1 text-sm text-neutral-700">
+                <ul className="list-inside list-disc space-y-1">
                   {a.ambiguity_tags.map((tag, i) => (
-                    <li key={i}>{tag}</li>
+                    <li key={i}>
+                      <Typography as="span" variant="small" className="text-neutral-700">
+                        {tag}
+                      </Typography>
+                    </li>
                   ))}
                 </ul>
               )}
@@ -112,7 +119,6 @@ export function ClarityDetailsModal({
                     </Typography>
                     <Button
                       variant="ghost"
-                      size="sm"
                       onClick={handleCopyTemplate}
                       className="min-h-0 gap-1 py-1"
                     >
@@ -125,9 +131,13 @@ export function ClarityDetailsModal({
                       )}
                     </Button>
                   </div>
-                  <pre className="overflow-x-auto whitespace-pre-wrap rounded border border-neutral-200 bg-white p-2 text-sm text-neutral-800">
+                  <Typography
+                    as="pre"
+                    variant="small"
+                    className="overflow-x-auto whitespace-pre-wrap rounded border border-neutral-200 bg-white p-2 text-neutral-800"
+                  >
                     {a.suggested_answer_template}
-                  </pre>
+                  </Typography>
                 </div>
               )}
             </div>
@@ -139,9 +149,13 @@ export function ClarityDetailsModal({
             <Typography variant="small" weight="medium" className="mb-2 block text-neutral-600">
               Missing fields
             </Typography>
-            <ul className="list-inside list-disc space-y-1 text-sm text-neutral-700">
+            <ul className="list-inside list-disc space-y-1">
               {a.missing_fields.map((f) => (
-                <li key={f}>{f}</li>
+                <li key={f}>
+                  <Typography as="span" variant="small" className="text-neutral-700">
+                    {f}
+                  </Typography>
+                </li>
               ))}
             </ul>
           </div>
@@ -158,7 +172,6 @@ export function ClarityDetailsModal({
                   <Badge
                     variant="soft"
                     tone={PRIORITY_TONE[fq.priority]}
-                    size="sm"
                     className="mt-0.5 shrink-0"
                   >
                     {fq.priority}
@@ -174,12 +187,10 @@ export function ClarityDetailsModal({
           <div className="border-t border-neutral-200 pt-2">
             <Button
               variant="outline"
-              size="sm"
               onClick={onReAssess}
               loading={reAssessLoading}
-              className="gap-2"
+              icon={<RefreshCw size={14} />}
             >
-              <RefreshCw size={14} />
               Re-assess clarity
             </Button>
           </div>

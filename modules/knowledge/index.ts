@@ -1,0 +1,8 @@
+export { DocumentTypeLibraryView } from './presentation/ui/DocumentTypeLibraryView'
+export { DocumentTypeBuilderView } from './presentation/ui/DocumentTypeBuilderView'
+export { KnowledgeIndexingView } from './presentation/ui/KnowledgeIndexingView'
+export { KnowledgeGraphView } from './presentation/ui/KnowledgeGraphView'
+export { useDocumentTypes } from './presentation/hooks/useDocumentTypes'
+export * as knowledgeApi from './infrastructure/api/knowledge'
+export type { DocumentType } from './domain/model/knowledge'
+export type { IndexJob } from './infrastructure/api/knowledge'

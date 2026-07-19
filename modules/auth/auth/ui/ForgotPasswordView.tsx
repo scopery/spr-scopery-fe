@@ -1,5 +1,7 @@
 'use client'
 
+import { Send } from 'lucide-react'
+
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -7,7 +9,7 @@ import { toast } from 'sonner'
 import { Button, Input, Typography, Stack, Link as DesignLink, Avatar, Divider } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
-import { useAuthActions } from '@/modules/auth'
+import { useAuthActions } from '../hooks/useAuthActions'
 
 function ScoperyLogo({ className }: { className?: string }) {
   return (
@@ -91,8 +93,7 @@ export function ForgotPasswordView() {
                 fullWidth
                 loading={loading}
                 disabled={!email.trim() || loading}
-                className="h-12 rounded-lg border-0 bg-gradient-to-r from-[#0a1121] to-primary text-white hover:opacity-95"
-              >
+                className="h-12 rounded-lg border-0 bg-gradient-to-r from-[#0a1121] to-primary text-white hover:opacity-95" icon={<Send size={16} />}>
                 Send reset link
               </Button>
             </Stack>

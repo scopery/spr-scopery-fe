@@ -24,7 +24,6 @@ export function AnswerEvidenceStrip({
     <div className="mt-4 border-t border-neutral-100 pt-3">
       <Button
         variant="ghost"
-        size="sm"
         className="h-auto gap-1.5 px-0"
         onClick={() => setExpanded((v) => !v)}
       >

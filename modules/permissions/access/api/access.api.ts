@@ -1,22 +1,15 @@
 import { apiClient } from '@/shared/lib/apiClient'
+import { ACCESS_ENDPOINTS } from '../../endpoints'
 import type { EffectivePermissions } from '../model/permissions-types'
-
-const v2 = (path: string) => {
-  const base =
-    typeof process !== 'undefined'
-      ? (process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? '')
-      : ''
-  return `${base}/api/v2${path}`
-}
 
 export async function getEffectivePermissions(
   orgId: string,
   projectId?: string
 ): Promise<EffectivePermissions> {
-  const params = new URLSearchParams()
-  if (projectId) params.set('projectId', projectId)
-  const q = params.toString()
-  const url = v2(`/orgs/${orgId}/access/effective-permissions`) + (q ? `?${q}` : '')
-  const res = await apiClient.get<{ ok: boolean; data: EffectivePermissions }>(url)
+  // Legacy org-scoped path — not on current BE. Callers use role fallbacks.
+  const url = ACCESS_ENDPOINTS.effectivePermissions(orgId, projectId)
+  const res = await apiClient.get<{ ok: boolean; data: EffectivePermissions }>(url, {
+    skipErrorToast: true,
+  })
   return res.data
 }

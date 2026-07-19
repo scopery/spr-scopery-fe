@@ -2,10 +2,11 @@ import React from 'react'
 import { cn } from '@/utils/cn'
 import type { InputProps } from './Input.types'
 
+/** Keep in sync with Button / Select: sm h-8, md h-9, lg h-12 */
 const inputSizes = {
-  sm: 'h-10 text-sm',
-  md: 'h-12 text-sm',
-  lg: 'h-14 text-base',
+  sm: 'h-8 text-sm',
+  md: 'h-9 text-[13px]',
+  lg: 'h-12 text-base',
 }
 
 const inputPadding = {

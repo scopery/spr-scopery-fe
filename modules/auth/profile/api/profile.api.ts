@@ -1,8 +1,24 @@
-import { PROFILE_ENDPOINTS } from './endpoints'
+import { PROFILE_ENDPOINTS } from '../../endpoints'
 import { apiClient } from '@/shared/lib/apiClient'
 import type { Profile, UserProfile } from '@/modules/auth/auth/model/auth'
+import type { IamMe } from '@/modules/auth/iam/model'
 
 export type { Profile, UserProfile } from '@/modules/auth/auth/model/auth'
+
+function mapMeToProfile(me: IamMe): Profile {
+  const status = me.status?.toLowerCase() === 'suspended' ? 'suspended' : 'active'
+  return {
+    user_id: me.id,
+    email: me.email,
+    display_name: me.fullName?.trim() || me.username,
+    avatar_url: null,
+    role: 'user',
+    status,
+    default_org_id: me.organizationMemberships[0]?.organizationId ?? null,
+    created_at: me.createdAt,
+    updated_at: me.createdAt,
+  }
+}
 
 export function normalizeProfile(raw: Profile): UserProfile {
   return {
@@ -15,43 +31,23 @@ export function normalizeProfile(raw: Profile): UserProfile {
 }
 
 export async function getProfile(): Promise<Profile> {
-  const url = PROFILE_ENDPOINTS.getProfile()
-  return apiClient.get<Profile>(url)
+  const me = await apiClient.get<IamMe>(PROFILE_ENDPOINTS.getProfile())
+  return mapMeToProfile(me)
 }
 
 export async function updateProfile(patch: {
   display_name?: string
   avatar_url?: string
 }): Promise<Profile> {
-  const url = PROFILE_ENDPOINTS.updateProfile()
-  return apiClient.patch<Profile>(url, patch)
+  const current = await getProfile()
+  if (patch.display_name) {
+    await apiClient.put(PROFILE_ENDPOINTS.updateProfile(current.user_id), {
+      fullName: patch.display_name,
+    })
+  }
+  return getProfile()
 }
 
-export async function uploadAvatar(file: File): Promise<{ public_url: string }> {
-  const { getAccessToken } = await import('@/shared/lib/apiClient')
-  const token = getAccessToken()
-  const res = await fetch(PROFILE_ENDPOINTS.uploadAvatar(), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({
-      file_name: file.name,
-      mime_type: file.type,
-    }),
-  })
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { detail?: string; title?: string }
-    throw new Error(body.detail ?? body.title ?? 'Upload failed')
-  }
-  const data = (await res.json()) as {
-    signed_url: string
-    object_path: string
-    expires_at: string
-    public_url: string
-  }
-  await fetch(data.signed_url, { method: 'PUT', body: file })
-  await updateProfile({ avatar_url: data.public_url })
-  return { public_url: data.public_url }
+export async function uploadAvatar(_file: File): Promise<{ public_url: string }> {
+  throw new Error('Avatar upload is not available yet')
 }

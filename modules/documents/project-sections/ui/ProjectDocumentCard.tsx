@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Pin, PinOff } from 'lucide-react'
+import { Move, Pin, PinOff, Unlink } from 'lucide-react'
 import { Typography, Button, Badge } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { snippet } from '@/modules/documents/document'
@@ -19,7 +19,7 @@ export function ProjectDocumentCard({
   onMoveToSection,
   pinLoading,
 }: ProjectDocumentCardProps) {
-  const href = ROUTES.org.document(orgId, item.document_id, projectId)
+  const href = ROUTES.workspace.document(orgId, item.document_id, projectId)
 
   return (
     <article className="border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300">
@@ -34,12 +34,12 @@ export function ProjectDocumentCard({
             <DocumentTypeBadge type={item.document_type} />
             <DocumentVisibilityBadge visibility={item.visibility} />
             {item.pinned && (
-              <Badge variant="soft" tone="warning" size="sm">
+              <Badge variant="soft" tone="warning">
                 Pinned
               </Badge>
             )}
             {(item.link_count ?? 0) > 0 && (
-              <Badge variant="soft" tone="info" size="sm">
+              <Badge variant="soft" tone="info">
                 {item.link_count} link{(item.link_count ?? 0) === 1 ? '' : 's'}
               </Badge>
             )}
@@ -49,7 +49,6 @@ export function ProjectDocumentCard({
           <div className="flex shrink-0 gap-1">
             <Button
               variant="ghost"
-              size="sm"
               iconOnly
               icon={item.pinned ? <PinOff size={16} /> : <Pin size={16} />}
               aria-label={item.pinned ? 'Unpin document' : 'Pin document'}
@@ -73,22 +72,20 @@ export function ProjectDocumentCard({
         </Typography>
         <div className="flex gap-2">
           <Link href={href}>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost">
               Open
             </Button>
           </Link>
           {canManage && onMoveToSection && (
-            <Button variant="ghost" size="sm" onClick={onMoveToSection}>
+            <Button variant="ghost" onClick={onMoveToSection} icon={<Move size={16} />}>
               Move
             </Button>
           )}
           {canManage && (
             <Button
               variant="ghost"
-              size="sm"
               className="text-error"
-              onClick={() => onDetach(item.document_id)}
-            >
+              onClick={() => onDetach(item.document_id)} icon={<Unlink size={16} />}>
               Detach
             </Button>
           )}

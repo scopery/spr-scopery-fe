@@ -26,19 +26,19 @@ describe('Textarea', () => {
     it('applies sm size', () => {
       render(<Textarea size="sm" placeholder="Small" />)
       const textarea = screen.getByPlaceholderText('Small')
-      expect(textarea).toHaveClass('px-sm', 'py-xs', 'text-sm', 'min-h-20')
+      expect(textarea).toHaveClass('text-sm', 'min-h-20')
     })
 
     it('applies md size by default', () => {
       render(<Textarea placeholder="Medium" />)
       const textarea = screen.getByPlaceholderText('Medium')
-      expect(textarea).toHaveClass('px-md', 'py-sm', 'text-base', 'min-h-24')
+      expect(textarea).toHaveClass('text-sm', 'min-h-24')
     })
 
     it('applies lg size', () => {
       render(<Textarea size="lg" placeholder="Large" />)
       const textarea = screen.getByPlaceholderText('Large')
-      expect(textarea).toHaveClass('px-lg', 'py-md', 'text-lg', 'min-h-32')
+      expect(textarea).toHaveClass('text-base', 'min-h-32')
     })
   })
 
@@ -46,7 +46,7 @@ describe('Textarea', () => {
     it('applies outline variant by default', () => {
       render(<Textarea placeholder="Outline" />)
       const textarea = screen.getByPlaceholderText('Outline')
-      expect(textarea).toHaveClass('border-2', 'bg-white')
+      expect(textarea).toHaveClass('border', 'bg-white')
     })
 
     it('applies filled variant', () => {
@@ -202,7 +202,7 @@ describe('Textarea', () => {
       render(<Textarea className="custom-class" placeholder="Custom" />)
       const textarea = screen.getByPlaceholderText('Custom')
       expect(textarea).toHaveClass('custom-class')
-      expect(textarea).toHaveClass('rounded-md')
+      expect(textarea).toHaveClass('w-full')
     })
   })
 })

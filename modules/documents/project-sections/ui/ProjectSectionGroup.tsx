@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, ChevronUp, FolderOpen, Plus } from 'lucide-react'
+import { Archive, ChevronDown, ChevronUp, FolderOpen, Pencil, Plus } from 'lucide-react'
 import { Typography, Button, Badge } from '@/shared/ui'
 import type { ProjectSectionGroupProps } from '../model/project-sections'
 import { ProjectDocumentCard } from './ProjectDocumentCard'
@@ -36,7 +36,7 @@ export function ProjectSectionGroup({
             <Typography as="h3" id={`section-${section?.id ?? 'unsectioned'}`} weight="semibold">
               {title}
             </Typography>
-            <Badge variant="soft" tone="neutral" size="sm">
+            <Badge variant="soft" tone="neutral">
               {documents.length}
             </Badge>
           </div>
@@ -52,7 +52,6 @@ export function ProjectSectionGroup({
             {onMoveUp && (
               <Button
                 variant="ghost"
-                size="sm"
                 iconOnly
                 icon={<ChevronUp size={16} />}
                 aria-label="Move section up"
@@ -63,7 +62,6 @@ export function ProjectSectionGroup({
             {onMoveDown && (
               <Button
                 variant="ghost"
-                size="sm"
                 iconOnly
                 icon={<ChevronDown size={16} />}
                 aria-label="Move section down"
@@ -74,7 +72,6 @@ export function ProjectSectionGroup({
             {onNewDocument && (
               <Button
                 variant="outline"
-                size="sm"
                 onClick={onNewDocument}
                 className="flex items-center gap-1"
               >
@@ -83,12 +80,12 @@ export function ProjectSectionGroup({
               </Button>
             )}
             {onRename && (
-              <Button variant="ghost" size="sm" onClick={onRename}>
+              <Button variant="ghost" onClick={onRename} icon={<Pencil size={16} />}>
                 Rename
               </Button>
             )}
             {onArchive && section && (
-              <Button variant="ghost" size="sm" onClick={onArchive}>
+              <Button variant="ghost" onClick={onArchive} icon={<Archive size={16} />}>
                 Archive
               </Button>
             )}
@@ -113,7 +110,6 @@ export function ProjectSectionGroup({
                   {onMoveDocumentUp && (
                     <Button
                       variant="ghost"
-                      size="sm"
                       iconOnly
                       icon={<ChevronUp size={14} />}
                       aria-label="Move document up"
@@ -124,7 +120,6 @@ export function ProjectSectionGroup({
                   {onMoveDocumentDown && (
                     <Button
                       variant="ghost"
-                      size="sm"
                       iconOnly
                       icon={<ChevronDown size={14} />}
                       aria-label="Move document down"

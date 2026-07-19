@@ -1,10 +1,12 @@
 /**
- * API client — v2 API.
- * - Success: returns object directly (no { ok, data } envelope).
- * - Error: parses application/problem+json (RFC 9457), throws ApiError.
- * - Client-side: requests are routed through /api/proxy/* (Next.js BFF).
- *   The proxy reads the HttpOnly scopery_token cookie and adds Authorization header.
- * - On 401: clear session and redirect to login.
+ * API client
+ * - Requests use `credentials: 'include'` — browser sends HttpOnly auth cookies automatically.
+ * - CSRF: reads `XSRF-TOKEN` cookie → sends `X-XSRF-TOKEN` header on all mutating requests
+ *   (except `/api/iam/auth/` endpoints which are exempt per BE spec).
+ * - Success: unwraps `{ success: true, data }` envelope if present, otherwise returns body directly.
+ * - Error: parses BE error format `{ success: false, ... }` or RFC 9457, throws ApiError.
+ * - On 401: attempts refresh once via POST /api/iam/auth/refresh, retries original request.
+ *   If refresh also fails, clears session and redirects to login.
  *
  * Mock mode (NEXT_PUBLIC_DATA_MODE=mock):
  *   Every request is intercepted before fetch(). The mock resolver maps the URL
@@ -14,6 +16,7 @@
 
 import type { ProblemDetails } from '@/shared/lib/api-types'
 import { ApiError } from '@/shared/lib/api-types'
+import { apiPath } from '@/shared/lib/api-paths'
 import {
   runErrorInterceptors,
   runRequestInterceptors,
@@ -22,19 +25,47 @@ import {
 } from '@/shared/lib/apiInterceptors'
 import { SCOPERY_SESSION_COOKIE } from '@/shared/lib/auth-cookies'
 import { trackGlobalLoading } from '@/shared/lib/globalLoading'
-import { isMockMode, MOCK_DELAY_MS } from './dataMode'
-import { resolveMock, MOCK_SESSION_COOKIE_VALUE } from '../../mocks'
+import { buildLoginUrl, redirectToLogin } from '@/shared/lib/redirectToLogin'
 
 export type { ApiRequestInit } from '@/shared/lib/apiInterceptors'
+export { getApiBaseUrl } from '@/shared/lib/api-paths'
 
-const LOGIN_PATH = '/auth/login'
+/** Path prefix for auth endpoints — CSRF-exempt per BE spec */
+const AUTH_IAM_PREFIX = '/iam/auth/'
 
-/** Paths that contain sensitive tokens — do not use as returnTo */
-const TOKEN_PATH_PREFIX = '/invites/'
+const getAuthRefreshUrl = () => apiPath('/iam/auth/refresh')
 
 const SESSION_COOKIE_NAME = SCOPERY_SESSION_COOKIE
 /** 7 days in seconds */
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60
+const DEBUG_API_LOG_KEY = 'scopery_debug_api_logs'
+const DEBUG_API_LOG_LIMIT = 100
+
+function shouldPersistApiDebugLogs(): boolean {
+  return process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_DEBUG_API === '1'
+}
+
+function persistApiDebugLog(entry: Record<string, unknown>): void {
+  if (!shouldPersistApiDebugLogs() || typeof window === 'undefined') return
+
+  const nextEntry = {
+    timestamp: new Date().toISOString(),
+    ...entry,
+  }
+
+  try {
+    const raw = window.localStorage.getItem(DEBUG_API_LOG_KEY)
+    const logs = raw ? (JSON.parse(raw) as unknown[]) : []
+    logs.push(nextEntry)
+    window.localStorage.setItem(DEBUG_API_LOG_KEY, JSON.stringify(logs.slice(-DEBUG_API_LOG_LIMIT)))
+  } catch {
+    // Debug logging must never affect application behavior.
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn('[api-debug]', nextEntry)
+  }
+}
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getJwtAlg(token: string): string | null {
@@ -47,32 +78,6 @@ function getJwtAlg(token: string): string | null {
   } catch {
     return null
   }
-}
-
-// ---------------------------------------------------------------------------
-// Mock mode: seed a fake session cookie so AuthContext bootstraps correctly
-// ---------------------------------------------------------------------------
-
-function seedMockSession(): void {
-  if (!isMockMode || typeof document === 'undefined') return
-  const existing = getCookieRaw(SESSION_COOKIE_NAME)
-  if (existing) return
-  const value = encodeURIComponent(MOCK_SESSION_COOKIE_VALUE)
-  document.cookie = `${encodeURIComponent(SESSION_COOKIE_NAME)}=${value}; path=/; max-age=${SESSION_MAX_AGE}; SameSite=Lax`
-}
-
-/** Raw cookie getter — used before setCookie/deleteCookie are defined. */
-function getCookieRaw(name: string): string | null {
-  if (typeof document === 'undefined') return null
-  const nameEq = encodeURIComponent(name) + '='
-  for (const c of document.cookie.split('; ')) {
-    if (c.startsWith(nameEq)) return decodeURIComponent(c.slice(nameEq.length))
-  }
-  return null
-}
-
-if (isMockMode && typeof window !== 'undefined') {
-  seedMockSession()
 }
 
 /** Read cookie by name (client-only). */
@@ -184,108 +189,116 @@ export function setSessionStorage(session: {
 export function clearSessionStorage(): void {
   if (typeof window === 'undefined') return
   deleteCookie(SESSION_COOKIE_NAME, '/')
-  // Fire-and-forget: clear the HttpOnly scopery_token cookie server-side.
-  // Used on 401 auto-logout; logout flow uses the proxy endpoint directly.
-  void fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {})
+  // BE HttpOnly cookies (access_token, refresh_token) are cleared server-side by the logout endpoint.
+}
+
+/** Read the XSRF-TOKEN cookie value (set by BE on first request, not HttpOnly). */
+function getCsrfToken(): string | null {
+  return getCookie('XSRF-TOKEN')
+}
+
+async function waitForCsrfToken(maxAttempts = 10): Promise<string | null> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const token = getCsrfToken()
+    if (token) return token
+    await new Promise((resolve) => setTimeout(resolve, 16 * (attempt + 1)))
+  }
+  return getCsrfToken()
+}
+
+let csrfPrimePromise: Promise<void> | null = null
+
+/** Prime CSRF cookie via a safe GET before the first mutating request in a session. */
+export async function ensureCsrfToken(): Promise<void> {
+  if (getCsrfToken()) return
+  if (!csrfPrimePromise) {
+    csrfPrimePromise = (async () => {
+      await fetch(apiPath('/workspace-context/current'), {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      await waitForCsrfToken()
+    })().finally(() => {
+      csrfPrimePromise = null
+    })
+  }
+  await csrfPrimePromise
+}
+
+/** Returns true when the request method + URL requires the X-XSRF-TOKEN header. */
+function needsCsrf(method: string, url: string): boolean {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase())) return false
+  return !url.includes(AUTH_IAM_PREFIX)
 }
 
 function parseProblemDetails(body: unknown, status: number): ProblemDetails {
-  if (body && typeof body === 'object' && 'status' in body) {
+  if (body && typeof body === 'object') {
     const b = body as Record<string, unknown>
-    return {
-      type: String(b.type ?? 'about:blank'),
-      title: String(b.title ?? 'Error'),
-      status: Number(b.status ?? status),
-      detail: String(b.detail ?? ''),
-      instance: b.instance != null ? String(b.instance) : undefined,
-      request_id: b.request_id != null ? String(b.request_id) : undefined,
-      code: b.code != null ? String(b.code) : undefined,
-      errors: Array.isArray(b.errors)
-        ? (b.errors as Array<{ path?: string; message?: string }>).map((e) => ({
-            path: String(e.path ?? ''),
-            message: String(e.message ?? ''),
-          }))
-        : undefined,
+
+    // BE format: { success: false, status, error, errorCode, message, details }
+    if (b.success === false) {
+      return {
+        type: 'about:blank',
+        title: String(b.error ?? 'Error'),
+        status: Number(b.status ?? status),
+        detail: String(b.message ?? `HTTP ${status}`),
+        code: b.errorCode != null ? String(b.errorCode) : undefined,
+        errors: Array.isArray(b.details)
+          ? (b.details as unknown[]).map((d) => ({ path: '', message: String(d) }))
+          : undefined,
+      }
+    }
+
+    // RFC 9457 problem+json format (v2 legacy)
+    if ('status' in b || 'title' in b) {
+      return {
+        type: String(b.type ?? 'about:blank'),
+        title: String(b.title ?? 'Error'),
+        status: Number(b.status ?? status),
+        detail: String(b.detail ?? ''),
+        instance: b.instance != null ? String(b.instance) : undefined,
+        request_id: b.request_id != null ? String(b.request_id) : undefined,
+        code: b.code != null ? String(b.code) : undefined,
+        errors: Array.isArray(b.errors)
+          ? (b.errors as Array<{ path?: string; message?: string }>).map((e) => ({
+              path: String(e.path ?? ''),
+              message: String(e.message ?? ''),
+            }))
+          : undefined,
+      }
     }
   }
   return {
     type: 'about:blank',
     title: 'Request failed',
     status,
-    detail:
-      typeof body === 'object' && body !== null && 'detail' in body
-        ? String((body as Record<string, unknown>).detail)
-        : `HTTP ${status}`,
+    detail: `HTTP ${status}`,
   }
 }
 
-/**
- * Client-side: rewrite external BE URLs to /api/proxy/* so the Next.js BFF
- * can inject the HttpOnly scopery_token as an Authorization header.
- * Server-side (SSR / Route Handlers): leave URL unchanged.
- */
-function toProxyUrl(url: string): string {
-  if (typeof window === 'undefined') return url
-  const base = getApiBaseUrl()
-  const prefix = base + '/api/'
-  if (base && url.startsWith(prefix)) {
-    return '/api/proxy/' + url.slice(prefix.length)
-  }
-  return url
-}
-
-async function request<T>(url: string, options: ApiRequestInit = {}): Promise<T> {
+async function request<T>(url: string, options: ApiRequestInit = {}, _isRetry = false): Promise<T> {
   const ctx = await runRequestInterceptors({ url, init: options })
-  const {
-    parseJson = true,
-    skipAuthRedirect,
-    skipGlobalLoading,
-    ...init
-  } = ctx.init
+  const { parseJson = true, skipAuthRedirect, skipGlobalLoading, ...init } = ctx.init
 
   const endLoading = trackGlobalLoading(!skipGlobalLoading)
 
   try {
-    // ── Mock mode intercept ─────────────────────────────────────────────────
-    if (isMockMode) {
-      const method = (init.method ?? 'GET').toUpperCase()
-      let body: unknown
-      try {
-        body = init.body ? JSON.parse(init.body as string) : undefined
-      } catch {
-        body = undefined
-      }
-      const mockResult = resolveMock(ctx.url, method, body)
-      if (mockResult !== undefined) {
-        await new Promise<void>((resolve) => setTimeout(resolve, MOCK_DELAY_MS))
-        if (!parseJson) return undefined as T
-        return runResponseInterceptors(ctx, mockResult as T)
-      }
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn(`[mock] No mock registered for ${method} ${ctx.url}`)
-      }
-      await new Promise<void>((resolve) => setTimeout(resolve, MOCK_DELAY_MS))
-      return undefined as T
-    }
-    // ── End mock mode intercept ─────────────────────────────────────────────
-
-    const proxyUrl = toProxyUrl(ctx.url)
-    const isProxied = proxyUrl !== ctx.url
-
-    const headers: HeadersInit = {
+    const method = (init.method ?? 'GET').toUpperCase()
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(init.headers as Record<string, string>),
     }
-    if (!isProxied) {
-      const token = getAccessToken()
-      if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
+
+    if (needsCsrf(method, ctx.url)) {
+      await ensureCsrfToken()
+      const csrf = getCsrfToken()
+      if (csrf) headers['X-XSRF-TOKEN'] = csrf
     }
 
-    const res = await fetch(proxyUrl, { ...init, headers })
+    const res = await fetch(ctx.url, { ...init, headers, credentials: 'include' })
 
     if (!res.ok) {
-      const contentType = res.headers.get('content-type') ?? ''
-      const isProblemJson = contentType.includes('application/problem+json')
       let body: unknown
       try {
         const text = await res.text()
@@ -293,16 +306,72 @@ async function request<T>(url: string, options: ApiRequestInit = {}): Promise<T>
       } catch {
         body = {}
       }
-      const problem = parseProblemDetails(isProblemJson ? body : {}, res.status)
+      const problem = parseProblemDetails(body, res.status)
       const err = new ApiError(res.status, problem)
+      persistApiDebugLog({
+        event: 'api_error',
+        method,
+        url: ctx.url,
+        status: res.status,
+        problem,
+        skipAuthRedirect: Boolean(skipAuthRedirect),
+        isRetry: _isRetry,
+      })
+
+      // 401: attempt refresh once, then retry the original request.
+      // skipAuthRedirect only suppresses the final navigation to login; it should not
+      // prevent recoverable auth errors from refreshing during onboarding flows.
+      // CSRF token may lag behind the first GET in a session — prime once and retry.
+      if (err.status === 403 && !_isRetry && needsCsrf(method, ctx.url)) {
+        await ensureCsrfToken()
+        return request<T>(url, options, true)
+      }
+
+      if (err.isAuthError && !_isRetry && !ctx.url.includes(AUTH_IAM_PREFIX)) {
+        try {
+          const refreshRes = await fetch(getAuthRefreshUrl(), {
+            method: 'POST',
+            credentials: 'include',
+          })
+          persistApiDebugLog({
+            event: refreshRes.ok ? 'auth_refresh_ok' : 'auth_refresh_failed',
+            method: 'POST',
+            url: getAuthRefreshUrl(),
+            status: refreshRes.status,
+            originalMethod: method,
+            originalUrl: ctx.url,
+            skipAuthRedirect: Boolean(skipAuthRedirect),
+          })
+          if (refreshRes.ok) {
+            await ensureCsrfToken()
+            return request<T>(url, options, true)
+          }
+        } catch {
+          persistApiDebugLog({
+            event: 'auth_refresh_network_error',
+            method: 'POST',
+            url: getAuthRefreshUrl(),
+            originalMethod: method,
+            originalUrl: ctx.url,
+            skipAuthRedirect: Boolean(skipAuthRedirect),
+          })
+          // refresh network failure — fall through to redirect
+        }
+      }
+
       if (err.isAuthError && typeof window !== 'undefined' && !skipAuthRedirect) {
         clearSessionStorage()
         const path = window.location.pathname || ''
-        const returnTo =
-          path && !path.startsWith(TOKEN_PATH_PREFIX)
-            ? `${LOGIN_PATH}?returnTo=${encodeURIComponent(path)}`
-            : LOGIN_PATH
-        window.location.href = returnTo
+        const returnTo = buildLoginUrl(path)
+        persistApiDebugLog({
+          event: 'auth_redirect_login',
+          method,
+          url: ctx.url,
+          status: err.status,
+          returnTo,
+        })
+        // Clear HttpOnly token then hard-nav — avoids middleware bounce with stale cookies
+        void redirectToLogin({ returnPath: path })
       }
       throw err
     }
@@ -313,8 +382,20 @@ async function request<T>(url: string, options: ApiRequestInit = {}): Promise<T>
 
     const text = await res.text()
     if (!text) return undefined as T
-    const data = JSON.parse(text) as T
-    return runResponseInterceptors(ctx, data)
+    const jsonData = JSON.parse(text) as unknown
+
+    // Unwrap { success: true, data } envelope
+    if (
+      typeof jsonData === 'object' &&
+      jsonData !== null &&
+      'success' in jsonData &&
+      (jsonData as { success: boolean }).success === true &&
+      'data' in jsonData
+    ) {
+      return runResponseInterceptors(ctx, (jsonData as { data: T }).data)
+    }
+
+    return runResponseInterceptors(ctx, jsonData as T)
   } catch (error) {
     throw await runErrorInterceptors(ctx, error)
   } finally {
@@ -322,13 +403,7 @@ async function request<T>(url: string, options: ApiRequestInit = {}): Promise<T>
   }
 }
 
-/** Base URL for v2 API (no trailing slash). Prefers NEXT_PUBLIC_API_URL, then NEXT_PUBLIC_API_BASE_URL. */
-export function getApiBaseUrl(): string {
-  if (typeof process === 'undefined') return ''
-  const url = process.env.NEXT_PUBLIC_API_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
-  return typeof url === 'string' ? url : ''
-}
-
+/** API client — use relative `/api/...` paths from `apiPath()`; BFF proxy adds auth. */
 export const apiClient = {
   get: <T>(url: string, init?: ApiRequestInit) => request<T>(url, { ...init, method: 'GET' }),
 

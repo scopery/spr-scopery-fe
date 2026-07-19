@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, FolderPlus, LayoutTemplate } from 'lucide-react'
+import { FolderPlus, LayoutTemplate, Plus, Search } from 'lucide-react'
 import { Typography, Button, Input, Select } from '@/shared/ui'
 import {
   DOCUMENT_TYPE_OPTIONS,
@@ -65,7 +65,6 @@ export function ProjectDocumentsFilters({
         <div className="mb-4 flex flex-wrap gap-2">
           <Button
             variant="outline"
-            size="sm"
             onClick={onNewSection}
             className="flex items-center gap-2"
           >
@@ -75,11 +74,9 @@ export function ProjectDocumentsFilters({
           {sectionsCount === 0 && (
             <Button
               variant="outline"
-              size="sm"
               loading={actionLoading}
               onClick={() => void onCreateDefaultSections()}
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2" icon={<Plus size={16} />}>
               <LayoutTemplate size={16} aria-hidden />
               Create default sections
             </Button>
@@ -144,14 +141,19 @@ export function ProjectDocumentsFilters({
             options={sectionFilterOptions}
           />
         </div>
-        <Button
-          variant={pinnedOnly ? 'primary' : 'outline'}
-          size="md"
-          onClick={onPinnedOnlyToggle}
-          aria-pressed={pinnedOnly}
-        >
-          Pinned only
-        </Button>
+        <div className="w-full sm:w-40">
+          <Select
+            value={pinnedOnly ? 'pinned' : 'all'}
+            onValueChange={(v: string) => {
+              if ((v === 'pinned') !== pinnedOnly) onPinnedOnlyToggle()
+            }}
+            options={[
+              { value: 'all', label: 'All documents' },
+              { value: 'pinned', label: 'Pinned only' },
+            ]}
+            placeholder="All documents"
+          />
+        </div>
       </div>
     </>
   )

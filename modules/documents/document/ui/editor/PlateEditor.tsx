@@ -51,17 +51,22 @@ export const PlateEditorBody = forwardRef<PlateEditorHandle, PlateEditorBodyProp
     return (
       <EditorSlashExtrasContext.Provider value={slashExtras}>
         <TableProvider>
-          <Plate editor={editor} onChange={readOnly ? undefined : ({ value }) => onChange?.(value)}>
-            {!readOnly && <PlateEditorToolbar editor={editor} />}
-            {!readOnly && <BlockActionsBar editor={editor} />}
-            {!readOnly && <EditorLinkFloating />}
-            {!readOnly && <EditorFloatingToolbar />}
-            <PlateContent
-              className={plateContentClassName}
-              placeholder={readOnly ? undefined : placeholder}
-              readOnly={readOnly}
-              aria-label="Document body"
-            />
+          <Plate
+            editor={editor}
+            onChange={readOnly ? undefined : ({ value }) => onChange?.(value)}
+          >
+            <div className="flex min-h-0 flex-1 flex-col">
+              {!readOnly && <PlateEditorToolbar editor={editor} />}
+              {!readOnly && <BlockActionsBar editor={editor} />}
+              {!readOnly && <EditorLinkFloating />}
+              {!readOnly && <EditorFloatingToolbar />}
+              <PlateContent
+                className={plateContentClassName}
+                placeholder={readOnly ? undefined : placeholder}
+                readOnly={readOnly}
+                aria-label="Document body"
+              />
+            </div>
           </Plate>
         </TableProvider>
       </EditorSlashExtrasContext.Provider>

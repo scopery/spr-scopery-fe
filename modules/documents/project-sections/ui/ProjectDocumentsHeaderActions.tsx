@@ -1,9 +1,9 @@
 'use client'
 
-import { Plus, Link2, Download, FileOutput } from 'lucide-react'
+import { Download, FileOutput, Link2, Plus } from 'lucide-react'
 import { Button } from '@/shared/ui'
 import { ProjectAIActionsMenu } from '@/modules/ai-document-intelligence'
-import { buildAIPermissions } from '@/modules/permissions'
+import { buildAIPermissions } from '@/modules/permissions/access/lib/permissions'
 
 type DocumentSpacePerms = {
   canCreateDocument: boolean
@@ -43,40 +43,25 @@ export function ProjectDocumentsHeaderActions({
       {docPerms.canExportDocuments && (
         <Button
           variant="outline"
-          size="sm"
           loading={handoffExportLoading}
           onClick={() => void onExportHandoff()}
-          className="flex items-center gap-2"
+          icon={<Download size={16} />}
         >
-          <Download size={16} aria-hidden />
           Export handoff
         </Button>
       )}
       {canManageDocuments && docPerms.canAttachDocument && (
-        <Button variant="outline" size="sm" onClick={onAttach} className="flex items-center gap-2">
-          <Link2 size={16} aria-hidden />
+        <Button variant="outline" onClick={onAttach} icon={<Link2 size={16} />}>
           Attach existing
         </Button>
       )}
       {docPerms.canCreateDocument && docPerms.canCreateFromTemplate && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onCreateDeliverable}
-          className="flex items-center gap-2"
-        >
-          <FileOutput size={16} aria-hidden />
+        <Button variant="outline" onClick={onCreateDeliverable} icon={<FileOutput size={16} />}>
           Create deliverable
         </Button>
       )}
       {docPerms.canCreateDocument && (
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onCreateDocument}
-          className="flex items-center gap-2"
-        >
-          <Plus size={16} aria-hidden />
+        <Button variant="primary" onClick={onCreateDocument} icon={<Plus size={16} />}>
           New document
         </Button>
       )}

@@ -1,7 +1,7 @@
-export { AIAgentQualityPanel } from './ui/ai-agent-quality-panel'
-export { AIRunFeedbackControls } from './ui/ai-run-feedback-controls'
-export { useAIAgentQualityPanel } from './hooks/useAIAgentQualityPanel'
-export { useAIRunFeedbackControls } from './hooks/useAIRunFeedbackControls'
+export { AIAgentQualityPanel } from './presentation/ui/ai-agent-quality-panel'
+export { AIRunFeedbackControls } from './presentation/ui/ai-run-feedback-controls'
+export { useAIAgentQualityPanel } from './presentation/hooks/useAIAgentQualityPanel'
+export { useAIRunFeedbackControls } from './presentation/hooks/useAIRunFeedbackControls'
 export type {
   AIQualitySummary,
   AIRunFeedbackListItem,
@@ -9,6 +9,6 @@ export type {
   AIFeedbackStatus,
   AIPromptVersionQualityItem,
   SubmitAIRunFeedbackPayload,
-} from './model/ai-run-feedback'
-export { FEEDBACK_CATEGORIES, FEEDBACK_STATUSES } from './model/ai-run-feedback'
-export * as aiRunFeedbackApi from './api/ai-run-feedback.api'
+} from './domain/model/ai-run-feedback'
+export { FEEDBACK_CATEGORIES, FEEDBACK_STATUSES } from './domain/model/ai-run-feedback'
+export * as aiRunFeedbackApi from './infrastructure/api/ai-run-feedback.api'

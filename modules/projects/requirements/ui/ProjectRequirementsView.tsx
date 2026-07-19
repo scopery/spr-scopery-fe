@@ -1,26 +1,22 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { CircleArrowOutUpLeft } from 'lucide-react'
-import { Typography, Badge, ContentLoader } from '@/shared/ui'
-import { ROUTES } from '@/constants/routes'
+import { Typography, Badge, PageSkeleton } from '@/shared/ui'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import { documentLinksApi } from '@/modules/documents'
-import { useProject, useRequirements } from '@/modules/projects'
-import { useOrg } from '@/modules/org'
-import { useEffectivePermissions } from '@/modules/permissions'
-import {
-  buildDocumentSpacePermissions,
-  canManageProjectContentFallback,
-  resolveProjectRole,
-} from '@/modules/permissions'
+import { useProject } from '@/modules/projects/project/hooks/useProject'
+import { useRequirements } from '@/modules/projects/requirements/hooks/useRequirements'
+import { useOrg } from '@/modules/org/org/hooks/useOrg'
+import { useEffectivePermissions } from '@/modules/permissions/access/hooks/useEffectivePermissions'
+import { buildDocumentSpacePermissions, resolveProjectRole } from '@/modules/permissions/access/lib/permissions'
+import { canManageProjectContentFallback } from '@/modules/permissions/access/lib/permissions'
 import { EntityEvidenceDocumentsPanel } from '@/modules/documents'
-import { ProjectStepIndicator } from '@/modules/projects'
+import { ProjectStepIndicator } from '@/modules/projects/project/ui/ProjectStepIndicator'
 
 export function ProjectRequirementsView() {
   const params = useParams()
-  const orgId = params.orgId as string
+  const orgId = params.workspaceId as string
   const projectId = params.projectId as string
 
   const { project, loading: projectLoading } = useProject(orgId, projectId)
@@ -83,25 +79,23 @@ export function ProjectRequirementsView() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <ContentLoader variant="easeOut" className="w-20" />
-      </div>
+      <PageSkeleton variant="list" />
     )
   }
 
   return (
     <div className="mx-auto max-w-6xl">
+      <WorkspaceHierarchyBreadcrumb
+        workspaceId={orgId}
+        project={project ? { id: projectId, name: project.name } : undefined}
+        current="Requirements"
+        className="mb-2"
+      />
       <ProjectStepIndicator
         steps={[{ id: 1, label: 'Requirements', active: true }]}
         leftMeta={
           <div className="mb-8">
-            <Link
-              href={ROUTES.org.project(orgId, projectId)}
-              className="mb-2 block text-sm text-primary hover:underline"
-            >
-              <CircleArrowOutUpLeft size={20} />
-            </Link>
-            <Typography as="h1" size="xl" weight="bold">
+            <Typography as="h1" size="lg" weight="semibold">
               Requirements
             </Typography>
             <Typography variant="small" tone="muted">
@@ -143,7 +137,7 @@ export function ProjectRequirementsView() {
                         {r.title}
                       </Typography>
                       {(evidenceCounts[r.id] ?? 0) > 0 && (
-                        <Badge variant="soft" tone="info" size="sm">
+                        <Badge variant="soft" tone="info">
                           {evidenceCounts[r.id]} evidence
                         </Badge>
                       )}
@@ -163,7 +157,7 @@ export function ProjectRequirementsView() {
                   <Typography as="h2" size="lg" weight="semibold">
                     {selected.code}
                   </Typography>
-                  <Badge variant="soft" tone="neutral" size="sm">
+                  <Badge variant="soft" tone="neutral">
                     {selected.req_type ?? selected.type ?? 'requirement'}
                   </Badge>
                 </div>

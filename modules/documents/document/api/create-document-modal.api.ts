@@ -1,6 +1,5 @@
 import type { Document, DocumentType, DocumentVisibility } from '../model/document'
-import type { CreateDocumentFromTemplateInput } from '@/modules/documents/document-templates'
-import { createProjectDocument } from './documents.api'
+import { createProjectDocument as createWorkbenchDocument } from '@/modules/documents/document-hub/api/document-workbench.api'
 import {
   createDocumentFromTemplateInProject,
   previewTemplateVariables,
@@ -8,8 +7,12 @@ import {
 
 export { previewTemplateVariables, createDocumentFromTemplateInProject }
 
+/**
+ * Hub "New document" → Wave 4.1 NATIVE doc (editable in Plate).
+ * BE defaults to FILE when contentMode is omitted — that cannot use /content.
+ */
 export async function createBlankProjectDocument(
-  orgId: string,
+  _orgId: string,
   projectId: string,
   body: {
     title: string
@@ -18,8 +21,26 @@ export async function createBlankProjectDocument(
     section_id: string | null
   }
 ): Promise<Document> {
-  return createProjectDocument(orgId, projectId, {
-    ...body,
-    content: { format: 'plate' as const, value: [{ type: 'p', children: [{ text: '' }] }] },
+  const created = await createWorkbenchDocument(projectId, {
+    title: body.title,
+    documentTypeCode: body.document_type,
+    contentMode: 'NATIVE',
   })
+  return {
+    id: created.id,
+    org_id: _orgId,
+    title: created.title,
+    content: { format: 'plate', value: [{ type: 'p', children: [{ text: '' }] }] },
+    plain_text: '',
+    document_type: body.document_type,
+    visibility: body.visibility,
+    status: 'active',
+    workflow_status: 'draft',
+    origin_type: 'manual',
+    origin_id: null,
+    created_by: null,
+    updated_by: null,
+    created_at: created.createdAt ?? '',
+    updated_at: created.createdAt ?? '',
+  }
 }

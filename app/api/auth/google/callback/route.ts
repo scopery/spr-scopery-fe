@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { apiPath } from '@/shared/lib/api-paths'
 
 const TOKEN_COOKIE = 'scopery_token'
 const SESSION_COOKIE = 'scopery_session'
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60
 
 function getBackendBase(): string {
-  return process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000'
+  return (
+    process.env.API_INTERNAL_URL ??
+    process.env.NEXT_PUBLIC_API_URL ??
+    'http://localhost:8080'
+  ).replace(/\/$/, '')
 }
 
 export async function GET(request: NextRequest) {
@@ -22,10 +27,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const base = getBackendBase()
-    const beUrl = `${base}/api/v2/auth/google/callback?code=${encodeURIComponent(code)}`
+    const backendUrl = new URL(apiPath('/iam/auth/google/callback'), getBackendBase())
+    backendUrl.searchParams.set('code', code)
 
-    const res = await fetch(beUrl, {
+    const res = await fetch(backendUrl, {
       method: 'GET',
       headers: { Accept: 'application/json' },
     })
@@ -40,7 +45,6 @@ export async function GET(request: NextRequest) {
     const secure = process.env.NODE_ENV === 'production'
 
     const response = NextResponse.redirect(new URL('/', origin))
-    // Token: HttpOnly — protected from XSS
     response.cookies.set(TOKEN_COOKIE, data.access_token, {
       httpOnly: true,
       sameSite: 'lax',
@@ -48,7 +52,6 @@ export async function GET(request: NextRequest) {
       maxAge: SESSION_MAX_AGE,
       secure,
     })
-    // User info only: client-readable — for AuthContext UI state
     response.cookies.set(SESSION_COOKIE, JSON.stringify({ user: data.user }), {
       httpOnly: false,
       sameSite: 'lax',

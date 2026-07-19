@@ -1,6 +1,6 @@
 'use client'
 
-import { Modal, Typography, Button } from '@/shared/ui'
+import { Modal, Typography, Button, Select } from '@/shared/ui'
 import { DocumentReadOnlyRenderer } from '@/modules/documents/document/ui/editor/DocumentReadOnlyRenderer'
 import type { DocumentTemplate } from '../model/document-templates'
 import { DocumentTypeBadge } from '@/modules/documents/document/ui/DocumentTypeBadge'
@@ -43,25 +43,18 @@ export function TemplatePreviewDialog({
         </Typography>
 
         {orgId && (
-          <div className="flex gap-2" role="group" aria-label="Preview mode">
-            <Button
-              type="button"
-              size="sm"
-              variant={preview.previewMode === 'raw' ? 'primary' : 'outline'}
-              onClick={() => preview.setPreviewMode('raw')}
-            >
-              Raw template
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={preview.previewMode === 'resolved' ? 'primary' : 'outline'}
-              onClick={() => preview.setPreviewMode('resolved')}
-              loading={preview.loadingResolved}
-            >
-              Resolved preview
-            </Button>
-          </div>
+          <Select
+            value={preview.previewMode}
+            onValueChange={preview.setPreviewMode}
+            options={[
+              { value: 'raw', label: 'Raw template' },
+              {
+                value: 'resolved',
+                label: preview.loadingResolved ? 'Resolved preview…' : 'Resolved preview',
+              },
+            ]}
+            placeholder="Preview mode"
+          />
         )}
 
         <div className="flex flex-wrap gap-2">

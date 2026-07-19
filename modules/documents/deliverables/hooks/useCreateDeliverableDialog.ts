@@ -15,7 +15,7 @@ import {
   getGovernanceBlockedReasons,
   getGovernanceWarningMessages,
   isGovernancePreviewDenied,
-} from '@/utils/governanceError'
+} from '@/modules/governance/policy/lib/governance-error'
 import { toast } from 'sonner'
 import * as deliverablesApi from '../api/deliverables.api'
 import {

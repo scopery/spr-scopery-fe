@@ -1,13 +1,4 @@
 /**
- * Project types for hooks and controlled lists
+ * Project list item type for hooks and controlled lists.
  */
-export interface Project {
-  id: string
-  org_id: string
-  name: string
-  description: string | null
-  status: string
-  created_by: string
-  created_at: string
-  my_role: 'editor' | 'viewer'
-}
+export type { ProjectListItem as Project } from './project'

@@ -1,7 +1,7 @@
 'use client'
 
 import { Typography } from '@/shared/ui'
-import type { ProjectQuestion } from '@/modules/projects'
+import type { ProjectQuestion } from '@/modules/projects/questions/model/questions'
 import type { ClarityAssessment } from '@/modules/sessions/clarity'
 import type { AnswerItem } from '../model/session'
 import { SessionQuestionItem } from './SessionQuestionItem'

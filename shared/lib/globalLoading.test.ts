@@ -1,5 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
-import { getGlobalLoadingCount, subscribeGlobalLoading, trackGlobalLoading } from './globalLoading'
+import {
+  beginRouteTransition,
+  clearRouteTransitions,
+  endRouteTransition,
+  getApiLoadingCount,
+  getGlobalLoadingCount,
+  subscribeGlobalLoading,
+  trackGlobalLoading,
+} from './globalLoading'
 
 describe('globalLoading', () => {
   it('tracks in-flight requests', () => {
@@ -36,6 +44,31 @@ describe('globalLoading', () => {
     const end = trackGlobalLoading(false)
     expect(getGlobalLoadingCount()).toBe(0)
     end()
+    expect(getGlobalLoadingCount()).toBe(0)
+  })
+
+  it('tracks route transitions separately from API requests', () => {
+    expect(getGlobalLoadingCount()).toBe(0)
+    expect(getApiLoadingCount()).toBe(0)
+
+    beginRouteTransition()
+    expect(getGlobalLoadingCount()).toBe(1)
+    expect(getApiLoadingCount()).toBe(0)
+
+    const endApi = trackGlobalLoading()
+    expect(getGlobalLoadingCount()).toBe(2)
+    expect(getApiLoadingCount()).toBe(1)
+
+    endRouteTransition()
+    expect(getGlobalLoadingCount()).toBe(1)
+    expect(getApiLoadingCount()).toBe(1)
+
+    endApi()
+    expect(getGlobalLoadingCount()).toBe(0)
+
+    beginRouteTransition()
+    beginRouteTransition()
+    clearRouteTransitions()
     expect(getGlobalLoadingCount()).toBe(0)
   })
 })

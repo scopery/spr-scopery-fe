@@ -1,4 +1,4 @@
-import { DOCUMENT_ENDPOINTS } from './endpoints'
+import { DOCUMENT_ENDPOINTS } from '../../endpoints'
 import { apiClient } from '@/shared/lib/apiClient'
 import type {
   Document,
@@ -35,8 +35,70 @@ export async function listWorkspaceDocuments(
   return apiClient.get<PaginatedResponse<Document>>(DOCUMENT_ENDPOINTS.listOrg(orgId, params))
 }
 
-export async function getDocument(orgId: string, documentId: string): Promise<Document> {
+export async function getDocument(
+  orgId: string,
+  documentId: string,
+  projectId?: string | null
+): Promise<Document> {
+  // BE DocumentController: GET /api/projects/{projectId}/documents/{documentId}
+  if (projectId) {
+    const be = await apiClient.get<{
+      id: string
+      projectId?: string
+      code?: string | null
+      title?: string | null
+      status?: string | null
+      currentVersionId?: string | null
+      createdAt?: string | null
+      contentMode?: string | null
+      description?: string | null
+    }>(DOCUMENT_ENDPOINTS.getProject(projectId, documentId))
+    return mapProjectDocumentResponseToDocument(be, orgId)
+  }
+
+  // Legacy workspace path — most BE builds no longer expose this.
   return apiClient.get<Document>(DOCUMENT_ENDPOINTS.get(orgId, documentId))
+}
+
+function mapProjectDocumentResponseToDocument(
+  be: {
+    id: string
+    title?: string | null
+    status?: string | null
+    createdAt?: string | null
+    description?: string | null
+    code?: string | null
+    contentMode?: string | null
+  },
+  orgId: string
+): Document {
+  const raw = (be.status ?? 'DRAFT').toUpperCase()
+  const status: Document['status'] =
+    raw === 'ARCHIVED' || raw === 'DELETED_SOFT'
+      ? 'archived'
+      : raw === 'DELETED_SOFT'
+        ? 'deleted'
+        : 'active'
+  const workflow_status: Document['workflow_status'] =
+    raw === 'IN_REVIEW' ? 'in_review' : raw === 'APPROVED' ? 'approved' : 'draft'
+
+  return {
+    id: be.id,
+    org_id: orgId,
+    title: (be.title ?? be.code ?? 'Untitled').trim() || 'Untitled',
+    content: { format: 'plain', body: be.description ?? '' },
+    plain_text: be.description ?? '',
+    document_type: 'other',
+    visibility: 'project',
+    status,
+    workflow_status,
+    origin_type: 'manual',
+    origin_id: null,
+    created_by: null,
+    updated_by: null,
+    created_at: be.createdAt ?? '',
+    updated_at: be.createdAt ?? '',
+  }
 }
 
 export async function createProjectDocument(

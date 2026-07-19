@@ -1,4 +1,4 @@
-import { SESSION_ENDPOINTS } from './endpoints'
+import { SESSION_ENDPOINTS } from '../../endpoints'
 import { apiClient, type ApiRequestInit } from '@/shared/lib/apiClient'
 import type {
   SessionListResponse,

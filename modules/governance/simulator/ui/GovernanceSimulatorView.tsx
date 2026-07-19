@@ -1,5 +1,7 @@
 'use client'
 
+import { Play, RotateCcw } from 'lucide-react'
+
 import { Button, Input, Select, Typography } from '@/shared/ui'
 import type { GovernanceSimulatorViewProps } from '../model/governance-simulator'
 
@@ -18,7 +20,7 @@ export function GovernanceSimulatorView({
 }: GovernanceSimulatorViewProps) {
   return (
     <div className="border-border space-y-4 rounded-md border border-dashed p-4">
-      <Typography variant="small" className="font-medium">
+      <Typography variant="small" weight="medium">
         Policy simulator (dry-run)
       </Typography>
       <Typography variant="small" tone="muted">
@@ -159,10 +161,10 @@ export function GovernanceSimulatorView({
       </div>
 
       <div className="flex gap-2">
-        <Button variant="primary" size="sm" loading={loading} onClick={() => void onEvaluate()}>
+        <Button variant="primary" loading={loading} onClick={() => void onEvaluate()} icon={<Play size={16} />}>
           Evaluate
         </Button>
-        <Button variant="ghost" size="sm" onClick={onReset}>
+        <Button variant="ghost" onClick={onReset} icon={<RotateCcw size={16} />}>
           Reset
         </Button>
       </div>
@@ -174,36 +176,38 @@ export function GovernanceSimulatorView({
       ) : null}
 
       {result ? (
-        <div className="border-border bg-muted/20 space-y-2 rounded border p-3 text-sm">
-          <div>
+        <div className="border-border bg-muted/20 space-y-2 rounded border p-3">
+          <Typography variant="small">
             <strong>Decision:</strong>{' '}
             {result.allowed ? (result.effect === 'warn' ? 'ALLOW (warn)' : 'ALLOW') : 'DENIED'} ·
             effect=
             {result.effect}
-          </div>
+          </Typography>
           {result.blocked_reasons.length > 0 ? (
-            <div>
+            <Typography variant="small">
               <strong>Blocked:</strong> {result.blocked_reasons.join('; ')}
-            </div>
+            </Typography>
           ) : null}
           {result.warnings.length > 0 ? (
-            <div>
+            <Typography variant="small">
               <strong>Warnings:</strong> {result.warnings.join('; ')}
-            </div>
+            </Typography>
           ) : null}
           {result.suggested_actions.length > 0 ? (
-            <div>
+            <Typography variant="small">
               <strong>Suggested:</strong> {result.suggested_actions.join('; ')}
-            </div>
+            </Typography>
           ) : null}
-          <div>
+          <Typography variant="small">
             <strong>Matched rules:</strong> {result.matched_rules.length}
-          </div>
+          </Typography>
           {canViewRuleDetails && result.matched_rules.length > 0 ? (
-            <ul className="list-disc pl-4">
+            <ul className="list-disc space-y-1 pl-4">
               {result.matched_rules.map((rule) => (
                 <li key={rule.rule_id}>
-                  {rule.policy_key}/{rule.rule_key} ({rule.effect}) — {rule.explanation}
+                  <Typography as="span" variant="small">
+                    {rule.policy_key}/{rule.rule_key} ({rule.effect}) — {rule.explanation}
+                  </Typography>
                 </li>
               ))}
             </ul>

@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, Lock } from 'lucide-react'
+import { Eye, EyeOff, Lock, Plus, UserPlus } from 'lucide-react'
 import { Button, Input, Typography, Stack, Link as DesignLink, Divider } from '@/shared/ui'
 import { toast } from 'sonner'
-import { useAuth } from '@/modules/auth'
-import { useAuthActions } from '@/modules/auth'
+import { useAuth } from '../context/AuthContext'
+import { useAuthActions } from '../hooks/useAuthActions'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
 import Image from 'next/image'
@@ -42,9 +42,10 @@ function ScoperyLogo({ className }: { className?: string }) {
 
 export function RegisterView() {
   const router = useRouter()
-  const { session, register: doRegister, bootstrapStatus } = useAuth()
+  const { session, register: doRegister, bootstrapStatus, currentWorkspaceId } = useAuth()
   const { loginWithGoogle } = useAuthActions()
   const [showEmailPasswordForm, setShowEmailPasswordForm] = useState(false)
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -57,11 +58,12 @@ export function RegisterView() {
   useEffect(() => {
     if (bootstrapStatus === 'loading' || !session) return
     if (bootstrapStatus === 'ready') {
-      router.replace('/')
+      const dest = currentWorkspaceId ? ROUTES.workspace.projects(currentWorkspaceId) : '/'
+      router.replace(dest)
     } else if (bootstrapStatus === 'needs_onboarding') {
       router.replace(ROUTES.onboarding)
     }
-  }, [session, bootstrapStatus, router])
+  }, [session, bootstrapStatus, currentWorkspaceId, router])
 
   const strength = passwordStrength(password)
   const strengthHint =
@@ -75,6 +77,10 @@ export function RegisterView() {
 
   const validate = () => {
     const next: Record<string, string> = {}
+    const trimmedUsername = username.trim()
+    if (trimmedUsername.length < 3 || trimmedUsername.length > 100) {
+      next.username = 'Username must be 3–100 characters'
+    }
     if (!email.trim()) next.email = 'Email is required'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = 'Invalid email'
     if (password.length < 8) next.password = 'Password must be at least 8 characters'
@@ -92,12 +98,13 @@ export function RegisterView() {
     setErrors({})
     try {
       await doRegister({
+        username: username.trim(),
         email: email.trim(),
         password,
-        full_name: fullName.trim(),
+        fullName: fullName.trim(),
       })
       toast.success('Account created successfully')
-      window.location.href = '/'
+      // Navigation is handled by the bootstrapStatus useEffect above.
     } catch (err) {
       const message =
         err instanceof ApiError
@@ -112,7 +119,10 @@ export function RegisterView() {
     }
   }
 
+  const trimmedUsername = username.trim()
   const invalid =
+    trimmedUsername.length < 3 ||
+    trimmedUsername.length > 100 ||
     !email.trim() ||
     password.length < 8 ||
     password !== confirmPassword ||
@@ -143,15 +153,16 @@ export function RegisterView() {
                   fullWidth
                   onClick={() => setShowEmailPasswordForm(true)}
                   className="h-12 border-0 bg-gradient-to-r from-[#0a1121] to-primary text-white hover:opacity-95"
-                  style={{ background: 'linear-gradient(to right, #000000, #001F6D, #0787E2)' }}
-                >
+                  style={{ background: 'linear-gradient(to right, #000000, #001F6D, #0787E2)' }} icon={<UserPlus size={16} />}>
                   Sign up with Email & Password
                 </Button>
               </Stack>
 
               <div className="relative my-8 flex items-center gap-3">
                 <div className="h-px flex-1 bg-neutral-200" />
-                <span className="text-sm text-neutral-600">OR</span>
+                <Typography as="span" variant="small" tone="muted">
+                  OR
+                </Typography>
                 <div className="h-px flex-1 bg-neutral-200" />
               </div>
 
@@ -207,6 +218,17 @@ export function RegisterView() {
               </button>
               <form onSubmit={handleSubmit}>
                 <Stack direction="vertical" spacing="md">
+                  <Input
+                    label="Username"
+                    type="text"
+                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    error={errors.username}
+                    placeholder="3–100 characters"
+                    fullWidth
+                    autoComplete="username"
+                  />
                   <Input
                     label="Email"
                     type="email"
@@ -323,8 +345,7 @@ export function RegisterView() {
                     loading={loading}
                     disabled={invalid}
                     className="h-12 border-0 text-white transition-opacity hover:opacity-90"
-                    style={{ background: 'linear-gradient(to right, #000000, #001F6D, #0787E2)' }}
-                  >
+                    style={{ background: 'linear-gradient(to right, #000000, #001F6D, #0787E2)' }} icon={<Plus size={16} />}>
                     Create account
                   </Button>
                 </Stack>

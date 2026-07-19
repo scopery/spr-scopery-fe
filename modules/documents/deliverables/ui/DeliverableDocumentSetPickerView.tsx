@@ -1,6 +1,8 @@
 'use client'
 
-import { Input, Select, Typography, Button, ContentLoader } from '@/shared/ui'
+import { ChevronDown, X } from 'lucide-react'
+
+import { Input, Select, Typography, Button, Skeleton } from '@/shared/ui'
 import type { DeliverableDocumentSetPickerViewProps } from '../model/deliverable-document-set-picker'
 
 export function DeliverableDocumentSetPickerView({
@@ -26,11 +28,11 @@ export function DeliverableDocumentSetPickerView({
   return (
     <div className="border-border space-y-3 rounded-md border p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Typography variant="small" className="font-medium">
+        <Typography variant="small" weight="medium">
           Document set picker ({selectedIds.length}/{maxSelected} selected)
         </Typography>
         {selectedIds.length > 0 ? (
-          <Button type="button" variant="ghost" size="sm" onClick={onClearSelection}>
+          <Button type="button" variant="ghost" onClick={onClearSelection} icon={<X size={16} />}>
             Clear selection
           </Button>
         ) : null}
@@ -62,7 +64,7 @@ export function DeliverableDocumentSetPickerView({
       </div>
 
       {loading ? (
-        <ContentLoader />
+        <Skeleton variant="rectangular" width="100%" height={80} />
       ) : items.length === 0 ? (
         <Typography variant="small" tone="muted">
           No documents match your filters.
@@ -80,10 +82,12 @@ export function DeliverableDocumentSetPickerView({
                     className="mt-0.5"
                   />
                   <span>
-                    <span className="font-medium">{item.title}</span>
-                    <span className="text-muted-foreground ml-2">
+                    <Typography as="span" variant="small" weight="medium">
+                      {item.title}
+                    </Typography>
+                    <Typography as="span" variant="small" tone="muted" className="ml-2">
                       {item.document_type} · {item.workflow_status}
-                    </span>
+                    </Typography>
                   </span>
                 </label>
               </li>
@@ -93,10 +97,8 @@ export function DeliverableDocumentSetPickerView({
             <Button
               type="button"
               variant="outline"
-              size="sm"
               loading={loadingMore}
-              onClick={onLoadMore}
-            >
+              onClick={onLoadMore} icon={<ChevronDown size={16} />}>
               Load more
             </Button>
           ) : null}

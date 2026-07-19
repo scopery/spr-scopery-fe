@@ -40,7 +40,7 @@ const badgeVariants = {
 
 const badgeSizes = {
   sm: 'px-sm py-xs text-xs',
-  md: 'px-md py-xs text-sm',
+  md: 'px-sm py-xs text-[13px]',
   lg: 'px-md py-sm text-base',
 }
 
@@ -59,7 +59,7 @@ export const Badge = React.forwardRef(
   <C extends React.ElementType = 'span'>(
     {
       as,
-      variant = 'solid',
+      variant = 'soft',
       size = 'md',
       tone = 'default',
       dot = false,
@@ -75,10 +75,9 @@ export const Badge = React.forwardRef(
       <Component
         ref={ref}
         className={cn(
-          // Base styles
+          // Base styles — chip/filter look (no capitalize; labels stay as provided)
           'inline-flex items-center gap-xs',
-          'capitalize',
-          'transition-colors duration-200',
+          'transition-[color,background-color,border-color,width,padding] duration-[180ms] ease-[cubic-bezier(0.4,0,0.2,1)]',
           // Variant + Tone
           badgeVariants[variant][tone],
           // Size

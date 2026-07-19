@@ -1,6 +1,7 @@
 'use client'
 
 import type { PlateEditor } from 'platejs/react'
+import { ArrowDown, ArrowUp, Copy, Trash2 } from 'lucide-react'
 import { Select, Button } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import {
@@ -20,7 +21,7 @@ export function BlockActionsBar({ editor, className }: BlockActionsBarProps) {
   return (
     <div
       className={cn(
-        'flex flex-wrap items-center gap-2 border-b border-neutral-100 bg-white px-2 py-1.5',
+        'flex flex-wrap items-center gap-1 border-b border-neutral-100 bg-white px-2 py-1',
         className
       )}
       role="toolbar"
@@ -34,40 +35,44 @@ export function BlockActionsBar({ editor, className }: BlockActionsBarProps) {
         onValueChange={(value: string) => {
           if (value) setBlockType(editor, value)
         }}
-        className="min-w-[140px]"
+        className="min-w-[8rem] max-w-[10rem]"
       />
       <Button
-        variant="ghost"
         size="sm"
+        variant="ghost"
+        iconOnly
         aria-label="Move block up"
+        title="Move up"
         onClick={() => moveCurrentBlock(editor, 'up')}
-      >
-        ↑
-      </Button>
+        icon={<ArrowUp size={14} />}
+      />
       <Button
-        variant="ghost"
         size="sm"
+        variant="ghost"
+        iconOnly
         aria-label="Move block down"
+        title="Move down"
         onClick={() => moveCurrentBlock(editor, 'down')}
-      >
-        ↓
-      </Button>
+        icon={<ArrowDown size={14} />}
+      />
       <Button
-        variant="ghost"
         size="sm"
+        variant="ghost"
+        iconOnly
         aria-label="Duplicate block"
+        title="Duplicate"
         onClick={() => duplicateCurrentBlock(editor)}
-      >
-        Duplicate
-      </Button>
+        icon={<Copy size={14} />}
+      />
       <Button
-        variant="ghost"
         size="sm"
+        variant="ghost"
+        iconOnly
         aria-label="Delete block"
+        title="Delete"
         onClick={() => deleteCurrentBlock(editor)}
-      >
-        Delete
-      </Button>
+        icon={<Trash2 size={14} />}
+      />
     </div>
   )
 }

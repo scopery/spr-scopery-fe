@@ -95,7 +95,6 @@ export const NotificationCard = React.forwardRef(
             {onSend && (
               <Button
                 variant="ghost"
-                size="md"
                 iconOnly
                 icon={<Send size={16} />}
                 onClick={(e: React.MouseEvent) => {

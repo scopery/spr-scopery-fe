@@ -31,7 +31,7 @@ export function DeliverableReadinessBadge({
       : LABELS[status]
 
   return (
-    <Badge variant="soft" tone={TONES[status]} size="sm">
+    <Badge variant="soft" tone={TONES[status]}>
       {label}
     </Badge>
   )

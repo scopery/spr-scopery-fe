@@ -13,7 +13,7 @@ import { isProblem, getProblemCode, getProblemRequestId } from '@/shared/lib/api
 
 // Re-export so pages can import from a single place
 export { getProblemRequestId, isProblem } from '@/shared/lib/api-types'
-import { getGovernanceBlockedMessage } from '@/utils/governanceError'
+import { getGovernanceBlockedMessage } from '@/modules/governance/policy/lib/governance-error'
 
 /** Human-readable message for toast / inline error. Use for 403, 404, 409, 413, 429, 502. */
 export function getProblemToastMessage(err: unknown): string {

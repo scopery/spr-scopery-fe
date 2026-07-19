@@ -20,21 +20,21 @@ describe('Typography', () => {
       render(<Typography variant="h1">H1</Typography>)
       const element = screen.getByText('H1')
       expect(element.tagName).toBe('H1')
-      expect(element).toHaveClass('text-4xl', 'font-bold')
+      expect(element).toHaveClass('text-lg', 'font-semibold')
     })
 
     it('renders h2 variant', () => {
       render(<Typography variant="h2">H2</Typography>)
       const element = screen.getByText('H2')
       expect(element.tagName).toBe('H2')
-      expect(element).toHaveClass('text-3xl', 'font-bold')
+      expect(element).toHaveClass('text-xl', 'font-semibold')
     })
 
     it('renders h3 variant', () => {
       render(<Typography variant="h3">H3</Typography>)
       const element = screen.getByText('H3')
       expect(element.tagName).toBe('H3')
-      expect(element).toHaveClass('text-2xl', 'font-bold')
+      expect(element).toHaveClass('text-lg', 'font-semibold')
     })
 
     it('renders h4 variant', () => {

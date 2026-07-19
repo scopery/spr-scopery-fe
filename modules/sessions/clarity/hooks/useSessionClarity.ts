@@ -4,11 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import * as aiClarityApi from '../api/ai-clarity.api'
 import type { ClarityAssessment, ClaritySummary } from '../model/clarity'
-import type { ProjectQuestion } from '@/modules/projects'
+import type { ProjectQuestion } from '@/modules/projects/questions/model/questions'
 import type { AnswerItem } from '@/modules/sessions/session/model/session'
 import { ApiError, getProblemCode } from '@/shared/lib/api-types'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
-import { toAnswerText } from '@/utils/answerText'
+import { toAnswerText } from '@/modules/sessions/session/lib/answer-text'
 import { FEATURES } from '@/config/features'
 
 type UseSessionClarityParams = {

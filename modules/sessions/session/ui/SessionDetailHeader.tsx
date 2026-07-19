@@ -1,10 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { CloudCheck, AlertCircle, CircleArrowOutUpLeft, Download, Lock } from 'lucide-react'
+import { AlertCircle, CircleArrowOutUpLeft, CloudCheck, Download, Lock, RotateCcw, Save } from 'lucide-react'
 import { Typography, Button, Badge } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { ProjectStepIndicator } from '@/modules/projects'
+import { ProjectStepIndicator } from '@/modules/projects/project/ui/ProjectStepIndicator'
 import { SESSION_STATUS_LABEL, type SessionDetail, type SessionProgress } from '../model/session'
 
 export type SessionDetailHeaderProps = {
@@ -57,18 +57,17 @@ export function SessionDetailHeader({
         leftMeta={
           <div className="mb-10">
             <Link
-              href={ROUTES.org.project(orgId, projectId)}
+              href={ROUTES.workspace.project(orgId, projectId)}
               className="mb-2 block cursor-pointer text-sm text-primary hover:underline"
             >
               <CircleArrowOutUpLeft size={20} />
             </Link>
             <div className="flex flex-wrap items-center gap-2">
-              <Typography as="h1" size="xl" weight="bold">
+              <Typography as="h1" size="lg" weight="semibold">
                 {session.name}
               </Typography>
               <Badge
                 variant="solid"
-                size="sm"
                 tone={
                   session.status === 'in_progress'
                     ? 'info'
@@ -89,7 +88,6 @@ export function SessionDetailHeader({
                         ? 'warning'
                         : 'error'
                   }
-                  size="sm"
                 >
                   {progress.coverage_percent}% coverage
                 </Badge>
@@ -103,42 +101,49 @@ export function SessionDetailHeader({
         rightContent={
           <>
             {(pendingSave || saving) && (
-              <span className="flex items-center gap-1.5 text-sm text-neutral-600">
+              <span className="flex items-center gap-1.5">
                 {saving ? (
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 ) : null}
-                <span className={pendingSave && !saving ? 'animate-pulse' : ''}>Saving…</span>
+                <Typography
+                  as="span"
+                  variant="small"
+                  tone="muted"
+                  className={pendingSave && !saving ? 'animate-pulse' : ''}
+                >
+                  Saving…
+                </Typography>
               </span>
             )}
             {!pendingSave && !saving && lastSaveSuccess && answersCount > 0 && (
-              <span className="flex items-center gap-1.5 text-sm">
+              <span className="flex items-center gap-1.5">
                 <CloudCheck size={16} className="shrink-0" />
-                Saved
+                <Typography as="span" variant="small">
+                  Saved
+                </Typography>
               </span>
             )}
             <Button
               variant="outline"
-              size="md"
               onClick={onExportExcel}
-              className="gap-1.5"
               aria-label="Export questions to Excel"
+              icon={<Download size={16} />}
             >
-              <Download size={16} />
               Export
             </Button>
             {canSave && (
               <>
-                <Button variant="outline" onClick={onSave} loading={saving}>
+                <Button variant="outline" onClick={onSave} loading={saving} icon={<Save size={16} />}>
                   Save
                 </Button>
                 {canLock && session.status !== 'locked' && (
                   <Button
                     variant="primary"
-                    className="gap-1.5 bg-neutral-900"
+                    className="bg-neutral-900"
                     onClick={onLock}
                     loading={lockLoading}
+                    icon={<Lock size={16} />}
                   >
-                    <Lock size={16} />
                     Lock session
                   </Button>
                 )}
@@ -153,10 +158,8 @@ export function SessionDetailHeader({
           <Button
             variant="outline"
             tone="success"
-            size="sm"
             onClick={onReopen}
-            loading={reopenLoading}
-          >
+            loading={reopenLoading} icon={<RotateCcw size={16} />}>
             Reopen session
           </Button>
         </div>

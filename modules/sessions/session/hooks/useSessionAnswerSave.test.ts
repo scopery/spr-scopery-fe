@@ -37,7 +37,13 @@ describe('useSessionAnswerSave', () => {
         canSaveBase: true,
         canLock: true,
         canReopen: false,
-        answers: {},
+        answers: {
+          q1: {
+            question_id: 'q1',
+            answer_status: 'answered',
+            value: 'hello',
+          } as never,
+        },
         setAnswers,
         refetchSession,
         refetchProgress,
@@ -48,7 +54,17 @@ describe('useSessionAnswerSave', () => {
       await result.current.handleSave()
     })
 
-    expect(sessionsApi.putAnswers).toHaveBeenCalled()
+    expect(sessionsApi.putAnswers).toHaveBeenCalledWith(
+      'org1',
+      'p1',
+      's1',
+      expect.objectContaining({
+        answers: expect.arrayContaining([
+          expect.objectContaining({ question_id: 'q1', value: 'hello' }),
+        ]),
+      }),
+      { skipGlobalLoading: true, skipErrorToast: true }
+    )
   })
 
   it('marks session locked on SESSION_LOCKED 409', async () => {

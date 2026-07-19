@@ -19,7 +19,7 @@ describe('Button', () => {
     it('applies primary variant styles', () => {
       render(<Button variant="primary">Primary</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('bg-primary')
+      expect(button).toHaveClass('bg-primary-gradient')
     })
 
     it('applies secondary variant styles', () => {
@@ -31,7 +31,7 @@ describe('Button', () => {
     it('applies outline variant styles', () => {
       render(<Button variant="outline">Outline</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('border-2', 'border-primary')
+      expect(button).toHaveClass('border-primary')
     })
 
     it('applies ghost variant styles', () => {
@@ -45,19 +45,19 @@ describe('Button', () => {
     it('applies small size styles', () => {
       render(<Button size="sm">Small</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('px-sm', 'py-xs', 'text-sm')
+      expect(button).toHaveClass('px-sm', 'py-xs', 'h-8')
     })
 
     it('applies medium size styles by default', () => {
       render(<Button>Medium</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('px-md', 'py-sm', 'text-base')
+      expect(button).toHaveClass('px-sm', 'py-xs', 'h-9')
     })
 
     it('applies large size styles', () => {
       render(<Button size="lg">Large</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('px-lg', 'py-md', 'text-lg')
+      expect(button).toHaveClass('px-lg', 'py-md', 'text-base', 'h-12')
     })
   })
 
@@ -153,7 +153,7 @@ describe('Button', () => {
     it('applies icon-only size styles', () => {
       render(<Button iconOnly icon={<TestIcon />} size="md" aria-label="Test" />)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('h-10', 'w-10', 'p-0')
+      expect(button).toHaveClass('h-9', 'w-9', 'p-0')
     })
 
     it('hides icon when loading', () => {
@@ -171,7 +171,7 @@ describe('Button', () => {
       render(<Button className="custom-class">Custom</Button>)
       const button = screen.getByRole('button')
       expect(button).toHaveClass('custom-class')
-      expect(button).toHaveClass('bg-primary') // Still has default styles
+      expect(button).toHaveClass('bg-primary-gradient') // Still has default styles
     })
   })
 

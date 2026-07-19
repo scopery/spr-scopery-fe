@@ -1,6 +1,6 @@
 import type { Value } from 'platejs'
 import type { DocumentContent, PlateDocumentContent } from './editor.types'
-import { emptyPlateValue } from './plate-config'
+import { emptyPlateValue } from './empty-plate-value'
 
 /** Safe default when content is missing or invalid */
 export function emptyDocumentContent(): PlateDocumentContent {

@@ -1,10 +1,12 @@
 'use client'
 
+import { Archive, Plus } from 'lucide-react'
+
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { Box, Button, Input, Select, Typography, ContentLoader, Badge } from '@/shared/ui'
+import { Box, Button, Input, Select, Typography, Badge, PageSkeleton } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { governanceApi } from '@/modules/governance'
 import {
@@ -17,14 +19,14 @@ import {
   summarizeConditionGroup,
   type GovernanceRule,
 } from '@/modules/governance'
-import { useEffectivePermissions } from '@/modules/permissions'
-import { hasPermission, PERMISSIONS } from '@/modules/permissions'
-import { GOVERNANCE_ACTION_KEYS, GOVERNANCE_EFFECTS } from '@/constants/governance.constants'
+import { useEffectivePermissions } from '@/modules/permissions/access/hooks/useEffectivePermissions'
+import { hasPermission, PERMISSIONS } from '@/modules/permissions/access/lib/permissions'
+import { GOVERNANCE_ACTION_KEYS, GOVERNANCE_EFFECTS } from '@/modules/governance/policy/lib/governance-constants'
 import { ApiError } from '@/shared/lib/api-types'
 
 export function GovernancePolicyDetailView() {
   const params = useParams()
-  const orgId = params.orgId as string
+  const orgId = params.workspaceId as string
   const policyId = params.policyId as string
 
   const { policy, rules, loading, refetch: refetchPolicy } = useGovernancePolicy(orgId, policyId)
@@ -59,7 +61,7 @@ export function GovernancePolicyDetailView() {
     try {
       await governanceApi.archiveGovernancePolicy(orgId, policyId)
       toast.success('Policy archived')
-      window.location.href = ROUTES.org.governance(orgId)
+      window.location.href = ROUTES.workspace.governance(orgId)
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to archive policy')
     }
@@ -108,9 +110,7 @@ export function GovernancePolicyDetailView() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <ContentLoader variant="easeOut" className="w-20" />
-      </div>
+      <PageSkeleton variant="detail" />
     )
   }
 
@@ -120,7 +120,7 @@ export function GovernancePolicyDetailView() {
 
   return (
     <Box className="space-y-6">
-      <Link href={ROUTES.org.governance(orgId)} className="text-sm text-primary hover:underline">
+      <Link href={ROUTES.workspace.governance(orgId)} className="text-sm text-primary hover:underline">
         ← Back to governance
       </Link>
 
@@ -144,22 +144,19 @@ export function GovernancePolicyDetailView() {
             Active policies are enforced server-side when governance enforcement is enabled.
           </Typography>
         </div>
-        <Badge variant="soft" tone={policy.status === 'active' ? 'success' : 'neutral'} size="sm">
-          {policy.status}
+        <Badge variant="solid" tone={policy.status === 'active' ? 'success' : 'neutral'}>
+          {policy.status === 'active' ? 'Active' : policy.status === 'archived' ? 'Archived' : policy.status}
         </Badge>
       </div>
 
       {canManage && policy.status !== 'archived' ? (
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowRuleForm((v) => !v)}>
-            {showRuleForm ? 'Cancel rule' : 'Add rule'}
+          <Button variant="outline" onClick={() => setShowRuleForm((v) => !v)} icon={!showRuleForm ? <Plus size={16} /> : undefined}>{showRuleForm ? 'Cancel rule' : 'Add rule'}
           </Button>
           <Button
             variant="outline"
-            size="sm"
             tone="error"
-            onClick={() => void handleArchivePolicy()}
-          >
+            onClick={() => void handleArchivePolicy()} icon={<Archive size={16} />}>
             Archive policy
           </Button>
         </div>
@@ -208,10 +205,8 @@ export function GovernancePolicyDetailView() {
           )}
           <Button
             variant="primary"
-            size="sm"
             loading={saving}
-            onClick={() => void handleCreateRule()}
-          >
+            onClick={() => void handleCreateRule()} icon={<Plus size={16} />}>
             Create rule
           </Button>
         </div>
@@ -238,10 +233,10 @@ export function GovernancePolicyDetailView() {
                       {rule.name}
                     </Typography>
                     <div className="flex gap-2">
-                      <Badge variant="soft" tone="neutral" size="sm">
+                      <Badge variant="soft" tone="neutral">
                         {rule.effect}
                       </Badge>
-                      <Badge variant="soft" tone="neutral" size="sm">
+                      <Badge variant="soft" tone="neutral">
                         {rule.status}
                       </Badge>
                     </div>
@@ -266,9 +261,7 @@ export function GovernancePolicyDetailView() {
                   {canManage && rule.status !== 'archived' ? (
                     <Button
                       variant="ghost"
-                      size="sm"
-                      onClick={() => void handleArchiveRule(rule.id)}
-                    >
+                      onClick={() => void handleArchiveRule(rule.id)} icon={<Archive size={16} />}>
                       Archive rule
                     </Button>
                   ) : null}

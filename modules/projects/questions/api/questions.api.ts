@@ -1,4 +1,4 @@
-import { PROJECT_ENDPOINTS } from '../../project/api/endpoints'
+import { PROJECT_ENDPOINTS } from '../../endpoints'
 import { apiClient } from '@/shared/lib/apiClient'
 import { normalizeQuestionTypeForApi } from '@/utils/questionType'
 import type {

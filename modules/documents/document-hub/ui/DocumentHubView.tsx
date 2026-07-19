@@ -1,17 +1,31 @@
 'use client'
 
+import { useState } from 'react'
+import dynamic from 'next/dynamic'
+import { ArrowRight } from 'lucide-react'
+
 import { Button, Modal, Select, Typography } from '@/shared/ui'
-import {
-  CreateDeliverableDialog,
-  CreateDocumentModal,
-} from '@/modules/documents'
-import { DocumentHubExportDialog } from './DocumentHubExportDialog'
-import { DocumentHubHeader } from './DocumentHubHeader'
+import { DocumentHubHeader, type DocumentHubViewMode } from './DocumentHubHeader'
 import { DocumentHubSelectionBar } from './DocumentHubSelectionBar'
 import { DocumentHubFilters } from './DocumentHubFilters'
 import { DocumentHubDocumentList } from './DocumentHubDocumentList'
 import type { DocumentHubViewProps } from '../model/document-hub'
 import { useDocumentHub } from '../hooks/useDocumentHub'
+
+const CreateDocumentModal = dynamic(
+  () =>
+    import('@/modules/documents/document').then((m) => m.CreateDocumentModal),
+  { ssr: false }
+)
+const CreateDeliverableDialog = dynamic(
+  () =>
+    import('@/modules/documents/deliverables').then((m) => m.CreateDeliverableDialog),
+  { ssr: false }
+)
+const DocumentHubExportDialog = dynamic(
+  () => import('./DocumentHubExportDialog').then((m) => m.DocumentHubExportDialog),
+  { ssr: false }
+)
 
 export function DocumentHubView({
   orgId,
@@ -27,9 +41,10 @@ export function DocumentHubView({
     canCreateDocument,
     canCreateFromTemplate,
   })
+  const [viewMode, setViewMode] = useState<DocumentHubViewMode>('grid')
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DocumentHubHeader
         canCreateDocument={!!canCreateDocument}
         canExportDocuments={canExportDocuments}
@@ -37,6 +52,8 @@ export function DocumentHubView({
         selectedCount={hub.selectedIds.size}
         totalCount={hub.totalCount}
         deliverableLoading={hub.deliverableLoading}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
         onCreate={hub.openCreateFlow}
         onExport={() => hub.setExportOpen(true)}
         onDeliverable={() => void hub.openDeliverableFlow()}
@@ -79,6 +96,7 @@ export function DocumentHubView({
         orgId={orgId}
         items={hub.items}
         loading={hub.loading}
+        viewMode={viewMode}
         canCreateDocument={!!canCreateDocument}
         canExportDocuments={canExportDocuments}
         canRestoreDocument={canRestoreDocument}
@@ -122,6 +140,7 @@ export function DocumentHubView({
                   ? hub.confirmProjectForDeliverable
                   : hub.confirmProjectForCreate
               }
+              icon={<ArrowRight size={16} />}
             >
               Continue
             </Button>
@@ -153,7 +172,7 @@ export function DocumentHubView({
         />
       ) : null}
 
-      {canExportDocuments && (
+      {canExportDocuments && hub.exportOpen ? (
         <DocumentHubExportDialog
           open={hub.exportOpen}
           onClose={() => hub.setExportOpen(false)}
@@ -167,7 +186,7 @@ export function DocumentHubView({
           loading={hub.exportLoading}
           onExport={hub.runHubExport}
         />
-      )}
+      ) : null}
     </div>
   )
 }

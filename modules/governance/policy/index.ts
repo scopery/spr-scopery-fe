@@ -1,5 +1,8 @@
 export { GovernancePolicyDetailView } from './ui/GovernancePolicyDetailView'
 export { GovernanceListView } from './ui/GovernanceListView'
+export { ProjectGovernanceCenterView } from './ui/ProjectGovernanceCenterView'
+export { useProjectGovernance } from './hooks/useProjectGovernance'
+export * as projectGovernanceApi from './api/project-governance.api'
 export { useGovernancePolicy } from './hooks/useGovernancePolicy'
 export { useGovernanceConditionJsonEditor } from './hooks/useGovernanceConditionJsonEditor'
 export { GovernanceStatusBanner } from './ui/GovernanceStatusBanner'

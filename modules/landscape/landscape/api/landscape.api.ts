@@ -1,4 +1,4 @@
-import { LANDSCAPE_ENDPOINTS } from './endpoints'
+import { LANDSCAPE_ENDPOINTS } from '../../endpoints'
 /**
  * Landscape service — Org nodes & node-links (Traceability).
  * API: GET/POST/PATCH/DELETE nodes; GET/POST/DELETE node-links.

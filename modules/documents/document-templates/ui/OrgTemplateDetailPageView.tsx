@@ -1,15 +1,15 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { ContentLoader, Typography } from '@/shared/ui'
-import { useAuth } from '@/modules/auth'
+import { Typography, PageSkeleton } from '@/shared/ui'
+import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import { TemplateEditor } from '@/modules/documents'
 import { ROUTES } from '@/constants/routes'
 import { useDocumentTemplateDetail } from '@/modules/documents'
 
 export function OrgTemplateDetailPageView() {
   const params = useParams()
-  const orgId = (params?.orgId as string) ?? ''
+  const orgId = (params?.workspaceId as string) ?? ''
   const templateId = (params?.templateId as string) ?? ''
   const { profile } = useAuth()
 
@@ -21,9 +21,7 @@ export function OrgTemplateDetailPageView() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <ContentLoader variant="easeOut" className="w-20" />
-      </div>
+      <PageSkeleton variant="detail" />
     )
   }
 
@@ -39,7 +37,7 @@ export function OrgTemplateDetailPageView() {
         mode="edit"
         userId={profile?.user_id}
         userRole={profile?.role}
-        backHref={ROUTES.org.settingsTemplates(orgId)}
+        backHref={ROUTES.workspace.settingsTemplates(orgId)}
         onSaved={() => {
           void refetchTemplate()
         }}

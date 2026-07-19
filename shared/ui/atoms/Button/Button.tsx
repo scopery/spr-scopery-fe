@@ -16,13 +16,13 @@ const buttonVariants = {
 
 const buttonSizes = {
   sm: 'px-sm py-xs text-[13px] h-8',
-  md: 'px-md py-sm text-sm h-10',
+  md: 'px-sm py-xs text-[13px] h-9',
   lg: 'px-lg py-md text-base h-12',
 }
 
 const iconOnlySizes = {
   sm: 'h-8 w-8 p-0',
-  md: 'h-10 w-10 p-0',
+  md: 'h-9 w-9 p-0',
   lg: 'h-12 w-12 p-0',
 }
 

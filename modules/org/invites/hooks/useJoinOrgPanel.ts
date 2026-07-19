@@ -3,12 +3,12 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { ROUTES } from '@/constants/routes'
-import { useAuth } from '@/modules/auth'
+import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import { apiClient } from '@/shared/lib/apiClient'
 import { ApiError } from '@/shared/lib/api-types'
-import { clearPendingInviteToken } from '@/utils/inviteToken'
+import { clearPendingInviteToken } from '@/modules/org/invites/lib/invite-token'
 import { toast } from 'sonner'
-import { ORG_INVITE_ENDPOINTS } from '../api/endpoints'
+import { ORG_INVITE_ENDPOINTS } from '../../endpoints'
 
 interface AcceptInviteResponse {
   org_id: string
@@ -45,12 +45,12 @@ export function useJoinOrgPanel(initialValue = '') {
       setLoading(true)
       setError(null)
       try {
-        const result = await apiClient.post<AcceptInviteResponse>(ORG_INVITE_ENDPOINTS.accept(), {
-          token: normalizedToken,
-        })
+        const result = await apiClient.post<AcceptInviteResponse>(
+          ORG_INVITE_ENDPOINTS.accept(normalizedToken)
+        )
         clearPendingInviteToken()
         await refreshBootstrap()
-        router.replace(ROUTES.org.projects(result.org_id))
+        router.replace(ROUTES.workspace.projects(result.org_id))
       } catch (err) {
         const msg =
           err instanceof ApiError

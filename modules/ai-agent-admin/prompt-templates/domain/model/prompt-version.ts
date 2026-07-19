@@ -1,0 +1,42 @@
+import type { PromptContentFormat, PromptVersionStatus } from '../enums/prompt.enum'
+import type { AiAdminPage } from '../../../infrastructure/api/page-response'
+
+export interface AiPromptVersion {
+  id: string
+  templateId: string
+  title: string
+  content: string
+  contentFormat: PromptContentFormat
+  variableSchema: string | null
+  changeNote: string | null
+  status: PromptVersionStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateAiPromptVersionPayload {
+  templateId: string
+  title: string
+  content: string
+  contentFormat: PromptContentFormat
+  variableSchema?: string | null
+  changeNote?: string | null
+}
+
+export interface UpdateAiPromptVersionPayload {
+  title: string
+  content: string
+  contentFormat: PromptContentFormat
+  variableSchema?: string | null
+  changeNote?: string | null
+}
+
+export interface SearchAiPromptVersionsParams {
+  templateId?: string
+  status?: PromptVersionStatus | ''
+  contentFormat?: PromptContentFormat | ''
+  page?: number
+  size?: number
+}
+
+export type AiPromptVersionPage = AiAdminPage<AiPromptVersion>

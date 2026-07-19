@@ -1,26 +1,17 @@
 'use client'
 
+import { Eye, Plus } from 'lucide-react'
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
-import {
-  Box,
-  Button,
-  Input,
-  Typography,
-  Stack,
-  Select,
-  Badge,
-  Modal,
-  ContentLoader,
-  Textarea,
-} from '@/shared/ui'
+import { Box, Button, Input, Typography, Stack, Select, Badge, Modal, Textarea, PageSkeleton } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { useProjects } from '@/modules/projects'
+import { useProjects } from '@/modules/projects/project/hooks/useProjects'
 import { useControlledLists } from '@/modules/controlled-lists'
 import type { ControlledList } from '@/modules/controlled-lists'
-import type { Project } from '@/modules/projects'
+import type { Project } from '@/modules/projects/project/model/project'
 
 // const PAGE_SIZE = 50  // reserved for pagination
 
@@ -51,7 +42,7 @@ function normalizeListKey(raw: string): string {
 export function OrgControlledListsView() {
   const params = useParams()
   const searchParams = useSearchParams()
-  const orgId = (params?.orgId as string) ?? ''
+  const orgId = (params?.workspaceId as string) ?? ''
   const projectFromQuery = searchParams.get('projectId')
 
   const { projects, loading: projectsLoading, error: projectsError, listProjects } = useProjects()
@@ -148,7 +139,7 @@ export function OrgControlledListsView() {
       setCreateDescription('')
       setCreateLocked(false)
       if (!created) return
-      const detailHref = ROUTES.org.settingsControlledListDetail(orgId, created.id, projectId)
+      const detailHref = ROUTES.workspace.settingsControlledListDetail(orgId, created.id, projectId)
       // Navigate using location to avoid importing router hook.
       if (typeof window !== 'undefined') {
         window.location.href = detailHref
@@ -196,8 +187,7 @@ export function OrgControlledListsView() {
               variant="primary"
               onClick={() => setCreateModalOpen(true)}
               disabled={createDisabled}
-              aria-label="Create controlled list"
-            >
+              aria-label="Create controlled list" icon={<Plus size={16} />}>
               Create list
             </Button>
           </Stack>
@@ -229,7 +219,7 @@ export function OrgControlledListsView() {
             )}
             {(projectsLoading || listsLoading) && projects.length === 0 && (
               <Box display="flex" className="justify-center py-lg">
-                <ContentLoader variant="easeOut" className="w-20" />
+                <PageSkeleton variant="list" />
               </Box>
             )}
 
@@ -271,7 +261,7 @@ export function OrgControlledListsView() {
                           <th className="p-md text-sm font-semibold text-neutral-700">Name</th>
                           <th className="p-md text-sm font-semibold text-neutral-700">Locked</th>
                           <th className="p-md text-sm font-semibold text-neutral-700">Updated</th>
-                          <th className="p-md text-sm font-semibold text-neutral-700">Actions</th>
+                          <th className="min-w-[12rem] whitespace-nowrap p-md text-sm font-semibold text-neutral-700">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -279,7 +269,7 @@ export function OrgControlledListsView() {
                           const locked =
                             (typeof l.locked === 'boolean' && l.locked) ||
                             (typeof l.is_locked === 'boolean' && l.is_locked)
-                          const detailHref = ROUTES.org.settingsControlledListDetail(
+                          const detailHref = ROUTES.workspace.settingsControlledListDetail(
                             orgId,
                             l.id,
                             projectId ?? undefined
@@ -304,7 +294,6 @@ export function OrgControlledListsView() {
                                 <Badge
                                   tone={locked ? 'warning' : 'success'}
                                   variant="soft"
-                                  size="sm"
                                 >
                                   {locked ? 'Locked' : 'Unlocked'}
                                 </Badge>
@@ -392,15 +381,13 @@ export function OrgControlledListsView() {
             fullWidth
           />
           <Stack direction="horizontal" spacing="sm" align="center">
-            <Badge tone={createLocked ? 'warning' : 'success'} variant="soft" size="sm">
+            <Badge tone={createLocked ? 'warning' : 'success'} variant="soft">
               {createLocked ? 'Locked' : 'Unlocked'}
             </Badge>
             <Button
               variant="outline"
-              size="sm"
               onClick={() => setCreateLocked((v) => !v)}
-              aria-pressed={createLocked}
-            >
+              aria-pressed={createLocked} icon={<Eye size={16} />}>
               Toggle locked
             </Button>
           </Stack>

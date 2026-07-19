@@ -12,10 +12,57 @@ export const FEATURES = {
   aiImpactAnalysis: true,
   aiAdminConfig: isMock || false,
   aiAdminAgents: true,
-  traceability: isMock || false,
+  traceability: isMock || true,
   governanceEnforcement: true, // Display hint only; server GOVERNANCE_ENFORCEMENT env is authoritative
   advancedMembers: isMock || false,
-  orgInvites: isMock || false,
+  orgInvites: true,
+  /** Wave 3 — quote PDF/email send until BE document/send contract exists */
+  wave3QuoteDocuments: false,
+  /** Wave 3 — baseline deep compare until BE compare endpoints exist */
+  wave3BaselineCompare: false,
+  /** Wave 3 — CR apply until atomic apply contract is confirmed */
+  wave3CrApply: false,
+
+  // ── Document Hub / Productivity / Knowledge / AI / Quality … ──
+  globalSearch: true,
+  workInbox: true,
+  savedItems: true,
+  documentHub: true,
+  knowledge: true,
+  aiAssistant: true,
+  projectGovernance: true,
+  reporting: true,
+  quality: true,
+  /** Requirements register + coverage matrix (distinct from legacy `traceability`) */
+  requirementsTraceability: true,
+  aiPlanning: true,
+  aiRecommendations: true,
+  /** Client portal shell — login + project views wired; UAT still gated (W4-EX-PORTAL-UAT) */
+  clientPortal: true,
+  clientCollaboration: true,
+  integrations: true,
+  trust: true,
+  serviceSupport: true,
+  /** Wave 4.1 — native document editor (/content + Plate) */
+  wave41NativeEditor: true,
+  /** Wave 4.1 — sub-page tree (off until BE Subpage controller exists) */
+  wave41DocumentSubpages: false,
+  /**
+   * Wave 4.1 — native template publish/instantiate (/native-versions).
+   * BE DocumentTemplateController now exposes these paths.
+   */
+  wave41NativeTemplates: true,
+  /**
+   * Wave 4.1 — Smart Blocks picker/resolve.
+   * Off until /smart-blocks/* typed APIs exist (GAP-09).
+   */
+  wave41SmartBlocks: false,
+  /**
+   * Wave 5 — AI Agent Playground (maps to AIAGENT_PLAYGROUND_ENABLED).
+   * Set NEXT_PUBLIC_AIAGENT_PLAYGROUND_ENABLED=false to force unavailable UI.
+   */
+  aiAgentPlayground:
+    isMock || process.env.NEXT_PUBLIC_AIAGENT_PLAYGROUND_ENABLED !== 'false',
 } as const
 
 export type FeatureFlag = keyof typeof FEATURES

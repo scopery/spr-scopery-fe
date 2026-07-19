@@ -4,24 +4,23 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Play, Plus } from 'lucide-react'
-import { Typography, Button, Badge, ContentLoader } from '@/shared/ui'
+import { Typography, Button, Badge, PageSkeleton } from '@/shared/ui'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import { ROUTES } from '@/constants/routes'
-import { useProject } from '@/modules/projects'
-import { useSessions, SESSION_STATUS_LABEL } from '@/modules/sessions'
-import { useOrg } from '@/modules/org'
-import { canEditProject, isOrgReadonly, resolveProjectRole } from '@/modules/permissions'
-import {
-  ProjectStepIndicator,
-  buildProjectFlowSteps,
-  PROJECT_FLOW_STEP_IDS,
-} from '@/modules/projects'
-import { CreateSessionModal } from '@/modules/sessions'
+import { useProject } from '@/modules/projects/project/hooks/useProject'
+import { useSessions } from '@/modules/sessions/session/hooks/useSessions'
+import { SESSION_STATUS_LABEL } from '@/modules/sessions/session/model/session'
+import { useOrg } from '@/modules/org/org/hooks/useOrg'
+import { canEditProject, isOrgReadonly, resolveProjectRole } from '@/modules/permissions/access/lib/permissions'
+import { ProjectStepIndicator, buildProjectFlowSteps, PROJECT_FLOW_STEP_IDS } from '@/modules/projects/project/ui/ProjectStepIndicator'
+import { CreateSessionModal } from '@/modules/sessions/session/ui/CreateSessionModal'
+import { ObjectCustomFieldsPanel } from '@/modules/configuration'
 
 export function ProjectDetailView() {
   const params = useParams()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const orgId = params.orgId as string
+  const orgId = params.workspaceId as string
   const projectId = params.projectId as string
   const [createModalOpen, setCreateModalOpen] = useState(false)
 
@@ -42,14 +41,12 @@ export function ProjectDetailView() {
 
   const handleSessionCreated = (sessionId: string) => {
     setCreateModalOpen(false)
-    router.push(ROUTES.org.session(orgId, projectId, sessionId))
+    router.push(ROUTES.workspace.session(orgId, projectId, sessionId))
   }
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <ContentLoader variant="easeOut" className="w-20" />
-      </div>
+      <PageSkeleton variant="detail" />
     )
   }
   if (!project) {
@@ -61,14 +58,19 @@ export function ProjectDetailView() {
   }
 
   const flowSteps = buildProjectFlowSteps(orgId, projectId, PROJECT_FLOW_STEP_IDS.sessions, {
-    project: ROUTES.org.project(orgId, projectId),
-    questions: ROUTES.org.projectQuestions(orgId, projectId),
-    sessions: ROUTES.org.sessions(orgId, projectId),
-    documents: ROUTES.org.projectDocuments(orgId, projectId),
+    project: ROUTES.workspace.project(orgId, projectId),
+    questions: ROUTES.workspace.projectQuestions(orgId, projectId),
+    sessions: ROUTES.workspace.sessions(orgId, projectId),
+    documents: ROUTES.workspace.projectDocuments(orgId, projectId),
   })
 
   return (
     <div>
+      <WorkspaceHierarchyBreadcrumb
+        workspaceId={orgId}
+        project={{ id: projectId, name: project.name }}
+        className="mb-4"
+      />
       <ProjectStepIndicator
         title={project.name}
         description={project.description ?? undefined}
@@ -76,13 +78,11 @@ export function ProjectDetailView() {
           <>
             <Badge
               className="rounded-none"
-              variant="solid"
               tone={projectRole === 'editor' ? 'info' : 'neutral'}
-              size="sm"
             >
               {projectRole}
             </Badge>
-            <Badge variant="soft" tone="neutral" size="sm">
+            <Badge variant="soft" tone="neutral">
               {project.status}
             </Badge>
           </>
@@ -92,13 +92,13 @@ export function ProjectDetailView() {
 
       {/* Navigation tabs — simplified MVP */}
       <div className="mb-6 flex flex-wrap gap-2">
-        <Link href={ROUTES.org.projectQuestions(orgId, projectId)}>
-          <Button variant="neutral-flat" size="sm">
+        <Link href={ROUTES.workspace.projectQuestions(orgId, projectId)}>
+          <Button variant="neutral-flat">
             Questions
           </Button>
         </Link>
-        <Link href={ROUTES.org.projectDocuments(orgId, projectId)}>
-          <Button variant="neutral-flat" size="sm">
+        <Link href={ROUTES.workspace.projectDocuments(orgId, projectId)}>
+          <Button variant="neutral-flat">
             Documents
           </Button>
         </Link>
@@ -123,6 +123,15 @@ export function ProjectDetailView() {
         </div>
       </div>
 
+      <div className="mb-8">
+        <ObjectCustomFieldsPanel
+          workspaceId={orgId}
+          objectType="PROJECT"
+          targetId={projectId}
+          readOnly={!editable}
+        />
+      </div>
+
       <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
         <div>
           <Typography as="h2" weight="semibold" className="text-neutral-900">
@@ -137,7 +146,6 @@ export function ProjectDetailView() {
           {canCreateSession && (
             <Button
               variant="neutral-flat"
-              size="md"
               onClick={() => setCreateModalOpen(true)}
               className="flex items-center gap-2"
             >
@@ -146,8 +154,8 @@ export function ProjectDetailView() {
             </Button>
           )}
           {project.active_session_id && (
-            <Link href={ROUTES.org.session(orgId, projectId, project.active_session_id)}>
-              <Button variant="primary" size="md" className="flex items-center gap-2 bg-warning">
+            <Link href={ROUTES.workspace.session(orgId, projectId, project.active_session_id)}>
+              <Button variant="primary" className="flex items-center gap-2 bg-warning">
                 <Play size={16} />
                 Resume active session
               </Button>
@@ -165,7 +173,7 @@ export function ProjectDetailView() {
             Create a session to start elicitation.
           </Typography>
           {editable && (
-            <Button variant="outline" onClick={() => setCreateModalOpen(true)}>
+            <Button variant="outline" onClick={() => setCreateModalOpen(true)} icon={<Plus size={16} />}>
               Create session
             </Button>
           )}
@@ -191,7 +199,7 @@ export function ProjectDetailView() {
                 <tr key={s.id} className="hover:bg-neutral-50/80 transition-colors">
                   <td className="px-4 py-3">
                     <Link
-                      href={ROUTES.org.session(orgId, projectId, s.id)}
+                      href={ROUTES.workspace.session(orgId, projectId, s.id)}
                       className="text-sm text-primary hover:underline"
                     >
                       {s.name}
@@ -199,7 +207,6 @@ export function ProjectDetailView() {
                   </td>
                   <td className="px-4 py-3">
                     <Badge
-                      variant="solid"
                       tone={
                         s.status === 'in_progress'
                           ? 'progress'
@@ -207,7 +214,6 @@ export function ProjectDetailView() {
                             ? 'success'
                             : 'neutral'
                       }
-                      size="sm"
                     >
                       {SESSION_STATUS_LABEL[s.status]}
                     </Badge>
@@ -219,7 +225,7 @@ export function ProjectDetailView() {
                     {s.submitted_at ? new Date(s.submitted_at).toLocaleDateString() : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <Link href={ROUTES.org.session(orgId, projectId, s.id)}>
+                    <Link href={ROUTES.workspace.session(orgId, projectId, s.id)}>
                       <Typography variant="small" className="text-primary hover:underline">
                         Open
                       </Typography>

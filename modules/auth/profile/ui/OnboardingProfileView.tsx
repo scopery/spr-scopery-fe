@@ -1,11 +1,13 @@
 'use client'
 
+import { ArrowRight } from 'lucide-react'
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Typography, Box, Stack, Button, Input } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { useAuth } from '@/modules/auth'
-import { useProfile } from '@/modules/auth'
+import { useAuth } from '@/modules/auth/auth/context/AuthContext'
+import { useProfile } from '@/modules/auth/profile/hooks/useProfile'
 import { ApiError } from '@/shared/lib/api-types'
 import { toast } from 'sonner'
 
@@ -78,8 +80,7 @@ export function OnboardingProfileView() {
               variant="primary"
               fullWidth
               loading={loading}
-              disabled={!displayName.trim()}
-            >
+              disabled={!displayName.trim()} icon={<ArrowRight size={16} />}>
               Continue
             </Button>
           </Stack>

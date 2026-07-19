@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { RefreshCw } from 'lucide-react'
-import { Typography, Button, Badge, ContentLoader } from '@/shared/ui'
+import { Eye, RefreshCw } from 'lucide-react'
+import { Typography, Button, Badge, Skeleton } from '@/shared/ui'
 import { DocumentTypeBadge } from '@/modules/documents/document/ui/DocumentTypeBadge'
 import { WorkflowStatusBadge } from '@/modules/documents/document/ui/WorkflowStatusBadge'
 import { DeliverableReadinessBadge } from './DeliverableReadinessBadge'
@@ -23,7 +23,7 @@ export function DocumentDeliverableMetadataPanelView({
   if (loading) {
     return (
       <div className="rounded-md border border-neutral-200 bg-white p-4">
-        <ContentLoader />
+        <Skeleton variant="rectangular" width="100%" height={80} />
       </div>
     )
   }
@@ -40,7 +40,7 @@ export function DocumentDeliverableMetadataPanelView({
         <Typography variant="small" className="font-medium">
           Generated deliverable
         </Typography>
-        <Badge variant="soft" tone="neutral" size="sm">
+        <Badge variant="soft" tone="neutral">
           Template generated
         </Badge>
       </div>
@@ -127,7 +127,7 @@ export function DocumentDeliverableMetadataPanelView({
       ) : null}
 
       {hasWarningDetails ? (
-        <Button type="button" variant="ghost" size="sm" onClick={onToggleWarnings}>
+        <Button type="button" variant="ghost" onClick={onToggleWarnings} icon={<Eye size={16} />}>
           {showWarnings ? 'Hide' : 'Show'} readiness details
         </Button>
       ) : null}
@@ -140,7 +140,6 @@ export function DocumentDeliverableMetadataPanelView({
         <Button
           type="button"
           variant="outline"
-          size="sm"
           icon={<RefreshCw size={14} />}
           loading={refreshing}
           onClick={onRefresh}

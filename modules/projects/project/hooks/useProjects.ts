@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import * as projectsApi from '../api/projects.api'
 import type { Project } from '../model/project'
 
-export function useProjects(orgId?: string | null) {
+export function useProjects(workspaceId?: string | null) {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -13,9 +13,9 @@ export function useProjects(orgId?: string | null) {
     setLoading(true)
     setError(null)
     try {
-      const res = await projectsApi.listProjects(id, { limit: 100 })
-      setProjects(res.items as Project[])
-      return res.items as Project[]
+      const res = await projectsApi.listProjects(id, { size: 100, page: 0 })
+      setProjects(res.items)
+      return res.items
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to load projects'
       setError(msg)
@@ -26,14 +26,14 @@ export function useProjects(orgId?: string | null) {
   }, [])
 
   useEffect(() => {
-    if (orgId) listProjects(orgId)
-  }, [orgId, listProjects])
+    if (workspaceId) void listProjects(workspaceId)
+  }, [workspaceId, listProjects])
 
   return {
     projects,
     loading,
     error,
     listProjects,
-    refetch: () => (orgId ? listProjects(orgId) : Promise.resolve()),
+    refetch: () => (workspaceId ? listProjects(workspaceId) : Promise.resolve()),
   }
 }

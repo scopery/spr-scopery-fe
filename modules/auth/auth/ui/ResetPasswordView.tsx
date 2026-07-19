@@ -1,9 +1,15 @@
 'use client'
 
+import { Save } from 'lucide-react'
+
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Button, Typography, Stack } from '@/shared/ui'
+import { useSearchParams } from 'next/navigation'
+import { toast } from 'sonner'
+import { Button, Input, Typography, Stack, Link as DesignLink } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
+import { useAuthActions } from '../hooks/useAuthActions'
 import { cn } from '@/utils/cn'
 
 function ScoperyLogo({ className }: { className?: string }) {
@@ -20,12 +26,43 @@ function ScoperyLogo({ className }: { className?: string }) {
   )
 }
 
-/**
- * Reset password — used after user clicks recovery link from email.
- * If Supabase (or BE) uses hosted recovery page, this may only show instructions.
- * If app handles recovery: read token from URL and show set-new-password form (implement when BE provides endpoint).
- */
 export function ResetPasswordView() {
+  const searchParams = useSearchParams()
+  const token = searchParams.get('token') ?? ''
+  const { confirmPasswordReset } = useAuthActions()
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [done, setDone] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    if (!token) {
+      setError('Reset token is missing. Request a new password reset link.')
+      return
+    }
+    if (!newPassword || newPassword.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+    setLoading(true)
+    try {
+      await confirmPasswordReset(token, newPassword)
+      setDone(true)
+      toast.success('Password updated')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset password')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <main className="flex min-h-screen flex-col bg-neutral-50 lg:flex-row">
       <div className="flex min-h-screen w-full items-center justify-center p-6">
@@ -34,18 +71,53 @@ export function ResetPasswordView() {
           <Typography as="h1" className="mb-2 text-xl font-semibold text-neutral-900">
             Reset password
           </Typography>
-          <Typography tone="muted" className="mb-6">
-            Use the link from your email to set a new password. If you didn’t receive it, check spam
-            or request a new link from the sign-in page.
-          </Typography>
-          <Stack direction="vertical" spacing="md">
-            <Button asChild variant="primary">
-              <Link href={ROUTES.auth.login}>Back to sign in</Link>
-            </Button>
-            <Button asChild variant="ghost">
-              <Link href={ROUTES.auth.forgotPassword}>Request new link</Link>
-            </Button>
-          </Stack>
+          {done ? (
+            <Stack direction="vertical" spacing="md">
+              <Typography tone="muted">Your password has been updated. You can sign in now.</Typography>
+              <Link
+                href={ROUTES.auth.login}
+                className="inline-flex h-10 items-center justify-center bg-primary px-4 text-sm font-medium text-white"
+              >
+                Back to sign in
+              </Link>
+            </Stack>
+          ) : (
+            <>
+              <Typography tone="muted" className="mb-6">
+                Choose a new password for your account.
+              </Typography>
+              <form onSubmit={handleSubmit}>
+                <Stack direction="vertical" spacing="md">
+                  <Input
+                    label="New password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    fullWidth
+                    autoComplete="new-password"
+                  />
+                  <Input
+                    label="Confirm password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    error={error ?? undefined}
+                    fullWidth
+                    autoComplete="new-password"
+                  />
+                  <Button type="submit" variant="primary" fullWidth loading={loading} icon={<Save size={16} />}>
+                    Update password
+                  </Button>
+                </Stack>
+              </form>
+              <Typography as="p" variant="small" tone="muted" className="mt-6 text-center">
+                Need a new link?{' '}
+                <DesignLink as={Link} href={ROUTES.auth.forgotPassword} className="text-primary">
+                  Request reset
+                </DesignLink>
+              </Typography>
+            </>
+          )}
         </div>
       </div>
     </main>

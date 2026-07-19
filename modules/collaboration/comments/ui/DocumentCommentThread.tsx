@@ -1,5 +1,7 @@
 'use client'
 
+import { RotateCcw, Search, Send } from 'lucide-react'
+
 import { useState } from 'react'
 import { Avatar, Badge, Button, Textarea, Typography } from '@/shared/ui'
 import type { DocumentComment } from '@/modules/collaboration/core/model/collaboration'
@@ -60,7 +62,6 @@ export function DocumentCommentThread({
             <Badge
               variant="soft"
               tone={comment.status === 'resolved' ? 'neutral' : 'info'}
-              size="sm"
             >
               {comment.status}
             </Badge>
@@ -81,17 +82,17 @@ export function DocumentCommentThread({
           )}
           <div className="mt-2 flex flex-wrap gap-2">
             {canReply && comment.status === 'open' && (
-              <Button variant="ghost" size="sm" onClick={() => setReplyOpen((v) => !v)}>
+              <Button variant="ghost" onClick={() => setReplyOpen((v) => !v)} icon={<Send size={16} />}>
                 Reply
               </Button>
             )}
             {canResolve && comment.status === 'open' && (
-              <Button variant="outline" size="sm" onClick={() => onResolve(comment.id)}>
+              <Button variant="outline" onClick={() => onResolve(comment.id)} icon={<Search size={16} />}>
                 Resolve
               </Button>
             )}
             {canResolve && comment.status === 'resolved' && (
-              <Button variant="outline" size="sm" onClick={() => onReopen(comment.id)}>
+              <Button variant="outline" onClick={() => onReopen(comment.id)} icon={<RotateCcw size={16} />}>
                 Reopen
               </Button>
             )}
@@ -129,7 +130,7 @@ export function DocumentCommentThread({
             value={mentions}
             onChange={setMentions}
           />
-          <Button variant="primary" size="sm" loading={loading} onClick={() => void handleReply()}>
+          <Button variant="primary" loading={loading} onClick={() => void handleReply()} icon={<Send size={16} />}>
             Post reply
           </Button>
         </div>

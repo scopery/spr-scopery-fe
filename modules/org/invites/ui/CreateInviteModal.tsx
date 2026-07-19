@@ -1,8 +1,8 @@
 'use client'
 
 import { Modal, Typography, Input, Select } from '@/shared/ui'
-import { useCreateInviteModal } from '@/modules/org'
-import type { CreateInviteModalProps, OrgInviteRole } from '@/modules/org'
+import { useCreateInviteModal } from '@/modules/org/invites/hooks/useCreateInviteModal'
+import type { CreateInviteModalProps, OrgInviteRole } from '@/modules/org/invites/model/org-invite'
 
 const ROLE_OPTIONS = [
   { value: 'member', label: 'Member' },

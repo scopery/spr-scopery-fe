@@ -1,20 +1,13 @@
 'use client'
 
+import { Archive, Copy, Eye, Pencil, Plus, Upload } from 'lucide-react'
+
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import {
-  Box,
-  Button,
-  Input,
-  Typography,
-  Stack,
-  Select,
-  ContentLoader,
-  ConfirmDialog,
-} from '@/shared/ui'
+import { Box, Button, Input, Typography, Stack, Select, ConfirmDialog, PageSkeleton } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { useAuth } from '@/modules/auth'
+import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import {
   DocumentTypeBadge,
   TemplateCategoryBadge,
@@ -54,7 +47,7 @@ function formatUpdatedAt(iso: string): string {
 export function OrgTemplatesManagementView() {
   const params = useParams()
   const router = useRouter()
-  const orgId = (params?.orgId as string) ?? ''
+  const orgId = (params?.workspaceId as string) ?? ''
   const { profile } = useAuth()
   const userId = profile?.user_id
   const isAdmin = isPlatformAdmin(profile?.role)
@@ -100,7 +93,7 @@ export function OrgTemplatesManagementView() {
     try {
       const copy = await documentTemplatesApi.duplicateTemplate(orgId, template.id)
       toast.success('Template duplicated')
-      router.push(ROUTES.org.settingsTemplate(orgId, copy.id))
+      router.push(ROUTES.workspace.settingsTemplate(orgId, copy.id))
     } catch (err) {
       const msg =
         err instanceof ApiError
@@ -173,8 +166,7 @@ export function OrgTemplatesManagementView() {
         </div>
         <Button
           variant="primary"
-          onClick={() => router.push(ROUTES.org.settingsTemplateNew(orgId))}
-        >
+          onClick={() => router.push(ROUTES.workspace.settingsTemplateNew(orgId))} icon={<Plus size={16} />}>
           New template
         </Button>
       </Stack>
@@ -186,17 +178,17 @@ export function OrgTemplatesManagementView() {
         shadow="sm"
         className="space-y-4 border border-neutral-200"
       >
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Template scope">
-          {(['all', 'system', 'personal'] as ScopeTab[]).map((tab) => (
-            <Button
-              key={tab}
-              variant={scopeTab === tab ? 'primary' : 'outline'}
-              size="sm"
-              onClick={() => setScopeTab(tab)}
-            >
-              {tab === 'all' ? 'All' : tab === 'system' ? 'System' : 'My templates'}
-            </Button>
-          ))}
+        <div className="w-48">
+          <Select
+            value={scopeTab}
+            onValueChange={(v: string) => setScopeTab(v as ScopeTab)}
+            options={[
+              { value: 'all', label: 'All scopes' },
+              { value: 'system', label: 'System' },
+              { value: 'personal', label: 'My templates' },
+            ]}
+            placeholder="All scopes"
+          />
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -251,9 +243,7 @@ export function OrgTemplatesManagementView() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-12">
-            <ContentLoader variant="easeOut" className="w-20" />
-          </div>
+          <PageSkeleton variant="list" />
         ) : filteredEmpty ? (
           <Box
             padding="lg"
@@ -299,39 +289,31 @@ export function OrgTemplatesManagementView() {
                     <div className="flex flex-wrap gap-2">
                       <Button
                         variant="ghost"
-                        size="sm"
-                        onClick={() => setPreviewTemplate(template)}
-                      >
+                        onClick={() => setPreviewTemplate(template)} icon={<Eye size={16} />}>
                         Preview
                       </Button>
                       {editable && (
                         <Button
                           variant="outline"
-                          size="sm"
                           onClick={() =>
-                            router.push(ROUTES.org.settingsTemplate(orgId, template.id))
-                          }
-                        >
+                            router.push(ROUTES.workspace.settingsTemplate(orgId, template.id))
+                          } icon={<Pencil size={16} />}>
                           Edit
                         </Button>
                       )}
                       {canDuplicateTemplate(template) && (
                         <Button
                           variant="ghost"
-                          size="sm"
                           loading={actionLoading}
-                          onClick={() => void handleDuplicate(template)}
-                        >
+                          onClick={() => void handleDuplicate(template)} icon={<Copy size={16} />}>
                           Duplicate
                         </Button>
                       )}
                       {publishable && template.status !== 'archived' && (
                         <Button
                           variant="ghost"
-                          size="sm"
                           loading={actionLoading}
-                          onClick={() => void handlePublishToggle(template)}
-                        >
+                          onClick={() => void handlePublishToggle(template)} icon={<Upload size={16} />}>
                           {template.is_published && template.status === 'published'
                             ? 'Unpublish'
                             : 'Publish'}
@@ -340,9 +322,7 @@ export function OrgTemplatesManagementView() {
                       {archivable && template.status !== 'archived' && (
                         <Button
                           variant="ghost"
-                          size="sm"
-                          onClick={() => setArchiveTarget(template)}
-                        >
+                          onClick={() => setArchiveTarget(template)} icon={<Archive size={16} />}>
                           Archive
                         </Button>
                       )}

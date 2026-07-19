@@ -2,22 +2,19 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Typography, Badge, ContentLoader, ConfirmDialog } from '@/shared/ui'
+import { Typography, Badge, ConfirmDialog, PageSkeleton } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { useProject } from '@/modules/projects'
-import { useOrg } from '@/modules/org'
-import { useEffectivePermissions } from '@/modules/permissions'
-import {
-  buildDocumentSpacePermissions,
-  buildAIPermissions,
-  canManageProjectContentFallback,
-  resolveProjectRole,
-} from '@/modules/permissions'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import { useProject } from '@/modules/projects/project/hooks/useProject'
+import { useOrg } from '@/modules/org/org/hooks/useOrg'
+import { useEffectivePermissions } from '@/modules/permissions/access/hooks/useEffectivePermissions'
+import { buildDocumentSpacePermissions, buildAIPermissions, resolveProjectRole } from '@/modules/permissions/access/lib/permissions'
+import { canManageProjectContentFallback } from '@/modules/permissions/access/lib/permissions'
 import {
   ProjectStepIndicator,
   buildProjectFlowSteps,
   PROJECT_FLOW_STEP_IDS,
-} from '@/modules/projects'
+} from '@/modules/projects/project/ui/ProjectStepIndicator'
 import {
   CreateDocumentModal,
   CreateDeliverableDialog,
@@ -38,7 +35,7 @@ import { ProjectDocumentsContent } from './ProjectDocumentsContent'
 export function ProjectDocumentsView() {
   const params = useParams()
   const router = useRouter()
-  const orgId = params.orgId as string
+  const orgId = params.workspaceId as string
   const projectId = params.projectId as string
 
   const { project, loading: projectLoading } = useProject(orgId, projectId)
@@ -107,10 +104,10 @@ export function ProjectDocumentsView() {
   }, [search])
 
   const flowSteps = buildProjectFlowSteps(orgId, projectId, PROJECT_FLOW_STEP_IDS.documents, {
-    project: ROUTES.org.project(orgId, projectId),
-    questions: ROUTES.org.projectQuestions(orgId, projectId),
-    sessions: ROUTES.org.sessions(orgId, projectId),
-    documents: ROUTES.org.projectDocuments(orgId, projectId),
+    project: ROUTES.workspace.project(orgId, projectId),
+    questions: ROUTES.workspace.projectQuestions(orgId, projectId),
+    sessions: ROUTES.workspace.sessions(orgId, projectId),
+    documents: ROUTES.workspace.projectDocuments(orgId, projectId),
   })
 
   const sectionFilterOptions = useMemo(
@@ -135,7 +132,7 @@ export function ProjectDocumentsView() {
   const handleCreateSuccess = (documentId: string) => {
     setCreateOpen(false)
     setCreateSectionId(null)
-    router.push(ROUTES.org.document(orgId, documentId, projectId))
+    router.push(ROUTES.workspace.document(orgId, documentId, projectId))
   }
 
   const openCreateInSection = (sectionId: string | null) => {
@@ -156,9 +153,7 @@ export function ProjectDocumentsView() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <ContentLoader variant="easeOut" className="w-20" />
-      </div>
+      <PageSkeleton variant="list" />
     )
   }
 
@@ -168,15 +163,19 @@ export function ProjectDocumentsView() {
 
   return (
     <div>
+      <WorkspaceHierarchyBreadcrumb
+        workspaceId={orgId}
+        project={{ id: projectId, name: project.name }}
+        current="Documents"
+        className="mb-4"
+      />
       <ProjectStepIndicator
         title={project.name}
         description="Documents Space"
         badges={
           <Badge
             className="rounded-none"
-            variant="solid"
             tone={projectRole === 'editor' ? 'info' : 'neutral'}
-            size="sm"
           >
             {projectRole}
           </Badge>

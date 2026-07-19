@@ -3,12 +3,12 @@
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Eye, EyeOff, Lock } from 'lucide-react'
+import { Eye, EyeOff, Lock, LogIn } from 'lucide-react'
 import { FaApple } from 'react-icons/fa'
-import { Button, Input, Typography, Stack, Link as DesignLink, Divider } from '@/shared/ui'
+import { Button, Input, Typography, Stack, Link as DesignLink, Divider, Box } from '@/shared/ui'
 import { toast } from 'sonner'
-import { useAuth } from '@/modules/auth'
-import { useAuthActions } from '@/modules/auth'
+import { useAuth } from '../context/AuthContext'
+import { useAuthActions } from '../hooks/useAuthActions'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
 import Image from 'next/image'
@@ -31,9 +31,9 @@ function ScoperyLogo({ className }: { className?: string }) {
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { session, login, bootstrapStatus } = useAuth()
+  const { session, login, bootstrapStatus, currentWorkspaceId } = useAuth()
   const { loginWithGoogle } = useAuthActions()
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -56,18 +56,26 @@ function LoginContent() {
 
   useEffect(() => {
     if (bootstrapStatus === 'loading' || !session) return
+    const returnTo = searchParams.get('returnTo')
+    const safeReturnTo =
+      returnTo && returnTo.startsWith('/') && !returnTo.startsWith('/auth/')
+        ? returnTo
+        : null
     if (bootstrapStatus === 'ready') {
-      router.replace('/')
+      const dest =
+        safeReturnTo ??
+        (currentWorkspaceId ? ROUTES.workspace.projects(currentWorkspaceId) : ROUTES.onboarding)
+      router.replace(dest)
     } else if (bootstrapStatus === 'needs_onboarding') {
       router.replace(ROUTES.onboarding)
     }
-  }, [session, bootstrapStatus, router])
+  }, [session, bootstrapStatus, currentWorkspaceId, router, searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrors({})
-    if (!email.trim()) {
-      setErrors({ email: 'Email is required' })
+    if (!username.trim()) {
+      setErrors({ username: 'Username is required' })
       return
     }
     if (!password) {
@@ -76,10 +84,9 @@ function LoginContent() {
     }
     setLoading(true)
     try {
-      await login({ email: email.trim(), password })
+      await login({ username: username.trim(), password })
       toast.success('Signed in successfully')
-      const returnTo = searchParams.get('returnTo')
-      window.location.href = returnTo && returnTo.startsWith('/') ? returnTo : '/'
+      // Navigation is handled by the bootstrapStatus useEffect below — no hard reload needed.
     } catch (err) {
       const message =
         err instanceof ApiError
@@ -113,15 +120,17 @@ function LoginContent() {
           <form onSubmit={handleSubmit}>
             <Stack direction="vertical" spacing="md">
               <Input
-                label="Email"
-                type="email"
+                label="Username"
+                type="text"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                error={errors.email}
-                placeholder="Enter your email"
+                size="lg"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                error={errors.username}
+                placeholder="Enter your username"
                 fullWidth
-                autoComplete="email"
+                autoComplete="username"
+                className="text-sm"
               />
 
               <div>
@@ -140,12 +149,14 @@ function LoginContent() {
                 <Input
                   type={showPassword ? 'text' : 'password'}
                   required
+                  size="lg"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   error={errors.password}
                   placeholder="Enter Password"
                   fullWidth
                   autoComplete="current-password"
+                  className="text-sm"
                   prefix={<Lock size={18} className="shrink-0 text-neutral-400" />}
                   postfix={
                     <button
@@ -170,7 +181,8 @@ function LoginContent() {
                 type="submit"
                 fullWidth
                 loading={loading}
-                disabled={!email.trim() || !password}
+                disabled={!username.trim() || !password}
+                icon={<LogIn size={18} />}
                 className="h-12 border-0 text-white transition-opacity hover:opacity-90"
                 style={{ background: 'linear-gradient(to right, #000000, #001F6D, #0787E2)' }}
               >
@@ -181,7 +193,9 @@ function LoginContent() {
 
           <div className="relative my-8 flex items-center gap-3">
             <div className="h-px flex-1 bg-neutral-200" />
-            <span className="text-sm text-neutral-600">OR</span>
+            <Typography as="span" variant="small" tone="muted">
+              OR
+            </Typography>
             <div className="h-px flex-1 bg-neutral-200" />
           </div>
 
@@ -240,6 +254,7 @@ function LoginContent() {
             </button>
           </Stack>
 
+
           <Typography as="p" variant="small" tone="muted" className="mt-8 text-center">
             Don&apos;t have an Account?{' '}
             <DesignLink
@@ -260,7 +275,7 @@ function LoginContent() {
           alt="Scopery"
           width={1000}
           height={1000}
-          className="absolute inset-0"
+          className="absolute inset-0 bottom-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 opacity-30" aria-hidden>
           <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">

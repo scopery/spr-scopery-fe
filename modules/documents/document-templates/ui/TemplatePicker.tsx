@@ -1,6 +1,6 @@
 'use client'
 
-import { Input, Typography, ContentLoader } from '@/shared/ui'
+import { Input, Typography, Skeleton } from '@/shared/ui'
 import type { DocumentTemplate } from '../model/document-templates'
 import { TemplateCard } from './TemplateCard'
 import { useTemplatePicker } from '../hooks/useTemplatePicker'
@@ -17,7 +17,7 @@ export function TemplatePicker({ orgId, selectedId, onSelect }: TemplatePickerPr
   if (picker.loading) {
     return (
       <div className="flex justify-center py-8">
-        <ContentLoader variant="easeOut" className="w-16" />
+        <Skeleton variant="rectangular" width="100%" height={80} />
       </div>
     )
   }

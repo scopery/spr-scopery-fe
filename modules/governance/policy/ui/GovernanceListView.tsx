@@ -1,10 +1,12 @@
 'use client'
 
+import { Eye, Plus } from 'lucide-react'
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { Box, Button, Input, Select, Typography, ContentLoader, Badge } from '@/shared/ui'
+import { Box, Button, Input, Select, Typography, Badge, PageSkeleton } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { governanceApi } from '@/modules/governance'
 import {
@@ -15,13 +17,13 @@ import {
   type GovernancePreset,
   type GovernanceStatusResult,
 } from '@/modules/governance'
-import { useEffectivePermissions } from '@/modules/permissions'
-import { hasPermission, PERMISSIONS } from '@/modules/permissions'
+import { useEffectivePermissions } from '@/modules/permissions/access/hooks/useEffectivePermissions'
+import { hasPermission, PERMISSIONS } from '@/modules/permissions/access/lib/permissions'
 import { ApiError } from '@/shared/lib/api-types'
 
 export function GovernanceListView() {
   const params = useParams()
-  const orgId = params.orgId as string
+  const orgId = params.workspaceId as string
 
   const { permissions } = useEffectivePermissions(orgId)
   const canManage = hasPermission(permissions, PERMISSIONS.GOVERNANCE_MANAGE)
@@ -119,9 +121,7 @@ export function GovernanceListView() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <ContentLoader variant="easeOut" className="w-20" />
-      </div>
+      <PageSkeleton variant="detail" />
     )
   }
 
@@ -137,8 +137,7 @@ export function GovernanceListView() {
           </Typography>
         </div>
         {canManage ? (
-          <Button variant="primary" size="sm" onClick={() => setShowCreate((v) => !v)}>
-            {showCreate ? 'Cancel' : 'New policy'}
+          <Button variant="primary" onClick={() => setShowCreate((v) => !v)} icon={!showCreate ? <Plus size={16} /> : undefined}>{showCreate ? 'Cancel' : 'New policy'}
           </Button>
         ) : null}
       </div>
@@ -191,10 +190,8 @@ export function GovernanceListView() {
           />
           <Button
             variant="primary"
-            size="sm"
             loading={creating}
-            onClick={() => void handleCreate()}
-          >
+            onClick={() => void handleCreate()} icon={<Plus size={16} />}>
             Create policy
           </Button>
         </div>
@@ -219,7 +216,7 @@ export function GovernanceListView() {
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="space-y-1">
                     <Link
-                      href={ROUTES.org.governancePolicy(orgId, item.id)}
+                      href={ROUTES.workspace.governancePolicy(orgId, item.id)}
                       className="font-medium text-primary hover:underline"
                     >
                       {item.name}
@@ -236,14 +233,13 @@ export function GovernanceListView() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge
-                      variant="soft"
+                      variant="solid"
                       tone={item.status === 'active' ? 'success' : 'neutral'}
-                      size="sm"
                     >
-                      {item.status}
+                      {item.status === 'active' ? 'Active' : item.status === 'archived' ? 'Archived' : item.status}
                     </Badge>
                     <Link
-                      href={ROUTES.org.governancePolicy(orgId, item.id)}
+                      href={ROUTES.workspace.governancePolicy(orgId, item.id)}
                       className="text-sm text-primary hover:underline"
                     >
                       View
@@ -277,9 +273,7 @@ export function GovernanceListView() {
                 </div>
                 <Button
                   variant="outline"
-                  size="sm"
-                  onClick={() => setPresetPreviewKey(preset.preset_key)}
-                >
+                  onClick={() => setPresetPreviewKey(preset.preset_key)} icon={<Eye size={16} />}>
                   Preview & apply
                 </Button>
               </li>

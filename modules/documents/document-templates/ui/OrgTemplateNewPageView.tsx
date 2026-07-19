@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { useAuth } from '@/modules/auth'
+import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import { TemplateEditor } from '@/modules/documents'
 import { ROUTES } from '@/constants/routes'
 import type { DocumentTemplate } from '@/modules/documents'
@@ -9,11 +9,11 @@ import type { DocumentTemplate } from '@/modules/documents'
 export function OrgTemplateNewPageView() {
   const params = useParams()
   const router = useRouter()
-  const orgId = (params?.orgId as string) ?? ''
+  const orgId = (params?.workspaceId as string) ?? ''
   const { profile } = useAuth()
 
   const handleSaved = (template: DocumentTemplate) => {
-    router.replace(ROUTES.org.settingsTemplate(orgId, template.id))
+    router.replace(ROUTES.workspace.settingsTemplate(orgId, template.id))
   }
 
   return (
@@ -23,7 +23,7 @@ export function OrgTemplateNewPageView() {
         mode="create"
         userId={profile?.user_id}
         userRole={profile?.role}
-        backHref={ROUTES.org.settingsTemplates(orgId)}
+        backHref={ROUTES.workspace.settingsTemplates(orgId)}
         onSaved={handleSaved}
       />
     </div>

@@ -1,0 +1,5 @@
+export { TaskDependenciesPanel } from './presentation/ui/TaskDependenciesPanel'
+export { useTaskDependencies } from './presentation/hooks/useTaskDependencies'
+export * as taskDependenciesApi from './infrastructure/api/task-dependencies.api'
+export type { TaskDependency, CreateTaskDependencyPayload } from './domain/model/task-dependency'
+export { DependencyType } from './domain/enums/task-dependency.enum'

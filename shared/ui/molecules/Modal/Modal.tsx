@@ -1,4 +1,7 @@
+'use client'
+
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/utils/cn'
 import { Box } from '@/shared/ui/atoms/Box'
 import { Stack } from '@/shared/ui/atoms/Stack'
@@ -17,7 +20,9 @@ const modalSizes: Record<ModalSize, string> = {
 }
 
 /**
- * Modal component - Dialog overlay with header, scrollable body, and footer
+ * Modal component - Dialog overlay with header, scrollable body, and footer.
+ * Always portals to `document.body` so the dimmed backdrop covers the full viewport
+ * (AppShell uses overflow/transform ancestors that would otherwise clip `fixed`).
  *
  * @example
  * ```tsx
@@ -53,6 +58,11 @@ export const Modal = React.forwardRef(
     ref?: React.Ref<HTMLDivElement>
   ) => {
     const Component = as || 'div'
+    const [mounted, setMounted] = React.useState(false)
+
+    React.useEffect(() => {
+      setMounted(true)
+    }, [])
 
     // Handle ESC key
     React.useEffect(() => {
@@ -80,7 +90,7 @@ export const Modal = React.forwardRef(
       }
     }, [open])
 
-    if (!open) return null
+    if (!open || !mounted) return null
 
     const handleOverlayClick = (e: React.MouseEvent) => {
       if (closeOnOverlayClick && e.target === e.currentTarget && onClose) {
@@ -88,15 +98,15 @@ export const Modal = React.forwardRef(
       }
     }
 
-    return (
+    const node = (
       <Component ref={ref} {...props}>
-        {/* Overlay */}
+        {/* Overlay — full viewport dim */}
         <Box
           display="flex"
           className={cn(
-            'fixed inset-0 z-50 items-center justify-center',
-            'bg-black/50 backdrop-blur-sm',
-            'transition-opacity duration-200'
+            'fixed inset-0 z-[100] items-center justify-center p-md',
+            'bg-neutral-900/50 backdrop-blur-sm',
+            'transition-opacity duration-[var(--motion-panel)] ease-[var(--ease-enter)]'
           )}
           onClick={handleOverlayClick}
           aria-modal="true"
@@ -109,9 +119,9 @@ export const Modal = React.forwardRef(
             background="white"
             shadow="xl"
             className={cn(
-              'flex max-h-[90vh] w-full flex-col',
+              'relative flex max-h-[90vh] w-full flex-col',
               modalSizes[size],
-              'transform transition-all duration-200'
+              'transition-all duration-[var(--motion-panel)] ease-[var(--ease-enter)]'
             )}
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
           >
@@ -138,7 +148,6 @@ export const Modal = React.forwardRef(
                   {showCloseButton && onClose && (
                     <Button
                       variant="ghost"
-                      size="sm"
                       iconOnly
                       icon={<X size={20} />}
                       onClick={onClose}
@@ -177,7 +186,6 @@ export const Modal = React.forwardRef(
                         key={index}
                         variant={action.variant || 'primary'}
                         tone={action.tone}
-                        size="md"
                         disabled={action.disabled}
                         loading={action.loading}
                         onClick={action.onClick}
@@ -193,6 +201,8 @@ export const Modal = React.forwardRef(
         </Box>
       </Component>
     )
+
+    return createPortal(node, document.body)
   }
 )
 

@@ -15,7 +15,6 @@ function MarkButton({ label, mark }: { label: string; mark: string }) {
   return (
     <Button
       variant={pressed ? 'secondary' : 'ghost'}
-      size="sm"
       aria-label={label}
       aria-pressed={pressed}
       onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => e.preventDefault()}
@@ -69,7 +68,6 @@ export function EditorFloatingToolbar() {
       <MarkButton label="Code" mark={KEYS.code} />
       <Button
         variant={linkBtn.props.pressed ? 'secondary' : 'ghost'}
-        size="sm"
         aria-label="Link"
         aria-pressed={linkBtn.props.pressed}
         onMouseDown={linkBtn.props.onMouseDown}

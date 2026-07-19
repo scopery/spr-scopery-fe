@@ -1,17 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import {
-  Download,
-  ExternalLink,
-  FileOutput,
-  FileText,
-  Link2,
-  Plus,
-  RotateCcw,
-  Trash2,
-} from 'lucide-react'
-import { Typography, Button, Badge, ContentLoader, ConfirmDialog } from '@/shared/ui'
+import { Download, ExternalLink, Eye, FileOutput, FileText, Link2, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { Typography, Button, Badge, ConfirmDialog, Skeleton } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { DOCUMENT_RELATION_LABELS } from '@/modules/documents/document-links'
 import type { DocumentType } from '@/modules/documents/document'
@@ -49,7 +40,7 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
   if (!canView) return null
 
   const documentHref = (documentId: string) =>
-    `${ROUTES.org.document(orgId, documentId)}?projectId=${encodeURIComponent(projectId)}`
+    `${ROUTES.workspace.document(orgId, documentId)}?projectId=${encodeURIComponent(projectId)}`
 
   const activeItems = panel.items.filter(
     (item) => !item.archived_at && item.document_status === 'active'
@@ -65,21 +56,20 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
             {title}
           </Typography>
           {!panel.loading && activeItems.length > 0 && (
-            <Badge variant="soft" tone="neutral" size="sm">
+            <Badge variant="soft" tone="neutral">
               {activeItems.length}
             </Badge>
           )}
         </div>
         <div className="flex items-center gap-2">
           {canRestore && (
-            <Button variant="ghost" size="sm" onClick={() => panel.setShowArchivedLinks((v) => !v)}>
+            <Button variant="ghost" onClick={() => panel.setShowArchivedLinks((v) => !v)} icon={<Eye size={16} />}>
               {panel.showArchivedLinks ? 'Hide archived' : 'Show archived'}
             </Button>
           )}
           {canExport && (linkedEntityType === 'requirement' || linkedEntityType === 'session') && (
             <Button
               variant="outline"
-              size="sm"
               icon={<Download size={14} />}
               loading={panel.exporting}
               disabled={!panel.loading && activeItems.length === 0}
@@ -91,7 +81,6 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
           {canCreateDeliverable && deliverableType && (
             <Button
               variant="outline"
-              size="sm"
               icon={<FileOutput size={14} />}
               onClick={() => panel.setDeliverableOpen(true)}
             >
@@ -99,14 +88,13 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
             </Button>
           )}
           {canCreateLink && enableBulkLink && !compact && (
-            <Button variant="outline" size="sm" onClick={() => panel.setBulkOpen(true)}>
+            <Button variant="outline" onClick={() => panel.setBulkOpen(true)} icon={<Link2 size={16} />}>
               Link multiple
             </Button>
           )}
           {canCreateLink && (
             <Button
               variant="outline"
-              size="sm"
               icon={<Plus size={14} />}
               onClick={() => panel.setAddOpen(true)}
             >
@@ -118,7 +106,7 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
 
       {panel.loading ? (
         <div className="flex justify-center py-4">
-          <ContentLoader variant="easeOut" className="w-12" />
+          <Skeleton variant="rectangular" width="100%" height={80} />
         </div>
       ) : displayItems.length === 0 ? (
         <div className="rounded border border-dashed border-neutral-200 px-4 py-6 text-center">
@@ -155,16 +143,16 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
                     <div className="mb-1 flex flex-wrap gap-2">
                       <DocumentTypeBadge type={docType} />
                       {workflowStatus && <WorkflowStatusBadge status={workflowStatus} />}
-                      <Badge variant="soft" tone="info" size="sm">
+                      <Badge variant="soft" tone="info">
                         {DOCUMENT_RELATION_LABELS[item.relation_type]}
                       </Badge>
                       {isArchivedLink && (
-                        <Badge variant="soft" tone="warning" size="sm">
+                        <Badge variant="soft" tone="warning">
                           Link archived
                         </Badge>
                       )}
                       {isArchivedDoc && (
-                        <Badge variant="soft" tone="warning" size="sm">
+                        <Badge variant="soft" tone="warning">
                           Document archived
                         </Badge>
                       )}
@@ -179,7 +167,6 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
                         as={Link}
                         href={documentHref(item.document_id)}
                         variant="ghost"
-                        size="sm"
                         iconOnly
                         icon={<ExternalLink size={14} />}
                         aria-label="Open document"
@@ -188,7 +175,6 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
                     {canRestore && isArchivedLink && !isArchivedDoc && (
                       <Button
                         variant="ghost"
-                        size="sm"
                         iconOnly
                         icon={<RotateCcw size={14} />}
                         aria-label="Restore link"
@@ -198,7 +184,6 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
                     {canRestoreDocument && isArchivedDoc && (
                       <Button
                         variant="ghost"
-                        size="sm"
                         iconOnly
                         icon={<RotateCcw size={14} />}
                         aria-label="Restore document"
@@ -208,7 +193,6 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
                     {canRemoveLink && !isArchivedLink && (
                       <Button
                         variant="ghost"
-                        size="sm"
                         iconOnly
                         icon={<Trash2 size={14} />}
                         aria-label="Remove link"

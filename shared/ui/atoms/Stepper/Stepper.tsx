@@ -5,27 +5,41 @@ import { cn } from '@/utils/cn'
 import { ChevronRight } from 'lucide-react'
 import type { StepperProps, StepperStep } from './Stepper.types'
 
+const HEXAGON_CLIP = '[clip-path:polygon(25%_0,75%_0,100%_50%,75%_100%,25%_100%,0_50%)]'
+
+export function StepperHexagon({
+  number,
+  active = false,
+  className,
+}: {
+  number: number
+  active?: boolean
+  className?: string
+}) {
+  return (
+    <span
+      className={cn(
+        'relative inline-flex h-7 w-8 shrink-0 items-center justify-center text-sm',
+        HEXAGON_CLIP,
+        active ? 'bg-primary text-white' : 'bg-neutral-300',
+        className
+      )}
+      aria-hidden
+    >
+      {!active && (
+        <span className={cn('absolute inset-[1px] bg-white', HEXAGON_CLIP)} aria-hidden />
+      )}
+      <span className={cn('relative z-10', active ? 'text-white' : 'text-neutral-500')}>
+        {number}
+      </span>
+    </span>
+  )
+}
+
 function StepContent({ step }: { step: StepperStep }) {
   const content = (
     <>
-      <span
-        className={cn(
-          'relative inline-flex h-7 w-8 shrink-0 items-center justify-center text-sm',
-          '[clip-path:polygon(25%_0,75%_0,100%_50%,75%_100%,25%_100%,0_50%)]',
-          step.active ? 'bg-primary text-white' : 'bg-neutral-300'
-        )}
-        aria-current={step.active ? 'step' : undefined}
-      >
-        {!step.active && (
-          <span
-            className="absolute inset-[1px] bg-white [clip-path:polygon(25%_0,75%_0,100%_50%,75%_100%,25%_100%,0_50%)]"
-            aria-hidden
-          />
-        )}
-        <span className={cn('relative z-10', step.active ? 'text-white' : 'text-neutral-500')}>
-          {step.id}
-        </span>
-      </span>
+      <StepperHexagon number={step.id} active={step.active} />
       <span
         className={cn('text-sm', step.active ? 'text-neutral-900' : 'font-normal text-neutral-400')}
       >

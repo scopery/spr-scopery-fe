@@ -2,7 +2,7 @@
 
 import { Typography, Button } from '@/shared/ui'
 import type { ClaritySummary } from '../model/clarity'
-import { ClipboardCheck } from 'lucide-react'
+import { ClipboardCheck, Sparkles } from 'lucide-react'
 
 function formatScore(score: number | undefined): string {
   if (score == null || !Number.isFinite(score)) return '—'
@@ -122,27 +122,35 @@ export function ClarityPanel({
         <Typography size="lg" weight="semibold" className="text-neutral-900">
           {readinessLabelDisplay} {formatScore(overallReadiness)}
         </Typography>
-        <div className="mt-2 space-y-1 text-xs text-neutral-600">
-          <div className="font-medium text-neutral-500">Readiness guide</div>
+        <div className="mt-2 space-y-1">
+          <Typography as="div" size="xs" weight="medium" className="text-neutral-500">
+            Readiness guide
+          </Typography>
           <div className="flex flex-col gap-0.5">
             <div className="flex">
-              <span className="w-20 text-neutral-500">{'< 0.60'}</span>
-              <span className="text-neutral-700">
+              <Typography as="span" size="xs" className="w-20 text-neutral-500">
+                {'< 0.60'}
+              </Typography>
+              <Typography as="span" size="xs" className="text-neutral-700">
                 Not ready – many required answers missing or unclear.
-              </span>
+              </Typography>
             </div>
             <div className="flex">
-              <span className="w-20 text-neutral-500">0.60–0.80</span>
-              <span className="text-neutral-700">
+              <Typography as="span" size="xs" className="w-20 text-neutral-500">
+                0.60–0.80
+              </Typography>
+              <Typography as="span" size="xs" className="text-neutral-700">
                 Draft OK, needs clarification – baseline coverage but still ambiguous or incomplete
                 areas.
-              </span>
+              </Typography>
             </div>
             <div className="flex">
-              <span className="w-20 text-neutral-500">{'> 0.80'}</span>
-              <span className="text-neutral-700">
+              <Typography as="span" size="xs" className="w-20 text-neutral-500">
+                {'> 0.80'}
+              </Typography>
+              <Typography as="span" size="xs" className="text-neutral-700">
                 Ready – requirements are mostly clear; only minor follow-ups remain.
-              </span>
+              </Typography>
             </div>
           </div>
         </div>
@@ -150,9 +158,13 @@ export function ClarityPanel({
 
       <div className="space-y-2">
         <div>
-          <div className="mb-0.5 flex justify-between text-xs text-neutral-600">
-            <span>Coverage</span>
-            <span>{formatScore(coverageScore)}</span>
+          <div className="mb-0.5 flex justify-between">
+            <Typography as="span" size="xs" tone="muted">
+              Coverage
+            </Typography>
+            <Typography as="span" size="xs" tone="muted">
+              {formatScore(coverageScore)}
+            </Typography>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
             <div
@@ -162,9 +174,13 @@ export function ClarityPanel({
           </div>
         </div>
         <div>
-          <div className="mb-0.5 flex justify-between text-xs text-neutral-600">
-            <span>Clarity</span>
-            <span>{formatScore(clarityScore)}</span>
+          <div className="mb-0.5 flex justify-between">
+            <Typography as="span" size="xs" tone="muted">
+              Clarity
+            </Typography>
+            <Typography as="span" size="xs" tone="muted">
+              {formatScore(clarityScore)}
+            </Typography>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
             <div
@@ -175,22 +191,38 @@ export function ClarityPanel({
         </div>
       </div>
 
-      <div className="space-y-2 border-t border-neutral-200 pt-3 text-sm">
+      <div className="space-y-2 border-t border-neutral-200 pt-3">
         <div className="flex justify-between">
-          <span className="text-neutral-600">Required total</span>
-          <span className="text-neutral-900">{requiredTotal}</span>
+          <Typography as="span" variant="small" tone="muted">
+            Required total
+          </Typography>
+          <Typography as="span" variant="small">
+            {requiredTotal}
+          </Typography>
         </div>
         <div className="flex justify-between">
-          <span className="text-neutral-600">Required answered</span>
-          <span className="text-neutral-900">{requiredAnswered}</span>
+          <Typography as="span" variant="small" tone="muted">
+            Required answered
+          </Typography>
+          <Typography as="span" variant="small">
+            {requiredAnswered}
+          </Typography>
         </div>
         <div className="flex justify-between">
-          <span className="text-neutral-600">Assessed</span>
-          <span className="text-neutral-900">{assessedCount}</span>
+          <Typography as="span" variant="small" tone="muted">
+            Assessed
+          </Typography>
+          <Typography as="span" variant="small">
+            {assessedCount}
+          </Typography>
         </div>
         <div className="flex justify-between">
-          <span className="text-neutral-600">Missing assessments</span>
-          <span className="text-error">{missingAssessments}</span>
+          <Typography as="span" variant="small" tone="muted">
+            Missing assessments
+          </Typography>
+          <Typography as="span" variant="small" tone="error">
+            {missingAssessments}
+          </Typography>
         </div>
       </div>
 
@@ -254,11 +286,10 @@ export function ClarityPanel({
         <div className="border-t border-neutral-200 pt-2">
           <Button
             variant="outline"
-            size="sm"
             onClick={onBulkAssess}
             loading={bulkAssessLoading}
             className="w-full gap-2"
-          >
+           icon={<Sparkles size={16} />}>
             <ClipboardCheck size={14} />
             Assess missing required answers
           </Button>

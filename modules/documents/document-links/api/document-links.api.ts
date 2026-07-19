@@ -1,7 +1,9 @@
-import { DOCUMENT_ENDPOINTS } from '../../document/api/endpoints'
+import { DOCUMENT_ENDPOINTS } from '../../endpoints'
+import { PROJECT_ENDPOINTS } from '@/modules/projects/endpoints'
 import { apiClient } from '@/shared/lib/apiClient'
-import { sessionsApi } from '@/modules/sessions'
-import { requirementsApi } from '@/modules/projects'
+import { normalizeItemList, type ListPayload } from '@/shared/lib/normalizeListResponse'
+import * as sessionsApi from '@/modules/sessions/session/api/sessions.api'
+import * as requirementsApi from '@/modules/projects/requirements/api/requirements.api'
 import type { TraceLinksListResponse } from '@/modules/projects/traceability'
 import type {
   DocumentLink,
@@ -26,11 +28,15 @@ export async function listDocumentLinks(
   includeArchived?: boolean
 ): Promise<{ items: DocumentLink[]; page?: { limit: number; offset: number; total: number } }> {
   const base = DOCUMENT_ENDPOINTS.listLinks(orgId, documentId, projectId)
-  if (includeArchived) {
-    const sep = base.includes('?') ? '&' : '?'
-    return apiClient.get(`${base}${sep}include_archived=true`)
+  const url = includeArchived
+    ? `${base}${base.includes('?') ? '&' : '?'}include_archived=true`
+    : base
+  const res = await apiClient.get<ListPayload<DocumentLink>>(url)
+  const { items } = normalizeItemList(res)
+  return {
+    items,
+    page: !Array.isArray(res) && res?.page ? (res.page as { limit: number; offset: number; total: number }) : undefined,
   }
-  return apiClient.get(base)
 }
 
 export async function createDocumentLink(
@@ -90,7 +96,13 @@ export async function listLinkedDocumentsForEntity(
   items: LinkedDocumentForEntity[]
   page: { limit: number; offset: number; total: number }
 }> {
-  return apiClient.get(DOCUMENT_ENDPOINTS.byEntity(orgId, params))
+  const res = await apiClient.get<ListPayload<LinkedDocumentForEntity>>(DOCUMENT_ENDPOINTS.byEntity(orgId, params))
+  const { items } = normalizeItemList(res)
+  const page =
+    !Array.isArray(res) && res?.page
+      ? (res.page as { limit: number; offset: number; total: number })
+      : { limit: items.length, offset: 0, total: items.length }
+  return { items, page }
 }
 
 export async function bulkCreateDocumentLinks(
@@ -121,9 +133,9 @@ export async function getEntityLinkCounts(
 }
 
 async function listTraceLinks(orgId: string, projectId: string): Promise<TraceLinksListResponse> {
-  return apiClient.get<TraceLinksListResponse>(
-    `/api/v2/orgs/${orgId}/projects/${projectId}/trace-links`
-  )
+  return apiClient.get<TraceLinksListResponse>(PROJECT_ENDPOINTS.traceLinks(orgId, projectId), {
+    skipErrorToast: true,
+  })
 }
 
 export async function listSessionTargets(

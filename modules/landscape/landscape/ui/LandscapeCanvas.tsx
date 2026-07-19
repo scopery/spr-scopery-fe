@@ -28,6 +28,7 @@ import {
   type OrgNodeLink,
   type NodeLinkType,
 } from '@/modules/landscape'
+import { Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 
 const GRID_STEP = 50
@@ -54,9 +55,15 @@ function OrgNodeCard({ data, selected }: NodeProps<Node<OrgNodeData>>) {
       )}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-primary" />
-      <div className="font-mono text-sm text-neutral-600">{data.code}</div>
-      <div className="truncate text-sm font-medium text-neutral-900">{data.name}</div>
-      <div className="text-xs capitalize text-neutral-500">{data.node_type}</div>
+      <Typography as="div" variant="small" tone="muted" className="font-mono">
+        {data.code}
+      </Typography>
+      <Typography as="div" variant="small" weight="medium" className="truncate">
+        {data.name}
+      </Typography>
+      <Typography as="div" variant="small" size="xs" tone="muted" className="capitalize">
+        {data.node_type}
+      </Typography>
       <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-primary" />
     </div>
   )

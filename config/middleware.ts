@@ -5,17 +5,20 @@ import { PLATFORM_ROUTES } from '@/modules/platform/lib/routes'
 export const MIDDLEWARE_PUBLIC_PREFIXES = [
   '/auth',
   '/invites',
+  '/org-invites',
   PLATFORM_ROUTES.suspended,
 ] as const
 
 /** Path prefixes that require session cookies before render. */
 export const MIDDLEWARE_PROTECTED_PREFIXES = [
-  '/org',
+  '/workspace',
   '/admin',
+  '/account',
+  PLATFORM_ROUTES.join,
   PLATFORM_ROUTES.onboarding,
 ] as const
 
-/** Logged-in users hitting these paths are redirected to onboarding. */
+/** Logged-in users hitting these paths — client AuthContext handles redirect. */
 export const MIDDLEWARE_AUTH_ENTRY_PATHS = [
   AUTH_ROUTES.login,
   AUTH_ROUTES.register,

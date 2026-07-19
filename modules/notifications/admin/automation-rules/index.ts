@@ -1,0 +1,7 @@
+export { AutomationRulesView } from './presentation/ui/AutomationRulesView'
+export { useAutomationRules } from './presentation/hooks/useAutomationRules'
+export * as automationRulesApi from './infrastructure/api/automation-rules.api'
+export type { ReminderRule, CreateReminderRulePayload } from './domain/model/reminder-rule'
+export type { AlertRule, CreateAlertRulePayload } from './domain/model/alert-rule'
+export type { DigestRule, CreateDigestRulePayload } from './domain/model/digest-rule'
+export type { DigestRun } from './domain/model/digest-run'

@@ -1,5 +1,7 @@
 'use client'
 
+import { Shield, Trash2 } from 'lucide-react'
+
 import { useState } from 'react'
 import { Button, Modal, Select, Typography } from '@/shared/ui'
 import type { ShareDocumentDialogProps } from '@/modules/collaboration/core/model/collaboration'
@@ -71,7 +73,7 @@ export function ShareDocumentDialog({
           ]}
         />
 
-        <Button variant="primary" size="sm" loading={loading} onClick={() => void handleShare()}>
+        <Button variant="primary" loading={loading} onClick={() => void handleShare()} icon={<Shield size={16} />}>
           Grant access
         </Button>
 
@@ -84,7 +86,7 @@ export function ShareDocumentDialog({
                   {c.display_name || c.email || c.user_id} — {c.role}
                 </Typography>
                 {canManageCollaborators && (
-                  <Button variant="ghost" size="sm" onClick={() => void removeCollaborator(c.user_id)}>
+                  <Button variant="ghost" onClick={() => void removeCollaborator(c.user_id)} icon={<Trash2 size={16} />}>
                     Remove
                   </Button>
                 )}

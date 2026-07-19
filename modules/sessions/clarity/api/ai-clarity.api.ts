@@ -1,4 +1,4 @@
-import { AI_ENDPOINTS } from '../../../projects/project/api/ai-endpoints'
+import { AI_ENDPOINTS } from '../../../projects/endpoints'
 import { FEATURES } from '@/config/features'
 import { apiClient } from '@/shared/lib/apiClient'
 import type { AssessOnePayload, AssessOneResponse, ClaritySummary } from '../model/clarity'

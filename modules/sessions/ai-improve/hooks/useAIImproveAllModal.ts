@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react'
 import { getProblemToastMessage, isConflictCode } from '@/shared/lib/errorHandling'
 import { toast } from 'sonner'
 import * as aiImproveApi from '../api/ai-improve.api'
-import type { ProjectQuestion } from '@/modules/projects'
+import type { ProjectQuestion } from '@/modules/projects/questions/model/questions'
 import type { AnswerItem } from '@/modules/sessions/session'
 
 function formatValuePreview(value: unknown, qType: string): string {

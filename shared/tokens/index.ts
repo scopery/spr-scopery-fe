@@ -15,3 +15,4 @@ export {
 } from './typography'
 export { radius, type RadiusToken } from './radius'
 export { shadows, type ShadowToken } from './shadows'
+export { motion, easing, type MotionToken, type EasingToken } from './motion'

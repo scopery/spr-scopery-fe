@@ -1,8 +1,8 @@
-export { AgentControlView } from './ui/AgentControlView'
-export type { AgentControlViewProps } from './ui/AgentControlView'
-export { useAgentControl } from './hooks/useAgentControl'
-export { useAgentControlMutations } from './hooks/useAgentControlMutations'
-export type { AgentControlFilters } from './model/agent-control'
+export { AgentControlView } from './presentation/ui/AgentControlView'
+export type { AgentControlViewProps } from './presentation/ui/AgentControlView'
+export { useAgentControl } from './presentation/hooks/useAgentControl'
+export { useAgentControlMutations } from './presentation/hooks/useAgentControlMutations'
+export type { AgentControlFilters } from './domain/model/agent-control'
 export type {
   AgentControlMetadata,
   OrgAgentListItem,
@@ -15,5 +15,5 @@ export type {
   PromptTemplateDetail,
   PromptTemplateListItem,
   TemplatePromptBinding,
-} from './model/agent-control-types'
-export * as agentControlApi from './api/agent-control.api'
+} from './domain/model/agent-control-types'
+export * as agentControlApi from './infrastructure/api/agent-control.api'

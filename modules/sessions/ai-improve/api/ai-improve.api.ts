@@ -1,4 +1,4 @@
-import { AI_ENDPOINTS } from '../../../projects/project/api/ai-endpoints'
+import { AI_ENDPOINTS } from '../../../projects/endpoints'
 /**
  * AI answer-improve API — session-scoped v2 endpoints.
  */

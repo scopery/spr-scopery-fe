@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageSquare, Lightbulb, Activity, Share2 } from 'lucide-react'
-import { Button, Typography } from '@/shared/ui'
+import { Share2 } from 'lucide-react'
+import { Button, Typography, Select } from '@/shared/ui'
 import type { DocumentCollaborationPanelProps } from '@/modules/collaboration/core/model/collaboration'
 import { DocumentCommentsPanel } from '@/modules/collaboration/comments/ui/DocumentCommentsPanel'
 import { DocumentSuggestionsPanel } from '@/modules/collaboration/suggestions/ui/DocumentSuggestionsPanel'
@@ -20,22 +20,11 @@ export function DocumentCollaborationPanel({
   const [tab, setTab] = useState<PanelTab>('comments')
   const [shareOpen, setShareOpen] = useState(false)
 
-  const tabs: Array<{ id: PanelTab; label: string; icon: typeof MessageSquare; visible: boolean }> =
-    [
-      {
-        id: 'comments',
-        label: 'Comments',
-        icon: MessageSquare,
-        visible: permissions.canViewComments,
-      },
-      {
-        id: 'suggestions',
-        label: 'Suggestions',
-        icon: Lightbulb,
-        visible: permissions.canViewSuggestions,
-      },
-      { id: 'activity', label: 'Activity', icon: Activity, visible: permissions.canViewActivity },
-    ]
+  const tabs: Array<{ id: PanelTab; label: string; visible: boolean }> = [
+    { id: 'comments', label: 'Comments', visible: permissions.canViewComments },
+    { id: 'suggestions', label: 'Suggestions', visible: permissions.canViewSuggestions },
+    { id: 'activity', label: 'Activity', visible: permissions.canViewActivity },
+  ]
 
   const visibleTabs = tabs.filter((t) => t.visible)
   if (visibleTabs.length === 0 && !permissions.canShare) return null
@@ -47,36 +36,23 @@ export function DocumentCollaborationPanel({
         {permissions.canShare && (
           <Button
             variant="outline"
-            size="sm"
             onClick={() => setShareOpen(true)}
-            className="flex items-center gap-1"
             aria-label="Share document internally"
+            icon={<Share2 size={14} />}
           >
-            <Share2 size={14} aria-hidden />
             Share
           </Button>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-1" role="tablist" aria-label="Collaboration panels">
-        {visibleTabs.map((t) => {
-          const Icon = t.icon
-          return (
-            <Button
-              key={t.id}
-              variant={tab === t.id ? 'primary' : 'ghost'}
-              size="sm"
-              role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => setTab(t.id)}
-              className="flex items-center gap-1"
-            >
-              <Icon size={14} aria-hidden />
-              {t.label}
-            </Button>
-          )
-        })}
-      </div>
+      {visibleTabs.length > 0 ? (
+        <Select
+          value={tab}
+          onValueChange={(v: string) => setTab(v as PanelTab)}
+          options={visibleTabs.map((t) => ({ value: t.id, label: t.label }))}
+          placeholder="Select panel"
+        />
+      ) : null}
 
       <div role="tabpanel">
         {tab === 'comments' && permissions.canViewComments && (

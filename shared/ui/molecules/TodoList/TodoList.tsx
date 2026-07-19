@@ -101,7 +101,6 @@ export const TodoList = React.forwardRef(
             {onAdd && (
               <Button
                 variant="ghost"
-                size="sm"
                 iconOnly
                 icon={<Plus size={16} />}
                 onClick={onAdd}
@@ -128,7 +127,6 @@ export const TodoList = React.forwardRef(
                       <Box display="flex" className="flex-shrink-0 pt-0.5">
                         <Button
                           variant="ghost"
-                          size="sm"
                           iconOnly
                           icon={
                             <Plus
@@ -175,7 +173,6 @@ export const TodoList = React.forwardRef(
                             {item.status && (
                               <Badge
                                 variant="soft"
-                                size="sm"
                                 className={cn(
                                   statusStyle.bgColor,
                                   statusStyle.textColor,

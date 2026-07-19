@@ -1,6 +1,8 @@
 'use client'
 
-import { Modal, Typography, Button, ContentLoader } from '@/shared/ui'
+import { Paperclip } from 'lucide-react'
+
+import { Modal, Typography, Button, Skeleton } from '@/shared/ui'
 import { DocumentTypeBadge } from './DocumentTypeBadge'
 import type { AttachDocumentModalViewProps } from '../model/attach-document-modal'
 
@@ -22,7 +24,7 @@ export function AttachDocumentModalView({
     >
       {loading ? (
         <div className="flex justify-center py-8">
-          <ContentLoader variant="easeOut" className="w-16" />
+          <Skeleton variant="rectangular" width="100%" height={80} />
         </div>
       ) : documents.length === 0 ? (
         <Typography tone="muted" className="py-6 text-center">
@@ -49,10 +51,8 @@ export function AttachDocumentModalView({
                 </div>
                 <Button
                   variant="outline"
-                  size="sm"
                   loading={attachingId === doc.id}
-                  onClick={() => onAttach(doc.id)}
-                >
+                  onClick={() => onAttach(doc.id)} icon={<Paperclip size={16} />}>
                   Attach
                 </Button>
               </li>

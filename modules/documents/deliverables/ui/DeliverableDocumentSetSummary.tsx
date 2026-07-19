@@ -12,19 +12,19 @@ export function DeliverableDocumentSetSummary({
 
   return (
     <div className="border-border bg-muted/30 space-y-2 rounded-md border p-3">
-      <Typography variant="body-sm" className="font-medium">
+      <Typography variant="small" weight="medium">
         Document set ({selectedCount} selected)
       </Typography>
       {crossProjectWarning ? (
-        <Typography variant="body-sm" className="text-destructive">
+        <Typography variant="small" tone="error">
           {crossProjectWarning}
         </Typography>
       ) : null}
-      <ul className="text-muted-foreground max-h-32 space-y-1 overflow-auto text-sm">
+      <Typography as="ul" variant="small" tone="muted" className="max-h-32 space-y-1 overflow-auto">
         {documentTitles.map((title) => (
           <li key={title}>{title}</li>
         ))}
-      </ul>
+      </Typography>
     </div>
   )
 }

@@ -1,5 +1,6 @@
-import { GOVERNANCE_ENDPOINTS } from './endpoints'
+import { GOVERNANCE_ENDPOINTS } from '../../endpoints'
 import { apiClient } from '@/shared/lib/apiClient'
+import { normalizeItemList, type ListPayload } from '@/shared/lib/normalizeListResponse'
 import type {
   GovernanceConditionValidationResult,
   GovernanceEvaluateResult,
@@ -25,7 +26,12 @@ export async function listGovernancePolicies(
     offset?: number
   }
 ): Promise<{ items: GovernancePolicyListItem[]; total: number }> {
-  return apiClient.get(GOVERNANCE_ENDPOINTS.policies(orgId, params))
+  const res = await apiClient.get<ListPayload<GovernancePolicyListItem>>(GOVERNANCE_ENDPOINTS.policies(orgId, params))
+  const { items } = normalizeItemList(res)
+  return {
+    items,
+    total: !Array.isArray(res) && typeof res?.total === 'number' ? res.total : items.length,
+  }
 }
 
 export async function getGovernanceStatus(orgId: string): Promise<GovernanceStatusResult> {
@@ -105,7 +111,8 @@ export async function archiveGovernanceRule(
 }
 
 export async function listGovernancePresets(orgId: string): Promise<{ items: GovernancePreset[] }> {
-  return apiClient.get(GOVERNANCE_ENDPOINTS.presets(orgId))
+  const res = await apiClient.get<ListPayload<GovernancePreset>>(GOVERNANCE_ENDPOINTS.presets(orgId))
+  return normalizeItemList(res)
 }
 
 export async function applyGovernancePreset(

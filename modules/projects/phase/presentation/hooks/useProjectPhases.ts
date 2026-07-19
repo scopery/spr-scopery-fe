@@ -1,0 +1,88 @@
+'use client'
+
+import { useCallback, useEffect, useState } from 'react'
+import { ApiError } from '@/shared/lib/api-types'
+import * as phasesApi from '../../infrastructure/api/phases.api'
+import type {
+  CreateProjectPhasePayload,
+  ProjectPhase,
+  UpdateProjectPhasePayload,
+} from '../../domain/model/phase'
+import type { PhaseLifecycleAction } from '../../domain/rules/phase.rules'
+
+export function useProjectPhases(projectId: string | null) {
+  const [phases, setPhases] = useState<ProjectPhase[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [forbidden, setForbidden] = useState(false)
+  const [actingId, setActingId] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    if (!projectId) return
+    setLoading(true)
+    setError(null)
+    setForbidden(false)
+    try {
+      const res = await phasesApi.listPhases(projectId, { page: 0, size: 100 })
+      setPhases(res.items ?? [])
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) setForbidden(true)
+      setError(err instanceof Error ? err.message : 'Failed to load phases')
+      setPhases([])
+    } finally {
+      setLoading(false)
+    }
+  }, [projectId])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const createPhase = useCallback(
+    async (body: CreateProjectPhasePayload) => {
+      if (!projectId) return null
+      const created = await phasesApi.createPhase(projectId, body)
+      await load()
+      return created
+    },
+    [projectId, load]
+  )
+
+  const updatePhase = useCallback(
+    async (phaseId: string, body: UpdateProjectPhasePayload) => {
+      if (!projectId) return null
+      const updated = await phasesApi.updatePhase(projectId, phaseId, body)
+      await load()
+      return updated
+    },
+    [projectId, load]
+  )
+
+  const runLifecycle = useCallback(
+    async (phaseId: string, action: PhaseLifecycleAction) => {
+      if (!projectId) return
+      setActingId(phaseId)
+      try {
+        if (action === 'activate') await phasesApi.activatePhase(projectId, phaseId)
+        else if (action === 'complete') await phasesApi.completePhase(projectId, phaseId)
+        else await phasesApi.archivePhase(projectId, phaseId)
+        await load()
+      } finally {
+        setActingId(null)
+      }
+    },
+    [projectId, load]
+  )
+
+  return {
+    phases,
+    loading,
+    error,
+    forbidden,
+    actingId,
+    refetch: load,
+    createPhase,
+    updatePhase,
+    runLifecycle,
+  }
+}

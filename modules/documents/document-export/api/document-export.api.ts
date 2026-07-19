@@ -1,4 +1,4 @@
-import { DOCUMENT_ENDPOINTS } from '../../document/api/endpoints'
+import { DOCUMENT_ENDPOINTS } from '../../endpoints'
 import { apiClient, getApiBaseUrl } from '@/shared/lib/apiClient'
 import {
   downloadExportPackageRequest,

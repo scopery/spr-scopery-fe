@@ -1,8 +1,8 @@
 'use client'
 
 import { Modal, Input } from '@/shared/ui'
-import { useCreateSessionModal } from '@/modules/sessions'
-import type { CreateSessionModalProps } from '@/modules/sessions'
+import { useCreateSessionModal } from '@/modules/sessions/session/hooks/useCreateSessionModal'
+import type { CreateSessionModalProps } from '@/modules/sessions/session/model/session'
 
 export function CreateSessionModal({
   orgId,

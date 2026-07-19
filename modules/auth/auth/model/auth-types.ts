@@ -1,26 +1,29 @@
 /**
- * Auth, Profile and domain types — v2 API
+ * Auth, Profile and domain types
  */
 
 export interface RegisterPayload {
+  username: string
   email: string
   password: string
-  full_name: string
+  fullName: string
 }
 
 export interface LoginPayload {
-  email: string
+  username: string
   password: string
 }
 
 export interface AuthUser {
   id: string
+  username: string
   email: string
-  display_name?: string
+  fullName?: string
 }
 
 export interface AuthSession {
   user: AuthUser
+  /** access_token is an HttpOnly cookie managed by the BE — empty string here. */
   session: {
     access_token: string
     refresh_token?: string

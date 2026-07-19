@@ -1,171 +1,311 @@
-# Scopery-FE — Frontend Convention Guide
+# Scopery-FE — Frontend Architecture Guide
 
-> **Canonical conventions:** [`CODING_CONVENTIONS.md`](./CODING_CONVENTIONS.md) — naming, imports, layers, PR checklist.  
+> **Canonical conventions:** [`CODING_CONVENTIONS.md`](./CODING_CONVENTIONS.md) — naming, lint, PR checklist.
 > **Bounded context map (BE):** read `../CLAUDE.md` at monorepo root.
-
-## Tech stack
-
-- **Framework**: Next.js 14 App Router (TypeScript)
-- **Styling**: Tailwind CSS + design tokens
-- **API**: `shared/lib/apiClient.ts` — routes through `/api/proxy/*` BFF (HttpOnly cookie auth)
-- **State**: React Context (`modules/auth/auth/context/AuthContext.tsx`) + local useState/hooks
-- **Validation**: Zod (client-side where needed)
 
 ---
 
-## Directory structure
+## Tech stack
+
+| Layer      | Choice                                                                  |
+| ---------- | ----------------------------------------------------------------------- |
+| Framework  | Next.js 14 App Router, TypeScript strict                                |
+| Styling    | Tailwind CSS + design tokens (`shared/tokens/`)                         |
+| HTTP       | `shared/lib/apiClient.ts` → BFF `/api/proxy/*` (HttpOnly cookie auth)  |
+| State      | React Context (auth) + module hooks + local `useState`                  |
+| Validation | Zod (client-side where needed)                                          |
+
+---
+
+## Top-level directory
 
 ```
 app/                      Next.js App Router — thin routes only (~5–15 lines per page.tsx)
   api/proxy/[...path]/    BFF proxy — do not modify unless changing auth architecture
-  api/auth/               Auth endpoints (Google OAuth, session management)
+  api/auth/               Auth endpoints (Google OAuth, session)
 shared/
   ui/                     Design system — atoms + molecules, ZERO business logic
-    atoms/                Button, Input, Badge, Typography, Stack, Modal, ...
-    molecules/            AISuggestion, EventCard, FileMediaLibrary, ...
-    index.ts              Barrel — import as @/shared/ui
-  lib/                    Core infrastructure
-    apiClient.ts          HTTP client — never call fetch() directly
-    api-types.ts          ApiError, RFC 9457 helpers
-    dataMode.ts           Mock mode toggle (NEXT_PUBLIC_DATA_MODE=mock)
-    errorHandling.ts      Toast and field-error helpers
+  lib/                    apiClient, api-types, errorHandling, api-paths, dataMode
   tokens/                 Design tokens (colors, spacing, typography, radius, shadows)
-modules/                  Business logic — nested sub-modules per bounded context
-  documents/              document/, document-templates/, project-sections/, ...
-  projects/               project/, questions/, requirements/, ai-impact/, ...
-  sessions/               session/, clarity/, ai-improve/
-  org/                    org/, invites/
-  admin/                  ai-config/, ai-agents/, admin-templates/, ...
-  ...                     See bounded-context map in ../CLAUDE.md
-  {context}/
-    {sub-module}/
-      api/                API calls via apiClient
-      hooks/              Data orchestration
-      model/              Domain types, view models
-      ui/                 Views (*View.tsx), modals, panels
-      index.ts            Sub-module exports
-    index.ts              Public facade — app imports only from here
-mocks/                    Mock fixtures + resolver (keep during rebuild)
-config/                   features.ts
-constants/                Transitional — endpoints and route helpers (colocate per module over time)
-utils/                    Domain utilities (permissions, inviteToken, cn, …)
-scripts/archive/          One-time migration scripts (historical)
+modules/                  All business logic — one folder per bounded context
+config/                   Feature flags (features.ts)
+constants/                Transitional barrel — re-exports from modules (do not add new endpoints here)
+utils/                    Generic cross-cutting utils: cn, useDebounce, inviteToken shims
 ```
 
-> **Full conventions:** [`CODING_CONVENTIONS.md`](./CODING_CONVENTIONS.md) — naming, imports, commit/PR standards.
+---
 
-### Import conventions (current standard)
+## Module structure
 
-| Import                             | Use for                                                  |
-| ---------------------------------- | -------------------------------------------------------- |
-| `@/shared/ui`                      | Pure design system (Button, Input, Modal, …)             |
-| `@/shared/lib/*`                   | apiClient, dataMode, errorHandling, api-types            |
-| `@/modules/{context}`              | **All** business module work from `app/**` (facade only) |
-| `@/modules/{context}/{sub-module}` | Cross sub-module imports within modules                  |
-| `@/utils/*`                        | Domain utilities (permissions, cn, inviteToken, …)       |
-| `@/constants/*`                    | Endpoints and routes (transitional)                      |
-| `@/config/*`                       | Feature flags                                            |
-
-### Module structure (nested sub-modules)
+Every sub-module follows this layout:
 
 ```
-modules/{bounded-context}/
-  {sub-module}/
-    api/ hooks/ model/ ui/ index.ts
-  index.ts   ← public facade for app/**
+modules/{bounded-context}/{sub-module}/
+  domain/
+    model/              ← Business objects (match BE shape but camelCase)
+    enums/              ← String literal const objects — NOT TypeScript enum keyword
+    rules/              ← Pure business logic functions (no React, no apiClient)
+    messages/           ← Business error/validation message constants
+
+  infrastructure/
+    api/
+      endpoints.ts      ← DOMAIN_ENDPOINTS constant, uses apiPath()
+      {domain}.api.ts   ← Typed apiClient calls — never fetch()
+    schemas/            ← Raw API response shapes (snake_case, raw strings)
+                           Only needed when schema ≠ domain model
+    mappers/            ← Schema → domain model transformation
+                           Only needed when schema ≠ domain model
+
+  presentation/
+    hooks/              ← React orchestration (useState, useEffect, useCallback)
+    view-models/        ← UI-specific shape derived from domain model
+                           Only needed when UI shape ≠ domain model
+    ui/                 ← Components: *View.tsx, *Modal.tsx, *Panel.tsx, *Item.tsx
+
+  index.ts              ← Sub-module public API
+index.ts                ← Bounded-context facade — only entry for app/**
 ```
 
-Pattern: **Page → View → Hook → API → apiClient**
+### When to create each folder
 
-- **Route** (`app/**/page.tsx`) — thin wrapper rendering `<XxxView />`
-- **View** (`modules/*/ui/*View.tsx`) — page body and UI composition
-- **Hook** (`modules/*/hooks/`) — data orchestration
-- **API** (`modules/*/api/`) — typed apiClient calls
-- **Model** (`modules/*/model/`) — domain types and view models
+| Folder                       | Create when                                                           |
+| ---------------------------- | --------------------------------------------------------------------- |
+| `domain/rules/`              | Any business decision logic exists (can user do X? is Y valid?)       |
+| `domain/messages/`           | Business error/validation strings exist                               |
+| `infrastructure/schemas/`    | BE returns snake_case or shape differs from domain model              |
+| `infrastructure/mappers/`    | Schema ≠ domain model (always paired with schemas/)                   |
+| `presentation/view-models/`  | UI needs derived/formatted data that doesn't belong in domain model   |
 
-Do not add new domain code to removed global folders (`hooks/`, `services/`, `types/`).
-Do not use `app/**/_components/` — put UI in `modules/*/ui/`.
+> **Do not** create `lib/`, `services/`, `helpers/`, or `utils/` inside modules.
+> These become mixed-responsibility over time. Use the specific folders above instead.
+
+---
+
+## Call flows
+
+### Simple CRUD (list / get / create)
+
+```
+app/**/page.tsx
+  └─ <FoosView />                         ← presentation/ui/
+       └─ useFoos(orgId)                   ← presentation/hooks/
+            └─ fooApi.listFoos(orgId)      ← infrastructure/api/foo.api.ts
+                 └─ apiClient.get(url)     ← shared/lib/apiClient.ts
+                      └─ /api/proxy/*      ← BFF adds Authorization header
+```
+
+### With business rules (permission check, status guard)
+
+```
+app/**/page.tsx
+  └─ <SessionDetailView />
+       └─ useSessionDetail(sessionId)
+            ├─ sessionApi.getSession()     ← infrastructure/api/
+            └─ canSubmitSession(session)   ← domain/rules/session.rules.ts
+                 └─ pure boolean, no side effects
+```
+
+### With schema mapping (BE shape ≠ domain model)
+
+```
+apiClient.get(url)
+  └─ WorkspaceSchema (snake_case, string dates)   ← infrastructure/schemas/
+       └─ mapWorkspaceSchemaToDomain(schema)       ← infrastructure/mappers/
+            └─ Workspace (camelCase, Date objects) ← domain/model/
+                 └─ hook stores domain model
+                      └─ mapWorkspaceToViewModel() ← presentation/view-models/ (optional)
+                           └─ WorkspaceDetailView  ← presentation/ui/
+```
+
+### With view model (UI needs derived/formatted data)
+
+```
+domain model: { status: 'ACTIVE', createdAt: Date }
+  └─ mapWorkspaceToDetailViewModel(workspace)
+       └─ { statusLabel: 'Active', createdAtText: '01/01/2026', canArchive: true }
+            └─ WorkspaceDetailView receives view model, renders directly
+```
+
+### Mutation flow (create / update / delete)
+
+```
+<CreateFooModal onSubmit={handleSubmit} />
+  └─ handleSubmit(formValues)
+       ├─ validateFooPayload(formValues)        ← domain/rules/ (optional)
+       ├─ fooApi.createFoo(orgId, formValues)   ← infrastructure/api/
+       ├─ toast.success(...)                    ← presentation layer
+       └─ refetch()                             ← invalidate hook state
+```
+
+---
+
+## Layer constraints
+
+### Allowed dependencies
+
+```
+presentation  → domain (model, enums, rules, messages)
+presentation  → infrastructure/api (only via hook, never directly in component)
+
+infrastructure → domain (model, enums)
+infrastructure → shared/lib/apiClient
+
+domain        → nothing (pure TypeScript only)
+```
+
+### Forbidden — hard rules
+
+| From          | Cannot import                                     | Reason                            |
+| ------------- | ------------------------------------------------- | --------------------------------- |
+| `domain/`     | React, Next.js, apiClient, shared/ui              | Domain must be pure               |
+| `domain/`     | Any other layer (infra, presentation)             | Domain has no outward deps        |
+| `infrastructure/api/` | React hooks, JSX, shared/ui              | Infra is not UI                   |
+| `presentation/ui/` | `infrastructure/api/*.api.ts` directly      | Always go through a hook          |
+| `shared/ui/`  | `@/modules/*`, business enums, domain types       | Design system is business-agnostic |
+| `app/**/page.tsx` | Deep module paths `@/modules/{ctx}/{sub}/*`  | Routes use facade only            |
+
+### Import path rules
+
+| Caller               | Import                              |
+| -------------------- | ----------------------------------- |
+| `app/**/page.tsx`    | `@/modules/{context}` facade only   |
+| Cross sub-module     | `@/modules/{context}/{sub-module}`  |
+| Within sub-module    | Relative `../model`, `../hooks`     |
+| Design system        | `@/shared/ui`                       |
+| HTTP client          | `@/shared/lib/apiClient`            |
+| Error types          | `@/shared/lib/api-types`            |
+| Generic utils        | `@/utils/cn`, `@/utils/useDebounce` |
 
 ---
 
 ## Adding a new feature — step by step
 
-### 1. Declare endpoints in `constants/endpoints.ts`
+### 1. Domain model + enums
 
 ```typescript
+// domain/enums/foo.enum.ts
+export const FooStatus = {
+  Active: 'ACTIVE',
+  Archived: 'ARCHIVED',
+} as const
+export type FooStatus = (typeof FooStatus)[keyof typeof FooStatus]
+```
+
+```typescript
+// domain/model/foo.ts
+import type { FooStatus } from '../enums/foo.enum'
+
+export interface Foo {
+  id: string
+  orgId: string
+  name: string
+  status: FooStatus
+  createdAt: string
+}
+```
+
+> Use `as const` object — **never** the TypeScript `enum` keyword.
+> Types must match BE response shape exactly — do not invent extra fields.
+
+### 2. Business rules (if any)
+
+```typescript
+// domain/rules/foo.rules.ts
+import type { Foo } from '../model/foo'
+import { FooStatus } from '../enums/foo.enum'
+
+export function isFooArchived(foo: Foo): boolean {
+  return foo.status === FooStatus.Archived
+}
+
+export function canEditFoo(foo: Foo): boolean {
+  return !isFooArchived(foo)
+}
+```
+
+> Rules must be pure: input → output, no side effects, no React, no apiClient.
+
+### 3. Endpoints + API functions
+
+```typescript
+// infrastructure/api/endpoints.ts
+import { apiPath } from '@/shared/lib/api-paths'
+
 export const FOO_ENDPOINTS = {
-  list: (orgId: string, params?: { limit?: number; offset?: number }) => {
-    const p = new URLSearchParams()
-    if (params?.limit != null) p.set('limit', String(params.limit))
-    if (params?.offset != null) p.set('offset', String(params.offset))
-    const q = p.toString()
-    return v2(`/orgs/${orgId}/foos`) + (q ? `?${q}` : '')
-  },
-  get: (orgId: string, fooId: string) => v2(`/orgs/${orgId}/foos/${fooId}`),
-  create: (orgId: string) => v2(`/orgs/${orgId}/foos`),
-  patch: (orgId: string, fooId: string) => v2(`/orgs/${orgId}/foos/${fooId}`),
-  delete: (orgId: string, fooId: string) => v2(`/orgs/${orgId}/foos/${fooId}`),
+  list: (orgId: string) => apiPath(`/orgs/${orgId}/foos`),
+  get: (orgId: string, fooId: string) => apiPath(`/orgs/${orgId}/foos/${fooId}`),
+  create: (orgId: string) => apiPath(`/orgs/${orgId}/foos`),
+  patch: (orgId: string, fooId: string) => apiPath(`/orgs/${orgId}/foos/${fooId}`),
+  delete: (orgId: string, fooId: string) => apiPath(`/orgs/${orgId}/foos/${fooId}`),
 } as const
 ```
 
-- All URLs must go through the `v2()` helper — never hardcode the base URL.
-- Naming convention: `DOMAIN_ENDPOINTS` (e.g. `FOO_ENDPOINTS`, `ORG_ENDPOINTS`).
-
-### 2. Declare types in `modules/{context}/{sub-module}/model/`
-
 ```typescript
-// modules/foo/bar/model/foo.ts
-export interface Foo {
-  id: string
-  org_id: string
-  name: string
-  created_at: string
-}
+// infrastructure/api/foo.api.ts
+import { apiClient } from '@/shared/lib/apiClient'
+import { FOO_ENDPOINTS } from './endpoints'
+import type { Foo } from '../../domain/model/foo'
 
 export interface FooListResponse {
   items: Foo[]
   page: { limit: number; offset: number; total: number }
 }
-```
 
-- Types must match the BE response shape exactly — do not invent extra fields.
-- Use `interface` for object shapes; `type` only for unions and aliases.
-
-### 3. Write API functions in `modules/{context}/{sub-module}/api/`
-
-```typescript
-// modules/foo/bar/api/foo.api.ts
-import { FOO_ENDPOINTS } from '@/constants/endpoints'
-import { apiClient } from '@/shared/lib/apiClient'
-import type { Foo, FooListResponse } from '../model/foo'
-
-export async function listFoos(
-  orgId: string,
-  params?: { limit?: number; offset?: number }
-): Promise<FooListResponse> {
-  return apiClient.get<FooListResponse>(FOO_ENDPOINTS.list(orgId, params))
+export async function listFoos(orgId: string): Promise<FooListResponse> {
+  return apiClient.get<FooListResponse>(FOO_ENDPOINTS.list(orgId))
 }
 
 export async function createFoo(orgId: string, body: { name: string }): Promise<Foo> {
   return apiClient.post<Foo>(FOO_ENDPOINTS.create(orgId), body)
 }
+
+export async function deleteFoo(orgId: string, fooId: string): Promise<void> {
+  await apiClient.delete<void>(FOO_ENDPOINTS.delete(orgId, fooId), { parseJson: false })
+}
 ```
 
-- API functions are `async` and return typed Promises.
-- Never call `fetch()` directly — always use `apiClient`.
-- Do not catch errors in the API layer — let `apiClient` throw `ApiError`; the UI handles it.
-- Export from sub-module `index.ts` and root facade.
+> Never call `fetch()` — always `apiClient`.
+> Never catch errors in API layer — let `ApiError` bubble to the hook/UI.
 
-### 4. Write a custom hook in `modules/{context}/{sub-module}/hooks/`
+### 4. Schema + mapper (only when BE shape ≠ domain model)
 
 ```typescript
-// modules/foo/bar/hooks/useFoos.ts
+// infrastructure/schemas/foo.schema.ts
+export interface FooSchema {
+  id: string
+  org_id: string           // snake_case from BE
+  name: string
+  status: 'ACTIVE' | 'ARCHIVED'
+  created_at: string       // raw string date
+}
+```
+
+```typescript
+// infrastructure/mappers/foo.mapper.ts
+import type { Foo } from '../../domain/model/foo'
+import type { FooSchema } from '../schemas/foo.schema'
+
+export function mapFooSchemaToDomain(schema: FooSchema): Foo {
+  return {
+    id: schema.id,
+    orgId: schema.org_id,
+    name: schema.name,
+    status: schema.status,
+    createdAt: schema.created_at,
+  }
+}
+```
+
+### 5. Hook
+
+```typescript
+// presentation/hooks/useFoos.ts
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import * as fooApi from '../api/foo.api'
-import type { Foo } from '../model/foo'
-import { ApiError } from '@/shared/lib/api-types'
+import * as fooApi from '../../infrastructure/api/foo.api'
+import { canEditFoo } from '../../domain/rules/foo.rules'
+import type { Foo } from '../../domain/model/foo'
 
 export function useFoos(orgId: string | null) {
   const [items, setItems] = useState<Foo[]>([])
@@ -180,34 +320,65 @@ export function useFoos(orgId: string | null) {
       const res = await fooApi.listFoos(orgId)
       setItems(res.items)
     } catch (err) {
-      setError(err instanceof ApiError ? err.detail : 'Failed to load')
+      setError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
       setLoading(false)
     }
   }, [orgId])
 
   useEffect(() => {
-    load()
+    void load()
   }, [load])
 
-  return { items, loading, error, refetch: load }
+  // Domain rules applied here, not in UI
+  const editableFoos = items.filter(canEditFoo)
+
+  return { items, editableFoos, loading, error, refetch: load }
 }
 ```
 
-- Add `'use client'` at the top of every hook file.
-- Return shape: `{ data/items, loading, error, refetch }` — stay consistent.
-- Never fetch inside a component — always go through a hook.
-- Wrap fetch in `useCallback` to prevent effect loops.
+> Always `'use client'` as first line.
+> Wrap fetch in `useCallback` — prevents infinite loops.
+> Apply domain rules in the hook, not in the component.
+> Return shape: `{ data/items, loading, error, refetch, ...actions }`.
 
-### 5. Write View in `modules/` and thin route in `app/`
+### 6. View model (only when UI needs derived/formatted data)
 
 ```typescript
-// modules/foo/bar/ui/FoosView.tsx
+// presentation/view-models/foo-list-item.vm.ts
+import type { Foo } from '../../domain/model/foo'
+import { FooStatus } from '../../domain/enums/foo.enum'
+
+export interface FooListItemViewModel {
+  id: string
+  name: string
+  statusLabel: string
+  statusColor: 'green' | 'gray'
+  canEdit: boolean
+}
+
+export function mapFooToListItemViewModel(foo: Foo): FooListItemViewModel {
+  return {
+    id: foo.id,
+    name: foo.name,
+    statusLabel: foo.status === FooStatus.Active ? 'Active' : 'Archived',
+    statusColor: foo.status === FooStatus.Active ? 'green' : 'gray',
+    canEdit: foo.status === FooStatus.Active,
+  }
+}
+```
+
+### 7. View + sub-components
+
+```tsx
+// presentation/ui/FoosView.tsx
 'use client'
 
 import { useParams } from 'next/navigation'
 import { useFoos } from '../hooks/useFoos'
+import { mapFooToListItemViewModel } from '../view-models/foo-list-item.vm'
 import { ContentLoader, Stack } from '@/shared/ui'
+import { FooListItem } from './FooListItem'
 
 export function FoosView() {
   const { orgId } = useParams<{ orgId: string }>()
@@ -218,11 +389,29 @@ export function FoosView() {
 
   return (
     <Stack direction="vertical" spacing="md">
-      {items.map(foo => <FooCard key={foo.id} foo={foo} />)}
+      {items.map(foo => (
+        <FooListItem key={foo.id} vm={mapFooToListItemViewModel(foo)} />
+      ))}
     </Stack>
   )
 }
+```
 
+```tsx
+// presentation/ui/FooListItem.tsx  ← sub-component, PascalCase
+import type { FooListItemViewModel } from '../view-models/foo-list-item.vm'
+
+export function FooListItem({ vm }: { vm: FooListItemViewModel }) {
+  return <div>{vm.name}</div>
+}
+```
+
+> All component files use PascalCase: `FoosView.tsx`, `FooListItem.tsx`, `CreateFooModal.tsx`.
+> Components receive view models or domain models — they do NOT contain business logic.
+
+### 8. Thin route in `app/`
+
+```tsx
 // app/org/[orgId]/foos/page.tsx
 'use client'
 
@@ -233,15 +422,27 @@ export default function FoosPage() {
 }
 ```
 
-### 6. Add a route helper in `constants/routes.ts` (only if a new page is needed)
+### 9. Export from index files
 
 ```typescript
-export const ROUTES = {
-  // ...existing
-  org: {
-    foos: (orgId: string) => `/org/${orgId}/foos`,
-    fooDetail: (orgId: string, fooId: string) => `/org/${orgId}/foos/${fooId}`,
-  },
+// presentation/ui → sub-module index.ts
+export { FoosView } from './presentation/ui/FoosView'
+export { useFoos } from './presentation/hooks/useFoos'
+export * as fooApi from './infrastructure/api/foo.api'
+export type { Foo } from './domain/model/foo'
+export type { FooStatus } from './domain/enums/foo.enum'
+
+// sub-module index.ts → bounded-context index.ts (facade)
+export * from './foo'
+```
+
+### 10. Route helper (only if new page)
+
+```typescript
+// modules/{context}/lib/routes.ts
+export const FOO_ROUTES = {
+  list: (orgId: string) => `/org/${orgId}/foos`,
+  detail: (orgId: string, fooId: string) => `/org/${orgId}/foos/${fooId}`,
 }
 ```
 
@@ -252,109 +453,99 @@ export const ROUTES = {
 ```typescript
 import { apiClient } from '@/shared/lib/apiClient'
 
-// GET
-const data = await apiClient.get<ResponseType>(url)
-
-// POST with body
-const created = await apiClient.post<ResponseType>(url, { field: value })
-
-// PATCH
+const data    = await apiClient.get<ResponseType>(url)
+const created = await apiClient.post<ResponseType>(url, body)
 const updated = await apiClient.patch<ResponseType>(url, body)
-
-// DELETE (no response body)
 await apiClient.delete<void>(url, { parseJson: false })
 ```
 
 `apiClient` automatically:
-
-- Routes through `/api/proxy/*` (BFF) so the server adds the Authorization header from the HttpOnly cookie.
-- Throws `ApiError` when the response is not ok.
+- Routes through `/api/proxy/*` — BFF adds Authorization header from HttpOnly cookie.
+- Throws `ApiError` on non-ok responses.
 - Redirects to login on 401.
+
+`apiPath(path)` from `@/shared/lib/api-paths`:
+- Builds unversioned URLs under `/api` (matches BE `ApiPaths.BASE_PATH`)
+- Example: `apiPath('/workspaces/...')` → `/api/workspaces/...`
+- Example: `apiPath('/iam/users')` → `/api/iam/users`
 
 ---
 
-## Error handling in UI
+## Error handling
+
+### Global interceptor (automatic)
+
+`ApiErrorProvider` in `app/Providers.tsx` shows a Sonner toast for failed API calls unless:
+- Status is 401 (handled by redirect)
+- Status is 400 or 422 (validation — hooks/forms own field/inline UX)
+- Request passes `{ skipErrorToast: true }`
+- URL matches suppressed legacy/dead routes
+
+Do **not** duplicate toast.error in hooks for generic failures — the interceptor handles it.
+
+### Hook-level errors (business-specific only)
 
 ```typescript
-import { ApiError } from '@/shared/lib/api-types'
-
 try {
-  await fooService.createFoo(orgId, body)
+  await fooApi.createFoo(orgId, body)
+  toast.success('Created successfully')
+  refetch()
 } catch (err) {
-  if (err instanceof ApiError) {
-    // err.status  — HTTP status code
-    // err.detail  — human-readable message
-    // err.code    — business error code (e.g. ALREADY_SUBMITTED)
-    // err.errors  — validation errors [{ path, message }]
-    setError(err.detail)
+  if (err instanceof ApiError && err.code === 'ALREADY_EXISTS') {
+    setFieldError('name', 'This name is already taken')
   }
+  // generic errors: global interceptor shows toast automatically
 }
 ```
 
----
-
-## Components — import conventions
+### Domain error messages
 
 ```typescript
-// Design system
-import { Button, Stack, Typography, ContentLoader, Badge } from '@/shared/ui'
-
-// Business modules — app routes use facade only
-import { ProjectDocumentsView, CreateDocumentModal } from '@/modules/documents'
-import { CreateProjectModal, ProjectQuestionsView } from '@/modules/projects'
-import { AppShell, AuthGuard } from '@/modules/platform'
-
-// Infrastructure
-import { apiClient } from '@/shared/lib/apiClient'
-import { cn } from '@/utils/cn'
+// domain/messages/foo-error.messages.ts
+export const FooErrorMessages = {
+  ARCHIVED: 'This item is archived and cannot be edited.',
+  MISSING_PERMISSION: 'You do not have permission to perform this action.',
+} as const
 ```
-
-### Component placement rules
-
-| Where                                | Rule                                                      |
-| ------------------------------------ | --------------------------------------------------------- |
-| `shared/ui/`                         | Only primitive/generic props; no business imports         |
-| `modules/{context}/{sub-module}/ui/` | All domain UI — views, modals, panels                     |
-| `app/**/page.tsx`                    | Thin route only — render `<XxxView />` from module facade |
-
-Check `shared/ui/` and existing module `ui/` folders before creating a new component.
 
 ---
 
 ## Auth and session
 
 ```typescript
-// In any component that needs user info
 import { useAuth } from '@/modules/auth'
 
 const { session, profile, currentOrgId, orgs } = useAuth()
 ```
 
-- The session token is an HttpOnly cookie — it cannot be read by JavaScript.
-- Read user info through `useAuth()` — never read `document.cookie` directly.
-- `profile` = full profile data from the BE; `session.user` = minimal info decoded from the JWT payload.
+- Token is HttpOnly cookie — never read `document.cookie`.
+- `profile.role` = platform role (`'admin' | 'user'`).
+- `session.user` = minimal JWT payload.
 
 ---
 
 ## Do not
 
-- Call `fetch()` directly — always use `apiClient`.
-- Hardcode API URLs in components or hooks — declare them in `constants/endpoints.ts`.
-- Read `document.cookie` to get the token — the token is HttpOnly; use hooks instead.
-- Define endpoint constants inline inside a service file.
-- Use `any` — define a proper interface in `modules/*/model/`.
+- Call `fetch()` directly — always `apiClient`.
+- Hardcode API URLs in components, hooks, or api files — always `endpoints.ts`.
+- Use TypeScript `enum` keyword — use `as const` objects instead.
+- Put business logic in UI components — use `domain/rules/` and apply in hooks.
+- Put React/apiClient imports in `domain/` layer.
+- Import `infrastructure/api/*.api.ts` directly in UI components — always via hook.
+- Import `@/shared/ui` components inside `domain/` or `infrastructure/`.
+- Use `any` — define proper interfaces in `domain/model/`.
+- Create `lib/`, `helpers/`, `services/`, `utils/` folders inside modules.
+- Put domain UI in `app/**/_components/` — use `presentation/ui/` instead.
+- Import deep module paths from `app/**` — only `@/modules/{context}` facade.
 - Fetch data inside `useEffect` without a `useCallback`-wrapped function — causes infinite loops.
-- Import from auth API inside components — use `useAuth()` from `@/modules/auth` instead.
-- Import design system components via deep path (`@/shared/ui/atoms/Button/Button`) — always use the barrel (`@/shared/ui`).
-- Put a component in `shared/ui/` if it imports from `services/`, `types/`, or any business enum.
-- Put domain UI in `app/**/_components/` — use `modules/*/ui/` instead.
 
 ---
 
 ## See also
 
-| Document                                           | Purpose                                                     |
-| -------------------------------------------------- | ----------------------------------------------------------- |
-| [`CODING_CONVENTIONS.md`](./CODING_CONVENTIONS.md) | Canonical conventions, commit/PR template, review checklist |
-| [`.cursorrules`](./.cursorrules)                   | Cursor agent rules                                          |
-| [`../CLAUDE.md`](../CLAUDE.md)                     | Monorepo bounded context map (BE alignment)                 |
+| Document                                           | Purpose                                       |
+| -------------------------------------------------- | --------------------------------------------- |
+| [`CODING_CONVENTIONS.md`](./CODING_CONVENTIONS.md) | Naming, lint rules, commit/PR standards       |
+| [`.cursorrules`](./.cursorrules)                   | Cursor agent shorthand rules                  |
+| [`docs/API_SPECIFICATION.md`](./docs/API_SPECIFICATION.md) | v1 infrastructure API reference       |
+| [`../CLAUDE.md`](../CLAUDE.md)                     | Monorepo bounded context map (BE alignment)   |

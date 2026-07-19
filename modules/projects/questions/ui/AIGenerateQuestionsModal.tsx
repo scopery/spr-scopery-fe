@@ -1,15 +1,12 @@
 'use client'
 
+import { ArrowLeft, Check, Sparkles } from 'lucide-react'
+
 import { useState, useCallback } from 'react'
 import { Modal, Typography, Button, Input, Select, Checkbox } from '@/shared/ui'
-import { useQuestionsGenerate, useQuestionsCommit } from '@/modules/projects'
-import type { ProjectDetail } from '@/modules/projects'
-import type {
-  GeneratedQuestionItem,
-  QuestionsCommitEdit,
-  QuestionsCommitPatch,
-  QuestionsGenerateBody,
-} from '@/modules/projects'
+import { useQuestionsGenerate, useQuestionsCommit } from '@/modules/projects/questions/hooks/useAiQuestions'
+import type { ProjectDetail } from '@/modules/projects/project/model/project'
+import type { GeneratedQuestionItem, QuestionsCommitEdit, QuestionsCommitPatch, QuestionsGenerateBody } from '@/modules/projects/questions/model/ai-questions'
 import { normalizeQuestionTypeForApi } from '@/utils/questionType'
 import { getProblemToastMessage, isConflictCode } from '@/shared/lib/errorHandling'
 import { toast } from 'sonner'
@@ -289,8 +286,7 @@ export function AIGenerateQuestionsModal({
               variant="primary"
               onClick={handleGenerate}
               loading={generatePending}
-              disabled={engine === 'agentkit_v2_file' && !(baselineSessionId ?? defaultBaseline)}
-            >
+              disabled={engine === 'agentkit_v2_file' && !(baselineSessionId ?? defaultBaseline)} icon={<Sparkles size={16} />}>
               Generate
             </Button>
           </div>
@@ -340,7 +336,6 @@ export function AIGenerateQuestionsModal({
                       }
                       value={disp.q_type}
                       onValueChange={(v: string) => setEdit(item.temp_id, 'q_type', v)}
-                      size="md"
                       className="w-full"
                     />
                   </div>
@@ -364,15 +359,14 @@ export function AIGenerateQuestionsModal({
             })}
           </div>
           <div className="flex justify-end gap-2 border-t border-neutral-200 pt-2">
-            <Button variant="ghost" onClick={() => setStep('config')}>
+            <Button variant="ghost" onClick={() => setStep('config')} icon={<ArrowLeft size={16} />}>
               Back
             </Button>
             <Button
               variant="primary"
               onClick={handleCommit}
               loading={commitPending}
-              disabled={!Object.values(accepted).some(Boolean)}
-            >
+              disabled={!Object.values(accepted).some(Boolean)} icon={<Check size={16} />}>
               Commit
             </Button>
           </div>

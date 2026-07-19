@@ -41,12 +41,12 @@ const typographyTones = {
 
 // Variant configurations: [defaultElement, defaultSize, defaultWeight, additionalClasses]
 const variantConfig: Record<TypographyVariant, [string, string, string, string]> = {
-  h1: ['h1', '4xl', 'bold', ''],
-  h2: ['h2', '3xl', 'bold', ''],
-  h3: ['h3', '2xl', 'bold', ''],
-  h4: ['h4', 'xl', 'bold', ''],
-  h5: ['h5', 'lg', 'semibold', ''],
-  h6: ['h6', 'base', 'semibold', ''],
+  h1: ['h1', 'lg', 'semibold', ''],
+  h2: ['h2', 'xl', 'semibold', ''],
+  h3: ['h3', 'lg', 'semibold', ''],
+  h4: ['h4', 'base', 'semibold', ''],
+  h5: ['h5', 'sm', 'semibold', ''],
+  h6: ['h6', 'sm', 'semibold', ''],
   body: ['p', 'base', 'normal', 'leading-normal'],
   lead: ['p', 'lg', 'normal', 'leading-relaxed'],
   large: ['p', 'lg', 'normal', ''],

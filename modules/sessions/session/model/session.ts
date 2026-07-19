@@ -1,4 +1,4 @@
-import type { ProjectQuestion } from '@/modules/projects'
+import type { ProjectQuestion } from '@/modules/projects/questions/model/questions'
 
 export const SESSION_STATUS_LABEL: Record<'in_progress' | 'submitted' | 'locked', string> = {
   in_progress: 'In progress',

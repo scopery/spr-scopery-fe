@@ -219,7 +219,7 @@ export function useDocumentHub({
     }
     if (projects.length === 0) {
       toast.error('Create a project first, then add documents to it.')
-      router.push(ROUTES.org.projects(orgId))
+      router.push(ROUTES.workspace.projects(orgId))
       return
     }
     setPendingCreateProjectId(projects[0]?.id ?? '')
@@ -239,7 +239,11 @@ export function useDocumentHub({
   const handleCreateSuccess = (documentId: string) => {
     setCreateOpen(false)
     void load()
-    router.push(ROUTES.org.document(orgId, documentId, createProjectId))
+    if (createProjectId) {
+      router.push(ROUTES.workspace.projectDocumentEdit(orgId, createProjectId, documentId))
+      return
+    }
+    router.push(ROUTES.workspace.document(orgId, documentId))
   }
 
   const openDeliverableWithProject = (
@@ -333,7 +337,7 @@ export function useDocumentHub({
     setDeliverableOpen(false)
     clearSelection()
     void load()
-    router.push(ROUTES.org.document(orgId, documentId, deliverableProjectId))
+    router.push(ROUTES.workspace.document(orgId, documentId, deliverableProjectId))
   }
 
   const handleRestoreDocument = async (doc: documentHubApi.DocumentHubItem) => {

@@ -18,7 +18,7 @@ export type BadgeProps<C extends React.ElementType = 'span'> = PolymorphicCompon
   {
     /**
      * Visual variant
-     * @default 'solid'
+     * @default 'soft'
      */
     variant?: BadgeVariant
     /**

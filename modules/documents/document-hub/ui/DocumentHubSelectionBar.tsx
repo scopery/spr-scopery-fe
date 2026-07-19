@@ -1,5 +1,7 @@
 'use client'
 
+import { CheckSquare, Download, Plus, X } from 'lucide-react'
+
 import { Button, Typography } from '@/shared/ui'
 import type { DocumentHubSelectionMode } from '../model/document-hub'
 
@@ -38,23 +40,21 @@ export function DocumentHubSelectionBar({
         <Typography variant="small">{selectedCount} selected on this page</Typography>
       )}
       {canSelectAllFiltered && selectionMode !== 'filtered_all' && (
-        <Button variant="outline" size="sm" onClick={onSelectAllFiltered}>
+        <Button variant="outline" onClick={onSelectAllFiltered} icon={<CheckSquare size={16} />}>
           Select all {totalCount} matching documents
         </Button>
       )}
-      <Button variant="ghost" size="sm" onClick={onClearSelection}>
+      <Button variant="ghost" onClick={onClearSelection} icon={<X size={16} />}>
         Clear selection
       </Button>
-      <Button variant="primary" size="sm" onClick={onExport}>
+      <Button variant="primary" onClick={onExport} icon={<Download size={16} />}>
         Export
       </Button>
       {canCreateDeliverable ? (
         <Button
           variant="outline"
-          size="sm"
           loading={deliverableLoading}
-          onClick={onDeliverable}
-        >
+          onClick={onDeliverable} icon={<Plus size={16} />}>
           Create deliverable
         </Button>
       ) : null}

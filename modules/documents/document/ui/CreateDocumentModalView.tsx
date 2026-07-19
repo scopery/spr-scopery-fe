@@ -49,26 +49,17 @@ export function CreateDocumentModalView({
           Create a blank document{canCreateFromTemplate ? ' or start from a template' : ''}.
         </Typography>
 
-        <div className="flex gap-2" role="group" aria-label="Creation mode">
-          <Button
-            type="button"
-            variant={mode === 'blank' ? 'primary' : 'outline'}
-            size="sm"
-            onClick={() => onModeChange('blank')}
-          >
-            Blank document
-          </Button>
-          {canCreateFromTemplate && (
-            <Button
-              type="button"
-              variant={mode === 'template' ? 'primary' : 'outline'}
-              size="sm"
-              onClick={() => onModeChange('template')}
-            >
-              From template
-            </Button>
-          )}
-        </div>
+        <Select
+          value={mode}
+          onValueChange={onModeChange}
+          options={[
+            { value: 'blank', label: 'Blank document' },
+            ...(canCreateFromTemplate
+              ? [{ value: 'template' as const, label: 'From template' }]
+              : []),
+          ]}
+          placeholder="Creation mode"
+        />
 
         {mode === 'template' && (
           <div className={cn('border-t border-neutral-200 pt-4')}>

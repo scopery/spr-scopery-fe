@@ -1,0 +1,16 @@
+import { apiPath } from '@/shared/lib/api-paths'
+
+export const WORKSPACE_ENDPOINTS = {
+  get: (workspaceId: string) => apiPath(`/workspaces/${workspaceId}`),
+  update: (workspaceId: string) => apiPath(`/workspaces/${workspaceId}`),
+  members: (workspaceId: string, params?: { status?: string; page?: number; size?: number }) => {
+    const p = new URLSearchParams()
+    if (params?.status) p.set('status', params.status)
+    if (params?.page != null) p.set('page', String(params.page))
+    if (params?.size != null) p.set('size', String(params.size))
+    const q = p.toString()
+    return apiPath(`/workspaces/${workspaceId}/members`) + (q ? `?${q}` : '')
+  },
+  deactivateMember: (workspaceId: string, memberId: string) =>
+    apiPath(`/workspaces/${workspaceId}/members/${memberId}/deactivate`),
+} as const

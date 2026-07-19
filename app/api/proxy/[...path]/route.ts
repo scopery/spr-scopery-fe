@@ -33,8 +33,9 @@ function isJsonResponse(response: Response): boolean {
   return (response.headers.get('content-type') ?? '').includes('application/json')
 }
 
-async function proxy(request: NextRequest, context: { params: { path: string[] } }) {
-  const path = context.params.path ?? []
+async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  const { path: pathSegments } = await context.params
+  const path = pathSegments ?? []
   const method = request.method
   const targetUrl = getTargetUrl(request, path)
   const token = request.cookies.get(TOKEN_COOKIE)?.value

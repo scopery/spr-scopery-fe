@@ -54,7 +54,7 @@ describe('Input', () => {
     it('applies medium size styles by default', () => {
       render(<Input placeholder="Medium" />)
       const input = screen.getByPlaceholderText('Medium')
-      expect(input).toHaveClass('h-10', 'text-sm')
+      expect(input).toHaveClass('h-9')
     })
 
     it('applies large size styles', () => {
@@ -246,7 +246,7 @@ describe('Input', () => {
       render(<Input className="custom-class" placeholder="Custom" />)
       const input = screen.getByPlaceholderText('Custom')
       expect(input).toHaveClass('custom-class')
-      expect(input).toHaveClass('rounded-md')
+      expect(input).toHaveClass('border')
     })
   })
 })

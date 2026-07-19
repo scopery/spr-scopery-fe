@@ -1,2 +1,2 @@
-export { PromptRegistryPanel } from './ui/PromptRegistryPanel'
-export { usePromptRegistryPanel } from './hooks/usePromptRegistryPanel'
+export { PromptRegistryPanel } from './presentation/ui/PromptRegistryPanel'
+export { usePromptRegistryPanel } from './presentation/hooks/usePromptRegistryPanel'

@@ -1,32 +1,241 @@
-/** Org-scoped route path helpers. */
-export const ORG_ROUTES = {
-  root: (orgId: string) => `/org/${orgId}`,
-  projects: (orgId: string) => `/org/${orgId}/projects`,
-  members: (orgId: string) => `/org/${orgId}/members`,
-  project: (orgId: string, projectId: string) => `/org/${orgId}/projects/${projectId}`,
-  projectQuestions: (orgId: string, projectId: string) =>
-    `/org/${orgId}/projects/${projectId}/questions`,
-  projectDocuments: (orgId: string, projectId: string) =>
-    `/org/${orgId}/projects/${projectId}/documents`,
-  document: (orgId: string, documentId: string, projectId?: string) => {
-    const base = `/org/${orgId}/documents/${documentId}`
+/** Workspace-scoped route path helpers. URL segment is workspaceId. */
+export const WORKSPACE_ROUTES = {
+  root: (workspaceId: string) => `/workspace/${workspaceId}`,
+  overview: (workspaceId: string) => `/workspace/${workspaceId}`,
+  projects: (workspaceId: string) => `/workspace/${workspaceId}/projects`,
+  members: (workspaceId: string) => `/workspace/${workspaceId}/members`,
+  invitations: (workspaceId: string) => `/workspace/${workspaceId}/invitations`,
+  joinRequests: (workspaceId: string) => `/workspace/${workspaceId}/join-requests`,
+  teams: (workspaceId: string) => `/workspace/${workspaceId}/teams`,
+  team: (workspaceId: string, teamId: string) => `/workspace/${workspaceId}/teams/${teamId}`,
+  /** P1: Directory consolidates Members / Teams / Invitations / Join requests. */
+  directory: (workspaceId: string, tab?: 'members' | 'teams' | 'invitations' | 'join-requests') => {
+    const base = `/workspace/${workspaceId}/directory`
+    return tab && tab !== 'members' ? `${base}?tab=${tab}` : base
+  },
+  activity: (workspaceId: string) => `/workspace/${workspaceId}/activity`,
+  organizationMembers: (workspaceId: string) =>
+    `/workspace/${workspaceId}/organization/members`,
+  organizationInvitations: (workspaceId: string) =>
+    `/workspace/${workspaceId}/organization/invitations`,
+  /** Wave 2: project entry lands on Overview. */
+  project: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/overview`,
+  projectOverview: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/overview`,
+  projectWork: (workspaceId: string, projectId: string, view?: 'list' | 'board') => {
+    const base = `/workspace/${workspaceId}/projects/${projectId}/work`
+    return view && view !== 'list' ? `${base}?view=${view}` : base
+  },
+  projectWorkTask: (workspaceId: string, projectId: string, taskId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/work/${taskId}`,
+  /** Wave 2 P2: Work breakdown structure tree. */
+  projectWbs: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/wbs`,
+  /** Wave 2 P2: Gantt timeline (read-only). */
+  projectTimeline: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/timeline`,
+  /** @deprecated Alias for projectTimeline. */
+  projectGantt: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/timeline`,
+  /** Wave 2 P2: Schedule runs + current schedule tasks. */
+  projectSchedule: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/schedule`,
+  /** Wave 3 P2a: Project resource plan + effort. */
+  projectResources: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/resources`,
+  projectResourcesEffort: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/resources/effort`,
+  /** Wave 3 P2b: Estimation center + run detail. */
+  projectEstimation: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/estimation`,
+  projectEstimationRun: (workspaceId: string, projectId: string, estimationRunId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/estimation/${estimationRunId}`,
+  /** Wave 3 P3: Finance scenarios + workbench + compare. */
+  projectFinancials: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/financials`,
+  projectFinancialsScenario: (workspaceId: string, projectId: string, scenarioId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/financials/${scenarioId}`,
+  projectFinancialsCompare: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/financials/compare`,
+  /** Wave 3 P4: Profitability center. */
+  projectProfitability: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/profitability`,
+  /** Wave 3 P5: Quotes register + builder. */
+  projectQuotes: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/quotes`,
+  projectQuote: (workspaceId: string, projectId: string, quoteId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/quotes/${quoteId}`,
+  /** Wave 3 P6: Baselines + change requests. */
+  projectBaselines: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/baselines`,
+  projectBaseline: (workspaceId: string, projectId: string, baselineId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/baselines/${baselineId}`,
+  projectChangeRequests: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/change-requests`,
+  projectChangeRequest: (workspaceId: string, projectId: string, changeRequestId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/change-requests/${changeRequestId}`,
+  projectSettings: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/settings`,
+  projectQuestions: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/questions`,
+  /** Wave 2 P3: Scope register (packages + items). */
+  projectScope: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/scope`,
+  /** Wave 2 P3: Deliverables + acceptance criteria. */
+  projectDeliverables: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/deliverables`,
+  /** Wave 2 P3: RAID register (Risks, Assumptions, Issues, Dependencies). */
+  projectRaid: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/raid`,
+  /** Wave 2 P3: Decision log. */
+  projectDecisions: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/decisions`,
+  /** Wave 2 P3: Scope/RAID reports. */
+  projectReports: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/reports`,
+  projectDocuments: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/documents`,
+  document: (workspaceId: string, documentId: string, projectId?: string) => {
+    const base = `/workspace/${workspaceId}/documents/${documentId}`
     if (projectId) return `${base}?projectId=${encodeURIComponent(projectId)}`
     return base
   },
-  sessions: (orgId: string, projectId: string) => `/org/${orgId}/projects/${projectId}/sessions`,
-  session: (orgId: string, projectId: string, sessionId: string) =>
-    `/org/${orgId}/projects/${projectId}/sessions/${sessionId}`,
-  settings: (orgId: string) => `/org/${orgId}/settings/controlled-lists`,
-  settingsTemplates: (orgId: string) => `/org/${orgId}/settings/templates`,
-  settingsTemplateNew: (orgId: string) => `/org/${orgId}/settings/templates/new`,
-  settingsTemplate: (orgId: string, templateId: string) =>
-    `/org/${orgId}/settings/templates/${templateId}`,
-  documentHub: (orgId: string) => `/org/${orgId}/document-hub`,
-  settingsControlledLists: (orgId: string, projectId?: string | null) =>
-    `/org/${orgId}/settings/controlled-lists${projectId ? `?project=${projectId}` : ''}`,
-  settingsControlledListDetail: (orgId: string, listId: string, projectId?: string | null) =>
-    `/org/${orgId}/settings/controlled-lists/${listId}${projectId ? `?project=${projectId}` : ''}`,
-  governance: (orgId: string) => `/org/${orgId}/governance`,
-  governancePolicy: (orgId: string, policyId: string) => `/org/${orgId}/governance/${policyId}`,
-  agentControl: (orgId: string) => `/org/${orgId}/agent-control`,
+  sessions: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/sessions`,
+  session: (workspaceId: string, projectId: string, sessionId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/sessions/${sessionId}`,
+  projectMeetings: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/meetings`,
+  projectMeeting: (workspaceId: string, projectId: string, meetingId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/meetings/${meetingId}`,
+  /** Phase 03 workspace settings (name, visibility, join policy). */
+  settingsGeneral: (workspaceId: string) => `/workspace/${workspaceId}/settings/general`,
+  /**
+   * @deprecated Prefer settingsGeneral for workspace settings, or settingsControlledLists
+   * for controlled lists. Kept pointing at general for AppShell “Workspace settings”.
+   */
+  settings: (workspaceId: string) => `/workspace/${workspaceId}/settings/general`,
+  settingsTemplates: (workspaceId: string) => `/workspace/${workspaceId}/settings/templates`,
+  settingsTemplateNew: (workspaceId: string) =>
+    `/workspace/${workspaceId}/settings/templates/new`,
+  settingsTemplate: (workspaceId: string, templateId: string) =>
+    `/workspace/${workspaceId}/settings/templates/${templateId}`,
+  documentHub: (workspaceId: string, opts?: { projectId?: string }) => {
+    const base = `/workspace/${workspaceId}/document-hub`
+    if (opts?.projectId) {
+      return `${base}?projectId=${encodeURIComponent(opts.projectId)}`
+    }
+    return base
+  },
+  settingsControlledLists: (workspaceId: string, projectId?: string | null) =>
+    `/workspace/${workspaceId}/settings/controlled-lists${projectId ? `?project=${projectId}` : ''}`,
+  settingsControlledListDetail: (
+    workspaceId: string,
+    listId: string,
+    projectId?: string | null
+  ) =>
+    `/workspace/${workspaceId}/settings/controlled-lists/${listId}${projectId ? `?project=${projectId}` : ''}`,
+  clients: (workspaceId: string) => `/workspace/${workspaceId}/clients`,
+  forms: (workspaceId: string) => `/workspace/${workspaceId}/forms`,
+  form: (workspaceId: string, formId: string) => `/workspace/${workspaceId}/forms/${formId}`,
+  submissions: (workspaceId: string) => `/workspace/${workspaceId}/submissions`,
+  ratesLookup: (workspaceId: string) => `/workspace/${workspaceId}/rates/lookup`,
+  /** Wave 3: Workspace capacity hub (operations). */
+  capacity: (workspaceId: string) => `/workspace/${workspaceId}/capacity`,
+  capacityResources: (workspaceId: string) => `/workspace/${workspaceId}/capacity/resources`,
+  capacityAllocations: (workspaceId: string) => `/workspace/${workspaceId}/capacity/allocations`,
+  /** Wave 3 P1a: Capacity setup (settings). */
+  settingsCapacity: (workspaceId: string) => `/workspace/${workspaceId}/settings/capacity`,
+  settingsCapacityCalendars: (workspaceId: string) =>
+    `/workspace/${workspaceId}/settings/capacity/calendars`,
+  settingsCapacityCalendar: (workspaceId: string, calendarId: string) =>
+    `/workspace/${workspaceId}/settings/capacity/calendars/${calendarId}`,
+  settingsCapacityResources: (workspaceId: string) =>
+    `/workspace/${workspaceId}/settings/capacity/resources`,
+  settingsCapacityProfiles: (workspaceId: string) =>
+    `/workspace/${workspaceId}/settings/capacity/profiles`,
+  settingsCapacityPolicies: (workspaceId: string) =>
+    `/workspace/${workspaceId}/settings/capacity/policies`,
+  /** Wave 3 P4: Billing / profit rate cards (≠ Cost Rate Cards). */
+  settingsBillingRateCards: (workspaceId: string) =>
+    `/workspace/${workspaceId}/settings/commercial/rate-cards`,
+  governance: (workspaceId: string) => `/workspace/${workspaceId}/governance`,
+  governancePolicy: (workspaceId: string, policyId: string) =>
+    `/workspace/${workspaceId}/governance/${policyId}`,
+  agentControl: (workspaceId: string) => `/workspace/${workspaceId}/agent-control`,
+  notifications: (workspaceId: string) => `/workspace/${workspaceId}/notifications`,
+  notificationSettings: (workspaceId: string) =>
+    `/workspace/${workspaceId}/notifications/settings`,
+
+  // ── Wave 4 ─────────────────────────────────────────────────
+  search: (workspaceId: string) => `/workspace/${workspaceId}/search`,
+  workInbox: (workspaceId: string) => `/workspace/${workspaceId}/work-inbox`,
+  savedItems: (workspaceId: string) => `/workspace/${workspaceId}/saved-items`,
+  applications: (workspaceId: string) => `/workspace/${workspaceId}/applications`,
+  support: (workspaceId: string) => `/workspace/${workspaceId}/support`,
+  supportCase: (workspaceId: string, caseId: string) =>
+    `/workspace/${workspaceId}/support/cases/${caseId}`,
+  projectQuality: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/quality`,
+  projectTestPlans: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/quality/test-plans`,
+  projectDefects: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/defects`,
+  projectReleases: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/releases`,
+  projectDeployments: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/deployments`,
+  projectRequirements: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/requirements`,
+  projectTraceability: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/traceability`,
+  projectGovernance: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/governance`,
+  projectAiPlanning: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/ai-planning`,
+  projectRecommendations: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/recommendations`,
+  projectNotificationSettings: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/settings/notifications`,
+  projectDocumentWorkbench: (workspaceId: string, projectId: string, documentId?: string) => {
+    const base = `/workspace/${workspaceId}/projects/${projectId}/documents/workbench`
+    if (documentId) return `${base}?documentId=${encodeURIComponent(documentId)}`
+    return base
+  },
+  projectDocumentEdit: (workspaceId: string, projectId: string, documentId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/documents/${documentId}/edit`,
+  projectClientCollaboration: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/client-collaboration`,
+  projectDashboard: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/dashboard`,
+  projectReportLibrary: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/report-library`,
+  settingsKnowledge: (workspaceId: string) =>
+    `/workspace/${workspaceId}/settings/knowledge`,
+  settingsDocumentTemplates: (workspaceId: string) =>
+    `/workspace/${workspaceId}/settings/knowledge/templates`,
+  settingsKnowledgeIndexing: (workspaceId: string) =>
+    `/workspace/${workspaceId}/settings/knowledge/indexing`,
+  settingsIntegrations: (workspaceId: string) =>
+    `/workspace/${workspaceId}/settings/integrations`,
+  settingsTrust: (workspaceId: string) => `/workspace/${workspaceId}/settings/trust`,
+  settingsSupport: (workspaceId: string) => `/workspace/${workspaceId}/settings/support`,
+  aiAssistant: (workspaceId: string) => `/workspace/${workspaceId}/ai`,
+  aiAssistantConversation: (workspaceId: string, conversationId: string) =>
+    `/workspace/${workspaceId}/ai/c/${conversationId}`,
+  aiAssistantAsk: (
+    workspaceId: string,
+    opts: { projectId: string; documentId: string; documentTitle?: string }
+  ) => {
+    const q = new URLSearchParams({
+      projectId: opts.projectId,
+      documentId: opts.documentId,
+    })
+    if (opts.documentTitle) q.set('documentTitle', opts.documentTitle)
+    return `/workspace/${workspaceId}/ai?${q.toString()}`
+  },
 } as const
+
+/** @deprecated Use WORKSPACE_ROUTES — legacy alias kept for incremental migration. */
+export const ORG_ROUTES = WORKSPACE_ROUTES

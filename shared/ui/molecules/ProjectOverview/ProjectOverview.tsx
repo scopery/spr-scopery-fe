@@ -126,7 +126,6 @@ export const ProjectOverview = React.forwardRef(
                   }
                   value={selectedValue || badgeText}
                   onValueChange={onSelectChange}
-                  size="sm"
                   className="h-auto rounded-full border border-[#a3cf5b] bg-[rgba(213,245,160,0.49)] px-[12px] py-[8px] text-white shadow-[0px_2px_4px_rgba(0,0,0,0.05)] [&_button]:border-0 [&_button]:bg-transparent [&_button]:px-0 [&_button]:py-0 [&_button]:text-white [&_button]:shadow-none"
                 />
               </Box>

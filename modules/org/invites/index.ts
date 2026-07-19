@@ -1,5 +1,4 @@
 export { InviteAcceptView } from './ui/InviteAcceptView'
-export { OnboardingView } from './ui/OnboardingView'
 export { useOrgInvites } from './hooks/useOrgInvites'
 export { useOrgInviteActions } from './hooks/useOrgInviteActions'
 export { useCreateInviteModal } from './hooks/useCreateInviteModal'

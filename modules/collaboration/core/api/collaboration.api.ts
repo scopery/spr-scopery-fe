@@ -1,9 +1,10 @@
-import { COLLABORATION_ENDPOINTS } from './endpoints'
+import { COLLABORATION_ENDPOINTS } from '../../endpoints'
 /**
  * Document collaboration service — v2 API
  */
 
 import { apiClient } from '@/shared/lib/apiClient'
+import { normalizeItemList, type ListPayload } from '@/shared/lib/normalizeListResponse'
 import type {
   DocumentActivity,
   DocumentCollaborator,
@@ -21,7 +22,12 @@ export async function listComments(
   documentId: string,
   params?: { project_id?: string; include_resolved?: boolean }
 ): Promise<{ items: DocumentComment[]; page: { total: number } }> {
-  return apiClient.get(COLLABORATION_ENDPOINTS.comments(orgId, documentId, params))
+  const res = await apiClient.get<ListPayload<DocumentComment>>(COLLABORATION_ENDPOINTS.comments(orgId, documentId, params))
+  const { items } = normalizeItemList(res)
+  return {
+    items,
+    page: !Array.isArray(res) && res?.page ? (res.page as { total: number }) : { total: items.length },
+  }
 }
 
 export async function createComment(
@@ -76,7 +82,12 @@ export async function listSuggestions(
   documentId: string,
   params?: { project_id?: string; include_closed?: boolean }
 ): Promise<{ items: DocumentSuggestion[]; page: { total: number } }> {
-  return apiClient.get(COLLABORATION_ENDPOINTS.suggestions(orgId, documentId, params))
+  const res = await apiClient.get<ListPayload<DocumentSuggestion>>(COLLABORATION_ENDPOINTS.suggestions(orgId, documentId, params))
+  const { items } = normalizeItemList(res)
+  return {
+    items,
+    page: !Array.isArray(res) && res?.page ? (res.page as { total: number }) : { total: items.length },
+  }
 }
 
 export async function createSuggestion(
@@ -121,7 +132,12 @@ export async function listActivity(
   documentId: string,
   params?: { project_id?: string; limit?: number }
 ): Promise<{ items: DocumentActivity[]; page: { total: number } }> {
-  return apiClient.get(COLLABORATION_ENDPOINTS.activity(orgId, documentId, params))
+  const res = await apiClient.get<ListPayload<DocumentActivity>>(COLLABORATION_ENDPOINTS.activity(orgId, documentId, params))
+  const { items } = normalizeItemList(res)
+  return {
+    items,
+    page: !Array.isArray(res) && res?.page ? (res.page as { total: number }) : { total: items.length },
+  }
 }
 
 export async function listCollaborators(
@@ -129,9 +145,10 @@ export async function listCollaborators(
   documentId: string,
   projectId?: string
 ): Promise<{ items: DocumentCollaborator[] }> {
-  return apiClient.get(
+  const res = await apiClient.get<ListPayload<DocumentCollaborator>>(
     COLLABORATION_ENDPOINTS.collaborators(orgId, documentId) + projectQuery(projectId)
   )
+  return normalizeItemList(res)
 }
 
 export async function shareDocument(
@@ -157,7 +174,8 @@ export async function listMentionableUsers(
   orgId: string,
   params?: { project_id?: string; q?: string }
 ): Promise<{ items: MentionableUser[] }> {
-  return apiClient.get(COLLABORATION_ENDPOINTS.mentionableUsers(orgId, params))
+  const res = await apiClient.get<ListPayload<MentionableUser>>(COLLABORATION_ENDPOINTS.mentionableUsers(orgId, params))
+  return normalizeItemList(res)
 }
 
 export type {

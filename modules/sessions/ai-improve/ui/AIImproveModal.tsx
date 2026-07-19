@@ -1,12 +1,14 @@
 'use client'
 
+import { ArrowLeft, Ban, Check, Sparkles } from 'lucide-react'
+
 import { useState, useCallback } from 'react'
 import { Modal, Typography, Button, Input, Textarea } from '@/shared/ui'
 import { getProblemToastMessage, isConflictCode } from '@/shared/lib/errorHandling'
 import { getProblemCode } from '@/shared/lib/api-types'
 import { toast } from 'sonner'
 import { useImproveAnswer, useImproveCommit } from '../hooks/useAiImprove'
-import type { ProjectQuestion } from '@/modules/projects'
+import type { ProjectQuestion } from '@/modules/projects/questions/model/questions'
 import type { AnswerItem } from '@/modules/sessions/session'
 
 function formatValuePreview(value: unknown, qType: string): string {
@@ -249,7 +251,7 @@ export function AIImproveModal({
               <Button variant="ghost" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button variant="primary" onClick={handleGenerate} loading={improvePending}>
+              <Button variant="primary" onClick={handleGenerate} loading={improvePending} icon={<Sparkles size={16} />}>
                 Generate
               </Button>
             </div>
@@ -292,14 +294,13 @@ export function AIImproveModal({
                   setBatchToken(null)
                   setProposedValue(null)
                   setEditableValue('')
-                }}
-              >
+                }} icon={<ArrowLeft size={16} />}>
                 Back
               </Button>
-              <Button variant="ghost" tone="error" onClick={handleReject} loading={commitPending}>
+              <Button variant="ghost" tone="error" onClick={handleReject} loading={commitPending} icon={<Ban size={16} />}>
                 Reject
               </Button>
-              <Button variant="primary" onClick={handleAccept} loading={commitPending}>
+              <Button variant="primary" onClick={handleAccept} loading={commitPending} icon={<Check size={16} />}>
                 Accept
               </Button>
             </div>

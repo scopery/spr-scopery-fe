@@ -5,14 +5,15 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ROUTES } from '@/constants/routes'
 import { ContentLoader } from '@/shared/ui'
 import { toast } from 'sonner'
+import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 
 /**
- * Home (/): Only handles OAuth callback error query params; all other redirects
- * are done by AuthContext (single source of truth). See docs/BOOTSTRAP_REDIRECT.md.
+ * Home (/): OAuth error params + bootstrap redirect (login / onboarding / org home).
  */
 function HomeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { bootstrapStatus, currentWorkspaceId, workspaces } = useAuth()
 
   useEffect(() => {
     const errorCode = searchParams.get('error_code')
@@ -23,9 +24,36 @@ function HomeContent() {
     }
   }, [router, searchParams])
 
+  useEffect(() => {
+    if (bootstrapStatus === 'loading') return
+
+    switch (bootstrapStatus) {
+      case 'needs_login':
+        router.replace(ROUTES.auth.login)
+        break
+      case 'needs_onboarding':
+        router.replace(ROUTES.onboarding)
+        break
+      case 'suspended':
+        router.replace(ROUTES.suspended)
+        break
+      case 'ready': {
+        const workspaceId = currentWorkspaceId ?? workspaces[0]?.id
+        if (workspaceId) {
+          router.replace(ROUTES.workspace.projects(workspaceId))
+        } else {
+          router.replace(ROUTES.onboarding)
+        }
+        break
+      }
+      default:
+        break
+    }
+  }, [bootstrapStatus, currentWorkspaceId, workspaces, router])
+
   return (
     <main className="flex min-h-screen items-center justify-center">
-      <ContentLoader variant="easeOut" className="w-20" />
+      <ContentLoader />
     </main>
   )
 }
@@ -35,7 +63,7 @@ export function HomeRedirectView() {
     <Suspense
       fallback={
         <main className="flex min-h-screen items-center justify-center">
-          <ContentLoader variant="easeOut" className="w-20" />
+          <ContentLoader />
         </main>
       }
     >

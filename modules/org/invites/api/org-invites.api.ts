@@ -1,5 +1,4 @@
-import { ORG_ENDPOINTS } from '../../org/api/endpoints'
-import { ORG_INVITE_ENDPOINTS } from './endpoints'
+import { ORG_ENDPOINTS, ORG_INVITE_ENDPOINTS } from '../../endpoints'
 import { apiClient } from '@/shared/lib/apiClient'
 import type { OrgInvite, OrgInviteCreateResponse, OrgInvitesResponse } from '../model/org-invite'
 
@@ -23,16 +22,16 @@ export async function createInvite(
 
 export async function revokeInvite(orgId: string, inviteId: string): Promise<OrgInvite> {
   const url = ORG_ENDPOINTS.revokeInvite(orgId, inviteId)
-  return apiClient.post<OrgInvite>(url)
+  return apiClient.delete<OrgInvite>(url)
 }
 
 export async function acceptInvite(token: string): Promise<{
   org_id: string
   member: { user_id: string; role: string; status: string }
 }> {
-  const url = ORG_INVITE_ENDPOINTS.accept()
+  const url = ORG_INVITE_ENDPOINTS.accept(token)
   return apiClient.post<{
     org_id: string
     member: { user_id: string; role: string; status: string }
-  }>(url, { token })
+  }>(url)
 }

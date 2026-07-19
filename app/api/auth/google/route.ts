@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { apiPath } from '@/shared/lib/api-paths'
 
 function getBackendBase(): string {
   return (
     process.env.API_INTERNAL_URL ??
     process.env.NEXT_PUBLIC_API_URL ??
-    'http://localhost:3000'
+    'http://localhost:8080'
   ).replace(/\/$/, '')
 }
 
 export async function GET(request: NextRequest) {
   const redirectTo = request.nextUrl.searchParams.get('redirectTo')
   const state = request.nextUrl.searchParams.get('state')
-  const backendUrl = new URL('/api/v2/auth/google', getBackendBase())
+  const backendUrl = new URL(apiPath('/iam/auth/google'), getBackendBase())
 
   if (redirectTo) backendUrl.searchParams.set('redirectTo', redirectTo)
   if (state) backendUrl.searchParams.set('state', state)

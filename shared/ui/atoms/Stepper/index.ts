@@ -1,2 +1,2 @@
-export { Stepper } from './Stepper'
+export { Stepper, StepperHexagon } from './Stepper'
 export type { StepperProps, StepperStep } from './Stepper.types'

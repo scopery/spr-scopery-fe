@@ -1,7 +1,7 @@
 'use client'
 
-import { Link2, Plus, RotateCcw, Trash2 } from 'lucide-react'
-import { Typography, Button, Badge, ContentLoader, ConfirmDialog } from '@/shared/ui'
+import { Eye, Link2, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { Typography, Button, Badge, ConfirmDialog, Skeleton } from '@/shared/ui'
 import {
   DOCUMENT_LINKED_ENTITY_LABELS,
   DOCUMENT_RELATION_LABELS,
@@ -41,21 +41,20 @@ export function DocumentLinksPanelView({
           <Link2 size={18} className="text-neutral-600" />
           <Typography weight="semibold">Evidence links</Typography>
           {!loading && activeLinks.length > 0 && (
-            <Badge variant="soft" tone="neutral" size="sm">
+            <Badge variant="soft" tone="neutral">
               {activeLinks.length}
             </Badge>
           )}
         </div>
         <div className="flex items-center gap-2">
           {canDelete && (
-            <Button variant="ghost" size="sm" onClick={onToggleArchived}>
+            <Button variant="ghost" onClick={onToggleArchived} icon={<Eye size={16} />}>
               {showArchived ? 'Hide archived' : 'Show archived'}
             </Button>
           )}
           {canCreate && (
             <Button
               variant="outline"
-              size="sm"
               icon={<Plus size={14} />}
               onClick={() => onAddOpenChange(true)}
             >
@@ -67,7 +66,7 @@ export function DocumentLinksPanelView({
 
       {loading ? (
         <div className="flex justify-center py-6">
-          <ContentLoader variant="easeOut" className="w-16" />
+          <Skeleton variant="rectangular" width="100%" height={80} />
         </div>
       ) : displayLinks.length === 0 ? (
         <div className="rounded border border-dashed border-neutral-200 px-4 py-8 text-center">
@@ -84,14 +83,14 @@ export function DocumentLinksPanelView({
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="mb-1 flex flex-wrap gap-2">
-                      <Badge variant="soft" tone="neutral" size="sm">
+                      <Badge variant="soft" tone="neutral">
                         {DOCUMENT_LINKED_ENTITY_LABELS[link.linked_entity_type]}
                       </Badge>
-                      <Badge variant="soft" tone="info" size="sm">
+                      <Badge variant="soft" tone="info">
                         {DOCUMENT_RELATION_LABELS[link.relation_type]}
                       </Badge>
                       {isArchived && (
-                        <Badge variant="soft" tone="warning" size="sm">
+                        <Badge variant="soft" tone="warning">
                           Archived
                         </Badge>
                       )}
@@ -107,7 +106,6 @@ export function DocumentLinksPanelView({
                     {canDelete && isArchived && (
                       <Button
                         variant="ghost"
-                        size="sm"
                         iconOnly
                         icon={<RotateCcw size={14} />}
                         aria-label="Restore link"
@@ -117,7 +115,6 @@ export function DocumentLinksPanelView({
                     {canDelete && !isArchived && (
                       <Button
                         variant="ghost"
-                        size="sm"
                         iconOnly
                         icon={<Trash2 size={14} />}
                         aria-label="Remove link"

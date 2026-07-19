@@ -6,10 +6,25 @@ export * from './ai-routing'
 export * from './ai-playground'
 export * from './ai-feedback'
 export * from './admin-templates'
+export * from './iam'
+export * from './organizations'
+export * from './workspaces'
+export * from './join-requests'
+export * from './event-definitions'
+export * from './notifications'
+export * from './phase-definitions'
+export * from './project-templates'
+export * from './knowledge'
+export * from './platform-reliability'
+export {
+  ADMIN_DIRECTORY_GROUPS,
+  ADMIN_DIRECTORY_ITEMS,
+  ADMIN_MODULE_ITEMS,
+  getAdminModuleForPath,
+  isAdminDirectoryItemActive,
+  isAdminPathMatch,
+} from './lib/admin-navigation'
+export type { AdminDirectoryGroup, AdminDirectoryItem } from './lib/admin-navigation'
+export { ADMIN_ROUTES } from './lib/routes'
+export { AdminTenantManagementLayout } from './lib/AdminTenantManagementLayout'
 
-export * as adminAiApi from './ai-config/api/admin-ai.api'
-export * as aiAgentsApi from './ai-agents/api/ai-agents.api'
-export * as aiBudgetsApi from './ai-budgets/api/ai-budgets.api'
-export * as adminTemplatesApi from './admin-templates/api/admin-templates.api'
-export { testRunAiConfig } from './ai-config/api/admin-ai.api'
-export { createTemplate } from './admin-templates/api/admin-templates.api'

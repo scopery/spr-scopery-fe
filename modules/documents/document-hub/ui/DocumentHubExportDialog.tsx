@@ -1,7 +1,9 @@
 'use client'
 
+import { Download } from 'lucide-react'
+
 import { useCallback, useState } from 'react'
-import { Button, Modal, Select, Typography, ContentLoader } from '@/shared/ui'
+import { Button, Modal, Select, Typography, Skeleton } from '@/shared/ui'
 import type { DocumentExportFormat, ExportPackageFormat } from '@/utils/exportDownload'
 import { useDocumentHubExportPreview } from '../hooks/useDocumentHubExportPreview'
 import type {
@@ -132,7 +134,7 @@ export function DocumentHubExportDialog({
           </Typography>
           {previewLoading ? (
             <div className="flex items-center gap-2 py-2">
-              <ContentLoader variant="easeOut" className="w-8" />
+              <Skeleton variant="rectangular" width="100%" height={80} />
               <Typography variant="small" tone="muted">
                 Estimating package size…
               </Typography>
@@ -142,7 +144,7 @@ export function DocumentHubExportDialog({
               {previewError}
             </Typography>
           ) : preview ? (
-            <div className="space-y-1 text-sm text-neutral-600">
+            <Typography as="div" variant="small" tone="muted" className="space-y-1">
               <div>Documents: {preview.document_count}</div>
               {preview.evidence_link_count > 0 && (
                 <div>Evidence links: {preview.evidence_link_count}</div>
@@ -165,7 +167,7 @@ export function DocumentHubExportDialog({
                   {preview.blocked_reason}
                 </Typography>
               )}
-            </div>
+            </Typography>
           ) : (
             <Typography variant="small" tone="muted">
               Select documents to preview export.
@@ -176,16 +178,14 @@ export function DocumentHubExportDialog({
         <div className="flex flex-col gap-2 pt-2">
           <Button
             variant="primary"
-            size="sm"
             loading={loading}
             disabled={!canExport || exportDocumentCount === 0 || previewLoading}
-            onClick={() => void handleExport()}
-          >
+            onClick={() => void handleExport()} icon={<Download size={16} />}>
             {loading
               ? 'Preparing export…'
               : `Export ${exportDocumentCount} document${exportDocumentCount === 1 ? '' : 's'}`}
           </Button>
-          <Button variant="ghost" size="sm" onClick={onClose} disabled={loading}>
+          <Button variant="ghost" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
         </div>

@@ -1,7 +1,9 @@
 'use client'
 
+import { Ban, Check, Send } from 'lucide-react'
+
 import { useState } from 'react'
-import { Avatar, Badge, Button, Input, Textarea, Typography, ContentLoader } from '@/shared/ui'
+import { Avatar, Badge, Button, Input, Textarea, Typography, Skeleton } from '@/shared/ui'
 import type {
   CollaborationPermissions,
   DocumentSuggestion,
@@ -39,7 +41,7 @@ function SuggestionCard({
             <Typography variant="small" weight="medium">
               {name}
             </Typography>
-            <Badge variant="soft" tone="neutral" size="sm">
+            <Badge variant="soft" tone="neutral">
               {suggestion.status}
             </Badge>
             <Typography variant="small" tone="muted">
@@ -55,12 +57,12 @@ function SuggestionCard({
           {suggestion.status === 'open' && (
             <div className="mt-2 flex gap-2">
               {permissions.canAcceptSuggestion && (
-                <Button variant="primary" size="sm" onClick={() => onAccept(suggestion.id)}>
+                <Button variant="primary" onClick={() => onAccept(suggestion.id)} icon={<Check size={16} />}>
                   Accept
                 </Button>
               )}
               {permissions.canRejectSuggestion && (
-                <Button variant="outline" size="sm" onClick={() => onReject(suggestion.id)}>
+                <Button variant="outline" onClick={() => onReject(suggestion.id)} icon={<Ban size={16} />}>
                   Reject
                 </Button>
               )}
@@ -114,7 +116,7 @@ export function DocumentSuggestionsPanel({
   if (loading) {
     return (
       <div className="flex justify-center py-8">
-        <ContentLoader variant="easeOut" className="w-16" />
+        <Skeleton variant="rectangular" width="100%" height={80} />
       </div>
     )
   }
@@ -146,10 +148,8 @@ export function DocumentSuggestionsPanel({
           />
           <Button
             variant="primary"
-            size="sm"
             loading={submitting}
-            onClick={() => void handleCreate()}
-          >
+            onClick={() => void handleCreate()} icon={<Send size={16} />}>
             Submit suggestion
           </Button>
         </div>

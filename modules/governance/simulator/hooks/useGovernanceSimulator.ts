@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react'
 import {
   GOVERNANCE_ACTION_KEYS,
   GOVERNANCE_SIMULATOR_SCENARIOS,
-} from '@/constants/governance.constants'
+} from '@/modules/governance/policy/lib/governance-constants'
 import { ApiError } from '@/shared/lib/api-types'
 import * as governanceApi from '@/modules/governance/policy/api/governance.api'
 import type { GovernanceEvaluateResult } from '@/modules/governance/policy'

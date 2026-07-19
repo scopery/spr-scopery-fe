@@ -1,7 +1,9 @@
 'use client'
 
+import { Ban, Check, Sparkles } from 'lucide-react'
+
 import { Modal, Typography, Button, Input, Textarea, Spinner } from '@/shared/ui'
-import type { ProjectQuestion } from '@/modules/projects'
+import type { ProjectQuestion } from '@/modules/projects/questions/model/questions'
 import type { AnswerItem } from '@/modules/sessions/session'
 import { useAIImproveAllModal } from '../hooks/useAIImproveAllModal'
 
@@ -80,8 +82,7 @@ export function AIImproveAllModal({
                     variant="primary"
                     onClick={() => void modal.handleGenerateAll()}
                     loading={modal.generating}
-                    disabled={modal.openItems.length === 0}
-                  >
+                    disabled={modal.openItems.length === 0} icon={<Sparkles size={16} />}>
                     {modal.generating
                       ? `Generating… (${modal.items.filter((i) => i.status === 'generated' || i.status === 'generating').length}/${modal.openItems.length})`
                       : `Generate for all (${modal.openItems.length})`}
@@ -100,18 +101,14 @@ export function AIImproveAllModal({
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    size="sm"
                     onClick={() => void modal.handleRejectAll()}
-                    disabled={!!modal.committing}
-                  >
+                    disabled={!!modal.committing} icon={<Ban size={16} />}>
                     Reject all
                   </Button>
                   <Button
                     variant="primary"
-                    size="sm"
                     onClick={() => void modal.handleAcceptAll()}
-                    loading={modal.committing === 'all'}
-                  >
+                    loading={modal.committing === 'all'} icon={<Check size={16} />}>
                     Accept all
                   </Button>
                 </div>
@@ -141,9 +138,11 @@ export function AIImproveAllModal({
                         : ''}
                     </Typography>
                     {status === 'generating' && (
-                      <div className="flex items-center gap-2 text-sm text-neutral-600">
+                      <div className="flex items-center gap-2">
                         <Spinner size="sm" />
-                        Generating…
+                        <Typography variant="small" tone="muted">
+                          Generating…
+                        </Typography>
                       </div>
                     )}
                     {isGenerated && (
@@ -158,21 +157,17 @@ export function AIImproveAllModal({
                         <div className="flex gap-2">
                           <Button
                             variant="ghost"
-                            size="sm"
                             tone="error"
                             onClick={() => void modal.handleRejectOne(index)}
                             loading={oneCommitting}
-                            disabled={!!modal.committing}
-                          >
+                            disabled={!!modal.committing} icon={<Ban size={16} />}>
                             Reject
                           </Button>
                           <Button
                             variant="primary"
-                            size="sm"
                             onClick={() => void modal.handleAcceptOne(index)}
                             loading={oneCommitting}
-                            disabled={!!modal.committing}
-                          >
+                            disabled={!!modal.committing} icon={<Check size={16} />}>
                             Accept
                           </Button>
                         </div>

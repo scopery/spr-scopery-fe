@@ -67,7 +67,6 @@ export const UserProfileCard = React.forwardRef(
             {onNotificationClick && (
               <Button
                 variant="ghost"
-                size="sm"
                 iconOnly
                 icon={<Bell size={18} />}
                 onClick={onNotificationClick}

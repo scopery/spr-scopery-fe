@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { CircleArrowOutUpLeft } from 'lucide-react'
+import { CircleArrowOutUpLeft, Save, Upload } from 'lucide-react'
 import { Typography, Button, Input, Select, Textarea } from '@/shared/ui'
 import type { DocumentTemplate } from '../model/document-templates'
 import {
@@ -58,20 +58,16 @@ export function TemplateEditor({
         {editor.canEdit && (
           <Button
             variant="primary"
-            size="sm"
             loading={editor.loading}
-            onClick={() => void editor.handleSave()}
-          >
+            onClick={() => void editor.handleSave()} icon={<Save size={16} />}>
             Save
           </Button>
         )}
         {editor.showPublishActions && (
           <Button
             variant="outline"
-            size="sm"
             loading={editor.loading}
-            onClick={() => void editor.handlePublishToggle()}
-          >
+            onClick={() => void editor.handlePublishToggle()} icon={<Upload size={16} />}>
             {template!.is_published && template!.status === 'published' ? 'Unpublish' : 'Publish'}
           </Button>
         )}

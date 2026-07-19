@@ -1,4 +1,4 @@
-import { AI_ENDPOINTS } from '../../project/api/ai-endpoints'
+import { AI_ENDPOINTS } from '../../endpoints'
 /**
  * AI impact analysis and intakes API — project-scoped (future routes).
  */

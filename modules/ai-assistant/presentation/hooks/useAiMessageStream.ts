@@ -1,0 +1,398 @@
+'use client'
+
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { buildAiAssistantHeaders } from '@/shared/lib/aiAssistantHeaders'
+import { openSseStream, SseEventType } from '@/shared/lib/sseClient'
+import { AiStreamUiState } from '../../domain/enums/ai-assistant.enum'
+import { AI_ASSISTANT_ENDPOINTS } from '../../infrastructure/api/endpoints'
+import * as api from '../../infrastructure/api/ai-assistant.api'
+import {
+  applyCancelled,
+  applyCompleted,
+  applyFailed,
+  applyReconnect,
+  applyReconnectExhausted,
+  applyStatusChanged,
+  applyToken,
+  applyToolCall,
+  applyToolResult,
+  createInitialStreamState,
+  isTerminalUiState,
+  markEventSeen,
+  shouldIgnoreDuplicateEvent,
+  type StreamControllerState,
+  type StreamToolCall,
+} from './aiMessageStream.reducer'
+
+const TOKEN_FLUSH_MS = 48
+const CANCEL_TIMEOUT_MS = 20_000
+
+function resolveStreamUrl(streamUrl: string): string {
+  if (streamUrl.startsWith('http') || streamUrl.startsWith('/')) return streamUrl
+  return `/${streamUrl}`
+}
+
+function parseJsonSafe<T>(raw: string): T | null {
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return null
+  }
+}
+
+export interface UseAiMessageStreamResult {
+  streamState: StreamControllerState
+  streamingText: string
+  tools: StreamToolCall[]
+  uiState: AiStreamUiState
+  isStreaming: boolean
+  startFromSend: (args: {
+    conversationId: string
+    content: string
+    pageCode?: string | null
+    entityType?: string | null
+    entityId?: string | null
+    onUserAccepted?: (userMessageId: string | undefined) => void
+    onTerminal?: () => void
+  }) => Promise<void>
+  cancelGeneration: () => Promise<void>
+  retryConnection: () => void
+  closeStreamOnly: () => void
+  resetStream: () => void
+}
+
+export function useAiMessageStream(): UseAiMessageStreamResult {
+  const [streamState, setStreamState] = useState<StreamControllerState>(
+    createInitialStreamState
+  )
+  const stateRef = useRef(streamState)
+  const cancelFnRef = useRef<(() => void) | null>(null)
+  const tokenBufferRef = useRef('')
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cancelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const activeUrlRef = useRef<string | null>(null)
+  const onTerminalRef = useRef<(() => void) | null>(null)
+  const pendingCancelRef = useRef(false)
+
+  useEffect(() => {
+    stateRef.current = streamState
+  }, [streamState])
+
+  const clearFlushTimer = useCallback(() => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current)
+      flushTimerRef.current = null
+    }
+  }, [])
+
+  const flushTokenBuffer = useCallback(() => {
+    clearFlushTimer()
+    const chunk = tokenBufferRef.current
+    if (!chunk) return
+    tokenBufferRef.current = ''
+    setStreamState((prev) => applyToken(prev, chunk))
+  }, [clearFlushTimer])
+
+  const queueToken = useCallback(
+    (token: string) => {
+      tokenBufferRef.current += token
+      if (flushTimerRef.current) return
+      flushTimerRef.current = setTimeout(() => {
+        flushTimerRef.current = null
+        flushTokenBuffer()
+      }, TOKEN_FLUSH_MS)
+    },
+    [flushTokenBuffer]
+  )
+
+  const clearCancelTimeout = useCallback(() => {
+    if (cancelTimeoutRef.current) {
+      clearTimeout(cancelTimeoutRef.current)
+      cancelTimeoutRef.current = null
+    }
+  }, [])
+
+  const closeTransport = useCallback(() => {
+    cancelFnRef.current?.()
+    cancelFnRef.current = null
+    clearFlushTimer()
+    clearCancelTimeout()
+  }, [clearFlushTimer, clearCancelTimeout])
+
+  const resetStream = useCallback(() => {
+    closeTransport()
+    tokenBufferRef.current = ''
+    pendingCancelRef.current = false
+    activeUrlRef.current = null
+    onTerminalRef.current = null
+    setStreamState(createInitialStreamState())
+  }, [closeTransport])
+
+  /** Close SSE without POSTing cancel (route unmount / workspace switch). */
+  const closeStreamOnly = useCallback(() => {
+    closeTransport()
+    pendingCancelRef.current = false
+    setStreamState((prev) =>
+      isTerminalUiState(prev.uiState) ? prev : { ...prev, uiState: AiStreamUiState.Idle }
+    )
+  }, [closeTransport])
+
+  const handleTerminal = useCallback(
+    (next: StreamControllerState) => {
+      flushTokenBuffer()
+      clearCancelTimeout()
+      pendingCancelRef.current = false
+      setStreamState(next)
+      closeTransport()
+      const cb = onTerminalRef.current
+      onTerminalRef.current = null
+      cb?.()
+    },
+    [flushTokenBuffer, clearCancelTimeout, closeTransport]
+  )
+
+  const connect = useCallback(
+    (url: string, initialLastEventId?: string | null) => {
+      closeTransport()
+      activeUrlRef.current = url
+      setStreamState((prev) => ({
+        ...prev,
+        uiState:
+          prev.uiState === AiStreamUiState.Reconnecting
+            ? AiStreamUiState.Reconnecting
+            : AiStreamUiState.Connecting,
+        error: null,
+        canRetryConnection: false,
+      }))
+
+      const { cancel } = openSseStream({
+        url,
+        headers: buildAiAssistantHeaders(),
+        initialLastEventId: initialLastEventId ?? stateRef.current.lastEventId,
+        maxReconnects: 3,
+        reconnectDelayMs: 800,
+        onReconnect: () => {
+          setStreamState((prev) => applyReconnect(prev))
+        },
+        onEvent: (ev) => {
+          setStreamState((prev) => {
+            if (shouldIgnoreDuplicateEvent(prev, ev.id)) return prev
+            let next = markEventSeen(prev, ev.id)
+
+            if (ev.event === SseEventType.StatusChanged) {
+              const parsed = parseJsonSafe<{ status?: string }>(ev.data)
+              if (parsed?.status) next = applyStatusChanged(next, parsed.status)
+              if (parsed?.status === 'CANCELLED') {
+                queueMicrotask(() => handleTerminal(applyCancelled(next)))
+              }
+              return next
+            }
+
+            if (
+              ev.event === SseEventType.Token ||
+              ev.event === 'message.delta' ||
+              ev.event === 'content.delta'
+            ) {
+              const parsed = parseJsonSafe<{
+                token?: string
+                delta?: string
+                text?: string
+              }>(ev.data)
+              const token = parsed?.token ?? parsed?.delta ?? parsed?.text ?? ev.data
+              // Buffer tokens outside React state for batching
+              queueToken(token)
+              return {
+                ...next,
+                uiState:
+                  next.uiState === AiStreamUiState.Cancelling
+                    ? AiStreamUiState.Cancelling
+                    : AiStreamUiState.Connected,
+              }
+            }
+
+            if (ev.event === SseEventType.ToolCall || ev.event === 'tool.started') {
+              const parsed = parseJsonSafe<{
+                toolName?: string
+                name?: string
+                input?: unknown
+                toolCallId?: string
+                id?: string
+              }>(ev.data)
+              return applyToolCall(next, {
+                toolName: parsed?.toolName ?? parsed?.name,
+                input: parsed?.input,
+                toolCallId: parsed?.toolCallId ?? parsed?.id,
+              })
+            }
+
+            if (ev.event === SseEventType.ToolResult || ev.event === 'tool.completed') {
+              const parsed = parseJsonSafe<{
+                toolName?: string
+                name?: string
+                result?: unknown
+                toolCallId?: string
+                id?: string
+                durationMs?: number
+                error?: string
+              }>(ev.data)
+              return applyToolResult(next, {
+                toolName: parsed?.toolName ?? parsed?.name,
+                result: parsed?.result,
+                toolCallId: parsed?.toolCallId ?? parsed?.id,
+                durationMs: parsed?.durationMs,
+                error: parsed?.error,
+              })
+            }
+
+            if (
+              ev.event === SseEventType.Completed ||
+              ev.event === 'message.completed' ||
+              ev.event === 'turn.completed'
+            ) {
+              const completed = applyCompleted(next)
+              queueMicrotask(() => handleTerminal(completed))
+              return completed
+            }
+
+            if (ev.event === SseEventType.Error || ev.event === 'message.error') {
+              const parsed = parseJsonSafe<{ message?: string; errorCode?: string }>(
+                ev.data
+              )
+              const failed = applyFailed(
+                next,
+                parsed?.message ?? 'Stream error'
+              )
+              queueMicrotask(() => handleTerminal(failed))
+              return failed
+            }
+
+            return next
+          })
+        },
+        onError: () => {
+          // openSseStream may still reconnect; surface only after exhaustion via onDone path
+        },
+        onDone: () => {
+          const current = stateRef.current
+          if (isTerminalUiState(current.uiState)) return
+          if (pendingCancelRef.current) {
+            handleTerminal(applyCancelled(current))
+            return
+          }
+          // Mid-stream end without terminal — openSseStream already retried;
+          // if we still land here, offer manual retry.
+          setStreamState((prev) => applyReconnectExhausted(prev))
+        },
+      })
+      cancelFnRef.current = cancel
+    },
+    [closeTransport, handleTerminal, queueToken]
+  )
+
+  const startFromSend = useCallback(
+    async (args: {
+      conversationId: string
+      content: string
+      pageCode?: string | null
+      entityType?: string | null
+      entityId?: string | null
+      onUserAccepted?: (userMessageId: string | undefined) => void
+      onTerminal?: () => void
+    }) => {
+      resetStream()
+      onTerminalRef.current = args.onTerminal ?? null
+      setStreamState((prev) => ({
+        ...prev,
+        uiState: AiStreamUiState.Starting,
+      }))
+
+      const result = await api.createMessage(args.conversationId, {
+        content: args.content,
+        pageCode: args.pageCode ?? null,
+        entityType: args.entityType ?? null,
+        entityId: args.entityId ?? null,
+      })
+
+      // Optimistic user message only after 202 accepted
+      args.onUserAccepted?.(result.userMessageId)
+
+      const streamId = result.assistantMessageId ?? result.messageId
+      const streamUrl =
+        result.streamUrl ??
+        (streamId ? AI_ASSISTANT_ENDPOINTS.messageStream(streamId) : null)
+
+      setStreamState((prev) => ({
+        ...prev,
+        assistantMessageId: streamId || null,
+        uiState: AiStreamUiState.Connecting,
+      }))
+
+      if (!streamUrl) {
+        handleTerminal(applyCompleted(stateRef.current))
+        return
+      }
+
+      connect(resolveStreamUrl(streamUrl))
+    },
+    [resetStream, connect, handleTerminal]
+  )
+
+  const cancelGeneration = useCallback(async () => {
+    const messageId = stateRef.current.assistantMessageId
+    if (!messageId) {
+      closeStreamOnly()
+      return
+    }
+    // Spec: POST cancel, keep SSE open until terminal / timeout
+    pendingCancelRef.current = true
+    setStreamState((prev) => ({
+      ...prev,
+      uiState: AiStreamUiState.Cancelling,
+      messageStatus: 'CANCEL_REQUESTED',
+    }))
+    try {
+      await api.cancelMessage(messageId)
+    } catch {
+      // keep waiting on SSE; timeout below still applies
+    }
+    clearCancelTimeout()
+    cancelTimeoutRef.current = setTimeout(() => {
+      handleTerminal(applyCancelled(stateRef.current))
+    }, CANCEL_TIMEOUT_MS)
+  }, [closeStreamOnly, clearCancelTimeout, handleTerminal])
+
+  const retryConnection = useCallback(() => {
+    const url = activeUrlRef.current
+    if (!url) return
+    const lastId = stateRef.current.lastEventId
+    setStreamState((prev) => applyReconnect(prev))
+    connect(url, lastId)
+  }, [connect])
+
+  // Unmount: close transport only (do not auto-cancel generation)
+  useEffect(() => {
+    return () => {
+      closeTransport()
+    }
+  }, [closeTransport])
+
+  const isStreaming =
+    streamState.uiState === AiStreamUiState.Starting ||
+    streamState.uiState === AiStreamUiState.Connecting ||
+    streamState.uiState === AiStreamUiState.Connected ||
+    streamState.uiState === AiStreamUiState.Reconnecting ||
+    streamState.uiState === AiStreamUiState.Cancelling
+
+  return {
+    streamState,
+    streamingText: streamState.streamingText,
+    tools: streamState.tools,
+    uiState: streamState.uiState,
+    isStreaming,
+    startFromSend,
+    cancelGeneration,
+    retryConnection,
+    closeStreamOnly,
+    resetStream,
+  }
+}

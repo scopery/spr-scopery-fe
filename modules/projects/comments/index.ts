@@ -1,0 +1,7 @@
+export { CommentThreadsPanel } from './presentation/ui/CommentThreadsPanel'
+export { CommentBubble } from './presentation/ui/CommentBubble'
+export { useEntityComments } from './presentation/hooks/useEntityComments'
+export * as commentsApi from './infrastructure/api/comments.api'
+export type { CommentThread, CreateThreadPayload } from './domain/model/comment-thread'
+export type { Comment, CreateCommentPayload } from './domain/model/comment'
+export { ThreadStatus, CommentTargetType } from './domain/enums/comment.enum'

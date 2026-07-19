@@ -1,14 +1,14 @@
-export { AdminAiAgentsListView } from './ui/AdminAiAgentsListView'
-export { AdminAIAgentVersionView } from './ui/AdminAIAgentVersionView'
-export { useAiAgentsList, useAiAgentDetail, useAiAgentVersion } from './hooks/useAiAgents'
-export { AdminAIAgentDetailView } from './ui/AdminAIAgentDetailView'
+export { AdminAiAgentsListView } from './presentation/ui/AdminAiAgentsListView'
+export { AdminAIAgentVersionView } from './presentation/ui/AdminAIAgentVersionView'
+export { useAiAgentsList, useAiAgentDetail, useAiAgentVersion } from './presentation/hooks/useAiAgents'
+export { AdminAIAgentDetailView } from './presentation/ui/AdminAIAgentDetailView'
 export {
   AIAgentStatusBadge,
   AIAgentVersionStatusBadge,
   formatEstimatedCost,
   formatTokens,
-} from './ui/ai-agent-badges'
-export { AIAgentUsageSummaryCards } from './ui/ai-agent-usage-summary-cards'
+} from './presentation/ui/ai-agent-badges'
+export { AIAgentUsageSummaryCards } from './presentation/ui/ai-agent-usage-summary-cards'
 export type {
   AIAgentAdminSummary,
   AIAgentListItem,
@@ -17,9 +17,16 @@ export type {
   AIModelSelectItem,
   AIUsageSummary,
   AIRunLogItem,
+  AIRunLogListResult,
+  UpdateAIAgentPayload,
+  UpdateAIAgentVersionPayload,
+  AIAgentVersionListItem,
+} from './domain/model/ai-agent-control'
+export type {
   AIAgentStatus,
   AIAgentVersionStatus,
   AIRunMode,
-  UpdateAIAgentPayload,
-} from './model/ai-agent-control'
-export * as aiAgentsApi from './api/ai-agents.api'
+  AIModelTier,
+  AIRunStatus,
+} from './domain/enums/ai-agent-control.enum'
+export * as aiAgentsApi from './infrastructure/api/ai-agents.api'

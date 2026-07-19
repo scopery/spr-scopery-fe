@@ -6,10 +6,10 @@ import { FEATURES } from '@/config/features'
 import { cn } from '@/utils/cn'
 import { ClarityBadge } from '@/modules/sessions/clarity/ui/ClarityBadge'
 import type { ClarityAssessment } from '@/modules/sessions/clarity'
-import type { ProjectQuestion } from '@/modules/projects'
+import type { ProjectQuestion } from '@/modules/projects/questions/model/questions'
 import type { AnswerItem } from '../model/session'
 import { AnswerEvidenceStrip } from '@/modules/documents'
-import { Sparkles, ClipboardCheck } from 'lucide-react'
+import { ClipboardCheck, Sparkles } from 'lucide-react'
 import { getDefaultValueForType, type AnswerStatus } from '../lib/session-answer-utils'
 
 export type SessionQuestionItemProps = {
@@ -185,7 +185,7 @@ export function SessionQuestionItem({
       <div className="mb-3 flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-2">
           {q.required && (
-            <Badge variant="solid" tone="warning" size="sm" className="shrink-0">
+            <Badge tone="warning" className="shrink-0">
               Required
             </Badge>
           )}
@@ -198,15 +198,13 @@ export function SessionQuestionItem({
             !clarityFeatureDisabled && (
               <Button
                 variant="ghost"
-                size="sm"
                 onClick={onAssessClarity}
                 loading={assessClarityLoading}
                 disabled={!isAnswered}
-                className="gap-1"
                 title={!isAnswered ? 'Answer required to assess' : undefined}
                 aria-label={!isAnswered ? 'Answer required to assess' : 'Assess clarity'}
+                icon={<ClipboardCheck size={14} />}
               >
-                <ClipboardCheck size={14} />
                 Assess clarity
               </Button>
             )}
@@ -218,7 +216,7 @@ export function SessionQuestionItem({
             />
           )}
           {FEATURES.aiImproveAnswer && showAiButton && onAiImprove && (
-            <Button variant="ghost" size="sm" onClick={() => onAiImprove(q)} className="gap-1">
+            <Button variant="ghost" onClick={() => onAiImprove(q)} className="gap-1">
               <Sparkles size={14} />
               AI Improve
             </Button>

@@ -2,32 +2,44 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/modules/auth'
+import { useAuth } from '@/modules/auth/auth/context/AuthContext'
+import { usePlatformAdminAccess } from '@/modules/auth/iam/hooks/usePlatformAdminAccess'
 import { ROUTES } from '@/constants/routes'
 import { ContentLoader } from '@/shared/ui'
-import { AuthGuard, AdminShell } from '@/modules/platform'
+import { AuthGuard } from '@/modules/platform/guards/ui/AuthGuard'
+import { AdminShell } from '@/modules/platform/layout/ui/AdminShell'
 import { toast } from 'sonner'
 
 /**
- * Admin route guard: only profile.role === 'admin' can access.
- * Non-admin → 403 → redirect home + toast.
+ * Admin route guard: GLOBAL permission check-batch (not SUPER_ADMIN role).
+ * No matching SYSTEM_* permission → redirect home + toast.
  */
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { profile, bootstrapStatus } = useAuth()
+  const { canAccessAdmin, loading: authzLoading } = usePlatformAdminAccess({
+    enabled: bootstrapStatus === 'ready' || bootstrapStatus === 'needs_onboarding',
+  })
+
+  const waiting =
+    bootstrapStatus === 'loading' ||
+    ((bootstrapStatus === 'ready' || bootstrapStatus === 'needs_onboarding') && authzLoading)
 
   useEffect(() => {
-    if (bootstrapStatus === 'loading') return
-    if (profile?.role !== 'admin') {
+    if (waiting) return
+    if (bootstrapStatus !== 'ready' && bootstrapStatus !== 'needs_onboarding') return
+    if (!canAccessAdmin) {
       toast.error('Bạn không có quyền truy cập trang này.')
-      router.replace(profile?.default_org_id ? ROUTES.org.projects(profile.default_org_id) : '/')
+      router.replace(
+        profile?.default_org_id ? ROUTES.workspace.projects(profile.default_org_id) : '/'
+      )
     }
-  }, [profile?.role, profile?.default_org_id, router])
+  }, [waiting, bootstrapStatus, canAccessAdmin, profile?.default_org_id, router])
 
-  if (bootstrapStatus === 'loading' || profile?.role !== 'admin') {
+  if (waiting || !canAccessAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <ContentLoader variant="easeOut" className="w-20" />
+        <ContentLoader />
       </div>
     )
   }

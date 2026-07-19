@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Download, ExternalLink } from 'lucide-react'
-import { Typography, Button, ContentLoader, Select } from '@/shared/ui'
+import { ChevronDown, Download, ExternalLink } from 'lucide-react'
+import { Typography, Button, Select, Skeleton } from '@/shared/ui'
 import { DeliverableReadinessBadge } from './DeliverableReadinessBadge'
 import { DocumentTypeBadge } from '@/modules/documents/document/ui/DocumentTypeBadge'
 import { WorkflowStatusBadge } from '@/modules/documents/document/ui/WorkflowStatusBadge'
@@ -34,7 +34,7 @@ export function DeliverableHistoryPanelView({
   onExport,
 }: DeliverableHistoryPanelViewProps) {
   if (loading && items.length === 0) {
-    return <ContentLoader />
+    return <Skeleton variant="rectangular" width="100%" height={120} />
   }
 
   return (
@@ -117,15 +117,14 @@ export function DeliverableHistoryPanelView({
                 </Typography>
               </div>
               <div className="flex gap-2">
-                <Link href={ROUTES.org.document(orgId, item.document_id, projectId)}>
-                  <Button variant="outline" size="sm" icon={<ExternalLink size={14} />}>
+                <Link href={ROUTES.workspace.document(orgId, item.document_id, projectId)}>
+                  <Button variant="outline" icon={<ExternalLink size={14} />}>
                     Open
                   </Button>
                 </Link>
                 {canExport ? (
                   <Button
                     variant="ghost"
-                    size="sm"
                     icon={<Download size={14} />}
                     loading={exportingId === item.document_id}
                     onClick={() => onExport(item.document_id)}
@@ -143,10 +142,8 @@ export function DeliverableHistoryPanelView({
         <Button
           type="button"
           variant="outline"
-          size="sm"
           loading={loadingMore}
-          onClick={onLoadMore}
-        >
+          onClick={onLoadMore} icon={<ChevronDown size={16} />}>
           Load more
         </Button>
       ) : null}

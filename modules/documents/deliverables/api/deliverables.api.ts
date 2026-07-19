@@ -1,8 +1,8 @@
-import { DOCUMENT_ENDPOINTS } from '../../document/api/endpoints'
-import { DOCUMENT_HUB_ENDPOINTS } from '../../document-hub/api/endpoints'
-import { sessionsApi } from '@/modules/sessions'
-import { requirementsApi } from '@/modules/projects'
+import { DOCUMENT_ENDPOINTS, DOCUMENT_HUB_ENDPOINTS } from '../../endpoints'
+import * as sessionsApi from '@/modules/sessions/session/api/sessions.api'
+import * as requirementsApi from '@/modules/projects/requirements/api/requirements.api'
 import { apiClient } from '@/shared/lib/apiClient'
+import { normalizeItemList, type ListPayload } from '@/shared/lib/normalizeListResponse'
 import type {
   CreateDeliverableResult,
   DeliverableEntryContext,
@@ -101,7 +101,12 @@ export async function searchDeliverablePickerDocuments(
     offset: number
   }
 ): Promise<{ items: DeliverablePickerItem[]; total: number }> {
-  return apiClient.get(DOCUMENT_ENDPOINTS.deliverablePicker(orgId, projectId, params))
+  const res = await apiClient.get<ListPayload<DeliverablePickerItem>>(DOCUMENT_ENDPOINTS.deliverablePicker(orgId, projectId, params))
+  const { items } = normalizeItemList(res)
+  return {
+    items,
+    total: !Array.isArray(res) && typeof res?.total === 'number' ? res.total : items.length,
+  }
 }
 
 export async function listDeliverableHistory(
@@ -116,7 +121,12 @@ export async function listDeliverableHistory(
     offset: number
   }
 ): Promise<{ items: DeliverableHistoryItem[]; total: number }> {
-  return apiClient.get(DOCUMENT_ENDPOINTS.deliverableHistory(orgId, projectId, params))
+  const res = await apiClient.get<ListPayload<DeliverableHistoryItem>>(DOCUMENT_ENDPOINTS.deliverableHistory(orgId, projectId, params))
+  const { items } = normalizeItemList(res)
+  return {
+    items,
+    total: !Array.isArray(res) && typeof res?.total === 'number' ? res.total : items.length,
+  }
 }
 
 export async function getDocumentDeliverableMetadata(

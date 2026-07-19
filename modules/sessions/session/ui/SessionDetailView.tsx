@@ -1,20 +1,16 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import { ContentLoader, Typography } from '@/shared/ui'
+import { Typography, PageSkeleton } from '@/shared/ui'
 import { useSessionDetail } from '../hooks/useSessionDetail'
 import { useSessionAnswerSave } from '../hooks/useSessionAnswerSave'
 import { useSessionExportExcel } from '../hooks/useSessionExportExcel'
 import { useSessionClarity } from '@/modules/sessions/clarity'
-import { useProject, type ProjectQuestion } from '@/modules/projects'
-import {
-  canEditProject,
-  isOrgReadonly,
-  resolveProjectRole,
-  buildDocumentSpacePermissions,
-} from '@/modules/permissions'
-import { useOrg } from '@/modules/org'
-import { useEffectivePermissions } from '@/modules/permissions'
+import { useProject } from '@/modules/projects/project/hooks/useProject'
+import type { ProjectQuestion } from '@/modules/projects/questions/model/questions'
+import { canEditProject, isOrgReadonly, resolveProjectRole, buildDocumentSpacePermissions } from '@/modules/permissions/access/lib/permissions'
+import { useOrg } from '@/modules/org/org/hooks/useOrg'
+import { useEffectivePermissions } from '@/modules/permissions/access/hooks/useEffectivePermissions'
 import { FEATURES } from '@/config/features'
 import { AIImproveModal } from '@/modules/sessions/ai-improve/ui/AIImproveModal'
 import { AIImproveAllModal } from '@/modules/sessions/ai-improve/ui/AIImproveAllModal'
@@ -198,9 +194,7 @@ export function SessionDetailView({ orgId, projectId, sessionId }: SessionDetail
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <ContentLoader variant="easeOut" className="w-20" />
-      </div>
+      <PageSkeleton variant="detail" />
     )
   }
   if (!session) {

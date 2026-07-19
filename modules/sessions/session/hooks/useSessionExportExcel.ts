@@ -1,10 +1,9 @@
 'use client'
 
 import { useCallback } from 'react'
-import * as XLSX from 'xlsx'
 import { toast } from 'sonner'
-import { toAnswerText } from '@/utils/answerText'
-import type { ProjectQuestion } from '@/modules/projects'
+import { toAnswerText } from '@/modules/sessions/session/lib/answer-text'
+import type { ProjectQuestion } from '@/modules/projects/questions/model/questions'
 import type { AnswerItem } from '../model/session'
 
 type UseSessionExportExcelParams = {
@@ -20,7 +19,8 @@ export function useSessionExportExcel({
   questionOrderMap,
   answers,
 }: UseSessionExportExcelParams) {
-  const exportExcel = useCallback(() => {
+  const exportExcel = useCallback(async () => {
+    const XLSX = await import('xlsx')
     const headers = ['Section', 'Position', 'Question', 'Type', 'Required', 'Status', 'Answer']
     const rows = orderedQuestions.map((q) => {
       const order = questionOrderMap[q.id]

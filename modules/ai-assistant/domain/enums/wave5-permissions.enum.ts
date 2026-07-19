@@ -1,0 +1,24 @@
+/**
+ * Wave 5 AI permission catalog (provisional — W5-GAP-14).
+ * Values match coverage register until IAM action catalog is locked with BE.
+ */
+
+export const WAVE5_AI_PERMISSIONS = {
+  AI_ASSISTANT_USE: 'AI_ASSISTANT_USE',
+  AI_ASSISTANT_FEEDBACK_CREATE: 'AI_ASSISTANT_FEEDBACK_CREATE',
+  AI_AGENT_CONFIG_VIEW: 'AI_AGENT_CONFIG_VIEW',
+  AI_AGENT_CONFIG_MANAGE: 'AI_AGENT_CONFIG_MANAGE',
+  AI_PROVIDER_SECRET_VIEW: 'AI_PROVIDER_SECRET_VIEW',
+  AI_PROVIDER_SECRET_MANAGE: 'AI_PROVIDER_SECRET_MANAGE',
+  AI_EXECUTION_RUN: 'AI_EXECUTION_RUN',
+  AI_EXECUTION_LOG_VIEW: 'AI_EXECUTION_LOG_VIEW',
+  AI_PLAYGROUND_USE: 'AI_PLAYGROUND_USE',
+  AI_TOOL_VIEW: 'AI_TOOL_VIEW',
+  AI_TOOL_MANAGE: 'AI_TOOL_MANAGE',
+} as const
+
+export type Wave5AiPermission =
+  (typeof WAVE5_AI_PERMISSIONS)[keyof typeof WAVE5_AI_PERMISSIONS]
+
+/** Internal worker identity — browser must never claim these. */
+export const WAVE5_SERVICE_ONLY_PERMISSION = 'SERVICE_IDENTITY_ONLY' as const

@@ -20,20 +20,20 @@ function normalizeRootValue(value: string | undefined): string | undefined {
   return value === '' ? EMPTY_OPTION_VALUE : value
 }
 
-/* Align with Input: sm h-10, md h-12, lg h-14; padding and text size match */
+/** Keep in sync with Button / Input: sm h-8, md h-9, lg h-12 */
 const selectSizes: Record<SelectSize, { trigger: string; content: string; item: string }> = {
   sm: {
-    trigger: 'h-10 px-3 text-sm',
+    trigger: 'h-8 px-3 text-sm',
     content: 'min-w-[8rem]',
     item: 'text-sm py-2 px-3',
   },
   md: {
-    trigger: 'h-12 px-3 text-sm',
+    trigger: 'h-9 px-3 text-[13px]',
     content: 'min-w-[10rem]',
     item: 'text-sm py-2 px-3',
   },
   lg: {
-    trigger: 'h-14 px-4 text-base',
+    trigger: 'h-12 px-4 text-base',
     content: 'min-w-[12rem]',
     item: 'text-base py-2.5 px-4',
   },

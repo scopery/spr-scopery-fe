@@ -1,4 +1,4 @@
-import { GOVERNANCE_SIMULATOR_SCENARIOS } from '@/constants/governance.constants'
+import { GOVERNANCE_SIMULATOR_SCENARIOS } from '@/modules/governance/policy/lib/governance-constants'
 import type {
   GovernanceEvaluateRequestPayload,
   GovernanceSimulatorFormState,

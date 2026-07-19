@@ -2,14 +2,8 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import {
-  clearSessionStorage,
-  getSessionFromCookie,
-  setSessionStorage,
-} from '@/shared/lib/apiClient'
+import { clearSessionStorage, getSessionFromCookie } from '@/shared/lib/apiClient'
 import * as authApi from '../api/auth.api'
-import * as profileApi from '@/modules/auth/profile/api/profile.api'
-import * as orgApi from '@/modules/org/org/api/org.api'
 import type {
   AuthSession,
   LoginPayload,
@@ -17,17 +11,34 @@ import type {
   Profile,
   BootstrapStatus,
 } from '../model/auth'
-import type { OrgListItem } from '@/modules/org/org'
+import {
+  enrichWorkspacesWithOrgNames,
+  getWorkspaceContext,
+  listAvailableWorkspaces,
+  switchWorkspace as switchWorkspaceApi,
+} from '@/modules/auth/workspace-context'
+import type {
+  WorkspaceContextResponse,
+  WorkspaceListItem,
+} from '@/modules/auth/workspace-context'
 import { ROUTES } from '@/constants/routes'
 import { ApiError } from '@/shared/lib/api-types'
+import { userHasSuperAdminRole } from '@/modules/auth/iam/api/iam.api'
+import { buildSessionProfile } from '../lib/session-profile'
 
 function readSession(): AuthSession | null {
   const raw = getSessionFromCookie()
-  const user = raw?.user as { id?: string; email?: string } | undefined
+  const user = raw?.user as
+    | { id?: string; username?: string; email?: string; fullName?: string }
+    | undefined
   if (!user?.id) return null
   return {
-    user: { id: user.id, email: user.email ?? '' },
-    // Token is in HttpOnly cookie — not readable by JS; proxy adds Authorization header.
+    user: {
+      id: user.id,
+      username: user.username ?? '',
+      email: user.email ?? '',
+      fullName: user.fullName,
+    },
     session: { access_token: '' },
   }
 }
@@ -35,13 +46,15 @@ function readSession(): AuthSession | null {
 type AuthContextValue = {
   session: AuthSession | null
   profile: Profile | null
-  orgs: OrgListItem[]
-  currentOrgId: string | null
+  isSuperAdmin: boolean
+  workspaces: WorkspaceListItem[]
+  currentWorkspaceId: string | null
+  workspaceContext: WorkspaceContextResponse | null
   bootstrapStatus: BootstrapStatus
   login: (payload: LoginPayload) => Promise<void>
   register: (payload: RegisterPayload) => Promise<void>
   logout: () => Promise<void>
-  setCurrentOrgId: (orgId: string) => void
+  switchWorkspace: (workspaceId: string) => Promise<void>
   refreshBootstrap: () => Promise<void>
 }
 
@@ -60,57 +73,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [session, setSession] = useState<AuthSession | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [orgs, setOrgs] = useState<OrgListItem[]>([])
-  const [currentOrgId, setCurrentOrgIdState] = useState<string | null>(null)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [workspaces, setWorkspaces] = useState<WorkspaceListItem[]>([])
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(null)
+  const [workspaceContext, setWorkspaceContext] = useState<WorkspaceContextResponse | null>(null)
   const [bootstrapStatus, setBootstrapStatus] = useState<BootstrapStatus>('loading')
 
   const runBootstrap = useCallback(async () => {
     const sess = getSessionFromCookie()
     const userId = (sess?.user as { id?: string })?.id
     if (!userId) {
+      setSession(null)
       setBootstrapStatus('needs_login')
       setProfile(null)
-      setOrgs([])
-      setCurrentOrgIdState(null)
+      setIsSuperAdmin(false)
+      setWorkspaces([])
+      setCurrentWorkspaceId(null)
+      setWorkspaceContext(null)
       return
     }
 
+    const currentSession = readSession()
+    setSession(currentSession)
+
+    let superAdmin = false
     try {
-      const prof = await profileApi.getProfile()
-      setProfile(prof)
-      if (prof.status === 'suspended') {
-        setBootstrapStatus('suspended')
-        setOrgs([])
-        setCurrentOrgIdState(null)
-        return
+      superAdmin = await userHasSuperAdminRole(userId)
+    } catch {
+      superAdmin = false
+    }
+    setIsSuperAdmin(superAdmin)
+
+    try {
+      const [ctx, available] = await Promise.all([
+        getWorkspaceContext(),
+        listAvailableWorkspaces(),
+      ])
+
+      if (currentSession) {
+        setProfile(buildSessionProfile(currentSession, superAdmin, ctx.currentWorkspaceId))
       }
 
-      const orgList = await orgApi.listOrgs({ limit: 20, offset: 0 })
-      setOrgs(orgList.items)
-      if (orgList.items.length === 0) {
+      if (!ctx.currentWorkspaceId) {
         setBootstrapStatus('needs_onboarding')
-        setCurrentOrgIdState(null)
+        setWorkspaces([])
+        setCurrentWorkspaceId(null)
+        setWorkspaceContext(ctx)
         return
       }
 
-      const defaultId = prof.default_org_id
-      const validDefault = defaultId && orgList.items.some((o) => o.id === defaultId)
-      const chosenId = validDefault ? defaultId : orgList.items[0].id
-      setCurrentOrgIdState(chosenId)
-      if (!validDefault) {
-        await orgApi.setDefaultOrg(chosenId)
-      }
+      const enriched = await enrichWorkspacesWithOrgNames(available)
+      setWorkspaces(enriched)
+      setCurrentWorkspaceId(ctx.currentWorkspaceId)
+      setWorkspaceContext(ctx)
       setBootstrapStatus('ready')
     } catch (err) {
       if (err instanceof ApiError && err.isAuthError) {
         clearSessionStorage()
         setSession(null)
         setProfile(null)
-        setOrgs([])
-        setCurrentOrgIdState(null)
+        setIsSuperAdmin(false)
+        setWorkspaces([])
+        setCurrentWorkspaceId(null)
+        setWorkspaceContext(null)
         setBootstrapStatus('needs_login')
+        void import('@/shared/lib/redirectToLogin').then(({ redirectToLogin }) =>
+          redirectToLogin({ skipIfOnAuthPage: true })
+        )
       } else {
-        setBootstrapStatus('needs_login')
+        if (currentSession) {
+          setProfile(buildSessionProfile(currentSession, superAdmin, null))
+        }
+        setBootstrapStatus('needs_onboarding')
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[auth] bootstrap failed (non-auth)', err)
+        }
       }
     }
   }, [])
@@ -123,11 +160,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(
     async (payload: LoginPayload) => {
       const next = await authApi.login(payload)
-      setSessionStorage({
-        access_token: next.session.access_token,
-        refresh_token: next.session.refresh_token,
-        user: next.user,
-      })
       setSession(next)
       await runBootstrap()
     },
@@ -137,11 +169,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = useCallback(
     async (payload: RegisterPayload) => {
       const next = await authApi.register(payload)
-      setSessionStorage({
-        access_token: next.session.access_token,
-        refresh_token: next.session.refresh_token,
-        user: next.user,
-      })
       setSession(next)
       await runBootstrap()
     },
@@ -152,13 +179,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await authApi.logout()
     setSession(null)
     setProfile(null)
-    setOrgs([])
-    setCurrentOrgIdState(null)
+    setIsSuperAdmin(false)
+    setWorkspaces([])
+    setCurrentWorkspaceId(null)
+    setWorkspaceContext(null)
     setBootstrapStatus('needs_login')
   }, [])
 
-  const setCurrentOrgId = useCallback((orgId: string) => {
-    setCurrentOrgIdState(orgId)
+  const switchWorkspace = useCallback(async (workspaceId: string) => {
+    const ctx = await switchWorkspaceApi(workspaceId)
+    setCurrentWorkspaceId(ctx.currentWorkspaceId)
+    setWorkspaceContext(ctx)
+    setProfile((prev) =>
+      prev ? { ...prev, default_org_id: ctx.currentWorkspaceId } : prev
+    )
+    setWorkspaces((prev) =>
+      prev.map((w) =>
+        w.id === workspaceId
+          ? {
+              ...w,
+              name: ctx.currentWorkspaceName ?? w.name,
+              code: ctx.currentWorkspaceCode ?? w.code,
+            }
+          : w
+      )
+    )
   }, [])
 
   const refreshBootstrap = useCallback(async () => {
@@ -168,8 +213,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isPublicPath(pathname ?? '')) {
-      if (bootstrapStatus === 'ready' && currentOrgId) {
-        router.replace(ROUTES.org.projects(currentOrgId))
+      if (bootstrapStatus === 'ready' && currentWorkspaceId) {
+        router.replace(ROUTES.workspace.projects(currentWorkspaceId))
+      } else if (bootstrapStatus === 'ready') {
+        router.replace(ONBOARDING_PATH)
       } else if (bootstrapStatus === 'needs_onboarding') {
         router.replace(ONBOARDING_PATH)
       } else if (bootstrapStatus === 'suspended') {
@@ -188,42 +235,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.replace(SUSPENDED_PATH)
         break
       case 'needs_onboarding':
-        if (!pathname?.startsWith(ONBOARDING_PATH)) router.replace(ONBOARDING_PATH)
-        break
-      case 'ready':
-        if (pathname === '/' || pathname === '') {
-          const orgId = currentOrgId ?? orgs[0]?.id
-          if (orgId) router.replace(ROUTES.org.projects(orgId))
+        if (
+          !pathname?.startsWith(ONBOARDING_PATH) &&
+          !(isSuperAdmin && pathname?.startsWith('/admin'))
+        ) {
+          router.replace(ONBOARDING_PATH)
         }
         break
+      case 'ready': {
+        const workspaceId = currentWorkspaceId ?? workspaces[0]?.id
+        if (!workspaceId) break
+        if (
+          pathname === '/' ||
+          pathname === '' ||
+          pathname?.startsWith(ONBOARDING_PATH)
+        ) {
+          router.replace(ROUTES.workspace.projects(workspaceId))
+        }
+        break
+      }
       default:
         break
     }
-  }, [bootstrapStatus, pathname, router, currentOrgId, orgs])
+  }, [bootstrapStatus, pathname, router, currentWorkspaceId, workspaces, isSuperAdmin])
 
   const value = useMemo(
     () => ({
       session,
       profile,
-      orgs,
-      currentOrgId,
+      isSuperAdmin,
+      workspaces,
+      currentWorkspaceId,
+      workspaceContext,
       bootstrapStatus,
       login,
       register,
       logout,
-      setCurrentOrgId,
+      switchWorkspace,
       refreshBootstrap,
     }),
     [
       session,
       profile,
-      orgs,
-      currentOrgId,
+      isSuperAdmin,
+      workspaces,
+      currentWorkspaceId,
+      workspaceContext,
       bootstrapStatus,
       login,
       register,
       logout,
-      setCurrentOrgId,
+      switchWorkspace,
       refreshBootstrap,
     ]
   )

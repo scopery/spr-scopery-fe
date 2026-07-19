@@ -7,7 +7,7 @@ import { FEATURES } from '@/config/features'
 import { ClarityPanel } from '@/modules/sessions/clarity/ui/ClarityPanel'
 import { EntityEvidenceDocumentsPanel } from '@/modules/documents'
 import type { ClaritySummary } from '@/modules/sessions/clarity'
-import type { ProjectQuestion } from '@/modules/projects'
+import type { ProjectQuestion } from '@/modules/projects/questions/model/questions'
 import type { SessionProgress } from '../model/session'
 
 export type SessionRightPanelTab = 'progress' | 'outline' | 'clarity' | 'evidence'
@@ -100,12 +100,16 @@ export function SessionDetailRightPanel({
                       d="M 18 3.5 A 14.5 14.5 0 0 1 18 32.5 A 14.5 14.5 0 0 1 18 3.5"
                     />
                   </svg>
-                  <span className="absolute inset-0 flex items-center justify-center text-2xl font-semibold text-neutral-900">
+                  <Typography
+                    as="span"
+                    size="2xl"
+                    weight="semibold"
+                    className="absolute inset-0 flex items-center justify-center"
+                  >
                     {progress.coverage_percent}%
-                  </span>
+                  </Typography>
                 </div>
                 <Badge
-                  variant="solid"
                   tone={
                     progress.coverage_label === 'Ready for Review'
                       ? 'success'
@@ -113,47 +117,70 @@ export function SessionDetailRightPanel({
                         ? 'warning'
                         : 'error'
                   }
-                  size="sm"
                   className="mt-3"
                 >
                   {progress.coverage_label}
                 </Badge>
               </div>
               <div className="space-y-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-neutral-600">Required answered</span>
-                  <span className="text-neutral-900">
+                <div className="flex justify-between">
+                  <Typography as="span" variant="small" tone="muted">
+                    Required answered
+                  </Typography>
+                  <Typography as="span" variant="small">
                     {progress.required_answered} / {progress.required_total}
-                  </span>
+                  </Typography>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-neutral-600">Optional answered</span>
-                  <span className="text-neutral-900">
+                <div className="flex justify-between">
+                  <Typography as="span" variant="small" tone="muted">
+                    Optional answered
+                  </Typography>
+                  <Typography as="span" variant="small">
                     {progress.optional_answered} / {progress.optional_total}
-                  </span>
+                  </Typography>
                 </div>
                 <div className="space-y-3 border-t border-neutral-200 pt-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-neutral-600">Answered</span>
-                    <span className="text-neutral-900">{progress.answered}</span>
+                  <div className="flex justify-between">
+                    <Typography as="span" variant="small" tone="muted">
+                      Answered
+                    </Typography>
+                    <Typography as="span" variant="small">
+                      {progress.answered}
+                    </Typography>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-neutral-600">Skipped</span>
-                    <span className="text-neutral-900">{progress.skipped}</span>
+                  <div className="flex justify-between">
+                    <Typography as="span" variant="small" tone="muted">
+                      Skipped
+                    </Typography>
+                    <Typography as="span" variant="small">
+                      {progress.skipped}
+                    </Typography>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-neutral-600">N/A</span>
-                    <span className="text-neutral-900">{progress.na}</span>
+                  <div className="flex justify-between">
+                    <Typography as="span" variant="small" tone="muted">
+                      N/A
+                    </Typography>
+                    <Typography as="span" variant="small">
+                      {progress.na}
+                    </Typography>
                   </div>
                   {progress.required_missing > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-error">Missing required</span>
-                      <span className="text-error">{progress.required_missing}</span>
+                    <div className="flex justify-between">
+                      <Typography as="span" variant="small" tone="error">
+                        Missing required
+                      </Typography>
+                      <Typography as="span" variant="small" tone="error">
+                        {progress.required_missing}
+                      </Typography>
                     </div>
                   )}
-                  <div className="flex justify-between text-sm">
-                    <span className="text-neutral-600">Total</span>
-                    <span className="text-neutral-900">{progress.total}</span>
+                  <div className="flex justify-between">
+                    <Typography as="span" variant="small" tone="muted">
+                      Total
+                    </Typography>
+                    <Typography as="span" variant="small">
+                      {progress.total}
+                    </Typography>
                   </div>
                 </div>
               </div>

@@ -1,5 +1,7 @@
 'use client'
 
+import { Plus } from 'lucide-react'
+
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
@@ -44,7 +46,7 @@ export function ControlledListDetailView() {
   const params = useParams()
   const searchParams = useSearchParams()
 
-  const orgId = (params?.orgId as string) ?? ''
+  const orgId = (params?.workspaceId as string) ?? ''
   const listId = (params?.listId as string) ?? ''
   const projectId = searchParams.get('projectId') ?? undefined
 
@@ -97,7 +99,7 @@ export function ControlledListDetailView() {
     }
   }
 
-  const listsPath = ROUTES.org.settingsControlledLists(orgId, projectId)
+  const listsPath = ROUTES.workspace.settingsControlledLists(orgId, projectId)
 
   return (
     <main className="min-h-screen bg-neutral-50 p-8">
@@ -122,7 +124,7 @@ export function ControlledListDetailView() {
                 </Typography>
               </Stack>
               {locked && (
-                <Badge tone="warning" variant="soft" size="sm">
+                <Badge tone="warning" variant="soft">
                   Locked
                 </Badge>
               )}
@@ -252,8 +254,7 @@ export function ControlledListDetailView() {
                 variant="primary"
                 onClick={handleSubmit}
                 disabled={locked}
-                aria-label="Add value"
-              >
+                aria-label="Add value" icon={<Plus size={16} />}>
                 Add value
               </Button>
             </Stack>
@@ -302,7 +303,7 @@ export function ControlledListDetailView() {
                       <th className="p-md text-sm font-semibold text-neutral-700">Sort</th>
                       <th className="p-md text-sm font-semibold text-neutral-700">Active</th>
                       <th className="p-md text-sm font-semibold text-neutral-700">Updated</th>
-                      <th className="p-md text-sm font-semibold text-neutral-700">Actions</th>
+                      <th className="min-w-[12rem] whitespace-nowrap p-md text-sm font-semibold text-neutral-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -328,7 +329,6 @@ export function ControlledListDetailView() {
                           <Badge
                             tone={v.is_active === false ? 'warning' : 'success'}
                             variant="soft"
-                            size="sm"
                           >
                             {v.is_active === false ? 'Inactive' : 'Active'}
                           </Badge>

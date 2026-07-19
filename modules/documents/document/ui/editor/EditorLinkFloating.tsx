@@ -50,7 +50,6 @@ export function EditorLinkFloating() {
       )}
       <Button
         type="button"
-        size="sm"
         variant="primary"
         aria-label="Apply link"
         onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => e.preventDefault()}
@@ -61,7 +60,6 @@ export function EditorLinkFloating() {
       {isEditOpen && (
         <Button
           type="button"
-          size="sm"
           variant="ghost"
           aria-label="Remove link"
           {...edit.unlinkButtonProps}

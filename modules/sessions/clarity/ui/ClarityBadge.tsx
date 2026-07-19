@@ -44,7 +44,7 @@ export function ClarityBadge({ label, score, onClick, className }: ClarityBadgeP
         )}
         aria-label={`Clarity: ${displayLabel} ${formatted}. Click to view details.`}
       >
-        <Badge variant="soft" tone={tone} size="sm">
+        <Badge variant="soft" tone={tone}>
           {displayLabel} {formatted}
         </Badge>
       </button>
@@ -52,7 +52,7 @@ export function ClarityBadge({ label, score, onClick, className }: ClarityBadgeP
   }
 
   return (
-    <Badge variant="soft" tone={tone} size="sm" className={className}>
+    <Badge variant="soft" tone={tone} className={className}>
       {displayLabel} {formatted}
     </Badge>
   )

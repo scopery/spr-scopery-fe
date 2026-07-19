@@ -1,66 +1,79 @@
-import { AUTH_ENDPOINTS } from './endpoints'
+import { AUTH_ENDPOINTS } from '../../endpoints'
 import { apiClient, setSessionStorage, clearSessionStorage } from '@/shared/lib/apiClient'
 import type { AuthSession, LoginPayload, RegisterPayload } from '../model/auth'
+import * as authSessionApi from './auth-session.api'
 
 export type { AuthSession, LoginPayload, RegisterPayload } from '../model/auth'
 
-type BeAuthResponse = { access_token: string; user?: unknown; profile?: unknown }
+/** Shape returned by POST /api/iam/auth/login and POST /api/iam/auth/refresh */
+interface BeLoginResponse {
+  userId: string
+  username: string
+  email: string
+  fullName: string
+}
 
-function normalizeSession(apiRes: BeAuthResponse): AuthSession {
-  const accessToken = apiRes.access_token
-  if (!accessToken) throw new Error('No access_token in response')
-  const user = apiRes.user as { id?: string; email?: string; display_name?: string } | undefined
+/** Request body for POST /api/iam/users */
+interface BeRegisterRequest {
+  username: string
+  email: string
+  fullName: string
+  password: string
+}
+
+function normalizeSession(res: BeLoginResponse): AuthSession {
   setSessionStorage({
-    access_token: accessToken,
-    user: { id: user?.id ?? '', email: user?.email ?? '', display_name: user?.display_name },
+    user: {
+      id: res.userId,
+      username: res.username,
+      email: res.email,
+      fullName: res.fullName,
+    },
   })
   return {
-    user: { id: user?.id ?? '', email: user?.email ?? '', display_name: user?.display_name },
-    session: { access_token: accessToken },
+    user: { id: res.userId, username: res.username, email: res.email, fullName: res.fullName },
+    session: { access_token: '' }, // HttpOnly cookie — not readable by JS
   }
 }
 
-export async function register(payload: RegisterPayload): Promise<AuthSession> {
-  const url = AUTH_ENDPOINTS.register()
-  const res = await apiClient.post<BeAuthResponse>(
-    url,
-    {
-      email: payload.email,
-      password: payload.password,
-      full_name: payload.full_name,
-    },
-    { skipAuthRedirect: true }
-  )
-  return normalizeSession(res)
-}
-
 export async function login(payload: LoginPayload): Promise<AuthSession> {
-  const url = AUTH_ENDPOINTS.login()
-  const res = await apiClient.post<BeAuthResponse>(url, payload, { skipAuthRedirect: true })
+  const res = await apiClient.post<BeLoginResponse>(AUTH_ENDPOINTS.login(), payload, {
+    skipAuthRedirect: true,
+  })
   return normalizeSession(res)
-}
-
-export async function requestPasswordReset(email: string): Promise<void> {
-  await apiClient.post(AUTH_ENDPOINTS.forgotPassword(), { email })
 }
 
 export async function logout(): Promise<void> {
   try {
-    await apiClient.post(AUTH_ENDPOINTS.logout(), {})
+    await apiClient.post(AUTH_ENDPOINTS.logout(), undefined, { parseJson: false })
   } catch {
-    // ignore network/401
+    // ignore network/auth errors on logout
   }
   clearSessionStorage()
 }
 
-export async function loginWithGoogle(): Promise<void> {
-  if (typeof window === 'undefined') return
-  const redirectTo = `${window.location.origin}/auth/callback`
-  const url = AUTH_ENDPOINTS.google(redirectTo)
-  const res = await apiClient.get<{ url: string }>(url)
-  if (res?.url) {
-    window.location.href = res.url
-  } else {
-    throw new Error('No Google OAuth URL returned')
+export async function register(payload: RegisterPayload): Promise<AuthSession> {
+  const body: BeRegisterRequest = {
+    username: payload.username,
+    email: payload.email,
+    fullName: payload.fullName,
+    password: payload.password,
   }
+  await apiClient.post<void>(AUTH_ENDPOINTS.register(), body, {
+    skipAuthRedirect: true,
+    parseJson: false,
+  })
+  return login({ username: payload.username, password: payload.password })
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  await authSessionApi.requestPasswordReset({ email })
+}
+
+export async function confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+  await authSessionApi.confirmPasswordReset({ token, newPassword })
+}
+
+export async function loginWithGoogle(): Promise<void> {
+  throw new Error('Google sign-in is not yet available')
 }

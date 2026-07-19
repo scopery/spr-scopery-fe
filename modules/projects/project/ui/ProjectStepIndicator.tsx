@@ -69,7 +69,7 @@ export function ProjectStepIndicator({
     <div className="mb-6 flex flex-col gap-4 border-b-[1px] border-neutral-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0 flex-1">
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <Typography as="h1" size="xl" weight="bold">
+          <Typography as="h1" size="lg" weight="semibold">
             {title}
           </Typography>
           {badges}

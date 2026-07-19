@@ -63,7 +63,6 @@ export const FileMediaLibrary = React.forwardRef(
               {onAdd && (
                 <Button
                   variant="ghost"
-                  size="sm"
                   iconOnly
                   icon={<Plus size={20} />}
                   onClick={onAdd}
@@ -74,7 +73,6 @@ export const FileMediaLibrary = React.forwardRef(
               {onShare && (
                 <Button
                   variant="ghost"
-                  size="sm"
                   iconOnly
                   icon={<Share2 size={20} />}
                   onClick={onShare}
@@ -98,7 +96,6 @@ export const FileMediaLibrary = React.forwardRef(
               {onPrevious && (
                 <Button
                   variant="ghost"
-                  size="sm"
                   iconOnly
                   icon={<ChevronLeft size={20} />}
                   onClick={onPrevious}
@@ -122,7 +119,6 @@ export const FileMediaLibrary = React.forwardRef(
               {onNext && (
                 <Button
                   variant="ghost"
-                  size="sm"
                   iconOnly
                   icon={<ChevronRight size={20} />}
                   onClick={onNext}
@@ -138,6 +134,11 @@ export const FileMediaLibrary = React.forwardRef(
             <Typography variant="h6" weight="semibold" className="text-[#2d5016]">
               {folder.name}
             </Typography>
+            {folder.fileCount > 0 && (
+              <Typography variant="small" tone="muted">
+                {folder.fileCount} files
+              </Typography>
+            )}
             {folder.description && (
               <Typography variant="body" className="text-sm leading-relaxed text-neutral-700">
                 {folder.description}

@@ -1,4 +1,4 @@
-import { ORG_ENDPOINTS } from './endpoints'
+import { ORG_ENDPOINTS } from '../../endpoints'
 import { apiClient } from '@/shared/lib/apiClient'
 import type { OrgListResponse, OrgDetail, OrgMembersResponse, OrgMember } from '../model/org'
 
@@ -20,7 +20,8 @@ export async function listOrgs(params?: {
 
 export async function getOrg(orgId: string): Promise<OrgDetail> {
   const url = ORG_ENDPOINTS.get(orgId)
-  return apiClient.get<OrgDetail>(url)
+  // Legacy `/orgs/{id}` path is gone — callers should use organizations v1.
+  return apiClient.get<OrgDetail>(url, { skipErrorToast: true })
 }
 
 export async function createOrg(name: string): Promise<{

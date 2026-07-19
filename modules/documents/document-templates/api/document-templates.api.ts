@@ -1,5 +1,4 @@
-import { DOCUMENT_TEMPLATE_ENDPOINTS } from './endpoints'
-import { DOCUMENT_ENDPOINTS } from '../../document/api/endpoints'
+import { DOCUMENT_TEMPLATE_ENDPOINTS, DOCUMENT_ENDPOINTS } from '../../endpoints'
 import { apiClient } from '@/shared/lib/apiClient'
 import type {
   CreateDocumentFromTemplateInput,

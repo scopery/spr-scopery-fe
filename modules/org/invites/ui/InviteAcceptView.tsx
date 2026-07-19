@@ -1,5 +1,7 @@
 'use client'
 
+import { ArrowRight } from 'lucide-react'
+
 /**
  * Invite accept page — /invites/[token].
  * Security: Do not log or send the token to analytics/error reporting (e.g. Sentry).
@@ -9,17 +11,18 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Typography, Button, ContentLoader } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { useOrgInviteActions, useOrgActions } from '@/modules/org'
-import { useAuth } from '@/modules/auth'
+import { useOrgInviteActions } from '@/modules/org/invites/hooks/useOrgInviteActions'
+import { useOrgActions } from '@/modules/org/org/hooks/useOrgActions'
+import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import { ApiError, getProblemCode } from '@/shared/lib/api-types'
-import { clearPendingInviteToken, setPendingInviteToken } from '@/utils/inviteToken'
+import { clearPendingInviteToken, setPendingInviteToken } from '@/modules/org/invites/lib/invite-token'
 import { toast } from 'sonner'
 
 export function InviteAcceptView() {
   const params = useParams()
   const router = useRouter()
   const token = params.token as string
-  const { session, currentOrgId, refreshBootstrap, bootstrapStatus } = useAuth()
+  const { session, currentWorkspaceId, refreshBootstrap, bootstrapStatus } = useAuth()
   const { acceptInvite } = useOrgInviteActions()
   const { setDefaultOrg } = useOrgActions()
 
@@ -52,7 +55,7 @@ export function InviteAcceptView() {
         await refreshBootstrap()
         toast.success('Invite accepted')
         setStatus('success')
-        router.replace(ROUTES.org.projects(res.org_id))
+        router.replace(ROUTES.workspace.projects(res.org_id))
       } catch (err) {
         setStatus('error')
         if (err instanceof ApiError) {
@@ -78,7 +81,7 @@ export function InviteAcceptView() {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="text-center">
-          <ContentLoader variant="easeOut" className="mx-auto mb-4 w-20" />
+          <ContentLoader className="mx-auto mb-4" />
           <Typography>Redirecting to login...</Typography>
         </div>
       </div>
@@ -89,7 +92,7 @@ export function InviteAcceptView() {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="text-center">
-          <ContentLoader variant="easeOut" className="mx-auto mb-4 w-20" />
+          <ContentLoader className="mx-auto mb-4" />
           <Typography>Accepting invite...</Typography>
         </div>
       </div>
@@ -106,8 +109,11 @@ export function InviteAcceptView() {
           <Typography>{errorMessage}</Typography>
           <Button
             variant="primary"
-            onClick={() => router.push(currentOrgId ? ROUTES.org.projects(currentOrgId) : '/')}
-          >
+            onClick={() =>
+              router.push(
+                currentWorkspaceId ? ROUTES.workspace.projects(currentWorkspaceId) : '/'
+              )
+            } icon={<ArrowRight size={16} />}>
             Go to projects
           </Button>
         </div>
@@ -117,7 +123,7 @@ export function InviteAcceptView() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 p-4">
-      <ContentLoader variant="easeOut" className="w-20" />
+      <ContentLoader />
     </div>
   )
 }

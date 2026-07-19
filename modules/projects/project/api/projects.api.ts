@@ -1,62 +1,160 @@
-import { PROJECT_ENDPOINTS } from './endpoints'
-import { TEMPLATE_ENDPOINTS } from '../../../admin/admin-templates/api/endpoints'
+import { PROJECT_ENDPOINTS } from '../../endpoints'
 import { apiClient } from '@/shared/lib/apiClient'
-import type { ProjectDetail, ProjectListResponse } from '../model/project'
+import * as projectTemplatesApi from '@/modules/admin/project-templates/infrastructure/api/project-templates.api'
+import type {
+  CreateProjectPayload,
+  ProjectDetail,
+  ProjectListResponse,
+  ProjectPageResponse,
+  ProjectV1,
+  UpdateProjectPayload,
+} from '../model/project'
+import { mapProjectV1ToDetail, mapProjectV1ToListItem } from '../model/project'
 
-interface TemplateListItem {
-  id: string
+export interface PublishedProjectTemplateOption {
+  templateId: string
+  versionId: string
   name: string
-  version: string
-  status: string
-  created_at: string
+  versionLabel: string
+  /** Select value: `templateId:versionId` */
+  value: string
 }
 
-interface TemplateListResponse {
-  items: TemplateListItem[]
-  page: { limit: number; offset: number; total: number }
-}
-
-function unwrapTemplateList(res: unknown): TemplateListResponse {
-  if (res && typeof res === 'object') {
-    if ('data' in res && res.data && typeof res.data === 'object') {
-      const d = res.data as Record<string, unknown>
-      return {
-        items: Array.isArray(d.items) ? (d.items as TemplateListItem[]) : [],
-        page: (d.page && typeof d.page === 'object'
-          ? d.page
-          : { limit: 100, offset: 0, total: 0 }) as TemplateListResponse['page'],
-      }
-    }
-    if ('items' in res && Array.isArray((res as TemplateListResponse).items)) {
-      return res as TemplateListResponse
-    }
+function toListResponse(page: ProjectPageResponse): ProjectListResponse {
+  const items = (page.items ?? []).map(mapProjectV1ToListItem)
+  const size = page.size ?? 20
+  const pageIndex = page.page ?? 0
+  return {
+    items,
+    page: {
+      limit: size,
+      offset: pageIndex * size,
+      total: page.totalElements ?? items.length,
+    },
   }
-  return { items: [], page: { limit: 100, offset: 0, total: 0 } }
 }
 
 export async function listProjects(
-  orgId: string,
-  params?: { limit?: number; offset?: number }
+  workspaceId: string,
+  params?: { keyword?: string; status?: string; page?: number; size?: number }
 ): Promise<ProjectListResponse> {
-  const url = PROJECT_ENDPOINTS.list(orgId, params)
-  return apiClient.get<ProjectListResponse>(url)
+  const url = PROJECT_ENDPOINTS.list(workspaceId, {
+    keyword: params?.keyword,
+    status: params?.status,
+    page: params?.page ?? 0,
+    size: params?.size ?? 100,
+  })
+  const page = await apiClient.get<ProjectPageResponse>(url)
+  return toListResponse(page)
 }
 
-export async function getProject(orgId: string, projectId: string): Promise<ProjectDetail> {
-  const url = PROJECT_ENDPOINTS.get(orgId, projectId)
-  return apiClient.get<ProjectDetail>(url)
+export async function getProject(projectId: string): Promise<ProjectDetail> {
+  const raw = await apiClient.get<ProjectV1>(PROJECT_ENDPOINTS.get(projectId))
+  return mapProjectV1ToDetail(raw)
 }
 
-export async function createProject(
-  orgId: string,
-  body: { name: string; description?: string; template_id: string }
+export async function createProject(body: CreateProjectPayload): Promise<ProjectDetail> {
+  const raw = await apiClient.post<ProjectV1>(PROJECT_ENDPOINTS.create(), body)
+  return mapProjectV1ToDetail(raw)
+}
+
+export async function updateProject(
+  projectId: string,
+  body: UpdateProjectPayload
 ): Promise<ProjectDetail> {
-  const url = PROJECT_ENDPOINTS.create(orgId)
-  return apiClient.post<ProjectDetail>(url, body)
+  const raw = await apiClient.put<ProjectV1>(PROJECT_ENDPOINTS.update(projectId), body)
+  return mapProjectV1ToDetail(raw)
 }
 
-export async function listPublishedTemplates(limit = 20): Promise<TemplateListItem[]> {
-  const url = TEMPLATE_ENDPOINTS.list({ status: 'published', limit, offset: 0 })
-  const res = await apiClient.get<unknown>(url)
-  return unwrapTemplateList(res).items
+export async function activateProject(projectId: string): Promise<ProjectDetail> {
+  const raw = await apiClient.patch<ProjectV1>(PROJECT_ENDPOINTS.activate(projectId))
+  return mapProjectV1ToDetail(raw)
+}
+
+export async function holdProject(projectId: string): Promise<ProjectDetail> {
+  const raw = await apiClient.patch<ProjectV1>(PROJECT_ENDPOINTS.hold(projectId))
+  return mapProjectV1ToDetail(raw)
+}
+
+export async function completeProject(projectId: string): Promise<ProjectDetail> {
+  const raw = await apiClient.patch<ProjectV1>(PROJECT_ENDPOINTS.complete(projectId))
+  return mapProjectV1ToDetail(raw)
+}
+
+export async function archiveProject(projectId: string): Promise<ProjectDetail> {
+  const raw = await apiClient.patch<ProjectV1>(PROJECT_ENDPOINTS.archive(projectId))
+  return mapProjectV1ToDetail(raw)
+}
+
+function isPublishedVersionStatus(status: string): boolean {
+  const s = status.toUpperCase()
+  return s === 'PUBLISHED' || s === 'ACTIVE'
+}
+
+/**
+ * Active project templates with at least one published version —
+ * for Create Project wizard (Wave 2 apply endpoint).
+ */
+export async function listPublishedTemplates(
+  workspaceId: string,
+  size = 50
+): Promise<PublishedProjectTemplateOption[]> {
+  const page = await projectTemplatesApi.listProjectTemplates({
+    workspaceId,
+    status: 'ACTIVE',
+    page: 0,
+    size,
+  })
+  const templates = page.items ?? []
+  const options: PublishedProjectTemplateOption[] = []
+
+  await Promise.all(
+    templates.map(async (template) => {
+      try {
+        const versions = await projectTemplatesApi.listTemplateVersions(template.id)
+        for (const version of versions) {
+          if (!isPublishedVersionStatus(version.status)) continue
+          options.push({
+            templateId: template.id,
+            versionId: version.id,
+            name: template.name,
+            versionLabel: version.name || `v${version.versionNumber}`,
+            value: `${template.id}:${version.id}`,
+          })
+        }
+      } catch {
+        // Skip templates whose versions cannot be loaded
+      }
+    })
+  )
+
+  return options.sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/** Creates a project by applying a published template version. */
+export async function createProjectFromTemplate(body: {
+  workspaceId: string
+  templateId: string
+  versionId: string
+  code: string
+  name: string
+  description?: string
+  ownerUserId?: string
+  defaultCurrency?: string
+  plannedStartDate?: string
+  plannedEndDate?: string
+}): Promise<{ id: string }> {
+  return projectTemplatesApi.applyProjectTemplate(body.templateId, body.versionId, {
+    workspaceId: body.workspaceId,
+    projectCode: body.code,
+    projectName: body.name,
+    projectDescription: body.description ?? null,
+    ownerUserId: body.ownerUserId ?? null,
+    defaultCurrency: body.defaultCurrency ?? null,
+    plannedStartDate: body.plannedStartDate ?? null,
+    plannedEndDate: body.plannedEndDate ?? null,
+    includeTemplateTasks: true,
+    includeTemplateDependencies: true,
+    copyEstimateHours: true,
+  })
 }
