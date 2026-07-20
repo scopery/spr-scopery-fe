@@ -138,7 +138,7 @@ export function createEditorPlugins() {
 }
 
 export const plateContentClassName = cn(
-  'min-h-[min(70vh,640px)] w-full flex-1 px-5 py-5 text-base leading-relaxed text-neutral-900 sm:px-8 sm:py-6',
+  'w-full flex-1 px-5 py-5 text-base leading-relaxed text-neutral-900 sm:px-8 sm:py-6',
   'focus:outline-none',
   '[&_p]:mb-2 [&_p:last-child]:mb-0',
   '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-2',

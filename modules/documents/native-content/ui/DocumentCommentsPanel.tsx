@@ -16,7 +16,7 @@ export function DocumentCommentsPanel({
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
 
   return (
-    <Stack direction="vertical" spacing="sm" className="w-full min-w-0 max-w-full">
+    <Stack direction="vertical" spacing="sm" className="w-full min-w-0 max-w-full p-3">
       {error ? <Typography tone="error">{error}</Typography> : null}
 
       <div className="flex w-full min-w-0 max-w-full items-stretch gap-1.5">

@@ -120,7 +120,7 @@ export function NativeDocumentEditorView({
   const mentionAccess = useMentionAccessCheck(editor.plateValue)
   const [approving, setApproving] = useState(false)
   const [pageTreeOpen, setPageTreeOpen] = useState(false)
-  const [canvasWidth, setCanvasWidth] = useState<CanvasWidth>('wide')
+  const [canvasWidth, setCanvasWidth] = useState<CanvasWidth>('full')
   const [inspectorOpen, setInspectorOpen] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
   const mediaInputRef = useRef<HTMLInputElement | null>(null)
@@ -413,67 +413,76 @@ export function NativeDocumentEditorView({
       {/* Body: page tree | canvas | inspector */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {pageTreeOpen ? (
-          <aside className="hidden w-56 shrink-0 self-stretch overflow-y-auto border-r border-neutral-200 bg-white p-3 xl:block">
+          <aside className="hidden w-56 shrink-0 self-stretch overflow-y-auto border-r border-neutral-200 bg-white xl:block">
             <DocumentSubpagesPanel />
           </aside>
         ) : null}
 
-        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-white">
-          <div className={cn('mx-auto w-full px-3 py-3 lg:px-6 lg:py-4', WIDTH_CLASS[canvasWidth])}>
-            {editor.saveStatus === 'conflict' ? (
-              <div className="mb-3">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
+          {(editor.saveStatus === 'conflict' ||
+            mentionAccess.revoked.length > 0 ||
+            mentionAccess.checking ||
+            editor.nativeUnsupported) && (
+            <div className="shrink-0 space-y-2 border-b border-neutral-100 px-3 py-2 lg:px-4">
+              {editor.saveStatus === 'conflict' ? (
                 <SaveConflictBanner
                   onKeepLocal={editor.keepLocalAndRetry}
                   onLoadServer={editor.loadServerVersion}
                 />
-              </div>
-            ) : null}
+              ) : null}
 
-            <MentionAccessBanner
-              revoked={mentionAccess.revoked}
-              checking={mentionAccess.checking}
-              mentionCount={mentionAccess.mentionCount}
-            />
-
-            {editor.nativeUnsupported ? (
-              <div className="mb-3 border border-warning/40 bg-warning/10 px-3 py-2.5">
-                <Typography weight="semibold" size="sm">
-                  This document is FILE mode
-                </Typography>
-                <Typography variant="small" tone="muted" className="mt-1">
-                  Native editor can only save NATIVE (or HYBRID) documents. Autosave is off.
-                  Create a new document from Document Hub — new docs are NATIVE by default.
-                </Typography>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" as={Link} href={hubHref}>
-                    Back to Document Hub
-                  </Button>
-                  <Button size="sm" variant="outline" as={Link} href={backHref}>
-                    Open workbench
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-
-            <input
-              ref={mediaInputRef}
-              type="file"
-              accept="image/*,application/pdf,.doc,.docx,.txt"
-              className="hidden"
-              multiple
-              aria-label="Upload media attachment"
-              onChange={(e) => void handleMediaFiles(e.target.files)}
-            />
-
-            <div className="flex min-h-[calc(100dvh-12rem)] flex-col overflow-hidden border border-neutral-200 bg-white">
-              <PlateEditorBody
-                value={editor.plateValue}
-                onChange={editor.nativeUnsupported ? undefined : editor.onPlateChange}
-                readOnly={editor.nativeUnsupported}
-                placeholder="Start writing — type / for blocks…"
-                slashExtras={slashExtras}
+              <MentionAccessBanner
+                revoked={mentionAccess.revoked}
+                checking={mentionAccess.checking}
+                mentionCount={mentionAccess.mentionCount}
               />
+
+              {editor.nativeUnsupported ? (
+                <div className="border border-warning/40 bg-warning/10 px-3 py-2.5">
+                  <Typography weight="semibold" size="sm">
+                    This document is FILE mode
+                  </Typography>
+                  <Typography variant="small" tone="muted" className="mt-1">
+                    Native editor can only save NATIVE (or HYBRID) documents. Autosave is off.
+                    Create a new document from Document Hub — new docs are NATIVE by default.
+                  </Typography>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" as={Link} href={hubHref}>
+                      Back to Document Hub
+                    </Button>
+                    <Button size="sm" variant="outline" as={Link} href={backHref}>
+                      Open workbench
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </div>
+          )}
+
+          <input
+            ref={mediaInputRef}
+            type="file"
+            accept="image/*,application/pdf,.doc,.docx,.txt"
+            className="hidden"
+            multiple
+            aria-label="Upload media attachment"
+            onChange={(e) => void handleMediaFiles(e.target.files)}
+          />
+
+          <div
+            className={cn(
+              'mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-white',
+              WIDTH_CLASS[canvasWidth]
+            )}
+          >
+            <PlateEditorBody
+              value={editor.plateValue}
+              onChange={editor.nativeUnsupported ? undefined : editor.onPlateChange}
+              readOnly={editor.nativeUnsupported}
+              placeholder="Start writing — type / for blocks…"
+              slashExtras={slashExtras}
+              fillHeight
+            />
           </div>
         </div>
 

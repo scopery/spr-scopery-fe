@@ -9,7 +9,7 @@ import { FEATURES } from '@/config/features'
 export function DocumentSubpagesPanel() {
   if (!FEATURES.wave41DocumentSubpages) {
     return (
-      <Stack direction="vertical" spacing="xs" className="border border-neutral-200 p-sm">
+      <Stack direction="vertical" spacing="xs" className="p-3">
         <Typography variant="h4">Sub-pages</Typography>
         <Typography variant="caption" tone="muted">
           Sub-page tree is not available yet (BE endpoint pending). Nested pages will appear here

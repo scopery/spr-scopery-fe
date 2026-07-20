@@ -11,6 +11,7 @@ import { EditorLinkFloating } from './EditorLinkFloating'
 import { PlateEditorToolbar } from './PlateEditorToolbar'
 import { EditorSlashExtrasContext } from './editor-slash-extras-context'
 import type { SlashCommandGroupConfig } from './slash-command-items'
+import { cn } from '@/utils/cn'
 
 export interface PlateEditorHandle {
   insertText: (text: string) => void
@@ -22,11 +23,20 @@ interface PlateEditorBodyProps {
   onChange?: (value: Value) => void
   placeholder?: string
   slashExtras?: SlashCommandGroupConfig[]
+  /** Stretch to parent height; content scrolls inside (immersive editor). */
+  fillHeight?: boolean
 }
 
 export const PlateEditorBody = forwardRef<PlateEditorHandle, PlateEditorBodyProps>(
   function PlateEditorBody(
-    { value, readOnly = false, onChange, placeholder = 'Start writing…', slashExtras = [] },
+    {
+      value,
+      readOnly = false,
+      onChange,
+      placeholder = 'Start writing…',
+      slashExtras = [],
+      fillHeight = false,
+    },
     ref
   ) {
     const plugins = useMemo(() => createEditorPlugins(), [])
@@ -55,13 +65,23 @@ export const PlateEditorBody = forwardRef<PlateEditorHandle, PlateEditorBodyProp
             editor={editor}
             onChange={readOnly ? undefined : ({ value }) => onChange?.(value)}
           >
-            <div className="flex min-h-0 flex-1 flex-col">
+            <div
+              className={cn(
+                'flex min-h-0 flex-col',
+                fillHeight ? 'h-full min-h-full flex-1' : 'flex-1'
+              )}
+            >
               {!readOnly && <PlateEditorToolbar editor={editor} />}
               {!readOnly && <BlockActionsBar editor={editor} />}
               {!readOnly && <EditorLinkFloating />}
               {!readOnly && <EditorFloatingToolbar />}
               <PlateContent
-                className={plateContentClassName}
+                className={cn(
+                  plateContentClassName,
+                  fillHeight
+                    ? 'min-h-0 flex-1 overflow-y-auto'
+                    : 'min-h-[min(70vh,640px)]'
+                )}
                 placeholder={readOnly ? undefined : placeholder}
                 readOnly={readOnly}
                 aria-label="Document body"
