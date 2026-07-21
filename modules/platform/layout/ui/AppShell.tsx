@@ -820,6 +820,8 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
   const immersiveDocumentEditor = Boolean(
     pathname?.match(/\/documents\/[^/]+\/edit\/?$/)
   )
+  const immersiveAiWorkspace = Boolean(pathname?.match(/\/workspace\/[^/]+\/ai(\/|$)/))
+  const immersiveMain = immersiveDocumentEditor || immersiveAiWorkspace
 
   return (
     <Box as="div" className="flex h-screen flex-row overflow-hidden bg-neutral-50">
@@ -860,12 +862,12 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
         as="main"
         className={cn(
           'relative min-h-0 min-w-0 flex-1 motion-main-resize',
-          immersiveDocumentEditor
+          immersiveMain
             ? 'flex flex-col overflow-hidden p-0'
             : 'overflow-y-auto p-4 lg:p-8'
         )}
       >
-        {currentWorkspace && !immersiveDocumentEditor ? (
+        {currentWorkspace && !immersiveMain ? (
           <div className="mb-3 flex items-center gap-2 lg:hidden">
             <Button
               variant="outline"
@@ -878,7 +880,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
             </Button>
           </div>
         ) : null}
-        {currentWorkspace && immersiveDocumentEditor ? (
+        {currentWorkspace && immersiveMain ? (
           <div className="flex shrink-0 items-center gap-2 border-b border-neutral-200 bg-white px-3 py-2 lg:hidden">
             <Button
               variant="outline"
@@ -892,9 +894,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
           </div>
         ) : null}
         <PageContentEnter
-          className={
-            immersiveDocumentEditor ? 'flex min-h-0 flex-1 flex-col' : undefined
-          }
+          className={immersiveMain ? 'flex min-h-0 flex-1 flex-col' : undefined}
         >
           {children}
         </PageContentEnter>

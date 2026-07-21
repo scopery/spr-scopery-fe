@@ -1,7 +1,7 @@
 /**
  * Centralized error UX — RFC 9457 Problem Details.
  * - 422: field-level errors (errors[].path, message)
- * - 403: "Bạn không có quyền"
+ * - 403: "You don't have permission"
  * - 404: 404 page
  * - 409: branch by code (toast messages)
  * - 413: PAYLOAD_TOO_LARGE
@@ -29,7 +29,7 @@ export function getProblemToastMessage(err: unknown): string {
   if (status === 403) return "You don't have permission to perform this action."
   if (status === 404) {
     if (code === 'AI_PROVIDER_ERROR') {
-      return 'Lỗi kết nối workflow AI (404). Admin kiểm tra workflow ID và cấu hình OpenAI (project, API key).'
+      return 'AI workflow connection error (404). Ask an admin to check the workflow ID and OpenAI configuration (project, API key).'
     }
     return 'Not found.'
   }
@@ -53,26 +53,52 @@ export function getProblemToastMessage(err: unknown): string {
       INVITE_EMAIL_MISMATCH: 'Email does not match the invite.',
       INVITE_ALREADY_PENDING: 'An invite already exists for this email.',
       ALREADY_MEMBER: 'User is already an org member.',
-      AI_BATCH_EXPIRED: 'Batch đã hết hạn hoặc đã commit. Gọi lại Generate để lấy batch mới.',
+      AI_BATCH_EXPIRED: 'Batch has expired or already been committed. Generate again to get a new batch.',
       AI_FEATURE_DISABLED:
-        'Tính năng AI v2 chưa được bật trên server. Liên hệ admin để bật AI_WF_QGEN_V2_ENABLED và cấu hình workflow.',
+        'AI v2 is not enabled on the server. Ask an admin to enable AI_WF_QGEN_V2_ENABLED and configure the workflow.',
       AI_WORKFLOW_ID_REQUIRED:
-        'Server chưa cấu hình workflow v2. Liên hệ admin hoặc thử engine Legacy.',
-      NODE_CODE_EXISTS: 'Mã node đã tồn tại trong org.',
-      NODE_HAS_CHILDREN: 'Node còn module con, hãy archive con trước.',
-      NODE_IN_USE: 'Node đang được dùng trong Project Scope hoặc Requirement mapping.',
-      SCOPE_NODE_WRONG_ORG: 'Một số module không thuộc tổ chức này. Vui lòng reload.',
-      LINK_EXISTS: 'Liên kết giữa hai node này đã tồn tại.',
-      FORBIDDEN_BY_POLICY: 'Bạn không có quyền thực hiện hành động này.',
-      ACTOR_KEY_EXISTS: 'Mã actor đã tồn tại trong org.',
-      REQ_CODE_EXISTS: 'Mã requirement đã tồn tại trong project.',
-      TRACE_LINK_EXISTS: 'Trace link trùng (from/to) đã tồn tại.',
+        'Server has no v2 workflow configured. Ask an admin, or try the Legacy engine.',
+      NODE_CODE_EXISTS: 'A node with this code already exists in the org.',
+      NODE_HAS_CHILDREN: 'Node still has child modules. Archive children first.',
+      NODE_IN_USE: 'Node is in use in Project Scope or Requirement mapping.',
+      SCOPE_NODE_WRONG_ORG: 'Some modules do not belong to this organization. Please reload.',
+      LINK_EXISTS: 'A link between these two nodes already exists.',
+      FORBIDDEN_BY_POLICY: "You don't have permission to perform this action.",
+      ACTOR_KEY_EXISTS: 'An actor with this key already exists in the org.',
+      REQ_CODE_EXISTS: 'A requirement with this code already exists in the project.',
+      TRACE_LINK_EXISTS: 'A duplicate trace link (from/to) already exists.',
+      // Workspace / Org conflicts
+      ORGANIZATION_CODE_ALREADY_EXISTS: 'Organization code already exists.',
+      WORKSPACE_CODE_ALREADY_EXISTS: 'Workspace code already exists in this organization.',
+      WORKSPACE_MEMBER_ALREADY_EXISTS: 'User is already a member of this workspace.',
+      WORKSPACE_INVITATION_ALREADY_MEMBER: 'You are already a member of this workspace.',
+      WORKSPACE_ONBOARDING_ALREADY_COMPLETED: 'Onboarding already completed.',
+      WORKSPACE_JOIN_REQUEST_ALREADY_PENDING: 'You already have a pending join request for this workspace.',
+      WORKSPACE_JOIN_REQUEST_ALREADY_MEMBER: 'You are already a member of this workspace.',
+      TEAM_CODE_ALREADY_EXISTS: 'Team code already exists in this workspace.',
+      TEAM_MEMBER_ALREADY_EXISTS: 'User is already a member of this team.',
+      ORG_MEMBER_ALREADY_EXISTS: 'User is already a member of this organization.',
+      ORG_INVITATION_ALREADY_MEMBER: 'User is already a member of this organization.',
+      ORG_TEAM_CODE_ALREADY_EXISTS: 'Team code already exists in this organization.',
+      ORG_TEAM_MEMBER_ALREADY_EXISTS: 'User is already a member of this org team.',
+      ORG_TEAM_WORKSPACE_ASSIGNMENT_ALREADY_EXISTS: 'This team is already assigned to this workspace.',
+      // IAM conflicts
+      IAM_USER_USERNAME_ALREADY_EXISTS: 'Username already taken.',
+      IAM_USER_EMAIL_ALREADY_EXISTS: 'Email already registered.',
+      IAM_ROLE_CODE_ALREADY_EXISTS: 'Role code already exists.',
+      IAM_ROLE_WORKSPACE_CODE_ALREADY_EXISTS: 'Role code already exists in this workspace.',
+      IAM_RIGHT_CODE_ALREADY_EXISTS: 'Right code already exists.',
+      IAM_AUTH_RESOURCE_CODE_ALREADY_EXISTS: 'Resource code already exists for this type.',
+      IAM_ACCESS_GRANT_ALREADY_EXISTS: 'Access grant already exists for this subject and resource.',
+      IAM_ACCESS_GRANT_RIGHT_ALREADY_EXISTS: 'Right is already attached to this grant.',
+      IAM_ACCESS_GRANT_PERMISSION_ACTION_ALREADY_EXISTS: 'Permission action is already attached to this grant.',
+      IAM_ROLE_ASSIGNMENT_ALREADY_EXISTS: 'Duplicate active role assignment.',
     }
     if (conflictMessages[code]) return conflictMessages[code]
   }
 
   if ((status === 502 || status === 404) && code === 'AI_PROVIDER_ERROR') {
-    return 'Lỗi kết nối workflow AI (404). Admin kiểm tra workflow ID và cấu hình OpenAI (project, API key).'
+    return 'AI workflow connection error (404). Ask an admin to check the workflow ID and OpenAI configuration (project, API key).'
   }
   if (status === 502 && code) {
     if (['AI_BAD_OUTPUT', 'AI_OUTPUT_NOT_JSON', 'AI_OUTPUT_SCHEMA_MISMATCH'].includes(code)) {

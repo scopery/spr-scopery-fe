@@ -39,6 +39,10 @@ export const SSE_TERMINAL_EVENTS = new Set<string>([
   SseEventType.MessageError,
   SseEventType.TurnCompleted,
   SseEventType.TurnError,
+  // Wave 5 AI Assistant BE contract
+  'answer.completed',
+  'answer.failed',
+  'answer.cancelled',
 ])
 
 export interface SseParsedEvent {

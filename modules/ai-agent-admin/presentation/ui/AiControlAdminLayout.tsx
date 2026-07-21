@@ -9,6 +9,7 @@ import {
   Gauge,
   KeyRound,
   LayoutDashboard,
+  MessageSquare,
   Play,
   Server,
   Settings2,
@@ -16,7 +17,7 @@ import {
   Wrench,
   Zap,
 } from 'lucide-react'
-import { ADMIN_ROUTES } from '@/modules/admin'
+import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 import { ShellSidebar } from '@/modules/platform/layout/ui/ShellSidebar'
 
 export function AiControlAdminLayout({ children }: { children: React.ReactNode }) {
@@ -109,6 +110,12 @@ export function AiControlAdminLayout({ children }: { children: React.ReactNode }
                   href: ADMIN_ROUTES.aiControlTools,
                   icon: <Wrench size={16} />,
                   active: isActive(ADMIN_ROUTES.aiControlTools),
+                },
+                {
+                  label: 'AI Assistant settings',
+                  href: ADMIN_ROUTES.aiControlAssistantSettings,
+                  icon: <MessageSquare size={16} />,
+                  active: isActive(ADMIN_ROUTES.aiControlAssistantSettings),
                 },
               ],
             },

@@ -19,7 +19,7 @@ export function PageContentEnter({
   return (
     <div
       key={pathname}
-      className={cn('page-content motion-page-enter min-h-full', className)}
+      className={cn('page-content motion-page-enter', className ?? 'min-h-full')}
     >
       {children}
     </div>

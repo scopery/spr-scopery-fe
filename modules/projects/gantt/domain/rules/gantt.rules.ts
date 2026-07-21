@@ -89,7 +89,54 @@ export function ganttItemTypeLabel(itemType: string): string {
       return 'Task'
     case 'MILESTONE':
       return 'Milestone'
+    case 'WBS_NODE':
+      return 'WBS'
+    case 'PROJECT':
+      return 'Project'
     default:
       return itemType
   }
+}
+
+export type GanttTimeScale = 'day' | 'week' | 'month'
+
+export interface GanttScaleTick {
+  key: string
+  label: string
+  subLabel?: string
+  leftPercent: number
+  widthPercent: number
+  isWeekend?: boolean
+  major?: boolean
+}
+
+/** Normalize API / ISO date strings to YYYY-MM-DD. */
+export function toDateOnly(value: string | null | undefined): string | null {
+  if (!value) return null
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(value.trim())
+  return m ? m[1] : null
+}
+
+export function formatGanttDate(value: string | null | undefined): string {
+  if (!value) return '—'
+  const d = toDateOnly(value)
+  if (!d) return value
+  const [y, mo, day] = d.split('-').map(Number)
+  const date = new Date(y, mo - 1, day)
+  if (Number.isNaN(date.getTime())) return d
+  return date.toLocaleDateString()
+}
+
+/** Inclusive day count between start and end (both YYYY-MM-DD). */
+export function durationDays(
+  start: string | null | undefined,
+  end: string | null | undefined
+): number | null {
+  const s = toDateOnly(start)
+  const e = toDateOnly(end ?? start)
+  if (!s || !e) return null
+  const a = new Date(`${s}T12:00:00`).getTime()
+  const b = new Date(`${e}T12:00:00`).getTime()
+  if (Number.isNaN(a) || Number.isNaN(b)) return null
+  return Math.max(1, Math.round((b - a) / (24 * 60 * 60 * 1000)) + 1)
 }

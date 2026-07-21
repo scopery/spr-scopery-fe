@@ -8,7 +8,7 @@ import {
 describe('middleware-paths', () => {
   it('identifies protected workspace and admin paths', () => {
     expect(isMiddlewareProtectedPath('/workspace/abc')).toBe(true)
-    expect(isMiddlewareProtectedPath('/admin/templates')).toBe(true)
+    expect(isMiddlewareProtectedPath('/admin/ai-control')).toBe(true)
     expect(isMiddlewareProtectedPath('/onboarding')).toBe(true)
     expect(isMiddlewareProtectedPath('/auth/login')).toBe(false)
   })

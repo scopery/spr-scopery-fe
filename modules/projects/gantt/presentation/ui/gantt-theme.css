@@ -1,0 +1,67 @@
+/* Scope SVAR Gantt to Questrial — Willow theme defaults to Open Sans. */
+.scopery-gantt,
+.scopery-gantt .wx-willow-theme {
+  --wx-font-family: 'Questrial', system-ui, sans-serif;
+  --wx-font-weight: 400;
+  --wx-font-weight-md: 400;
+  --wx-font-weight-b: 500;
+  --wx-gantt-bar-font: 400 var(--wx-font-size, 14px) 'Questrial', system-ui, sans-serif;
+
+  /* Soft timeline bars (sky / slate — not near-black) */
+  --wx-gantt-bar-border-radius: 0;
+  --wx-gantt-baseline-border-radius: 0;
+  --wx-gantt-task-color: #7dd3fc;
+  --wx-gantt-task-fill-color: #38bdf8;
+  --wx-gantt-task-font-color: #0c4a6e;
+  --wx-gantt-summary-color: #cbd5e1;
+  --wx-gantt-summary-font-color: #334155;
+  --wx-gantt-summary-fill-color: #94a3b8;
+  --wx-gantt-summary-border-color: #94a3b8;
+  --wx-gantt-summary-border: 1px solid #94a3b8;
+  --wx-gantt-milestone-color: #38bdf8;
+  --wx-gantt-link-color: #94a3b8;
+}
+
+.scopery-gantt,
+.scopery-gantt .wx-willow-theme,
+.scopery-gantt .wx-gantt,
+.scopery-gantt .wx-table,
+.scopery-gantt .wx-cell,
+.scopery-gantt .wx-bar,
+.scopery-gantt .wx-bar .wx-content,
+.scopery-gantt .wx-bar .wx-segment {
+  font-family: 'Questrial', system-ui, sans-serif !important;
+  font-weight: 400 !important;
+}
+
+/* Task bars are draggable on the chart */
+.scopery-gantt .wx-bar.wx-task:not(.wx-summary):not(.wx-milestone) {
+  cursor: grab;
+}
+
+.scopery-gantt .wx-bar,
+.scopery-gantt .wx-bar .wx-content,
+.scopery-gantt .wx-bar .wx-segment {
+  border-radius: 0 !important;
+}
+
+.scopery-gantt .wx-bar.wx-task:not(.wx-summary):not(.wx-milestone):active {
+  cursor: grabbing;
+}
+
+/* Phase / WBS / project rollups — read-only on timeline */
+.scopery-gantt .wx-bar.wx-summary {
+  cursor: default;
+  opacity: 0.92;
+}
+
+.scopery-gantt .wx-bar.wx-milestone {
+  cursor: default;
+}
+
+/* Square timeline bars — override SVAR Willow default rounded corners */
+.scopery-gantt .wx-bar .wx-segment,
+.scopery-gantt .wx-bar .wx-progress-wrapper,
+.scopery-gantt .wx-slack {
+  border-radius: 0 !important;
+}

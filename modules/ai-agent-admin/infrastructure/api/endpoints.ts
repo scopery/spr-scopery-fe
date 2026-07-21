@@ -172,6 +172,10 @@ export const AI_AGENT_ADMIN_ENDPOINTS = {
   playgroundDirectRun: () => apiPath('/ai-agent/playground/direct/run'),
   playgroundPromptPreview: () => apiPath('/ai-agent/playground/prompt/preview'),
 
+  /* S. AI Assistant workspace config (admin) */
+  aiAssistantWorkspaceConfig: (workspaceId: string) =>
+    `/api/v1/admin/ai-assistant/workspace-configs/${workspaceId}`,
+
   /* R. Tools */
   tools: (params?: PageParams) => withSearch(apiPath('/ai-agent/tools'), params),
   tool: (id: string) => apiPath(`/ai-agent/tools/${id}`),

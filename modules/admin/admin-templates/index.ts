@@ -1,7 +1,0 @@
-export { AdminTemplateNewView } from './presentation/ui/AdminTemplateNewView'
-export { AdminTemplatesListView } from './presentation/ui/AdminTemplatesListView'
-export { useAdminTemplates, useAdminTemplateDetail } from './presentation/hooks/useAdminTemplates'
-export { AdminTemplateDetailView } from './presentation/ui/AdminTemplateDetailView'
-export type { TemplateListItem, TemplateDetail, SystemQuestion } from './domain/model/template'
-export * as adminTemplatesApi from './infrastructure/api/admin-templates.api'
-export { createTemplate } from './infrastructure/api/admin-templates.api'

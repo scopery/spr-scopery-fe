@@ -1,7 +1,6 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 
-import { AiBudgetsView } from '@/modules/admin/ai-budgets/presentation/ui/AiBudgetsView'
-
-export default function AdminAIBudgetsPage() {
-  return <AiBudgetsView />
+export default function AdminAiBudgetsLegacyPage() {
+  redirect(ADMIN_ROUTES.aiControlUsagePolicies)
 }

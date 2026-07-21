@@ -1,43 +1,29 @@
 'use client'
 
-import { Badge, Button, Typography } from '@/shared/ui'
-import { AiMessageRole, AiMessageStatus } from '../../domain/enums/ai-assistant.enum'
+import { Copy, ThumbsDown, ThumbsUp } from 'lucide-react'
+import { Button, Typography } from '@/shared/ui'
+import { AiMessageRole } from '../../domain/enums/ai-assistant.enum'
 import type { AiMessage } from '../../domain/model/conversation'
+import { AiInlineActions } from './AiInlineActions'
+import { AiMarkdownContent } from './AiMarkdownContent'
+import { AiMessageShell } from './AiMessageShell'
+import type { AiLandingMode } from './AiWorkspaceLanding'
 import type { FeedbackRating } from './MessageFeedbackDialog'
 
 interface ChatMessageItemProps {
   message: AiMessage
+  actionMode?: AiLandingMode
+  showActions?: boolean
   feedbackSubmitted?: boolean
   canSubmitFeedback?: boolean
   onRequestFeedback?: (messageId: string, rating: FeedbackRating) => void
   onCopy?: (content: string) => void
 }
 
-function statusTone(
-  status: string | undefined
-): 'default' | 'success' | 'warning' | 'error' | 'info' {
-  switch (status) {
-    case AiMessageStatus.Completed:
-      return 'success'
-    case AiMessageStatus.Failed:
-    case AiMessageStatus.Blocked:
-      return 'error'
-    case AiMessageStatus.Cancelled:
-    case AiMessageStatus.CancelRequested:
-      return 'warning'
-    case AiMessageStatus.Generating:
-    case AiMessageStatus.Streaming:
-    case AiMessageStatus.Retrieving:
-    case AiMessageStatus.Contextualizing:
-    case AiMessageStatus.Queued:
-      return 'info'
-    default:
-      return 'default'
-  }
-}
-
 export function ChatMessageItem({
   message,
+  actionMode = 'general',
+  showActions = false,
   feedbackSubmitted = false,
   canSubmitFeedback = true,
   onRequestFeedback,
@@ -51,76 +37,75 @@ export function ChatMessageItem({
     role === 'TOOL_RESULT'
   const isAssistant =
     role === AiMessageRole.Assistant || role === 'ASSISTANT' || role === 'assistant'
+  const isUser = role === AiMessageRole.User || role === 'USER' || role === 'user'
+  const content = message.content ?? ''
 
   if (isTool) {
+    return null
+  }
+
+  if (!isUser && !isAssistant) {
     return (
-      <div className="border border-neutral-200 bg-neutral-50 p-sm">
-        <Typography variant="caption" tone="muted">
-          {role}
+      <AiMessageShell role="assistant">
+        <Typography variant="small" className="whitespace-pre-wrap leading-relaxed">
+          {content}
         </Typography>
-        <Typography variant="small" className="mt-1 block whitespace-pre-wrap">
-          {message.content ?? '—'}
-        </Typography>
-      </div>
+      </AiMessageShell>
     )
   }
 
   return (
-    <div>
-      <div className="mb-1 flex flex-wrap items-center gap-xs">
-        <Typography variant="caption" tone="muted">
-          {role}
-        </Typography>
-        {message.status ? (
-          <Badge size="sm" tone={statusTone(message.status)}>
-            {message.status}
-          </Badge>
-        ) : null}
-        {feedbackSubmitted ? (
-          <Badge size="sm" tone="success">
-            Feedback sent
-          </Badge>
-        ) : null}
-      </div>
-      <Typography variant="small" className="whitespace-pre-wrap">
-        {message.content ?? ''}
-      </Typography>
+    <AiMessageShell
+      role={isUser ? 'user' : 'assistant'}
+      footer={
+        isAssistant ? (
+          <div className="flex flex-wrap items-center gap-1">
+            {onCopy && content ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                icon={<Copy size={14} />}
+                aria-label="Copy"
+                onClick={() => onCopy(content)}
+              />
+            ) : null}
+            {onRequestFeedback && canSubmitFeedback && !feedbackSubmitted ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<ThumbsUp size={14} />}
+                  aria-label="Helpful"
+                  onClick={() => onRequestFeedback(message.id, 'THUMBS_UP')}
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<ThumbsDown size={14} />}
+                  aria-label="Not helpful"
+                  onClick={() => onRequestFeedback(message.id, 'THUMBS_DOWN')}
+                />
+              </>
+            ) : null}
+            {feedbackSubmitted ? (
+              <Typography variant="caption" tone="muted">
+                Thanks for your feedback
+              </Typography>
+            ) : null}
+          </div>
+        ) : undefined
+      }
+    >
       {isAssistant ? (
-        <div className="mt-xs flex flex-wrap gap-xs">
-          {onCopy && message.content ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => onCopy(message.content ?? '')}
-            >
-              Copy
-            </Button>
-          ) : null}
-          {onRequestFeedback && canSubmitFeedback && !feedbackSubmitted ? (
-            <>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => onRequestFeedback(message.id, 'THUMBS_UP')}
-              >
-                Helpful
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => onRequestFeedback(message.id, 'THUMBS_DOWN')}
-              >
-                Not helpful
-              </Button>
-            </>
-          ) : null}
-          {feedbackSubmitted ? (
-            <Typography variant="caption" tone="muted">
-              Feedback already submitted
-            </Typography>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
+        <>
+          <AiMarkdownContent content={content} />
+          {showActions ? <AiInlineActions mode={actionMode} /> : null}
+        </>
+      ) : (
+        <Typography variant="small" className="whitespace-pre-wrap text-[15px] leading-[1.65]">
+          {content}
+        </Typography>
+      )}
+    </AiMessageShell>
   )
 }

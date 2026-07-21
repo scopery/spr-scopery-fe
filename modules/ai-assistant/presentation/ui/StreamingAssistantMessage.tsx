@@ -3,6 +3,8 @@
 import { Button, Typography } from '@/shared/ui'
 import { AiStreamUiState } from '../../domain/enums/ai-assistant.enum'
 import type { StreamToolCall } from '../hooks/aiMessageStream.reducer'
+import { AiMarkdownContent } from './AiMarkdownContent'
+import { AiMessageShell } from './AiMessageShell'
 import { ToolCallCard } from './ToolCallCard'
 
 interface StreamingAssistantMessageProps {
@@ -16,7 +18,7 @@ interface StreamingAssistantMessageProps {
   onStop?: () => void
 }
 
-function statusLabel(uiState: AiStreamUiState, messageStatus: string | null): string {
+function statusLabel(uiState: AiStreamUiState, messageStatus: string | null): string | null {
   if (messageStatus) return messageStatus
   switch (uiState) {
     case AiStreamUiState.Starting:
@@ -24,7 +26,7 @@ function statusLabel(uiState: AiStreamUiState, messageStatus: string | null): st
     case AiStreamUiState.Connecting:
       return 'Connecting…'
     case AiStreamUiState.Connected:
-      return 'Generating…'
+      return null
     case AiStreamUiState.Reconnecting:
       return 'Reconnecting…'
     case AiStreamUiState.Cancelling:
@@ -34,7 +36,7 @@ function statusLabel(uiState: AiStreamUiState, messageStatus: string | null): st
     case AiStreamUiState.Cancelled:
       return 'Cancelled'
     default:
-      return ''
+      return null
   }
 }
 
@@ -56,50 +58,61 @@ export function StreamingAssistantMessage({
     uiState === AiStreamUiState.Starting
 
   return (
-    <div className="border border-primary-100 bg-primary-50/40 p-sm">
-      <div className="mb-sm flex items-center justify-between gap-sm">
-        <Typography variant="caption" tone="primary">
-          ASSISTANT {label ? `· ${label}` : ''}
-        </Typography>
-        {showStop && onStop ? (
-          <Button size="sm" variant="ghost" onClick={onStop}>
-            Stop
-          </Button>
-        ) : null}
-        {uiState === AiStreamUiState.Cancelling ? (
-          <Typography variant="caption" tone="warning">
-            Cancel requested…
+    <AiMessageShell
+      role="assistant"
+      status={
+        label ? (
+          <Typography variant="caption" tone="muted" className="normal-case">
+            · {label}
           </Typography>
-        ) : null}
-      </div>
-
-      {tools.map((tool) => (
-        <ToolCallCard key={tool.id} tool={tool} />
-      ))}
+        ) : showStop ? (
+          <Typography variant="caption" tone="muted" className="normal-case">
+            · Generating…
+          </Typography>
+        ) : null
+      }
+      footer={
+        showStop && onStop ? (
+          <Button size="sm" variant="outline" onClick={onStop}>
+            Stop generating
+          </Button>
+        ) : canRetryConnection && onRetryConnection ? (
+          <Button size="sm" variant="outline" onClick={onRetryConnection}>
+            Reconnect
+          </Button>
+        ) : undefined
+      }
+    >
+      {tools.length > 0 ? (
+        <div className="mb-3 space-y-2">
+          {tools.map((tool) => (
+            <ToolCallCard key={tool.id} tool={tool} />
+          ))}
+        </div>
+      ) : null}
 
       {text ? (
-        <Typography variant="small" tone="primary" className="whitespace-pre-wrap">
-          {text}
-        </Typography>
+        <AiMarkdownContent
+          content={text}
+          trailing={
+            uiState === AiStreamUiState.Connected ? (
+              <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-primary align-middle" />
+            ) : null
+          }
+        />
       ) : (
-        <Typography variant="small" tone="muted">
+        <Typography variant="small" tone="muted" className="leading-relaxed">
           {uiState === AiStreamUiState.Reconnecting
-            ? 'Reconnecting — keeping previous tokens…'
-            : 'Waiting for tokens…'}
+            ? 'Reconnecting — keeping previous response…'
+            : 'Thinking…'}
         </Typography>
       )}
 
       {error ? (
-        <Typography variant="small" tone="error" className="mt-sm block">
+        <Typography variant="small" tone="error" className="mt-3 block">
           {error}
         </Typography>
       ) : null}
-
-      {canRetryConnection && onRetryConnection ? (
-        <Button size="sm" className="mt-sm" variant="outline" onClick={onRetryConnection}>
-          Retry connection
-        </Button>
-      ) : null}
-    </div>
+    </AiMessageShell>
   )
 }

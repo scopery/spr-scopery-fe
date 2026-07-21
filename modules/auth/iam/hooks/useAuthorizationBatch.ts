@@ -24,15 +24,20 @@ export function useAuthorizationBatch(
   const enabled = options?.enabled !== false && checks.length > 0
   const fingerprint = checksFingerprint(checks)
   const [results, setResults] = useState<AuthorizationCheckResult[]>([])
-  const [loading, setLoading] = useState(false)
+  const [apiLoading, setApiLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // loading is true if: an API call is in progress OR we're enabled but haven't received results yet.
+  // This prevents the first render with enabled=true from briefly showing loading=false before
+  // setApiLoading(true) is called inside the effect, which caused premature "access denied" redirects.
+  const loading = apiLoading || (enabled && results.length === 0 && error === null)
 
   const load = useCallback(async (signal?: AbortSignal) => {
     if (!checks.length) {
       setResults([])
       return
     }
-    setLoading(true)
+    setApiLoading(true)
     setError(null)
     try {
       const res = await authorizationApi.checkAuthorizationBatch({ checks })
@@ -43,7 +48,7 @@ export function useAuthorizationBatch(
       setResults([])
       setError(err instanceof Error ? err.message : 'Authorization batch failed')
     } finally {
-      if (!signal?.aborted) setLoading(false)
+      if (!signal?.aborted) setApiLoading(false)
     }
   }, [fingerprint]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -51,6 +56,7 @@ export function useAuthorizationBatch(
     if (!enabled) {
       setResults([])
       setError(null)
+      setApiLoading(false)
       return
     }
     const controller = new AbortController()

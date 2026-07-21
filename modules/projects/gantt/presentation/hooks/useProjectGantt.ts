@@ -80,28 +80,28 @@ export function useProjectGantt(projectId: string | null, params?: GanttViewPara
   const moveTask = useCallback(
     async (taskId: string, body: MoveGanttTaskPayload) => {
       if (!projectId) return
-      const next = await ganttApi.moveGanttTask(projectId, taskId, body)
-      setView(next)
+      await ganttApi.moveGanttTask(projectId, taskId, body)
+      await load()
     },
-    [projectId]
+    [projectId, load]
   )
 
   const resizeTask = useCallback(
     async (taskId: string, body: ResizeGanttTaskPayload) => {
       if (!projectId) return
-      const next = await ganttApi.resizeGanttTask(projectId, taskId, body)
-      setView(next)
+      await ganttApi.resizeGanttTask(projectId, taskId, body)
+      await load()
     },
-    [projectId]
+    [projectId, load]
   )
 
   const clearOverride = useCallback(
     async (taskId: string) => {
       if (!projectId) return
-      const next = await ganttApi.clearGanttOverride(projectId, taskId)
-      setView(next)
+      await ganttApi.clearGanttOverride(projectId, taskId)
+      await load()
     },
-    [projectId]
+    [projectId, load]
   )
 
   const addDependency = useCallback(

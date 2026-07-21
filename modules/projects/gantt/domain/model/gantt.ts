@@ -88,13 +88,16 @@ export interface CriticalPathItem {
 }
 
 export interface MoveGanttTaskPayload {
-  newStartDate: string
-  reason?: string | null
+  manualStartDate: string
+  manualFinishDate: string
+  reason: string
+  recalculate?: boolean
 }
 
 export interface ResizeGanttTaskPayload {
-  newEndDate: string
-  reason?: string | null
+  manualFinishDate: string
+  reason: string
+  recalculate?: boolean
 }
 
 export interface CreateGanttDependencyPayload {

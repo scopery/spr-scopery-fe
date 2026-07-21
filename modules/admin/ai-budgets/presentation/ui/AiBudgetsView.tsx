@@ -44,7 +44,7 @@ export function AiBudgetsView() {
 
   useEffect(() => {
     if (!FEATURES.aiAdminAgents) {
-      router.replace(ROUTES.admin.templates)
+      router.replace(ROUTES.admin.aiControl)
     }
   }, [router])
 

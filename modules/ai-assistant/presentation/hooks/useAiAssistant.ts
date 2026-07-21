@@ -66,8 +66,6 @@ export function useAiAssistant() {
   const [feedbackByMessageId, setFeedbackByMessageId] = useState<
     Record<string, 'THUMBS_UP' | 'THUMBS_DOWN'>
   >({})
-  const bootstrapKeyRef = useRef<string | null>(null)
-  const bootstrapInFlightRef = useRef(false)
   const createLockRef = useRef(false)
   const prevWorkspaceRef = useRef<string | null>(workspaceId)
 
@@ -115,7 +113,6 @@ export function useAiAssistant() {
     setDocumentContextState(null)
     setSuggestedQuestions([])
     setFeedbackByMessageId({})
-    bootstrapKeyRef.current = null
   }, [closeStreamOnly, resetStream])
 
   // Clear AI Assistant cache when workspace switches (spec §5.1)
@@ -201,6 +198,23 @@ export function useAiAssistant() {
     void openConversation(routeConversationId, { navigate: false })
   }, [routeConversationId]) // eslint-disable-line react-hooks/exhaustive-deps -- one-shot per route id
 
+  // Home /ai — workspace landing (do not keep a stale active conversation)
+  useEffect(() => {
+    if (routeConversationId) return
+    setActiveId(null)
+    setMessages([])
+    closeStreamOnly()
+    resetStream()
+  }, [routeConversationId, closeStreamOnly, resetStream])
+
+  const goToLanding = useCallback(() => {
+    closeStreamOnly()
+    resetStream()
+    setActiveId(null)
+    setMessages([])
+    if (workspaceId) router.push(homeHref())
+  }, [closeStreamOnly, resetStream, workspaceId, homeHref, router])
+
   const startConversation = useCallback(
     async (opts?: {
       projectId?: string | null
@@ -257,27 +271,7 @@ export function useAiAssistant() {
     ]
   )
 
-  useEffect(() => {
-    if (!documentContext || !workspaceId || routeConversationId) return
-    const key = `${workspaceId}:${documentContext.projectId}:${documentContext.documentId}`
-    if (bootstrapKeyRef.current === key || bootstrapInFlightRef.current) return
-
-    bootstrapKeyRef.current = key
-    bootstrapInFlightRef.current = true
-
-    void (async () => {
-      try {
-        await startConversation({
-          projectId: documentContext.projectId,
-          title: `Ask: ${documentContext.title}`,
-          conversationType: 'PROJECT_ASSISTANT',
-        })
-      } finally {
-        bootstrapInFlightRef.current = false
-      }
-    })()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot bootstrap per document
-  }, [documentContext?.projectId, documentContext?.documentId, documentContext?.title, workspaceId, routeConversationId])
+  // Document query params set grounding context only — landing stays until the user starts work.
 
   const renameConversation = useCallback(
     async (id: string, title: string) => {
@@ -355,13 +349,14 @@ export function useAiAssistant() {
   )
 
   const sendMessage = useCallback(
-    async (content: string) => {
-      if (!activeId || !content.trim() || isStreaming) return
+    async (content: string, conversationId?: string) => {
+      const targetId = conversationId ?? activeId
+      if (!targetId || !content.trim() || isStreaming) return
       setError(null)
       const trimmed = content.trim()
       try {
         await startFromSend({
-          conversationId: activeId,
+          conversationId: targetId,
           content: trimmed,
           pageCode: documentContext ? 'DOCUMENT_DETAIL' : 'AI_ASSISTANT',
           entityType: documentContext ? 'DOCUMENT' : null,
@@ -371,7 +366,7 @@ export function useAiAssistant() {
               ...prev,
               {
                 id: userMessageId ?? `local-user-${Date.now()}`,
-                conversationId: activeId,
+                conversationId: targetId,
                 role: AiMessageRole.User,
                 content: trimmed,
                 status: 'COMPLETED',
@@ -380,7 +375,7 @@ export function useAiAssistant() {
             ])
           },
           onTerminal: () => {
-            void openConversation(activeId, { navigate: false })
+            void openConversation(targetId, { navigate: false })
           },
         })
       } catch (err) {
@@ -388,6 +383,24 @@ export function useAiAssistant() {
       }
     },
     [activeId, documentContext, isStreaming, startFromSend, openConversation]
+  )
+
+  const startWork = useCallback(
+    async (prompt: string, opts?: { projectId?: string | null; title?: string | null }) => {
+      const trimmed = prompt.trim()
+      if (!trimmed) return null
+      const projectId =
+        opts?.projectId ?? documentContext?.projectId ?? params.projectId ?? null
+      const created = await startConversation({
+        projectId,
+        title: (opts?.title ?? trimmed).slice(0, 80),
+        conversationType: projectId ? 'PROJECT_ASSISTANT' : 'GENERAL_GUIDE',
+      })
+      if (!created) return null
+      await sendMessage(trimmed, created.id)
+      return created
+    },
+    [documentContext?.projectId, params.projectId, startConversation, sendMessage]
   )
 
   const cancelStream = useCallback(async () => {
@@ -483,6 +496,8 @@ export function useAiAssistant() {
     setListSearch,
     openConversation,
     startConversation,
+    startWork,
+    goToLanding,
     renameConversation,
     archiveConversation,
     deleteConversation,

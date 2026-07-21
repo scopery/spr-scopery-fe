@@ -1,22 +1,17 @@
 import type { LucideIcon } from 'lucide-react'
 import {
-  Bot,
   Building2,
-  FileStack,
-  FileText,
   History,
   ShieldCheck,
   ServerCog,
   Sparkles,
-  Wallet,
-  Wrench,
   Layers,
   LayoutTemplate,
   Bell,
 } from 'lucide-react'
 import { ADMIN_ROUTES } from './routes'
 
-export const ADMIN_DIRECTORY_GROUPS = ['Admin Areas', 'System', 'Developer'] as const
+export const ADMIN_DIRECTORY_GROUPS = ['Admin Areas', 'System'] as const
 
 export type AdminDirectoryGroup = (typeof ADMIN_DIRECTORY_GROUPS)[number]
 
@@ -61,39 +56,6 @@ export const ADMIN_DIRECTORY_ITEMS: AdminDirectoryItem[] = [
     icon: Sparkles,
     matchPaths: [ADMIN_ROUTES.aiControl],
     exactMatchPaths: [ADMIN_ROUTES.aiControl],
-  },
-  {
-    label: 'AI Agents (legacy)',
-    description: 'Legacy agent registry',
-    href: ADMIN_ROUTES.aiAgents,
-    group: 'Admin Areas',
-    icon: Bot,
-    matchPaths: [ADMIN_ROUTES.aiAgents],
-  },
-  {
-    label: 'AI Budgets',
-    description: 'Usage limits and spending control',
-    href: ADMIN_ROUTES.aiBudgets,
-    group: 'Admin Areas',
-    icon: Wallet,
-    matchPaths: [ADMIN_ROUTES.aiBudgets],
-  },
-  {
-    label: 'Templates',
-    description: 'Prompt and document templates',
-    href: ADMIN_ROUTES.templates,
-    group: 'Admin Areas',
-    icon: FileStack,
-    matchPaths: [ADMIN_ROUTES.templates],
-    createHref: ADMIN_ROUTES.templateNew,
-  },
-  {
-    label: 'Document Hub',
-    description: 'Documents, workflows, governance',
-    href: ADMIN_ROUTES.documents,
-    group: 'Admin Areas',
-    icon: FileText,
-    matchPaths: [ADMIN_ROUTES.documents],
   },
   {
     label: 'Workspace Management',
@@ -148,20 +110,12 @@ export const ADMIN_DIRECTORY_ITEMS: AdminDirectoryItem[] = [
   },
   {
     label: 'Platform Reliability',
-    description: 'Audit, activity, outbox, jobs, traces',
+    description: 'Audit events and event registry',
     href: ADMIN_ROUTES.platformOverview,
     group: 'System',
     icon: ServerCog,
     matchPaths: [ADMIN_ROUTES.platform],
     exactMatchPaths: [ADMIN_ROUTES.platform],
-  },
-  {
-    label: 'Developer Tools',
-    description: 'Resources and legacy mappings',
-    href: ADMIN_ROUTES.iamResources,
-    group: 'Developer',
-    icon: Wrench,
-    matchPaths: [ADMIN_ROUTES.iamResources, ADMIN_ROUTES.iamRights, ADMIN_ROUTES.developerTools],
   },
 ]
 

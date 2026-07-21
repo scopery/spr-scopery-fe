@@ -1,14 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { FileText, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Button,
   ConfirmDialog,
-  Input,
   PageSkeleton,
-  Select,
-  Stack,
   Typography,
 } from '@/shared/ui'
 import { useAuth } from '@/modules/auth/auth/context/AuthContext'
@@ -16,14 +13,24 @@ import { useProjects } from '@/modules/projects/project/hooks/useProjects'
 import { hasPermission, PERMISSIONS } from '@/modules/permissions/access/lib/permissions'
 import { useEffectivePermissions } from '@/modules/permissions/access/hooks/useEffectivePermissions'
 import * as workbenchApi from '@/modules/documents/document-hub/api/document-workbench.api'
+import { ROUTES } from '@/constants/routes'
 import type { AiConversation } from '../../domain/model/conversation'
 import { AiStreamUiState } from '../../domain/enums/ai-assistant.enum'
 import { useAiAssistant } from '../hooks/useAiAssistant'
 import { useContextualGuide } from '../hooks/useContextualGuide'
+import { AiConversationDrawer } from './AiConversationDrawer'
+import type { AiChatSource } from './AiContextPicker'
+import { sourceKey } from './AiContextPicker'
+import { AiWorkspaceComposer } from './AiWorkspaceComposer'
+import { AiWorkspaceContextStrip } from './AiWorkspaceContextStrip'
+import {
+  AiWorkspaceLanding,
+  type AiLandingMode,
+  type AiLandingPrompt,
+} from './AiWorkspaceLanding'
+import { AiWorkspaceSourcesPanel } from './AiWorkspaceSourcesPanel'
+import { AiWorkspaceTopBar } from './AiWorkspaceTopBar'
 import { ChatMessageItem } from './ChatMessageItem'
-import { ConversationListPanel } from './ConversationListPanel'
-import { ExplainDisabledAction } from './ExplainDisabledAction'
-import { ExplainFieldButton } from './ExplainFieldButton'
 import { GuideDrawer } from './GuideDrawer'
 import {
   MessageFeedbackDialog,
@@ -32,12 +39,30 @@ import {
 import { NewConversationDialog } from './NewConversationDialog'
 import { RenameConversationDialog } from './RenameConversationDialog'
 import { StreamingAssistantMessage } from './StreamingAssistantMessage'
-import { SuggestedQuestionChips } from './SuggestedQuestionChips'
+
+function formatRelativeWhen(iso: string | undefined | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const diffMs = Date.now() - d.getTime()
+  const mins = Math.floor(diffMs / 60000)
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+  const days = Math.floor(hours / 24)
+  if (days === 1) return 'Yesterday'
+  if (days < 7) return `${days} days ago`
+  return d.toLocaleDateString()
+}
 
 export function AiAssistantView() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const {
     workspaceId,
     conversations,
+    allConversations,
     activeId,
     activeConversation,
     messages,
@@ -58,6 +83,8 @@ export function AiAssistantView() {
     setListSearch,
     openConversation,
     startConversation,
+    startWork,
+    goToLanding,
     renameConversation,
     archiveConversation,
     deleteConversation,
@@ -77,7 +104,6 @@ export function AiAssistantView() {
   const canSubmitFeedback = useMemo(() => {
     if (!permissions) return true
     if (hasPermission(permissions, PERMISSIONS.AI_ASSISTANT_FEEDBACK_CREATE)) return true
-    // Provisional catalog (W5-GAP-14): if BE has not rolled out Wave 5 keys yet, allow.
     const hasWave5Keys = permissions.permissions.some((p) => p.startsWith('AI_ASSISTANT'))
     return !hasWave5Keys
   }, [permissions])
@@ -95,6 +121,11 @@ export function AiAssistantView() {
   const [pickerProjectId, setPickerProjectId] = useState('')
   const [documents, setDocuments] = useState<Array<{ id: string; title: string }>>([])
   const [loadingDocs, setLoadingDocs] = useState(false)
+  const [conversationsOpen, setConversationsOpen] = useState(false)
+  const [sourcesOpen, setSourcesOpen] = useState(false)
+  const [contextPickerOpen, setContextPickerOpen] = useState(false)
+  const [selectedSources, setSelectedSources] = useState<AiChatSource[]>([])
+  const sourcesSeededRef = useRef(false)
 
   const [newOpen, setNewOpen] = useState(false)
   const [renameTarget, setRenameTarget] = useState<AiConversation | null>(null)
@@ -104,12 +135,84 @@ export function AiAssistantView() {
     messageId: string
     rating: FeedbackRating
   } | null>(null)
+  const [moreOpen, setMoreOpen] = useState(false)
+
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const isAtBottomRef = useRef(true)
 
   useEffect(() => {
-    if (documentContext?.projectId) {
+    if (!isAtBottomRef.current) return
+    bottomRef.current?.scrollIntoView({ behavior: 'instant' })
+  }, [messages, streamingText])
+
+  const qProjectId = searchParams.get('projectId')
+  const qDocumentId = searchParams.get('documentId')
+  const qDocumentTitle = searchParams.get('documentTitle')
+
+  // Seed sources once from URL / document context (deep-link).
+  useEffect(() => {
+    if (sourcesSeededRef.current) return
+    if (documentContext) {
+      sourcesSeededRef.current = true
+      setSelectedSources([
+        {
+          type: 'document',
+          id: documentContext.documentId,
+          projectId: documentContext.projectId,
+          label: documentContext.title,
+        },
+      ])
       setPickerProjectId(documentContext.projectId)
+      return
     }
-  }, [documentContext?.projectId])
+    if (qProjectId && qDocumentId) {
+      sourcesSeededRef.current = true
+      setSelectedSources([
+        {
+          type: 'document',
+          id: qDocumentId,
+          projectId: qProjectId,
+          label: qDocumentTitle?.trim() || 'Document',
+        },
+      ])
+      setPickerProjectId(qProjectId)
+      return
+    }
+    if (qProjectId && projects.length > 0) {
+      sourcesSeededRef.current = true
+      const p = projects.find((x) => x.id === qProjectId)
+      setSelectedSources([
+        {
+          type: 'project',
+          id: qProjectId,
+          label: p?.name || p?.code || 'Project',
+        },
+      ])
+      setPickerProjectId(qProjectId)
+    }
+  }, [documentContext, qProjectId, qDocumentId, qDocumentTitle, projects])
+
+  // Keep hook grounding in sync with selected sources (primary = first document).
+  useEffect(() => {
+    if (!sourcesSeededRef.current && selectedSources.length === 0) return
+    const primaryDoc = selectedSources.find((s) => s.type === 'document')
+    if (primaryDoc && primaryDoc.type === 'document') {
+      setDocumentContext({
+        projectId: primaryDoc.projectId,
+        documentId: primaryDoc.id,
+        title: primaryDoc.label,
+      })
+      setPickerProjectId(primaryDoc.projectId)
+      return
+    }
+    const primaryProject = selectedSources.find((s) => s.type === 'project')
+    if (primaryProject) {
+      clearDocumentContext()
+      setPickerProjectId(primaryProject.id)
+      return
+    }
+    clearDocumentContext()
+  }, [selectedSources, setDocumentContext, clearDocumentContext])
 
   useEffect(() => {
     if (!pickerProjectId) {
@@ -140,269 +243,333 @@ export function AiAssistantView() {
     }
   }, [pickerProjectId])
 
+  const toggleSource = (source: AiChatSource) => {
+    sourcesSeededRef.current = true
+    setSelectedSources((prev) => {
+      const key = sourceKey(source)
+      if (prev.some((s) => sourceKey(s) === key)) {
+        return prev.filter((s) => sourceKey(s) !== key)
+      }
+      return [...prev, source]
+    })
+  }
+
+  const removeSource = (source: AiChatSource) => {
+    sourcesSeededRef.current = true
+    const key = sourceKey(source)
+    setSelectedSources((prev) => prev.filter((s) => sourceKey(s) !== key))
+  }
+
+  const selectedProject = useMemo(() => {
+    const docProjectId = selectedSources.find(
+      (s): s is Extract<AiChatSource, { type: 'document' }> => s.type === 'document'
+    )?.projectId
+    const projectSourceId = selectedSources.find(
+      (s): s is Extract<AiChatSource, { type: 'project' }> => s.type === 'project'
+    )?.id
+    const projectId = docProjectId ?? projectSourceId ?? pickerProjectId ?? qProjectId
+    if (!projectId) return null
+    return projects.find((p) => p.id === projectId) ?? null
+  }, [projects, selectedSources, pickerProjectId, qProjectId])
+
+  const landingMode: AiLandingMode = selectedSources.some((s) => s.type === 'document')
+    ? 'document'
+    : selectedSources.some((s) => s.type === 'project') || selectedProject || qProjectId
+      ? 'project'
+      : 'general'
+
+  const primaryDocLabel = selectedSources.find((s) => s.type === 'document')?.label
+  const contextLabel =
+    landingMode === 'document'
+      ? primaryDocLabel || 'this document'
+      : landingMode === 'project'
+        ? selectedProject?.name || selectedProject?.code || 'this project'
+        : 'Scopery'
+
+  const isLanding = !activeId
+
+  const recent = useMemo(
+    () =>
+      (allConversations ?? conversations)
+        .filter((c) => c.status !== 'ARCHIVED' && c.status !== 'DELETED')
+        .slice(0, 5)
+        .map((c) => ({
+          id: c.id,
+          title: c.title ?? 'Untitled',
+          when: formatRelativeWhen(c.lastMessageAt ?? c.updatedAt ?? c.createdAt),
+        })),
+    [allConversations, conversations]
+  )
+
+  const projectOptions = useMemo(
+    () =>
+      projects.map((p) => ({
+        id: p.id,
+        label: p.name || p.code || p.id,
+      })),
+    [projects]
+  )
+
+  const primaryProjectIdForStart =
+    selectedSources.find(
+      (s): s is Extract<AiChatSource, { type: 'project' }> => s.type === 'project'
+    )?.id ??
+    selectedSources.find(
+      (s): s is Extract<AiChatSource, { type: 'document' }> => s.type === 'document'
+    )?.projectId ??
+    (pickerProjectId || null)
+
+  const lastAssistantId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const role = String(messages[i].role)
+      if (role === 'ASSISTANT' || role === 'assistant') return messages[i].id
+    }
+    return null
+  }, [messages])
+
+  const showLiveAssistant = useMemo(() => {
+    if (isStreaming || streamState.canRetryConnection) return true
+    if (
+      streamUiState === AiStreamUiState.Failed ||
+      streamUiState === AiStreamUiState.Cancelled
+    ) {
+      return true
+    }
+    if (streamUiState === AiStreamUiState.Completed) {
+      const streamMsgId = streamState.assistantMessageId
+      if (streamMsgId && messages.some((m) => m.id === streamMsgId)) return false
+      const last = messages[messages.length - 1]
+      const lastRole = last ? String(last.role) : ''
+      const lastIsAssistant = lastRole === 'ASSISTANT' || lastRole === 'assistant'
+      if (lastIsAssistant && streamingText && (last?.content ?? '') === streamingText) {
+        return false
+      }
+      return Boolean(streamingText || streamTools.length > 0)
+    }
+    return false
+  }, [
+    isStreaming,
+    streamState.canRetryConnection,
+    streamState.assistantMessageId,
+    streamUiState,
+    messages,
+    streamingText,
+    streamTools.length,
+  ])
+
+  const handleStartPrompt = async (item: AiLandingPrompt) => {
+    isAtBottomRef.current = true
+    await startWork(item.prompt, {
+      projectId: primaryProjectIdForStart,
+      title: item.title,
+    })
+  }
+
+  const handleSend = async () => {
+    const text = draft.trim()
+    if (!text) return
+    isAtBottomRef.current = true
+    if (activeId) {
+      await sendMessage(text)
+      setDraft('')
+      return
+    }
+    setDraft('')
+    await startWork(text, {
+      projectId: primaryProjectIdForStart,
+    })
+  }
+
+  const handleMinimize = () => {
+    if (!workspaceId) return
+    router.push(ROUTES.workspace.overview(workspaceId))
+  }
+
   if (loading && conversations.length === 0 && !activeId) {
     return <PageSkeleton variant="split" className="p-lg" />
   }
 
   return (
-    <div className="grid h-full min-h-[480px] grid-cols-1 gap-md p-lg md:grid-cols-[280px_1fr]">
-      <ConversationListPanel
+    <div className="flex h-full min-h-0 flex-1 flex-col bg-neutral-50">
+      <AiWorkspaceTopBar
+        title={
+          isLanding
+            ? contextLabel !== 'Scopery'
+              ? contextLabel
+              : ''
+            : activeConversation?.title ?? 'Conversation'
+        }
+        subtitle={
+          isLanding
+            ? null
+            : [selectedProject?.name, documentContext?.title].filter(Boolean).join(' / ') || null
+        }
+        sourcesOpen={sourcesOpen}
+        onToggleConversations={() => setConversationsOpen(true)}
+        onToggleSources={() => setSourcesOpen((v) => !v)}
+        onNewChat={() => {
+          goToLanding()
+          setConversationsOpen(false)
+        }}
+        onMinimize={handleMinimize}
+        onMore={() => setMoreOpen((v) => !v)}
+      />
+
+      <AiWorkspaceContextStrip
+        sources={selectedSources}
+        onAdd={() => setContextPickerOpen(true)}
+        onOpenSources={() => setSourcesOpen(true)}
+      />
+
+      {moreOpen && activeConversation ? (
+        <div className="flex flex-wrap items-center gap-2 border-b border-neutral-200 bg-white px-3 py-2">
+          <Button size="sm" variant="ghost" onClick={() => setRenameTarget(activeConversation)}>
+            Rename
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setArchiveTarget(activeConversation)}>
+            Archive
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => void guide.explainPage()}>
+            Explain this page
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setContextPickerOpen(true)}>
+            Edit sources
+          </Button>
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="border-b border-red-200 bg-red-50 px-4 py-2">
+          <Typography variant="small" className="text-red-700">
+            {error}
+          </Typography>
+        </div>
+      ) : null}
+
+      <div className="flex min-h-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
+          {isLanding ? (
+            <AiWorkspaceLanding
+              mode={landingMode}
+              contextLabel={contextLabel}
+              recent={recent}
+              disabled={mutating || isStreaming}
+              onSelectPrompt={(p) => void handleStartPrompt(p)}
+              onOpenRecent={(id) => void openConversation(id)}
+            />
+          ) : (
+            <div
+              className="min-h-0 flex-1 overflow-auto bg-white"
+              onScroll={(e) => {
+                const el = e.currentTarget
+                isAtBottomRef.current =
+                  el.scrollHeight - el.scrollTop - el.clientHeight < 80
+              }}
+            >
+              <div className="mx-auto w-full max-w-[880px] px-3 md:px-6">
+                {messages.length === 0 && !isStreaming && !streamingText ? (
+                  <div className="py-12">
+                    <Typography variant="small" tone="muted">
+                      Ask a follow-up to continue this conversation.
+                    </Typography>
+                  </div>
+                ) : null}
+                {messages.map((m) => (
+                  <ChatMessageItem
+                    key={m.id}
+                    message={m}
+                    actionMode={landingMode}
+                    showActions={m.id === lastAssistantId && !showLiveAssistant}
+                    feedbackSubmitted={Boolean(feedbackByMessageId[m.id])}
+                    canSubmitFeedback={canSubmitFeedback}
+                    onRequestFeedback={(messageId, rating) =>
+                      setFeedbackTarget({ messageId, rating })
+                    }
+                    onCopy={(content) => {
+                      void navigator.clipboard?.writeText(content)
+                    }}
+                  />
+                ))}
+                {showLiveAssistant ? (
+                  <StreamingAssistantMessage
+                    text={streamingText}
+                    tools={streamTools}
+                    uiState={streamUiState}
+                    messageStatus={streamState.messageStatus}
+                    error={streamState.error}
+                    canRetryConnection={streamState.canRetryConnection}
+                    onRetryConnection={retryStreamConnection}
+                    onStop={() => void cancelStream()}
+                  />
+                ) : null}
+                <div ref={bottomRef} />
+              </div>
+            </div>
+          )}
+
+          <AiWorkspaceComposer
+            value={draft}
+            placeholder={
+              selectedSources.length > 0
+                ? `Ask about ${selectedSources.map((s) => s.label).slice(0, 2).join(', ')}${selectedSources.length > 2 ? '…' : ''}…`
+                : 'Ask anything…'
+            }
+            disabled={mutating}
+            isStreaming={isStreaming}
+            streamUiState={streamUiState}
+            canRetryConnection={streamState.canRetryConnection}
+            streamError={streamState.error}
+            sources={selectedSources}
+            pickerOpen={contextPickerOpen}
+            projects={projectOptions}
+            documents={documents}
+            loadingDocs={loadingDocs}
+            browseProjectId={pickerProjectId}
+            onBrowseProjectChange={setPickerProjectId}
+            onToggleSource={toggleSource}
+            onRemoveSource={removeSource}
+            onChange={setDraft}
+            onSend={() => void handleSend()}
+            onStop={() => void cancelStream()}
+            onRetryConnection={retryStreamConnection}
+            onOpenPicker={() => setContextPickerOpen(true)}
+            onClosePicker={() => setContextPickerOpen(false)}
+          />
+        </div>
+
+        <AiWorkspaceSourcesPanel
+          open={sourcesOpen}
+          sources={selectedSources}
+          excludedCount={0}
+          knowledgeSectionCount={0}
+          onClose={() => setSourcesOpen(false)}
+          onRemove={removeSource}
+          onAdd={() => {
+            setSourcesOpen(false)
+            setContextPickerOpen(true)
+          }}
+        />
+      </div>
+
+      <AiConversationDrawer
+        open={conversationsOpen}
         conversations={conversations}
         activeId={activeId}
         listTab={listTab}
         listSearch={listSearch}
         mutating={mutating}
+        onClose={() => setConversationsOpen(false)}
         onTabChange={setListTab}
         onSearchChange={setListSearch}
-        onNew={() => setNewOpen(true)}
+        onNew={() => {
+          setConversationsOpen(false)
+          setNewOpen(true)
+        }}
         onOpen={(id) => void openConversation(id)}
         onRename={setRenameTarget}
         onArchive={setArchiveTarget}
         onDelete={setDeleteTarget}
       />
-
-      <Stack direction="vertical" spacing="md">
-        <div className="flex items-start justify-between gap-md">
-          <div>
-            <Typography variant="h2">
-              {activeConversation?.title ?? 'AI Assistant'}
-            </Typography>
-            <Typography variant="caption" tone="muted">
-              {activeConversation
-                ? [activeConversation.conversationType, activeConversation.capabilityLevel]
-                    .filter(Boolean)
-                    .join(' · ') || 'Conversation'
-                : 'Attach a document, then ask questions about it.'}
-            </Typography>
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-xs">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={!workspaceId || guide.streaming}
-              onClick={() => void guide.explainPage()}
-            >
-              Explain this page
-            </Button>
-            {activeConversation ? (
-              <>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={mutating}
-                  onClick={() => setRenameTarget(activeConversation)}
-                >
-                  Rename
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={mutating}
-                  onClick={() => setArchiveTarget(activeConversation)}
-                >
-                  Archive
-                </Button>
-              </>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="space-y-sm border border-neutral-200 p-sm">
-          <div className="flex items-center justify-between gap-sm">
-            <Typography variant="small" weight="medium">
-              Document context
-            </Typography>
-            <ExplainFieldButton
-              fieldCode="DOCUMENT_CONTEXT"
-              label="Document context"
-              onExplain={(code, label) => void guide.explainField(code, label)}
-              disabled={!workspaceId || guide.streaming}
-            />
-          </div>
-          <div className="grid gap-sm sm:grid-cols-2">
-            <div>
-              <Typography variant="caption" tone="muted" className="mb-1.5 block">
-                Project
-              </Typography>
-              <Select
-                value={pickerProjectId}
-                onValueChange={(v: string) => {
-                  setPickerProjectId(v)
-                  if (documentContext && documentContext.projectId !== v) {
-                    clearDocumentContext()
-                  }
-                }}
-                options={projects.map((p) => ({
-                  value: p.id,
-                  label: p.name || p.code || p.id,
-                }))}
-                placeholder="Select project"
-              />
-            </div>
-            <div>
-              <Typography variant="caption" tone="muted" className="mb-1.5 block">
-                Document
-              </Typography>
-              <Select
-                value={documentContext?.documentId ?? ''}
-                onValueChange={(docId: string) => {
-                  const doc = documents.find((d) => d.id === docId)
-                  if (!doc || !pickerProjectId) return
-                  setDocumentContext({
-                    projectId: pickerProjectId,
-                    documentId: doc.id,
-                    title: doc.title,
-                  })
-                }}
-                options={documents.map((d) => ({ value: d.id, label: d.title }))}
-                placeholder={
-                  loadingDocs
-                    ? 'Loading…'
-                    : pickerProjectId
-                      ? 'Select document'
-                      : 'Pick a project first'
-                }
-                disabled={!pickerProjectId || loadingDocs}
-              />
-            </div>
-          </div>
-          {documentContext ? (
-            <div className="flex items-center gap-sm border border-primary-200 bg-primary-50 px-sm py-xs">
-              <FileText size={14} className="shrink-0 text-primary-600" />
-              <Typography variant="small" className="min-w-0 flex-1 truncate">
-                Asking about: {documentContext.title}
-              </Typography>
-              <Button
-                size="sm"
-                variant="ghost"
-                aria-label="Clear document"
-                onClick={clearDocumentContext}
-                icon={<X size={14} />}
-              />
-            </div>
-          ) : null}
-        </div>
-
-        {error ? <Typography tone="error">{error}</Typography> : null}
-
-        <SuggestedQuestionChips
-          questions={guide.suggestedQuestions}
-          loading={guide.loadingSuggestions}
-          disabled={isStreaming}
-          onExplainPage={() => void guide.explainPage()}
-          onSelect={(q) => {
-            if (activeId) void sendMessage(q)
-            else void guide.explainPage()
-          }}
-        />
-
-        {!activeId ? (
-          <div className="border border-neutral-200 p-md">
-            <Typography variant="small" tone="muted" className="mb-sm block">
-              Start a general guide or project assistant conversation.
-            </Typography>
-            <div className="flex flex-wrap gap-sm">
-              <Button size="sm" onClick={() => setNewOpen(true)} disabled={mutating}>
-                New chat
-              </Button>
-              <ExplainDisabledAction
-                actionCode="SEND_WITHOUT_CONVERSATION"
-                label="Send message"
-                onExplain={(code, label) => void guide.explainDisabledAction(code, label)}
-              >
-                <Button size="sm" disabled>
-                  Send
-                </Button>
-              </ExplainDisabledAction>
-            </div>
-          </div>
-        ) : null}
-
-        <div className="flex-1 space-y-sm overflow-auto border border-neutral-200 p-md">
-          {activeId && messages.length === 0 && !isStreaming && !streamingText ? (
-            <Typography variant="small" tone="muted">
-              Send a message to begin.
-            </Typography>
-          ) : null}
-          {messages.map((m) => (
-            <ChatMessageItem
-              key={m.id}
-              message={m}
-              feedbackSubmitted={Boolean(feedbackByMessageId[m.id])}
-              canSubmitFeedback={canSubmitFeedback}
-              onRequestFeedback={(messageId, rating) =>
-                setFeedbackTarget({ messageId, rating })
-              }
-              onCopy={(content) => {
-                void navigator.clipboard?.writeText(content)
-              }}
-            />
-          ))}
-          {isStreaming ||
-          streamingText ||
-          streamTools.length > 0 ||
-          streamUiState === AiStreamUiState.Failed ||
-          streamState.canRetryConnection ? (
-            <StreamingAssistantMessage
-              text={streamingText}
-              tools={streamTools}
-              uiState={streamUiState}
-              messageStatus={streamState.messageStatus}
-              error={streamState.error}
-              canRetryConnection={streamState.canRetryConnection}
-              onRetryConnection={retryStreamConnection}
-              onStop={() => void cancelStream()}
-            />
-          ) : null}
-        </div>
-
-        <div className="flex gap-sm">
-          <Input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={
-              documentContext
-                ? `Ask about “${documentContext.title}”…`
-                : 'Ask about the current context…'
-            }
-            aria-label="AI message"
-            disabled={!activeId || isStreaming}
-            maxLength={8000}
-            onKeyDown={(e) => {
-              if (
-                e.key === 'Enter' &&
-                !e.shiftKey &&
-                draft.trim() &&
-                activeId &&
-                !isStreaming
-              ) {
-                e.preventDefault()
-                void sendMessage(draft)
-                setDraft('')
-              }
-            }}
-          />
-          {isStreaming ? (
-            <Button
-              variant="outline"
-              onClick={() => void cancelStream()}
-              disabled={streamUiState === AiStreamUiState.Cancelling}
-            >
-              {streamUiState === AiStreamUiState.Cancelling ? 'Stopping…' : 'Stop'}
-            </Button>
-          ) : (
-            <Button
-              onClick={() => {
-                void sendMessage(draft)
-                setDraft('')
-              }}
-              disabled={!activeId || !draft.trim()}
-            >
-              Send
-            </Button>
-          )}
-        </div>
-      </Stack>
 
       <GuideDrawer
         open={guide.drawerOpen}
@@ -414,6 +581,7 @@ export function AiAssistantView() {
         onClose={guide.closeDrawer}
         onAskFollowUp={(q) => {
           if (activeId) void sendMessage(q)
+          else void startWork(q, { projectId: primaryProjectIdForStart })
         }}
       />
 
@@ -422,7 +590,7 @@ export function AiAssistantView() {
         onClose={() => setNewOpen(false)}
         loading={mutating}
         projects={projects}
-        defaultProjectId={(documentContext?.projectId ?? pickerProjectId) || null}
+        defaultProjectId={primaryProjectIdForStart}
         onSubmit={async (values) => {
           const created = await startConversation({
             projectId: values.projectId,

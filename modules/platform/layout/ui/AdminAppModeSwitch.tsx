@@ -14,11 +14,24 @@ export interface AdminAppModeSwitchProps {
   mode: AdminAppMode
   className?: string
   onNavigate?: () => void
+  /** When provided, skips internal permission fetch (parent already resolved access). */
+  canAccessAdmin?: boolean
+  loading?: boolean
 }
 
-export function AdminAppModeSwitch({ mode, className, onNavigate }: AdminAppModeSwitchProps) {
+export function AdminAppModeSwitch({
+  mode,
+  className,
+  onNavigate,
+  canAccessAdmin: canAccessAdminProp,
+  loading: loadingProp,
+}: AdminAppModeSwitchProps) {
   const { currentWorkspaceId } = useAuth()
-  const { canAccessAdmin, loading } = usePlatformAdminAccess()
+  const internal = usePlatformAdminAccess({
+    enabled: canAccessAdminProp === undefined,
+  })
+  const canAccessAdmin = canAccessAdminProp ?? internal.canAccessAdmin
+  const loading = loadingProp ?? internal.loading
 
   if (loading || !canAccessAdmin) return null
 
@@ -46,7 +59,7 @@ export function AdminAppModeSwitch({ mode, className, onNavigate }: AdminAppMode
   return (
     <DesignLink
       as={NextLink}
-      href={ROUTES.admin.templates}
+      href={ROUTES.admin.aiControl}
       className={cn(
         'flex items-center gap-2 rounded-none px-4 py-2 text-sm hover:bg-neutral-50',
         className

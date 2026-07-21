@@ -28,8 +28,14 @@ const TOKEN_FLUSH_MS = 48
 const CANCEL_TIMEOUT_MS = 20_000
 
 function resolveStreamUrl(streamUrl: string): string {
-  if (streamUrl.startsWith('http') || streamUrl.startsWith('/')) return streamUrl
-  return `/${streamUrl}`
+  if (streamUrl.startsWith('http')) return streamUrl
+  // Bypass Next.js dev proxy for SSE (dev proxy buffers streaming responses).
+  const sseBase =
+    typeof process !== 'undefined'
+      ? (process.env.NEXT_PUBLIC_SSE_BASE_URL ?? '')
+      : ''
+  const path = streamUrl.startsWith('/') ? streamUrl : `/${streamUrl}`
+  return `${sseBase}${path}`
 }
 
 function parseJsonSafe<T>(raw: string): T | null {
@@ -100,7 +106,7 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
       flushTimerRef.current = setTimeout(() => {
         flushTimerRef.current = null
         flushTokenBuffer()
-      }, TOKEN_FLUSH_MS)
+      }, 0)
     },
     [flushTokenBuffer]
   )
@@ -139,16 +145,21 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
 
   const handleTerminal = useCallback(
     (next: StreamControllerState) => {
-      flushTokenBuffer()
+      clearFlushTimer()
+      const buffered = tokenBufferRef.current
+      tokenBufferRef.current = ''
       clearCancelTimeout()
       pendingCancelRef.current = false
-      setStreamState(next)
+      setStreamState((prev) => ({
+        ...next,
+        streamingText: prev.streamingText + buffered,
+      }))
       closeTransport()
       const cb = onTerminalRef.current
       onTerminalRef.current = null
       cb?.()
     },
-    [flushTokenBuffer, clearCancelTimeout, closeTransport]
+    [clearFlushTimer, clearCancelTimeout, closeTransport]
   )
 
   const connect = useCallback(
@@ -175,6 +186,38 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
           setStreamState((prev) => applyReconnect(prev))
         },
         onEvent: (ev) => {
+          // Token events: call queueToken OUTSIDE setStreamState updater to
+          // avoid React Concurrent Mode invoking the updater multiple times
+          // and double-appending the token to the buffer.
+          if (
+            ev.event === SseEventType.Token ||
+            ev.event === 'message.delta' ||
+            ev.event === 'content.delta' ||
+            ev.event === 'answer.delta'
+          ) {
+            if (!shouldIgnoreDuplicateEvent(stateRef.current, ev.id)) {
+              const parsed = parseJsonSafe<{
+                token?: string
+                delta?: string
+                text?: string
+              }>(ev.data)
+              const token = parsed?.token ?? parsed?.delta ?? parsed?.text ?? ev.data
+              queueToken(token)
+            }
+            setStreamState((prev) => {
+              if (shouldIgnoreDuplicateEvent(prev, ev.id)) return prev
+              const next = markEventSeen(prev, ev.id)
+              return {
+                ...next,
+                uiState:
+                  next.uiState === AiStreamUiState.Cancelling
+                    ? AiStreamUiState.Cancelling
+                    : AiStreamUiState.Connected,
+              }
+            })
+            return
+          }
+
           setStreamState((prev) => {
             if (shouldIgnoreDuplicateEvent(prev, ev.id)) return prev
             let next = markEventSeen(prev, ev.id)
@@ -186,28 +229,6 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
                 queueMicrotask(() => handleTerminal(applyCancelled(next)))
               }
               return next
-            }
-
-            if (
-              ev.event === SseEventType.Token ||
-              ev.event === 'message.delta' ||
-              ev.event === 'content.delta'
-            ) {
-              const parsed = parseJsonSafe<{
-                token?: string
-                delta?: string
-                text?: string
-              }>(ev.data)
-              const token = parsed?.token ?? parsed?.delta ?? parsed?.text ?? ev.data
-              // Buffer tokens outside React state for batching
-              queueToken(token)
-              return {
-                ...next,
-                uiState:
-                  next.uiState === AiStreamUiState.Cancelling
-                    ? AiStreamUiState.Cancelling
-                    : AiStreamUiState.Connected,
-              }
             }
 
             if (ev.event === SseEventType.ToolCall || ev.event === 'tool.started') {
@@ -247,23 +268,33 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
             if (
               ev.event === SseEventType.Completed ||
               ev.event === 'message.completed' ||
-              ev.event === 'turn.completed'
+              ev.event === 'turn.completed' ||
+              ev.event === 'answer.completed'
             ) {
               const completed = applyCompleted(next)
               queueMicrotask(() => handleTerminal(completed))
               return completed
             }
 
-            if (ev.event === SseEventType.Error || ev.event === 'message.error') {
+            if (
+              ev.event === SseEventType.Error ||
+              ev.event === 'message.error' ||
+              ev.event === 'answer.failed'
+            ) {
               const parsed = parseJsonSafe<{ message?: string; errorCode?: string }>(
                 ev.data
               )
               const failed = applyFailed(
                 next,
-                parsed?.message ?? 'Stream error'
+                parsed?.message ?? parsed?.errorCode ?? 'Stream error'
               )
               queueMicrotask(() => handleTerminal(failed))
               return failed
+            }
+
+            if (ev.event === 'answer.cancelled') {
+              queueMicrotask(() => handleTerminal(applyCancelled(next)))
+              return next
             }
 
             return next
@@ -332,7 +363,8 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
         return
       }
 
-      connect(resolveStreamUrl(streamUrl))
+      // Start replay from sequence 0 so events already persisted before connect are replayed
+      connect(resolveStreamUrl(streamUrl), '0')
     },
     [resetStream, connect, handleTerminal]
   )

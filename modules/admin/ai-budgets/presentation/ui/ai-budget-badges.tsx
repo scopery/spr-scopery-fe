@@ -1,8 +1,12 @@
 'use client'
 
-import { formatEstimatedCost } from '@/modules/admin/ai-agents'
 import type { AIBudgetStatusLabel } from '../../domain/model/ai-budget'
 import { cn } from '@/utils/cn'
+
+function formatEstimatedCost(value: number | null, currency = 'USD'): string {
+  if (value == null) return '—'
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value)
+}
 
 const STATUS_STYLES: Record<AIBudgetStatusLabel, string> = {
   ok: 'bg-green-50 text-green-700 border-green-200',

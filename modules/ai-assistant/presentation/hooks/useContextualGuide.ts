@@ -102,10 +102,18 @@ export function useContextualGuide(args: {
       setMode(nextMode)
       setDrawerOpen(true)
       setStreaming(true)
+
+      // Guard: if no terminal event within 15s, assume feature not available
+      const noResponseTimer = setTimeout(() => {
+        closeStream()
+        setError('AI guide is not yet available. Please use the AI Assistant chat instead.')
+      }, 15000)
+
       try {
         const res = await start()
         const streamUrl = res.streamUrl
         if (!streamUrl) {
+          clearTimeout(noResponseTimer)
           setStreaming(false)
           setError('No stream URL returned')
           return
@@ -118,8 +126,10 @@ export function useContextualGuide(args: {
             if (
               ev.event === SseEventType.Token ||
               ev.event === 'message.delta' ||
-              ev.event === 'content.delta'
+              ev.event === 'content.delta' ||
+              ev.event === 'answer.delta'
             ) {
+              clearTimeout(noResponseTimer)
               try {
                 const parsed = JSON.parse(ev.data) as {
                   token?: string
@@ -137,13 +147,21 @@ export function useContextualGuide(args: {
               ev.event === SseEventType.Completed ||
               ev.event === SseEventType.Error ||
               ev.event === 'message.completed' ||
-              ev.event === 'message.error'
+              ev.event === 'message.error' ||
+              ev.event === 'answer.completed' ||
+              ev.event === 'answer.failed' ||
+              ev.event === 'answer.cancelled'
             ) {
+              clearTimeout(noResponseTimer)
               setStreaming(false)
-              if (ev.event === SseEventType.Error || ev.event === 'message.error') {
+              if (
+                ev.event === SseEventType.Error ||
+                ev.event === 'message.error' ||
+                ev.event === 'answer.failed'
+              ) {
                 try {
-                  const parsed = JSON.parse(ev.data) as { message?: string }
-                  setError(parsed.message ?? 'Guide stream failed')
+                  const parsed = JSON.parse(ev.data) as { message?: string; errorCode?: string }
+                  setError(parsed.message ?? parsed.errorCode ?? 'Guide stream failed')
                 } catch {
                   setError('Guide stream failed')
                 }
@@ -151,13 +169,18 @@ export function useContextualGuide(args: {
             }
           },
           onError: (err) => {
+            clearTimeout(noResponseTimer)
             setError(err instanceof Error ? err.message : 'Guide stream failed')
             setStreaming(false)
           },
-          onDone: () => setStreaming(false),
+          onDone: () => {
+            clearTimeout(noResponseTimer)
+            setStreaming(false)
+          },
         })
         cancelRef.current = cancel
       } catch (err) {
+        clearTimeout(noResponseTimer)
         setError(err instanceof Error ? err.message : 'Failed to start explanation')
         setStreaming(false)
       }
