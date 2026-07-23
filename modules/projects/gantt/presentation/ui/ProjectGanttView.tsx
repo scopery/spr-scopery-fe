@@ -564,11 +564,11 @@ export function ProjectGanttView() {
           ) : null}
           <Typography variant="small" tone="muted" className="ml-1">
             <span className="mr-3 inline-flex items-center gap-1">
-              <span className="inline-block h-2.5 w-6 rounded-sm bg-sky-300" />
+              <span className="inline-block h-2.5 w-6 bg-sky-300" />
               Task — drag or double-click
             </span>
             <span className="mr-3 inline-flex items-center gap-1">
-              <span className="inline-block h-2.5 w-6 rounded-sm bg-slate-300" />
+              <span className="inline-block h-2.5 w-6 bg-slate-300" />
               Phase/WBS — drag to shift children
             </span>
             Recalculate reschedules dependencies project-wide.

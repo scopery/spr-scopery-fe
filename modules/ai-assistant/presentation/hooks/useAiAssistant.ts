@@ -68,6 +68,8 @@ export function useAiAssistant() {
   >({})
   const createLockRef = useRef(false)
   const prevWorkspaceRef = useRef<string | null>(workspaceId)
+  // Tracks navigation triggered by openConversation so the deep-link effect doesn't re-fetch.
+  const skipDeeplinkRef = useRef<string | null>(null)
 
   const {
     streamState,
@@ -181,6 +183,7 @@ export function useAiAssistant() {
         if (opts?.navigate !== false && workspaceId) {
           const href = conversationHref(id)
           if (typeof window !== 'undefined' && window.location.pathname !== href) {
+            skipDeeplinkRef.current = id
             router.push(href)
           }
         }
@@ -194,6 +197,10 @@ export function useAiAssistant() {
   // Deep-link: /workspace/.../ai/c/:conversationId
   useEffect(() => {
     if (!routeConversationId) return
+    if (skipDeeplinkRef.current === routeConversationId) {
+      skipDeeplinkRef.current = null
+      return
+    }
     if (activeId === routeConversationId && messages.length > 0) return
     void openConversation(routeConversationId, { navigate: false })
   }, [routeConversationId]) // eslint-disable-line react-hooks/exhaustive-deps -- one-shot per route id

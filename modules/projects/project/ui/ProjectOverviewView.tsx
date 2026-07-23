@@ -1,20 +1,24 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import NextLink from 'next/link'
-import { useParams } from 'next/navigation'
-import { AlertTriangle, ArrowRight, ListTodo, Settings } from 'lucide-react'
+import { useParams, useRouter } from 'next/navigation'
+import { AlertTriangle, ArrowRight, ListTodo, Settings, Sparkles } from 'lucide-react'
 import { Typography, Button, PageSkeleton, Stack, Badge } from '@/shared/ui'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import { UserIdentity } from '@/modules/platform/identity/presentation/ui/UserIdentity'
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
 import { ROUTES } from '@/constants/routes'
+import { aiDocumentIntelligenceApi } from '@/modules/ai-document-intelligence/document-ai'
+import type { AIStructuredPreview } from '@/modules/ai-document-intelligence/document-ai'
+import { toast } from 'sonner'
 import { useProject } from '../hooks/useProject'
 import { useProjectLifecycle } from '../hooks/useProjectLifecycle'
 import { useProjectPhases } from '../../phase/presentation/hooks/useProjectPhases'
 import { useProjectTasks } from '../../task/presentation/hooks/useProjectTasks'
 import { ProjectStatusBadge } from '../presentation/ui/ProjectStatusBadge'
 import { ProjectLifecycleMenu } from '../presentation/ui/ProjectLifecycleMenu'
+import { ProjectSummaryModal } from '../presentation/ui/ProjectSummaryModal'
 import { TaskStatus } from '../domain/enums/project.enum'
 import {
   isTaskOverdue,
@@ -31,8 +35,61 @@ function formatDate(iso: string | null | undefined) {
 
 export function ProjectOverviewView() {
   const params = useParams()
+  const router = useRouter()
   const workspaceId = params.workspaceId as string
   const projectId = params.projectId as string
+
+  const [summaryOpen, setSummaryOpen] = useState(false)
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [summaryPreview, setSummaryPreview] = useState<AIStructuredPreview | null>(null)
+  const [summaryGenerationId, setSummaryGenerationId] = useState<string | null>(null)
+  const [summaryWarnings, setSummaryWarnings] = useState<string[]>([])
+  const [summarySaving, setSummarySaving] = useState(false)
+
+  const generateSummary = async () => {
+    setSummaryLoading(true)
+    setSummaryPreview(null)
+    try {
+      const res = await aiDocumentIntelligenceApi.generateProjectBrief(workspaceId, projectId, { save: false })
+      if ('preview' in res) {
+        setSummaryPreview(res.preview)
+        setSummaryGenerationId(res.generationId)
+        setSummaryWarnings(res.warnings ?? [])
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to generate summary')
+      setSummaryOpen(false)
+    } finally {
+      setSummaryLoading(false)
+    }
+  }
+
+  const openSummary = () => {
+    setSummaryOpen(true)
+    void generateSummary()
+  }
+
+  const saveSummary = async () => {
+    if (!summaryPreview || !summaryGenerationId) return
+    setSummarySaving(true)
+    try {
+      const res = await aiDocumentIntelligenceApi.saveAIPreviewAsDocument(workspaceId, {
+        generation_id: summaryGenerationId,
+        project_id: projectId,
+        title: summaryPreview.title,
+        sections: summaryPreview.sections,
+        origin_type: 'project_summary',
+        document_type: 'project_doc',
+      })
+      toast.success('Document created')
+      setSummaryOpen(false)
+      router.push(ROUTES.workspace.document(workspaceId, res.document.id, projectId))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save document')
+    } finally {
+      setSummarySaving(false)
+    }
+  }
 
   const { project, loading, error, refetch } = useProject(workspaceId, projectId)
   const { peopleById } = useResolveUsers([project?.ownerUserId])
@@ -125,6 +182,9 @@ export function ProjectOverviewView() {
           </div>
         </div>
         <Stack direction="horizontal" spacing="sm" className="items-center">
+          <Button variant="outline" icon={<Sparkles size={16} />} onClick={openSummary}>
+            Project summary
+          </Button>
           <NextLink href={ROUTES.workspace.projectWork(workspaceId, projectId)}>
             <Button variant="secondary" icon={<ListTodo size={16} />}>
               Work items
@@ -273,6 +333,17 @@ export function ProjectOverviewView() {
           </NextLink>
         </Stack>
       </section>
+
+      <ProjectSummaryModal
+        open={summaryOpen}
+        onClose={() => setSummaryOpen(false)}
+        preview={summaryPreview}
+        warnings={summaryWarnings}
+        loading={summaryLoading}
+        onRegenerate={() => void generateSummary()}
+        onSave={summaryGenerationId ? () => void saveSummary() : undefined}
+        saving={summarySaving}
+      />
     </div>
   )
 }

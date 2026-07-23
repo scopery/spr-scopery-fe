@@ -70,6 +70,13 @@ const AiAssistantQuickPanel = dynamic(
   () => import('./AiAssistantQuickPanel').then((m) => m.AiAssistantQuickPanel),
   { ssr: false }
 )
+const AiProjectSidebarPanel = dynamic(
+  () =>
+    import('@/modules/ai-assistant/presentation/ui/AiProjectSidebarPanel').then(
+      (m) => m.AiProjectSidebarPanel
+    ),
+  { ssr: false }
+)
 
 interface AppShellProps {
   workspaceId: string
@@ -109,6 +116,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [notificationsPanelOpen, setNotificationsPanelOpen] = useState(false)
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
+  const [aiSidebarOpen, setAiSidebarOpen] = useState(false)
   const [prevUnread, setPrevUnread] = useState(0)
   const [badgePopKey, setBadgePopKey] = useState(0)
   const notificationsAnchorRef = useRef<HTMLButtonElement>(null!)
@@ -682,6 +690,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     setSwitcherOpen(false)
     setNotificationsPanelOpen(false)
     setAiPanelOpen(false)
+    // Keep aiSidebarOpen across in-project navigations; close when leaving project context
   }, [pathname])
 
   useEffect(() => {
@@ -788,12 +797,18 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
               setSearchOpen(false)
             }}
             onOpenAiAssistant={() => {
-              setAiPanelOpen((v) => !v)
+              if (isProjectWorkbench) {
+                setAiSidebarOpen((v) => !v)
+                setAiPanelOpen(false)
+              } else {
+                setAiPanelOpen((v) => !v)
+                setAiSidebarOpen(false)
+              }
               setNotificationsPanelOpen(false)
               setSearchOpen(false)
             }}
             notificationsOpen={notificationsPanelOpen}
-            aiAssistantOpen={aiPanelOpen}
+            aiAssistantOpen={isProjectWorkbench ? aiSidebarOpen : aiPanelOpen}
             notificationsAnchorRef={notificationsAnchorRef}
             aiAssistantAnchorRef={aiAssistantAnchorRef}
           />
@@ -891,43 +906,58 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
       <Box
         as="main"
         className={cn(
-          'relative min-h-0 min-w-0 flex-1 motion-main-resize',
-          immersiveMain
-            ? 'flex flex-col overflow-hidden p-0'
-            : 'overflow-y-auto p-4 lg:p-8'
+          'relative min-h-0 min-w-0 flex-1 flex motion-main-resize',
+          immersiveMain ? 'flex-col overflow-hidden p-0' : 'flex-row overflow-hidden'
         )}
       >
-        {currentWorkspace && !immersiveMain ? (
-          <div className="mb-3 flex items-center gap-2 lg:hidden">
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<Menu size={16} />}
-              aria-label="Open navigation"
-              onClick={() => setMobileNavOpen(true)}
-            >
-              Menu
-            </Button>
-          </div>
-        ) : null}
-        {currentWorkspace && immersiveMain ? (
-          <div className="flex shrink-0 items-center gap-2 border-b border-neutral-200 bg-white px-3 py-2 lg:hidden">
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<Menu size={16} />}
-              aria-label="Open navigation"
-              onClick={() => setMobileNavOpen(true)}
-            >
-              Menu
-            </Button>
-          </div>
-        ) : null}
-        <PageContentEnter
-          className={immersiveMain ? 'flex min-h-0 flex-1 flex-col' : undefined}
+        <div
+          className={cn(
+            'min-h-0 flex-1',
+            immersiveMain ? 'flex flex-col overflow-hidden' : 'overflow-y-auto p-4 lg:p-8'
+          )}
         >
-          {children}
-        </PageContentEnter>
+          {currentWorkspace && !immersiveMain ? (
+            <div className="mb-3 flex items-center gap-2 lg:hidden">
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Menu size={16} />}
+                aria-label="Open navigation"
+                onClick={() => setMobileNavOpen(true)}
+              >
+                Menu
+              </Button>
+            </div>
+          ) : null}
+          {currentWorkspace && immersiveMain ? (
+            <div className="flex shrink-0 items-center gap-2 border-b border-neutral-200 bg-white px-3 py-2 lg:hidden">
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Menu size={16} />}
+                aria-label="Open navigation"
+                onClick={() => setMobileNavOpen(true)}
+              >
+                Menu
+              </Button>
+            </div>
+          ) : null}
+          <PageContentEnter
+            className={immersiveMain ? 'flex min-h-0 flex-1 flex-col' : undefined}
+          >
+            {children}
+          </PageContentEnter>
+        </div>
+
+        {aiSidebarOpen && isProjectWorkbench && !immersiveMain && projectId ? (
+          <AiProjectSidebarPanel
+            key={projectId}
+            workspaceId={workspaceId}
+            projectId={projectId}
+            projectName={workbenchProject?.name ?? null}
+            onClose={() => setAiSidebarOpen(false)}
+          />
+        ) : null}
       </Box>
 
       {helpOpen ? <HelpGuideModal open={helpOpen} onClose={() => setHelpOpen(false)} /> : null}

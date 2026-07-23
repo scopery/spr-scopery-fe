@@ -571,7 +571,7 @@ export function AiAssistantView() {
         onSearchChange={setListSearch}
         onNew={() => {
           setConversationsOpen(false)
-          setNewOpen(true)
+          goToLanding()
         }}
         onOpen={(id) => void openConversation(id)}
         onRename={setRenameTarget}
