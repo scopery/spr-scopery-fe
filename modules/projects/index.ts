@@ -76,7 +76,14 @@ export type {
   IntakesUploadUrlResponse,
 } from './ai-impact/model/ai-impact'
 export type { TraceLinksListResponse } from './traceability/model/traceability'
-export { TraceabilityMatrixView, ApplicationRegistryView } from './traceability'
+export {
+  TraceabilityMatrixView,
+  ApplicationRegistryView,
+  ApplicationWorkbenchView,
+  FunctionalCatalogView,
+  ProjectApplicationStructureView,
+  OverallStructurePanel,
+} from './traceability'
 export type { ProjectTask, CreateTaskPayload, UpdateTaskPayload } from './task/domain/model/task'
 export type { ProjectPhase, CreateProjectPhasePayload } from './phase/domain/model/phase'
 export type { Meeting, CreateMeetingPayload, UpdateMeetingPayload } from './meetings/domain/model/meeting'

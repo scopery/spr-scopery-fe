@@ -1,15 +1,14 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import * as assignmentsApi from '../../infrastructure/api/task-assignments.api'
-import * as catalogApi from '../../infrastructure/api/resource-catalog.api'
-import * as workspaceMembersApi from '@/modules/org/workspace/api/workspace-members.api'
-import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
+import * as resourcesApi from '../../infrastructure/api/resources.api'
 import type {
   CreateTaskResourceAssignmentPayload,
   TaskResourceAssignment,
 } from '../../domain/model/task-assignment'
-import type { ResourceRole } from '../../domain/model/resource-catalog'
+import type { ResourceProfile } from '../../domain/model/resource-profile'
+import { ResourceProfileStatus } from '../../domain/enums/capacity.enum'
 
 export function useTaskResourceAssignments(
   projectId: string | null,
@@ -17,14 +16,10 @@ export function useTaskResourceAssignments(
   workspaceId: string | null
 ) {
   const [items, setItems] = useState<TaskResourceAssignment[]>([])
-  const [roles, setRoles] = useState<ResourceRole[]>([])
-  const [members, setMembers] = useState<{ id: string; userId: string }[]>([])
+  const [profiles, setProfiles] = useState<ResourceProfile[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-
-  const memberUserIds = useMemo(() => members.map((m) => m.userId), [members])
-  const { labelFor } = useResolveUsers(memberUserIds)
 
   const load = useCallback(async () => {
     if (!projectId || !taskId) return
@@ -46,13 +41,19 @@ export function useTaskResourceAssignments(
 
   useEffect(() => {
     if (!workspaceId) return
-    void Promise.all([
-      catalogApi.listResourceRoles(workspaceId),
-      workspaceMembersApi.listWorkspaceMembers(workspaceId, { page: 0, size: 100 }),
-    ]).then(([roleList, memberRes]) => {
-      setRoles(roleList)
-      setMembers(memberRes.items.map((m) => ({ id: m.id, userId: m.userId })))
-    })
+    void resourcesApi
+      .listResourceProfiles(workspaceId)
+      .then((list) =>
+        setProfiles(
+          list.filter(
+            (p) =>
+              !p.status ||
+              p.status === ResourceProfileStatus.Active ||
+              String(p.status).toUpperCase() === 'ACTIVE'
+          )
+        )
+      )
+      .catch(() => setProfiles([]))
   }, [workspaceId])
 
   const addAssignment = useCallback(
@@ -78,33 +79,23 @@ export function useTaskResourceAssignments(
     [projectId, taskId, load]
   )
 
-  const memberLabel = useCallback(
-    (memberId: string) => {
-      const m = members.find((x) => x.id === memberId)
-      return m ? labelFor(m.userId) : memberId.slice(0, 8)
+  const profileLabel = useCallback(
+    (profileId: string) => {
+      const p = profiles.find((x) => x.id === profileId)
+      return p?.displayName ?? profileId.slice(0, 8)
     },
-    [members, labelFor]
-  )
-
-  const roleLabel = useCallback(
-    (roleId: string | null) => {
-      if (!roleId) return '—'
-      return roles.find((r) => r.id === roleId)?.name ?? roleId.slice(0, 8)
-    },
-    [roles]
+    [profiles]
   )
 
   return {
     items,
-    roles,
-    members,
+    profiles,
     loading,
     error,
     saving,
     refetch: load,
     addAssignment,
     removeAssignment,
-    memberLabel,
-    roleLabel,
+    profileLabel,
   }
 }

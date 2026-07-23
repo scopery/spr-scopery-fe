@@ -22,6 +22,21 @@ describe('ast-adapter', () => {
     expect(parseAstToPlateValue(ast)).toEqual([{ type: 'p', children: [{ text: 'x' }] }])
   })
 
+  it('converts TipTap-shaped ast into Plate', () => {
+    const ast = JSON.stringify([
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Updated: version 2 of the project specification.' }],
+      },
+    ])
+    expect(parseAstToPlateValue(ast)).toEqual([
+      {
+        type: 'p',
+        children: [{ text: 'Updated: version 2 of the project specification.' }],
+      },
+    ])
+  })
+
   it('falls back to empty on invalid ast', () => {
     expect(parseAstToPlateValue('not-json')).toEqual(empty)
     expect(parseAstToPlateValue('')).toEqual(empty)

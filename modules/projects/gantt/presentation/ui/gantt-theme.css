@@ -34,8 +34,9 @@
   font-weight: 400 !important;
 }
 
-/* Task bars are draggable on the chart */
-.scopery-gantt .wx-bar.wx-task:not(.wx-summary):not(.wx-milestone) {
+/* Task + Phase/WBS bars are draggable on the chart */
+.scopery-gantt .wx-bar.wx-task:not(.wx-milestone),
+.scopery-gantt .wx-bar.wx-summary {
   cursor: grab;
 }
 
@@ -45,14 +46,13 @@
   border-radius: 0 !important;
 }
 
-.scopery-gantt .wx-bar.wx-task:not(.wx-summary):not(.wx-milestone):active {
+.scopery-gantt .wx-bar.wx-task:not(.wx-milestone):active,
+.scopery-gantt .wx-bar.wx-summary:active {
   cursor: grabbing;
 }
 
-/* Phase / WBS / project rollups — read-only on timeline */
 .scopery-gantt .wx-bar.wx-summary {
-  cursor: default;
-  opacity: 0.92;
+  opacity: 0.95;
 }
 
 .scopery-gantt .wx-bar.wx-milestone {

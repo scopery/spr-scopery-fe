@@ -10,6 +10,9 @@ import type {
 } from '../../domain/model/phase'
 import type { PhaseLifecycleAction } from '../../domain/rules/phase.rules'
 
+type LoadOpts = { silent?: boolean }
+type CreateOpts = { refresh?: boolean }
+
 export function useProjectPhases(projectId: string | null) {
   const [phases, setPhases] = useState<ProjectPhase[]>([])
   const [loading, setLoading] = useState(false)
@@ -17,9 +20,11 @@ export function useProjectPhases(projectId: string | null) {
   const [forbidden, setForbidden] = useState(false)
   const [actingId, setActingId] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: LoadOpts) => {
     if (!projectId) return
-    setLoading(true)
+    if (!opts?.silent) {
+      setLoading(true)
+    }
     setError(null)
     setForbidden(false)
     try {
@@ -30,7 +35,9 @@ export function useProjectPhases(projectId: string | null) {
       setError(err instanceof Error ? err.message : 'Failed to load phases')
       setPhases([])
     } finally {
-      setLoading(false)
+      if (!opts?.silent) {
+        setLoading(false)
+      }
     }
   }, [projectId])
 
@@ -39,10 +46,12 @@ export function useProjectPhases(projectId: string | null) {
   }, [load])
 
   const createPhase = useCallback(
-    async (body: CreateProjectPhasePayload) => {
+    async (body: CreateProjectPhasePayload, opts?: CreateOpts) => {
       if (!projectId) return null
       const created = await phasesApi.createPhase(projectId, body)
-      await load()
+      if (opts?.refresh !== false) {
+        await load({ silent: true })
+      }
       return created
     },
     [projectId, load]
@@ -52,7 +61,7 @@ export function useProjectPhases(projectId: string | null) {
     async (phaseId: string, body: UpdateProjectPhasePayload) => {
       if (!projectId) return null
       const updated = await phasesApi.updatePhase(projectId, phaseId, body)
-      await load()
+      await load({ silent: true })
       return updated
     },
     [projectId, load]
@@ -66,7 +75,7 @@ export function useProjectPhases(projectId: string | null) {
         if (action === 'activate') await phasesApi.activatePhase(projectId, phaseId)
         else if (action === 'complete') await phasesApi.completePhase(projectId, phaseId)
         else await phasesApi.archivePhase(projectId, phaseId)
-        await load()
+        await load({ silent: true })
       } finally {
         setActingId(null)
       }

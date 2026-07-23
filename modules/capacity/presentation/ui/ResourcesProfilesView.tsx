@@ -19,9 +19,11 @@ import { ResourceProfileStatus, ResourceType } from '../../domain/enums/capacity
 
 const TYPE_OPTIONS = [
   { value: 'ALL', label: 'All types' },
-  { value: ResourceType.Member, label: 'Member' },
-  { value: ResourceType.External, label: 'External' },
-  { value: ResourceType.Placeholder, label: 'Placeholder' },
+  { value: ResourceType.InternalUser, label: 'Internal user' },
+  { value: ResourceType.ExternalContractor, label: 'External contractor' },
+  { value: ResourceType.VendorStaff, label: 'Vendor staff' },
+  { value: ResourceType.PlaceholderRole, label: 'Placeholder role' },
+  { value: ResourceType.Team, label: 'Team' },
 ]
 
 const STATUS_OPTIONS = [
@@ -29,6 +31,18 @@ const STATUS_OPTIONS = [
   { value: ResourceProfileStatus.Active, label: 'Active' },
   { value: ResourceProfileStatus.Archived, label: 'Archived' },
 ]
+
+const CREATE_TYPE_OPTIONS = TYPE_OPTIONS.filter((o) => o.value !== 'ALL')
+
+function emptyCreateForm() {
+  return {
+    resourceType: ResourceType.InternalUser as string,
+    displayName: '',
+    linkedWorkspaceMemberId: '',
+    linkedUserId: '',
+    primaryRoleId: '',
+  }
+}
 
 export function ResourcesProfilesView() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
@@ -61,12 +75,7 @@ export function ResourcesProfilesView() {
   const [members, setMembers] = useState<{ id: string; userId: string }[]>([])
   const memberUserIds = useMemo(() => members.map((m) => m.userId), [members])
   const { labelFor } = useResolveUsers(memberUserIds)
-  const [form, setForm] = useState({
-    resourceType: ResourceType.Member as string,
-    displayName: '',
-    linkedWorkspaceMemberId: '',
-    primaryRoleId: '',
-  })
+  const [form, setForm] = useState(emptyCreateForm)
 
   const loadMembers = useCallback(async () => {
     if (!workspaceId) return
@@ -192,7 +201,9 @@ export function ResourcesProfilesView() {
                         <Badge
                           size="sm"
                           tone={
-                            r.resourceType === ResourceType.Placeholder ? 'warning' : 'neutral'
+                            r.resourceType === ResourceType.PlaceholderRole
+                              ? 'warning'
+                              : 'neutral'
                           }
                         >
                           {r.resourceType}
@@ -296,19 +307,22 @@ export function ResourcesProfilesView() {
             variant: 'primary',
             loading: creating,
             onClick: async () => {
+              const member = members.find((m) => m.id === form.linkedWorkspaceMemberId)
               await createResource({
-                resourceType: form.resourceType as typeof ResourceType.Member,
+                resourceType: form.resourceType as ResourceType,
                 displayName: form.displayName.trim(),
-                linkedWorkspaceMemberId: form.linkedWorkspaceMemberId || null,
+                linkedUserId:
+                  form.resourceType === ResourceType.InternalUser
+                    ? (member?.userId ?? form.linkedUserId) || null
+                    : null,
+                linkedWorkspaceMemberId:
+                  form.resourceType === ResourceType.InternalUser
+                    ? form.linkedWorkspaceMemberId || null
+                    : null,
                 primaryRoleId: form.primaryRoleId || null,
               })
               setShowCreate(false)
-              setForm({
-                resourceType: ResourceType.Member,
-                displayName: '',
-                linkedWorkspaceMemberId: '',
-                primaryRoleId: '',
-              })
+              setForm(emptyCreateForm())
             },
           },
         ]}
@@ -321,7 +335,7 @@ export function ResourcesProfilesView() {
             <Select
               value={form.resourceType}
               onValueChange={(v: string) => setForm((f) => ({ ...f, resourceType: v }))}
-              options={TYPE_OPTIONS.filter((o) => o.value !== 'ALL')}
+              options={CREATE_TYPE_OPTIONS}
             />
           </div>
           <Input
@@ -329,16 +343,21 @@ export function ResourcesProfilesView() {
             value={form.displayName}
             onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
           />
-          {form.resourceType === ResourceType.Member ? (
+          {form.resourceType === ResourceType.InternalUser ? (
             <div>
               <Typography variant="small" weight="medium" className="mb-1">
                 Linked member
               </Typography>
               <Select
                 value={form.linkedWorkspaceMemberId}
-                onValueChange={(v: string) =>
-                  setForm((f) => ({ ...f, linkedWorkspaceMemberId: v }))
-                }
+                onValueChange={(v: string) => {
+                  const member = members.find((m) => m.id === v)
+                  setForm((f) => ({
+                    ...f,
+                    linkedWorkspaceMemberId: v,
+                    linkedUserId: member?.userId ?? '',
+                  }))
+                }}
                 options={members.map((m) => ({
                   value: m.id,
                   label: labelFor(m.userId),

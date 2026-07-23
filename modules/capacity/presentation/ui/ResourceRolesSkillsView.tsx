@@ -21,8 +21,8 @@ export function ResourceRolesSkillsView() {
 
   const [roleModal, setRoleModal] = useState(false)
   const [skillModal, setSkillModal] = useState(false)
-  const [roleForm, setRoleForm] = useState({ name: '', description: '' })
-  const [skillForm, setSkillForm] = useState({ name: '', description: '' })
+  const [roleForm, setRoleForm] = useState({ roleCode: '', name: '', description: '' })
+  const [skillForm, setSkillForm] = useState({ skillCode: '', name: '', description: '' })
 
   if (loading) return <PageSkeleton variant="list" />
   if (error) {
@@ -74,11 +74,10 @@ export function ResourceRolesSkillsView() {
                 <Typography weight="medium" variant="small">
                   {role.name}
                 </Typography>
-                {role.description ? (
-                  <Typography variant="caption" tone="muted">
-                    {role.description}
-                  </Typography>
-                ) : null}
+                <Typography variant="caption" tone="muted">
+                  {role.roleCode}
+                  {role.description ? ` · ${role.description}` : ''}
+                </Typography>
               </li>
             ))}
           </ul>
@@ -135,17 +134,31 @@ export function ResourceRolesSkillsView() {
             variant: 'primary',
             loading: creatingRole,
             onClick: async () => {
+              const name = roleForm.name.trim()
+              const roleCode =
+                roleForm.roleCode.trim() ||
+                name
+                  .toUpperCase()
+                  .replace(/[^A-Z0-9]+/g, '_')
+                  .replace(/^_|_$/g, '')
               await createRole({
-                name: roleForm.name.trim(),
+                roleCode,
+                name,
                 description: roleForm.description.trim() || undefined,
               })
               setRoleModal(false)
-              setRoleForm({ name: '', description: '' })
+              setRoleForm({ roleCode: '', name: '', description: '' })
             },
           },
         ]}
       >
         <div className="flex flex-col gap-3">
+          <Input
+            label="Code"
+            value={roleForm.roleCode}
+            onChange={(e) => setRoleForm((f) => ({ ...f, roleCode: e.target.value }))}
+            placeholder="Auto from name if empty"
+          />
           <Input
             label="Name"
             value={roleForm.name}
@@ -171,17 +184,31 @@ export function ResourceRolesSkillsView() {
             variant: 'primary',
             loading: creatingSkill,
             onClick: async () => {
+              const name = skillForm.name.trim()
+              const skillCode =
+                skillForm.skillCode.trim() ||
+                name
+                  .toUpperCase()
+                  .replace(/[^A-Z0-9]+/g, '_')
+                  .replace(/^_|_$/g, '')
               await createSkill({
-                name: skillForm.name.trim(),
+                skillCode,
+                name,
                 description: skillForm.description.trim() || undefined,
               })
               setSkillModal(false)
-              setSkillForm({ name: '', description: '' })
+              setSkillForm({ skillCode: '', name: '', description: '' })
             },
           },
         ]}
       >
         <div className="flex flex-col gap-3">
+          <Input
+            label="Code"
+            value={skillForm.skillCode}
+            onChange={(e) => setSkillForm((f) => ({ ...f, skillCode: e.target.value }))}
+            placeholder="Auto from name if empty"
+          />
           <Input
             label="Name"
             value={skillForm.name}

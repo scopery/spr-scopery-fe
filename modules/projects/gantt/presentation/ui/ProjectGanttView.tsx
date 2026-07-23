@@ -11,22 +11,27 @@ import { Badge, Button, PageSkeleton, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import * as phasesApi from '../../../phase/infrastructure/api/phases.api'
 import { useProject } from '../../../project/hooks/useProject'
 import { useProjectGantt } from '../hooks/useProjectGantt'
 import { downloadGanttExcel } from '../exportGanttExcel'
 import type { GanttTimeScale } from '../../domain/rules/gantt.rules'
 import {
+  collectDescendantSvarTaskIds,
   formatInclusiveEndForGrid,
   formatStartForGrid,
   ganttDragHintForItemType,
   isGanttChartDraggable,
+  isGanttSummaryDraggable,
+  isGanttTaskDraggable,
   mapGanttDepsToSvarLinks,
   mapGanttTreeToSvarTasks,
+  resolveSourceEntityId,
   resolveSourceTaskId,
   toDateOnlyFromSvar,
   toInclusiveFinishFromSvar,
 } from '../mapToSvarGantt'
-import { GanttTaskScheduleModal } from './GanttTaskScheduleModal'
+import { GanttScheduleModal } from './GanttScheduleModal'
 
 const SCALE_OPTIONS: { value: GanttTimeScale; label: string }[] = [
   { value: 'day', label: 'Day' },
@@ -67,12 +72,19 @@ const COLUMNS = [
     header: 'End',
     width: 110,
     resize: true,
-    // SVAR end is exclusive; show inclusive finish to match BE / bar coverage
     template: (value: unknown, row: { start?: Date; duration?: number }) =>
       formatInclusiveEndForGrid(value, row),
   },
   { id: 'duration', header: 'Duration', width: 90, resize: true },
 ]
+
+type ScheduleModalState = {
+  kind: 'task' | 'phase'
+  entityId: string
+  title: string
+  start: string
+  end: string
+}
 
 export function ProjectGanttView() {
   const params = useParams()
@@ -87,22 +99,41 @@ export function ProjectGanttView() {
   const dragOriginRef = useRef<Map<string | number, { start: string; end: string }>>(new Map())
   const blockedDragToastRef = useRef<Set<string | number>>(new Set())
   const savingTaskRef = useRef<Set<string>>(new Set())
-  const scheduleModalRef = useRef<(task: ITask) => void>(() => {})
+  const cascadeSavedTasksRef = useRef<Set<string>>(new Set())
+  const savingSummaryRef = useRef<Set<string>>(new Set())
+  const openScheduleModalRef = useRef<(task: ITask) => void>(() => {})
 
-  const [scheduleModal, setScheduleModal] = useState<{
-    taskId: string
-    title: string
-    start: string
-    end: string
-  } | null>(null)
+  const [scheduleModal, setScheduleModal] = useState<ScheduleModalState | null>(null)
   const [scheduleSaving, setScheduleSaving] = useState(false)
 
-  scheduleModalRef.current = (task: ITask) => {
-    const id = resolveSourceTaskId(task)
-    if (!id) return
+  openScheduleModalRef.current = (task: ITask) => {
     const start = toDateOnlyFromSvar(task.start) ?? ''
     const end = toInclusiveFinishFromSvar(task) ?? start
-    setScheduleModal({ taskId: id, title: task.text ?? 'Task', start, end })
+
+    if (isGanttTaskDraggable(task)) {
+      const id = resolveSourceTaskId(task)
+      if (!id) return
+      setScheduleModal({
+        kind: 'task',
+        entityId: id,
+        title: task.text ?? 'Task',
+        start,
+        end,
+      })
+      return
+    }
+
+    if (task.itemType === 'PHASE') {
+      const id = resolveSourceEntityId(task)
+      if (!id) return
+      setScheduleModal({
+        kind: 'phase',
+        entityId: id,
+        title: task.text ?? 'Phase',
+        start,
+        end,
+      })
+    }
   }
 
   useEffect(() => {
@@ -129,6 +160,8 @@ export function ProjectGanttView() {
     () => mapGanttTreeToSvarTasks(tree, { includeUnscheduled: !hideUnscheduled }),
     [tree, hideUnscheduled]
   )
+  const tasksRef = useRef(tasks)
+  tasksRef.current = tasks
 
   const links = useMemo(
     () => mapGanttDepsToSvarLinks(ganttDependencies, tasks),
@@ -139,16 +172,15 @@ export function ProjectGanttView() {
 
   const persistTaskDates = useCallback(
     async (taskId: string | number, task: ITask) => {
-      if (!isGanttChartDraggable(task)) {
-        await refetch()
-        return
-      }
+      if (!isGanttTaskDraggable(task)) return
 
       const sourceTaskId = resolveSourceTaskId(task)
       if (!sourceTaskId) {
         await refetch()
         return
       }
+
+      if (cascadeSavedTasksRef.current.has(sourceTaskId)) return
 
       const start = toDateOnlyFromSvar(task.start)
       const end = toInclusiveFinishFromSvar(task) ?? start
@@ -162,18 +194,26 @@ export function ProjectGanttView() {
 
       try {
         if (origin && origin.start === start && origin.end !== end) {
-          await resizeTask(sourceTaskId, {
-            manualFinishDate: end,
-            reason: 'Gantt resize',
-            recalculate: false,
-          })
+          await resizeTask(
+            sourceTaskId,
+            {
+              manualFinishDate: end,
+              reason: 'Gantt resize',
+              recalculate: false,
+            },
+            { refresh: true }
+          )
         } else {
-          await moveTask(sourceTaskId, {
-            manualStartDate: start,
-            manualFinishDate: end,
-            reason: 'Gantt drag',
-            recalculate: false,
-          })
+          await moveTask(
+            sourceTaskId,
+            {
+              manualStartDate: start,
+              manualFinishDate: end,
+              reason: 'Gantt drag',
+              recalculate: false,
+            },
+            { refresh: true }
+          )
         }
         setGanttDataVersion((v) => v + 1)
         toast.success('Task schedule updated')
@@ -188,92 +228,201 @@ export function ProjectGanttView() {
     [moveTask, resizeTask, refetch]
   )
 
+  const persistSummaryDates = useCallback(
+    async (summaryId: string | number, summaryTask: ITask) => {
+      if (!isGanttSummaryDraggable(summaryTask)) return
+
+      const key = String(summaryId)
+      if (savingSummaryRef.current.has(key)) return
+      savingSummaryRef.current.add(key)
+
+      const api = ganttApiRef.current
+      const start = toDateOnlyFromSvar(summaryTask.start)
+      const end = toInclusiveFinishFromSvar(summaryTask) ?? start
+      dragOriginRef.current.delete(summaryId)
+
+      if (!api || !start || !end) {
+        savingSummaryRef.current.delete(key)
+        await refetch()
+        return
+      }
+
+      const descendantIds = collectDescendantSvarTaskIds(tasksRef.current, summaryId)
+      const moves: Array<{ taskId: string; start: string; end: string }> = []
+
+      for (const id of descendantIds) {
+        const child = api.getTask(id)
+        const sourceTaskId = resolveSourceTaskId(child)
+        const childStart = toDateOnlyFromSvar(child.start)
+        const childEnd = toInclusiveFinishFromSvar(child) ?? childStart
+        if (!sourceTaskId || !childStart || !childEnd) continue
+        if (child.isPlaceholderSchedule) continue
+        moves.push({ taskId: sourceTaskId, start: childStart, end: childEnd })
+      }
+
+      try {
+        for (const m of moves) {
+          cascadeSavedTasksRef.current.add(m.taskId)
+          await moveTask(
+            m.taskId,
+            {
+              manualStartDate: m.start,
+              manualFinishDate: m.end,
+              reason:
+                summaryTask.itemType === 'PHASE'
+                  ? 'Gantt phase drag'
+                  : 'Gantt WBS drag',
+              recalculate: false,
+            },
+            { refresh: false }
+          )
+        }
+
+        if (summaryTask.itemType === 'PHASE') {
+          const phaseId = resolveSourceEntityId(summaryTask)
+          if (phaseId) {
+            await phasesApi.updatePhase(projectId, phaseId, {
+              plannedStartDate: start,
+              plannedEndDate: end,
+            })
+          }
+        }
+
+        await refetch()
+        setGanttDataVersion((v) => v + 1)
+        const label = summaryTask.itemType === 'PHASE' ? 'Phase' : 'WBS'
+        toast.success(
+          moves.length
+            ? `${label} moved · ${moves.length} task${moves.length === 1 ? '' : 's'} updated`
+            : `${label} dates updated`
+        )
+      } catch (err) {
+        toast.error(getProblemToastMessage(err))
+        await refetch()
+        setGanttDataVersion((v) => v + 1)
+      } finally {
+        savingSummaryRef.current.delete(key)
+        window.setTimeout(() => {
+          for (const m of moves) cascadeSavedTasksRef.current.delete(m.taskId)
+        }, 800)
+      }
+    },
+    [moveTask, projectId, refetch]
+  )
+
   const handleUpdateTask = useCallback(
     (ev: { id: string | number; inProgress?: boolean }) => {
       if (ev.inProgress) return
       const api = ganttApiRef.current
       if (!api) return
       const task = api.getTask(ev.id)
-      void persistTaskDates(ev.id, task)
+      if (isGanttSummaryDraggable(task)) {
+        void persistSummaryDates(ev.id, task)
+        return
+      }
+      if (isGanttTaskDraggable(task)) {
+        void persistTaskDates(ev.id, task)
+      }
     },
-    [persistTaskDates]
+    [persistSummaryDates, persistTaskDates]
   )
 
-  const init = useCallback((instance: IApi) => {
-    ganttApiRef.current = instance
+  const init = useCallback(
+    (instance: IApi) => {
+      ganttApiRef.current = instance
 
-    // Block structural edits — scheduling only via drag/resize on chart bars
-    instance.intercept('add-task', () => false)
-    instance.intercept('delete-task', () => false)
-    instance.intercept('add-link', () => false)
-    instance.intercept('delete-link', () => false)
-    instance.intercept('move-task', () => false)
+      instance.intercept('add-task', () => false)
+      instance.intercept('delete-task', () => false)
+      instance.intercept('add-link', () => false)
+      instance.intercept('delete-link', () => false)
+      instance.intercept('move-task', () => false)
 
-    // Block vertical row reorder only; allow horizontal chart drag for TASK rows only
-    instance.intercept(
-      'drag-task',
-      (ev: { left?: number; width?: number; top?: number; inProgress?: boolean; id: string | number }) => {
-        const isChartDrag = ev.left != null || ev.width != null
-        const isRowReorder = ev.top != null && !isChartDrag
-        if (isRowReorder) return false
+      instance.intercept(
+        'drag-task',
+        (ev: {
+          left?: number
+          width?: number
+          top?: number
+          inProgress?: boolean
+          id: string | number
+        }) => {
+          const isChartDrag = ev.left != null || ev.width != null
+          const isRowReorder = ev.top != null && !isChartDrag
+          if (isRowReorder) return false
 
-        if (isChartDrag) {
-          const task = instance.getTask(ev.id)
-          if (!isGanttChartDraggable(task)) {
-            if (ev.inProgress && !blockedDragToastRef.current.has(ev.id)) {
-              blockedDragToastRef.current.add(ev.id)
-              const hint = ganttDragHintForItemType(String(task.itemType ?? ''))
-              toast.info(hint ?? 'Only task bars can be dragged on the timeline')
+          if (isChartDrag) {
+            const task = instance.getTask(ev.id)
+            if (!isGanttChartDraggable(task)) {
+              if (ev.inProgress && !blockedDragToastRef.current.has(ev.id)) {
+                blockedDragToastRef.current.add(ev.id)
+                const hint = ganttDragHintForItemType(String(task.itemType ?? ''))
+                toast.info(hint ?? 'This bar cannot be dragged on the timeline')
+              }
+              if (!ev.inProgress) blockedDragToastRef.current.delete(ev.id)
+              return false
             }
-            if (!ev.inProgress) blockedDragToastRef.current.delete(ev.id)
-            return false
-          }
 
-          if (ev.inProgress && !dragOriginRef.current.has(ev.id) && task.start) {
-            const start = toDateOnlyFromSvar(task.start)
-            const end = toInclusiveFinishFromSvar(task)
-            if (start && end) dragOriginRef.current.set(ev.id, { start, end })
+            if (ev.inProgress && !dragOriginRef.current.has(ev.id) && task.start) {
+              const start = toDateOnlyFromSvar(task.start)
+              const end = toInclusiveFinishFromSvar(task)
+              if (start && end) dragOriginRef.current.set(ev.id, { start, end })
+            }
           }
         }
-      }
-    )
+      )
 
-    // Summary drag can still mutate internal state — snap rollups back from server data
-    instance.intercept('update-task', (ev: { id: string | number; inProgress?: boolean }) => {
-      if (ev.inProgress) return
-      const task = instance.getTask(ev.id)
-      if (!isGanttChartDraggable(task)) {
-        void refetch()
+      instance.intercept('update-task', (ev: { id: string | number; inProgress?: boolean }) => {
+        if (ev.inProgress) return
+        const task = instance.getTask(ev.id)
+        if (!isGanttChartDraggable(task)) {
+          void refetch()
+          return false
+        }
+      })
+
+      instance.intercept('show-editor', (ev: { id: string | number }) => {
+        const task = instance.getTask(ev.id)
+        if (isGanttTaskDraggable(task) || task.itemType === 'PHASE') {
+          openScheduleModalRef.current(task)
+          return false
+        }
+        if (isGanttSummaryDraggable(task)) {
+          toast.info('Drag the WBS bar to shift its tasks, or edit task dates directly')
+          return false
+        }
+        const hint = ganttDragHintForItemType(String(task.itemType ?? ''))
+        toast.info(hint ?? 'This row is read-only on the timeline')
         return false
-      }
-    })
+      })
+    },
+    [refetch]
+  )
 
-    instance.intercept('show-editor', (ev: { id: string | number }) => {
-      const task = instance.getTask(ev.id)
-      if (isGanttChartDraggable(task)) {
-        scheduleModalRef.current(task)
-        return false
-      }
-      const hint = ganttDragHintForItemType(String(task.itemType ?? ''))
-      toast.info(hint ?? 'This row is read-only on the timeline')
-      return false
-    })
-  }, [refetch])
-
-  const handleScheduleModalSave = async (body: {
-    manualStartDate: string
-    manualFinishDate: string
-  }) => {
+  const handleScheduleModalSave = async (body: { startDate: string; endDate: string }) => {
     if (!scheduleModal) return
     setScheduleSaving(true)
     try {
-      await moveTask(scheduleModal.taskId, {
-        ...body,
-        reason: 'Timeline edit',
-        recalculate: false,
-      })
+      if (scheduleModal.kind === 'task') {
+        await moveTask(
+          scheduleModal.entityId,
+          {
+            manualStartDate: body.startDate,
+            manualFinishDate: body.endDate,
+            reason: 'Timeline edit',
+            recalculate: false,
+          },
+          { refresh: true }
+        )
+        toast.success('Task schedule updated')
+      } else {
+        await phasesApi.updatePhase(projectId, scheduleModal.entityId, {
+          plannedStartDate: body.startDate,
+          plannedEndDate: body.endDate,
+        })
+        await refetch()
+        toast.success('Phase dates updated')
+      }
       setGanttDataVersion((v) => v + 1)
-      toast.success('Task schedule updated')
       setScheduleModal(null)
     } catch (err) {
       toast.error(getProblemToastMessage(err))
@@ -420,7 +569,7 @@ export function ProjectGanttView() {
             </span>
             <span className="mr-3 inline-flex items-center gap-1">
               <span className="inline-block h-2.5 w-6 rounded-sm bg-slate-300" />
-              Phase/WBS — rollup (read-only)
+              Phase/WBS — drag to shift children
             </span>
             Recalculate reschedules dependencies project-wide.
           </Typography>
@@ -453,9 +602,18 @@ export function ProjectGanttView() {
         )}
       </div>
 
-      <GanttTaskScheduleModal
+      <GanttScheduleModal
         open={scheduleModal != null}
-        taskTitle={scheduleModal?.title ?? ''}
+        title={
+          scheduleModal?.kind === 'phase' ? 'Edit phase dates' : 'Edit task schedule'
+        }
+        subtitle={
+          scheduleModal
+            ? scheduleModal.kind === 'phase'
+              ? `${scheduleModal.title} · updates phase planned dates`
+              : scheduleModal.title
+            : undefined
+        }
         startDate={scheduleModal?.start ?? ''}
         endDate={scheduleModal?.end ?? ''}
         saving={scheduleSaving}

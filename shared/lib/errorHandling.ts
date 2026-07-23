@@ -67,6 +67,8 @@ export function getProblemToastMessage(err: unknown): string {
       ACTOR_KEY_EXISTS: 'An actor with this key already exists in the org.',
       REQ_CODE_EXISTS: 'A requirement with this code already exists in the project.',
       TRACE_LINK_EXISTS: 'A duplicate trace link (from/to) already exists.',
+      RESOURCE_CONFLICT:
+        'Conflict — the resource may already exist or was updated elsewhere. Reload and retry, or use a different code.',
       // Workspace / Org conflicts
       ORGANIZATION_CODE_ALREADY_EXISTS: 'Organization code already exists.',
       WORKSPACE_CODE_ALREADY_EXISTS: 'Workspace code already exists in this organization.',

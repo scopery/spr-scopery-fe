@@ -1,4 +1,5 @@
 import type { Value } from 'platejs'
+import { normalizeToPlateValue } from '@/modules/documents/native-content/model/normalize-plate-value'
 import type { DocumentContent, PlateDocumentContent } from './editor.types'
 import { emptyPlateValue } from './empty-plate-value'
 
@@ -20,15 +21,16 @@ export function plainTextToPlateValue(text: string): Value {
 /**
  * Normalize DB content to Plate Value.
  * Preserves Phase 1 plain documents by converting to paragraphs.
+ * Also coerces TipTap/ProseMirror-shaped plate payloads.
  */
 export function contentToPlateValue(content: unknown): Value {
   if (!content) return emptyPlateValue()
 
   if (typeof content === 'object' && content !== null) {
-    const obj = content as DocumentContent & { body?: string; value?: Value }
+    const obj = content as DocumentContent & { body?: string; value?: unknown }
 
     if (obj.format === 'plate' && Array.isArray(obj.value) && obj.value.length > 0) {
-      return obj.value
+      return normalizeToPlateValue(obj.value)
     }
 
     if (obj.format === 'plain' && typeof obj.body === 'string') {
@@ -37,6 +39,11 @@ export function contentToPlateValue(content: unknown): Value {
 
     if (typeof obj.body === 'string') {
       return plainTextToPlateValue(obj.body)
+    }
+
+    // Bare node array / doc wrapper
+    if (Array.isArray(content) || 'content' in obj) {
+      return normalizeToPlateValue(content)
     }
   }
 

@@ -361,6 +361,7 @@ export function useAiAssistant() {
           pageCode: documentContext ? 'DOCUMENT_DETAIL' : 'AI_ASSISTANT',
           entityType: documentContext ? 'DOCUMENT' : null,
           entityId: documentContext?.documentId ?? null,
+          sourceProjectId: documentContext?.projectId ?? null,
           onUserAccepted: (userMessageId) => {
             setMessages((prev) => [
               ...prev,

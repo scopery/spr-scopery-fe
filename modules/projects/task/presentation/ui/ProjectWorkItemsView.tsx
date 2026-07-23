@@ -179,8 +179,8 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
         </Button>
       </div>
 
-      <Stack direction="horizontal" spacing="sm" className="mb-4 flex-wrap items-center">
-        <div className="inline-flex border border-neutral-200">
+      <Stack direction="horizontal" spacing="sm" className="mb-4 w-full flex-wrap items-center">
+        <div className="inline-flex shrink-0 border border-neutral-200">
           <Button
             size="sm"
             variant={view === 'list' ? 'secondary' : 'ghost'}
@@ -198,7 +198,7 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
             Board
           </Button>
         </div>
-        <div className="w-48">
+        <div className="min-w-[12rem] flex-1 basis-[12rem]">
           <Input
             fullWidth
             placeholder="Search…"
@@ -210,7 +210,7 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
           value={statusFilter}
           onValueChange={setStatusFilter}
           options={STATUS_FILTER_OPTIONS}
-          className="w-40"
+          className="min-w-[10rem] flex-1 basis-[10rem]"
         />
         <Select
           value={phaseFilter}
@@ -219,9 +219,9 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
             { value: '', label: 'All phases' },
             ...phases.map((p) => ({ value: p.id, label: p.name })),
           ]}
-          className="w-44"
+          className="min-w-[11rem] flex-1 basis-[11rem]"
         />
-        <div className="w-40">
+        <div className="min-w-[10rem] flex-1 basis-[10rem]">
           <Input
             fullWidth
             placeholder="Assignee id…"

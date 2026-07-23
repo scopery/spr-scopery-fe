@@ -64,6 +64,7 @@ export async function createMessage(
     pageCode?: string | null
     entityType?: string | null
     entityId?: string | null
+    sourceProjectId?: string | null
   }
 ): Promise<{
   conversationId?: string
@@ -86,6 +87,7 @@ export async function createMessage(
     pageCode: body.pageCode ?? null,
     entityType: body.entityType ?? null,
     entityId: body.entityId ?? null,
+    sourceProjectId: body.sourceProjectId ?? null,
   })
   return {
     conversationId: res.conversationId,

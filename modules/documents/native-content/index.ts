@@ -76,3 +76,4 @@ export type {
   EditorSidePanel,
 } from './model/collaboration'
 export { parseAstToPlateValue, plateValueToAst } from './model/ast-adapter'
+export { normalizeToPlateValue } from './model/normalize-plate-value'

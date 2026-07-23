@@ -1,7 +1,7 @@
 import { PolymorphicComponentPropWithRef } from '@/utils/polymorphic'
 import { ButtonProps } from '@/shared/ui/atoms/Button'
 
-export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full'
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full'
 
 export interface ModalAction {
   label: string

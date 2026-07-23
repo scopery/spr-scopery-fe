@@ -16,6 +16,7 @@ const modalSizes: Record<ModalSize, string> = {
   md: 'max-w-md',
   lg: 'max-w-lg',
   xl: 'max-w-xl',
+  '2xl': 'max-w-4xl',
   full: 'max-w-full',
 }
 

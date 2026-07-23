@@ -15,7 +15,7 @@ import { useEffectivePermissions } from '@/modules/permissions/access/hooks/useE
 import * as workbenchApi from '@/modules/documents/document-hub/api/document-workbench.api'
 import { ROUTES } from '@/constants/routes'
 import type { AiConversation } from '../../domain/model/conversation'
-import { AiStreamUiState } from '../../domain/enums/ai-assistant.enum'
+import { AiConversationType, AiStreamUiState } from '../../domain/enums/ai-assistant.enum'
 import { useAiAssistant } from '../hooks/useAiAssistant'
 import { useContextualGuide } from '../hooks/useContextualGuide'
 import { AiConversationDrawer } from './AiConversationDrawer'
@@ -369,7 +369,15 @@ export function AiAssistantView() {
     const text = draft.trim()
     if (!text) return
     isAtBottomRef.current = true
-    if (activeId) {
+
+    // If user added a project source while in a GENERAL_GUIDE conversation,
+    // start a new PROJECT_ASSISTANT conversation instead of continuing the old one.
+    const needsNewProjectConversation =
+      activeId &&
+      primaryProjectIdForStart &&
+      activeConversation?.conversationType !== AiConversationType.ProjectAssistant
+
+    if (activeId && !needsNewProjectConversation) {
       await sendMessage(text)
       setDraft('')
       return

@@ -11,6 +11,10 @@ export interface Requirement {
   description: string | null
   created_at: string
   updated_at?: string
+  /** Catalog FK (WAVE4) — camelCase from BE RequirementResponse */
+  functionalItemId?: string | null
+  nonFunctionalItemId?: string | null
+  applicationId?: string | null
 }
 
 export interface RequirementsListResponse {

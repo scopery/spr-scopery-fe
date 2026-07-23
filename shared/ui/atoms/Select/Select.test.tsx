@@ -32,8 +32,8 @@ describe('Select', () => {
   })
 
   it('renders with custom className', () => {
-    const { container } = render(<Select options={options} className="custom-class" />)
-    expect(container.firstChild).toBeInTheDocument()
+    const { container } = render(<Select options={options} className="custom-class w-40" />)
+    expect(container.firstChild).toHaveClass('custom-class', 'w-40')
   })
 
   it('renders with different sizes', () => {

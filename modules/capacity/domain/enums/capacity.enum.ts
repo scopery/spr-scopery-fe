@@ -14,9 +14,12 @@ export type ResourceProfileStatus =
   (typeof ResourceProfileStatus)[keyof typeof ResourceProfileStatus]
 
 export const ResourceType = {
-  Member: 'MEMBER',
-  External: 'EXTERNAL',
-  Placeholder: 'PLACEHOLDER',
+  InternalUser: 'INTERNAL_USER',
+  Team: 'TEAM',
+  ExternalContractor: 'EXTERNAL_CONTRACTOR',
+  VendorStaff: 'VENDOR_STAFF',
+  PlaceholderRole: 'PLACEHOLDER_ROLE',
+  SystemResource: 'SYSTEM_RESOURCE',
 } as const
 export type ResourceType = (typeof ResourceType)[keyof typeof ResourceType]
 
@@ -64,3 +67,15 @@ export const AllocationType = {
   OnDemand: 'ON_DEMAND',
 } as const
 export type AllocationType = (typeof AllocationType)[keyof typeof AllocationType]
+
+/** Task ↔ resource profile assignment kinds (BE TaskAssignmentType). */
+export const TaskAssignmentType = {
+  Owner: 'OWNER',
+  Primary: 'PRIMARY',
+  Support: 'SUPPORT',
+  Reviewer: 'REVIEWER',
+  Qa: 'QA',
+  ApproverLabelOnly: 'APPROVER_LABEL_ONLY',
+} as const
+export type TaskAssignmentType =
+  (typeof TaskAssignmentType)[keyof typeof TaskAssignmentType]

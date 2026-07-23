@@ -1,0 +1,416 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
+import { Button, Input, Modal, Stack, Typography } from '@/shared/ui'
+import { ApiError } from '@/shared/lib/api-types'
+import { cn } from '@/utils/cn'
+import {
+  FunctionalItemPriority,
+  FunctionalItemType,
+  NonFunctionalCategory,
+  NonFunctionalScopeType,
+} from '../model/functional-catalog'
+
+export type FunctionalCatalogAddKind = 'FR' | 'NFR'
+
+type FieldKey =
+  | 'code'
+  | 'title'
+  | 'priority'
+  | 'type'
+  | 'category'
+  | 'scopeType'
+  | 'description'
+
+interface ColumnDef {
+  key: FieldKey
+  label: string
+  required?: boolean
+  placeholder?: string
+}
+
+interface DraftRow {
+  id: string
+  code: string
+  title: string
+  priority: string
+  type: string
+  category: string
+  scopeType: string
+  description: string
+  error?: string | null
+}
+
+export interface FunctionalCatalogBulkCreateInput {
+  kind: FunctionalCatalogAddKind
+  code: string
+  title: string
+  priority: string
+  type?: string
+  category?: string
+  scopeType?: string
+  description?: string
+}
+
+interface FunctionalCatalogBulkAddModalProps {
+  open: boolean
+  kind: FunctionalCatalogAddKind
+  onClose: () => void
+  /** Create one item — should not refresh the list (batch refreshes once via onBatchComplete). */
+  onCreate: (input: FunctionalCatalogBulkCreateInput) => Promise<void>
+  /** Called once after the batch finishes if at least one item was created. */
+  onBatchComplete?: () => Promise<void> | void
+}
+
+const COLUMNS_BY_KIND: Record<FunctionalCatalogAddKind, ColumnDef[]> = {
+  FR: [
+    { key: 'code', label: 'Code', required: true, placeholder: 'FR-001' },
+    { key: 'title', label: 'Title', required: true, placeholder: 'Login' },
+    { key: 'priority', label: 'Priority', placeholder: 'MEDIUM' },
+    { key: 'type', label: 'Type', placeholder: 'FUNCTIONAL' },
+    { key: 'description', label: 'Description', placeholder: 'Optional' },
+  ],
+  NFR: [
+    { key: 'code', label: 'Code', required: true, placeholder: 'NFR-001' },
+    { key: 'title', label: 'Title', required: true, placeholder: 'p95 < 200ms' },
+    { key: 'category', label: 'Category', placeholder: 'PERFORMANCE' },
+    { key: 'priority', label: 'Priority', placeholder: 'MEDIUM' },
+    { key: 'scopeType', label: 'Scope', placeholder: 'SYSTEM' },
+    { key: 'description', label: 'Description', placeholder: 'Optional' },
+  ],
+}
+
+function newRow(kind: FunctionalCatalogAddKind): DraftRow {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    code: '',
+    title: '',
+    priority: FunctionalItemPriority.Medium,
+    type: FunctionalItemType.Functional,
+    category: NonFunctionalCategory.Other,
+    scopeType: NonFunctionalScopeType.System,
+    description: '',
+    error: null,
+  }
+}
+
+function looksLikeHeader(cells: string[], columns: ColumnDef[]): boolean {
+  const joined = cells.map((c) => c.trim().toLowerCase()).join('|')
+  return columns.some((col) => {
+    const label = col.label.toLowerCase()
+    const key = col.key.toLowerCase()
+    return joined.includes(label) || joined.includes(key)
+  })
+}
+
+function normalizeEnum(value: string, allowed: readonly string[], fallback: string): string {
+  const v = value.trim().toUpperCase().replace(/\s+/g, '_')
+  if (!v) return fallback
+  return (allowed as string[]).includes(v) ? v : fallback
+}
+
+function parseClipboardToRows(
+  text: string,
+  columns: ColumnDef[],
+  kind: FunctionalCatalogAddKind
+): DraftRow[] {
+  const raw = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
+  if (!raw) return []
+
+  const lines = raw.split('\n').filter((line) => line.trim().length > 0)
+  if (lines.length === 0) return []
+
+  const delim = lines[0].includes('\t') ? '\t' : ','
+  const parsed = lines.map((line) => line.split(delim).map((c) => c.trim()))
+
+  let start = 0
+  if (parsed[0] && looksLikeHeader(parsed[0], columns)) start = 1
+
+  const rows: DraftRow[] = []
+  for (let i = start; i < parsed.length; i++) {
+    const cells = parsed[i] ?? []
+    const row = newRow(kind)
+    columns.forEach((col, idx) => {
+      const value = cells[idx] ?? ''
+      row[col.key] = value
+    })
+    if (row.code || row.title || row.description) rows.push(row)
+  }
+  return rows
+}
+
+function isRowBlank(row: DraftRow, columns: ColumnDef[]): boolean {
+  return columns.every((c) => !row[c.key].trim())
+}
+
+export function FunctionalCatalogBulkAddModal({
+  open,
+  kind,
+  onClose,
+  onCreate,
+  onBatchComplete,
+}: FunctionalCatalogBulkAddModalProps) {
+  const columns = COLUMNS_BY_KIND[kind]
+  const [rows, setRows] = useState<DraftRow[]>([newRow(kind)])
+  const [submitting, setSubmitting] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [pasteHint, setPasteHint] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setRows([newRow(kind)])
+    setFormError(null)
+    setSubmitting(false)
+    setPasteHint(false)
+  }, [open, kind])
+
+  const validRows = useMemo(
+    () =>
+      rows.filter((r) => {
+        if (!r.code.trim() || !r.title.trim()) return false
+        return true
+      }),
+    [rows]
+  )
+
+  const updateRow = (id: string, patch: Partial<DraftRow>) => {
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch, error: null } : r)))
+  }
+
+  const addRow = () => setRows((prev) => [...prev, newRow(kind)])
+
+  const removeRow = (id: string) => {
+    setRows((prev) => (prev.length <= 1 ? [newRow(kind)] : prev.filter((r) => r.id !== id)))
+  }
+
+  const applyPaste = useCallback(
+    (text: string) => {
+      const pasted = parseClipboardToRows(text, columns, kind)
+      if (pasted.length === 0) return
+      setRows((prev) => {
+        const onlyBlank = prev.length === 1 && isRowBlank(prev[0], columns)
+        return onlyBlank ? pasted : [...prev, ...pasted]
+      })
+      setPasteHint(true)
+      setFormError(null)
+    },
+    [columns, kind]
+  )
+
+  useEffect(() => {
+    if (!open) return
+    const onPaste = (e: ClipboardEvent) => {
+      const text = e.clipboardData?.getData('text/plain') ?? ''
+      const multi = text.includes('\n') || (text.includes('\t') && text.trim().length > 0)
+      if (!multi) return
+      e.preventDefault()
+      applyPaste(text)
+    }
+    document.addEventListener('paste', onPaste)
+    return () => document.removeEventListener('paste', onPaste)
+  }, [open, applyPaste])
+
+  const handleSubmit = async () => {
+    if (validRows.length === 0) {
+      setFormError('Add at least one row with code and title.')
+      return
+    }
+    setSubmitting(true)
+    setFormError(null)
+
+    const remaining: DraftRow[] = []
+    let created = 0
+
+    for (const row of rows) {
+      if (isRowBlank(row, columns)) continue
+      if (!row.code.trim() || !row.title.trim()) {
+        remaining.push({ ...row, error: 'Code and title are required' })
+        continue
+      }
+
+      const priority = normalizeEnum(
+        row.priority,
+        Object.values(FunctionalItemPriority),
+        FunctionalItemPriority.Medium
+      )
+
+      try {
+        if (kind === 'FR') {
+          await onCreate({
+            kind,
+            code: row.code.trim(),
+            title: row.title.trim(),
+            priority,
+            type: normalizeEnum(
+              row.type,
+              Object.values(FunctionalItemType),
+              FunctionalItemType.Functional
+            ),
+            description: row.description.trim() || undefined,
+          })
+        } else {
+          await onCreate({
+            kind,
+            code: row.code.trim(),
+            title: row.title.trim(),
+            priority,
+            category: normalizeEnum(
+              row.category,
+              Object.values(NonFunctionalCategory),
+              NonFunctionalCategory.Other
+            ),
+            scopeType: normalizeEnum(
+              row.scopeType,
+              Object.values(NonFunctionalScopeType),
+              NonFunctionalScopeType.System
+            ),
+            description: row.description.trim() || undefined,
+          })
+        }
+        created += 1
+      } catch (err: unknown) {
+        const message =
+          err instanceof ApiError && err.status === 409
+            ? 'Already exists'
+            : err instanceof Error
+              ? err.message
+              : 'Failed'
+        remaining.push({ ...row, error: message })
+      }
+    }
+
+    if (created > 0) {
+      await onBatchComplete?.()
+    }
+
+    setSubmitting(false)
+
+    if (remaining.length === 0) {
+      onClose()
+      return
+    }
+
+    setRows(remaining.length ? remaining : [newRow(kind)])
+    setFormError(
+      created
+        ? `Created ${created}. Review ${remaining.length} remaining row${remaining.length === 1 ? '' : 's'}.`
+        : `Could not create. Fix ${remaining.length} row${remaining.length === 1 ? '' : 's'}.`
+    )
+  }
+
+  const title = kind === 'FR' ? 'Add functional items' : 'Add non-functional items'
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={title}
+      size="2xl"
+      actions={[
+        { label: 'Cancel', onClick: onClose, variant: 'ghost' },
+        {
+          label: submitting ? 'Creating…' : `Create ${validRows.length}`,
+          onClick: () => void handleSubmit(),
+          variant: 'primary',
+          disabled: submitting || validRows.length === 0,
+          loading: submitting,
+        },
+      ]}
+    >
+      <div className="space-y-4">
+        <Typography variant="small" tone="muted">
+          Add one or more rows. Paste from Excel (Ctrl/Cmd+V) — columns:{' '}
+          {columns.map((c) => c.label).join(' · ')}. Empty priority/type/category use defaults.
+        </Typography>
+
+        {pasteHint ? (
+          <Typography variant="caption" tone="muted">
+            Pasted — review, edit, or remove rows below.
+          </Typography>
+        ) : null}
+
+        <div className="overflow-x-auto border border-neutral-200">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-neutral-200 bg-neutral-50 text-xs text-neutral-500">
+                <th className="w-8 px-2 py-2">#</th>
+                {columns.map((col) => (
+                  <th key={col.key} className="px-2 py-2">
+                    {col.label}
+                    {col.required ? ' *' : ''}
+                  </th>
+                ))}
+                <th className="w-10 px-2 py-2" />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr
+                  key={row.id}
+                  className={cn('border-b border-neutral-100', row.error && 'bg-red-50/60')}
+                >
+                  <td className="px-2 py-1.5 align-middle text-xs text-neutral-400">
+                    {index + 1}
+                  </td>
+                  {columns.map((col) => (
+                    <td key={col.key} className="px-2 py-1.5 align-middle">
+                      <Input
+                        value={row[col.key]}
+                        onChange={(e) => updateRow(row.id, { [col.key]: e.target.value })}
+                        placeholder={col.placeholder}
+                        aria-label={`${col.label} row ${index + 1}`}
+                        fullWidth
+                        size="sm"
+                      />
+                    </td>
+                  ))}
+                  <td className="px-1 py-1.5 align-middle">
+                    <button
+                      type="button"
+                      className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
+                      onClick={() => removeRow(row.id)}
+                      aria-label={`Remove row ${index + 1}`}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {rows.some((r) => r.error) ? (
+          <ul className="space-y-1">
+            {rows.map((r, i) =>
+              r.error ? (
+                <li key={r.id}>
+                  <Typography variant="small" tone="error">
+                    Row {i + 1}: {r.error}
+                  </Typography>
+                </li>
+              ) : null
+            )}
+          </ul>
+        ) : null}
+
+        {formError ? (
+          <Typography tone="error" variant="small">
+            {formError}
+          </Typography>
+        ) : null}
+
+        <Stack direction="horizontal" spacing="sm" className="flex-wrap">
+          <Button size="sm" variant="secondary" onClick={addRow} disabled={submitting}>
+            <Plus size={14} className="mr-1 inline" />
+            Add row
+          </Button>
+          <Typography variant="caption" tone="muted" className="self-center">
+            Tip: copy cells from Excel then paste in this dialog
+          </Typography>
+        </Stack>
+      </div>
+    </Modal>
+  )
+}

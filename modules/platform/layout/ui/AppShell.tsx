@@ -374,6 +374,14 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     const defectsHref = ROUTES.workspace.projectDefects(workspaceId, projectId)
     const releasesHref = ROUTES.workspace.projectReleases(workspaceId, projectId)
     const requirementsHref = ROUTES.workspace.projectRequirements(workspaceId, projectId)
+    const functionalCatalogHref = ROUTES.workspace.projectFunctionalCatalog(
+      workspaceId,
+      projectId
+    )
+    const applicationStructureHref = ROUTES.workspace.projectApplicationStructure(
+      workspaceId,
+      projectId
+    )
     const traceabilityHref = ROUTES.workspace.projectTraceability(workspaceId, projectId)
     const projectGovHref = ROUTES.workspace.projectGovernance(workspaceId, projectId)
     const aiPlanningHref = ROUTES.workspace.projectAiPlanning(workspaceId, projectId)
@@ -452,6 +460,18 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
                   href: requirementsHref,
                   icon: <ClipboardList size={16} />,
                   active: pathActive(pathname, requirementsHref),
+                },
+                {
+                  label: 'Functional Catalog',
+                  href: functionalCatalogHref,
+                  icon: <ListTree size={16} />,
+                  active: pathActive(pathname, functionalCatalogHref),
+                },
+                {
+                  label: 'Application Structure',
+                  href: applicationStructureHref,
+                  icon: <LayoutList size={16} />,
+                  active: pathActive(pathname, applicationStructureHref),
                 },
                 {
                   label: 'Traceability',
@@ -821,7 +841,17 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     pathname?.match(/\/documents\/[^/]+\/edit\/?$/)
   )
   const immersiveAiWorkspace = Boolean(pathname?.match(/\/workspace\/[^/]+\/ai(\/|$)/))
-  const immersiveMain = immersiveDocumentEditor || immersiveAiWorkspace
+  const immersiveApplications = Boolean(
+    pathname?.match(/\/workspace\/[^/]+\/applications(\/|$)/)
+  )
+  const immersiveFunctionalCatalog = Boolean(
+    pathname?.match(/\/projects\/[^/]+\/functional-catalog(?:\/|$)/)
+  )
+  const immersiveMain =
+    immersiveDocumentEditor ||
+    immersiveAiWorkspace ||
+    immersiveApplications ||
+    immersiveFunctionalCatalog
 
   return (
     <Box as="div" className="flex h-screen flex-row overflow-hidden bg-neutral-50">

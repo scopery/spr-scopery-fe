@@ -75,7 +75,7 @@ export const Select = React.forwardRef(
     const [open, setOpen] = React.useState(false)
 
     return (
-      <Component ref={ref} {...props}>
+      <Component ref={ref} className={cn('block w-full min-w-0', className)} {...props}>
         <SelectPrimitive.Root
           value={normalizeRootValue(value)}
           defaultValue={normalizeRootValue(defaultValue)}
@@ -87,17 +87,19 @@ export const Select = React.forwardRef(
           <SelectPrimitive.Trigger
             className={cn(
               'inline-flex w-full min-w-0 items-center justify-between gap-2',
-              'border border-neutral-300',
+              'overflow-hidden border border-neutral-300',
               'bg-white text-neutral-900',
               'transition-colors duration-200',
               'focus:ring-primary/20 focus:border-primary focus:outline-none focus:ring-1',
               'disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:opacity-50',
-              selectSizes[size].trigger,
-              className
+              selectSizes[size].trigger
             )}
             aria-label="Select option"
           >
-            <SelectPrimitive.Value placeholder={placeholder} />
+            <SelectPrimitive.Value
+              placeholder={placeholder}
+              className="min-w-0 flex-1 truncate text-left"
+            />
             <SelectPrimitive.Icon className="flex-shrink-0">
               <ChevronDown size={16} className={cn('transition-transform', open && 'rotate-180')} />
             </SelectPrimitive.Icon>
@@ -107,6 +109,7 @@ export const Select = React.forwardRef(
             <SelectPrimitive.Content
               className={cn(
                 'relative z-[100] overflow-hidden border border-neutral-200 bg-white shadow-lg',
+                'w-[var(--radix-select-trigger-width)] max-h-[min(24rem,var(--radix-select-content-available-height))]',
                 'data-[state=open]:animate-in data-[state=closed]:animate-out',
                 'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
                 'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',

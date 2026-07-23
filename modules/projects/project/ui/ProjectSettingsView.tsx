@@ -26,6 +26,7 @@ import { useProject } from '../hooks/useProject'
 import { useProjectLifecycle } from '../hooks/useProjectLifecycle'
 import * as projectsApi from '../api/projects.api'
 import { useProjectPhases } from '../../phase/presentation/hooks/useProjectPhases'
+import { PhaseBulkAddModal } from '../../phase/presentation/ui/PhaseBulkAddModal'
 import { ProjectStatusBadge } from '../presentation/ui/ProjectStatusBadge'
 import { ProjectLifecycleMenu } from '../presentation/ui/ProjectLifecycleMenu'
 import {
@@ -101,9 +102,6 @@ export function ProjectSettingsView() {
   const [plannedEnd, setPlannedEnd] = useState('')
   const [saving, setSaving] = useState(false)
   const [phaseModalOpen, setPhaseModalOpen] = useState(false)
-  const [phaseCode, setPhaseCode] = useState('')
-  const [phaseName, setPhaseName] = useState('')
-  const [phaseCreating, setPhaseCreating] = useState(false)
   const [editingPhase, setEditingPhase] = useState<ProjectPhase | null>(null)
   const [editPhaseName, setEditPhaseName] = useState('')
   const [editPhaseDescription, setEditPhaseDescription] = useState('')
@@ -151,6 +149,11 @@ export function ProjectSettingsView() {
     return labelFor(project.ownerUserId, { currentUserId, youLabel: currentUserLabel })
   }, [project?.ownerUserId, labelFor, currentUserId, currentUserLabel])
 
+  const nextPhaseOrder = useMemo(() => {
+    if (phases.length === 0) return 1
+    return Math.max(...phases.map((p) => p.displayOrder)) + 1
+  }, [phases])
+
   const openEditModal = (p: ProjectDetail) => {
     setName(p.name)
     setDescription(p.description ?? '')
@@ -184,27 +187,6 @@ export function ProjectSettingsView() {
       toast.error(getProblemToastMessage(err))
     } finally {
       setSaving(false)
-    }
-  }
-
-  const handleCreatePhase = async () => {
-    const code = phaseCode.trim()
-    const nm = phaseName.trim()
-    if (!code || !nm) return
-    setPhaseCreating(true)
-    try {
-      await createPhase({
-        code,
-        name: nm,
-        displayOrder: phases.length + 1,
-      })
-      toast.success('Phase created')
-      setPhaseModalOpen(false)
-      await refetchPhases()
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    } finally {
-      setPhaseCreating(false)
     }
   }
 
@@ -322,13 +304,9 @@ export function ProjectSettingsView() {
             size="sm"
             variant="secondary"
             icon={<Plus size={14} />}
-            onClick={() => {
-              setPhaseCode('')
-              setPhaseName('')
-              setPhaseModalOpen(true)
-            }}
+            onClick={() => setPhaseModalOpen(true)}
           >
-            Add phase
+            Add phases
           </Button>
         </div>
         <div className="overflow-x-auto">
@@ -337,6 +315,9 @@ export function ProjectSettingsView() {
               <tr>
                 <th className="px-3 py-2 font-medium">Code</th>
                 <th className="px-3 py-2 font-medium">Name</th>
+                <th className="px-3 py-2 font-medium">Description</th>
+                <th className="px-3 py-2 font-medium">Start</th>
+                <th className="px-3 py-2 font-medium">End</th>
                 <th className="px-3 py-2 font-medium">Order</th>
                 <th className="px-3 py-2 font-medium">Status</th>
                 <th className="px-3 py-2 font-medium">Actions</th>
@@ -345,7 +326,7 @@ export function ProjectSettingsView() {
             <tbody>
               {phases.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-neutral-500">
+                  <td colSpan={8} className="px-3 py-6 text-center text-neutral-500">
                     No phases yet
                   </td>
                 </tr>
@@ -357,6 +338,15 @@ export function ProjectSettingsView() {
                     <tr key={ph.id} className="border-t border-neutral-100">
                       <td className="px-3 py-2 font-mono text-xs">{ph.code}</td>
                       <td className="px-3 py-2">{ph.name}</td>
+                      <td className="max-w-xs px-3 py-2 text-neutral-600">
+                        {ph.description?.trim() ? ph.description : '—'}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-neutral-600">
+                        {formatDate(ph.plannedStartDate)}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-neutral-600">
+                        {formatDate(ph.plannedEndDate)}
+                      </td>
                       <td className="px-3 py-2">{ph.displayOrder}</td>
                       <td className="px-3 py-2">
                         <Badge tone="neutral">{phaseStatusLabel(ph.status)}</Badge>
@@ -471,36 +461,17 @@ export function ProjectSettingsView() {
         </div>
       </Modal>
 
-      <Modal
+      <PhaseBulkAddModal
         open={phaseModalOpen}
+        nextDisplayOrder={nextPhaseOrder}
         onClose={() => setPhaseModalOpen(false)}
-        title="Add phase"
-        size="sm"
-        actions={[
-          { label: 'Cancel', onClick: () => setPhaseModalOpen(false), variant: 'ghost' },
-          {
-            label: 'Create',
-            onClick: () => void handleCreatePhase(),
-            variant: 'primary',
-            loading: phaseCreating,
-          },
-        ]}
-      >
-        <div className="space-y-3">
-          <Input
-            label="Code"
-            fullWidth
-            value={phaseCode}
-            onChange={(e) => setPhaseCode(e.target.value.toUpperCase())}
-          />
-          <Input
-            label="Name"
-            fullWidth
-            value={phaseName}
-            onChange={(e) => setPhaseName(e.target.value)}
-          />
-        </div>
-      </Modal>
+        onCreate={async (payload) => {
+          await createPhase(payload, { refresh: false })
+        }}
+        onBatchComplete={async () => {
+          await refetchPhases({ silent: true })
+        }}
+      />
 
       <Modal
         open={editingPhase != null}

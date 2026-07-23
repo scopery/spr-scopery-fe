@@ -192,18 +192,37 @@ export function mapGanttDepsToSvarLinks(
     .filter((l) => ids.has(String(l.source)) && ids.has(String(l.target)))
 }
 
-/** Only leaf TASK rows can be dragged on the chart. Phase/WBS/Project are rollups. */
-export function isGanttChartDraggable(task: {
+type GanttDragTarget = {
   type?: string
-  itemType?: string
-}): boolean {
-  return task.itemType === 'TASK' || task.type === 'task'
+  itemType?: unknown
+  [key: string]: unknown
+}
+
+function asDragTarget(task: unknown): GanttDragTarget {
+  return (task ?? {}) as GanttDragTarget
+}
+
+/** Leaf TASK rows — persist via move/resize task APIs. */
+export function isGanttTaskDraggable(task: unknown): boolean {
+  const t = asDragTarget(task)
+  return t.itemType === 'TASK' || t.type === 'task'
+}
+
+/** Phase / WBS summary bars — drag shifts descendant tasks (and phase planned dates). */
+export function isGanttSummaryDraggable(task: unknown): boolean {
+  const t = asDragTarget(task)
+  return t.itemType === 'PHASE' || t.itemType === 'WBS_NODE'
+}
+
+/** Anything that can be dragged horizontally on the chart. */
+export function isGanttChartDraggable(task: unknown): boolean {
+  return isGanttTaskDraggable(task) || isGanttSummaryDraggable(task)
 }
 
 export function ganttDragHintForItemType(itemType: string): string | null {
   if (itemType === 'TASK') return null
-  if (itemType === 'PHASE') return 'Phase dates rollup from child tasks'
-  if (itemType === 'WBS_NODE') return 'WBS dates rollup from tasks in this node'
+  if (itemType === 'PHASE') return null
+  if (itemType === 'WBS_NODE') return null
   if (itemType === 'PROJECT') return 'Project bar is a rollup of the whole plan'
   if (itemType === 'MILESTONE') return 'Edit milestone date from the milestone record'
   return 'This row is read-only on the timeline'
@@ -220,9 +239,68 @@ export function resolveSourceTaskId(task: ITask): string | null {
   return null
 }
 
+export function resolveSourceEntityId(task: ITask): string | null {
+  if (typeof task.sourceEntityId === 'string' && task.sourceEntityId) {
+    return task.sourceEntityId
+  }
+  if (typeof task.id === 'string') {
+    const colon = task.id.indexOf(':')
+    if (colon > 0) return task.id.slice(colon + 1)
+  }
+  return null
+}
+
+/** Collect TASK gantt item ids under a summary node in the flat SVAR task list. */
+export function collectDescendantSvarTaskIds(
+  tasks: ITask[],
+  rootId: string | number
+): Array<string | number> {
+  const byParent = new Map<string, Array<string | number>>()
+  for (const t of tasks) {
+    if (t.id == null) continue
+    const p = String(t.parent ?? 0)
+    const list = byParent.get(p) ?? []
+    list.push(t.id)
+    byParent.set(p, list)
+  }
+
+  const out: Array<string | number> = []
+  const stack = [...(byParent.get(String(rootId)) ?? [])]
+  while (stack.length) {
+    const id = stack.pop()!
+    const node = tasks.find((t) => String(t.id) === String(id))
+    if (!node) continue
+    if (node.itemType === 'TASK' || node.type === 'task') {
+      out.push(id)
+    }
+    const kids = byParent.get(String(id))
+    if (kids?.length) stack.push(...kids)
+  }
+  return out
+}
+
 export function toDateOnlyFromSvar(date: Date | undefined): string | null {
   if (!date) return null
   return formatLocalDate(date)
+}
+
+/**
+ * Inclusive day delta: positive = moved later.
+ * Both args YYYY-MM-DD.
+ */
+export function dayDelta(from: string, to: string): number {
+  const a = parseLocalDate(from)
+  const b = parseLocalDate(to)
+  if (!a || !b) return 0
+  const aUtc = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())
+  const bUtc = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate())
+  return Math.round((bUtc - aUtc) / DAY_MS)
+}
+
+export function shiftIsoDate(iso: string, days: number): string {
+  const d = parseLocalDate(iso)
+  if (!d) return iso
+  return formatLocalDate(addLocalDays(d, days))
 }
 
 /**

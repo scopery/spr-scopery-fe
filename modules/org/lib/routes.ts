@@ -173,6 +173,12 @@ export const WORKSPACE_ROUTES = {
   workInbox: (workspaceId: string) => `/workspace/${workspaceId}/work-inbox`,
   savedItems: (workspaceId: string) => `/workspace/${workspaceId}/saved-items`,
   applications: (workspaceId: string) => `/workspace/${workspaceId}/applications`,
+  /** Application workbench detail. */
+  application: (workspaceId: string, applicationId: string) =>
+    `/workspace/${workspaceId}/applications/${applicationId}`,
+  /** Alias — prefer this if `application` is shadowed by a stale bundle. */
+  applicationDetail: (workspaceId: string, applicationId: string) =>
+    `/workspace/${workspaceId}/applications/${applicationId}`,
   support: (workspaceId: string) => `/workspace/${workspaceId}/support`,
   supportCase: (workspaceId: string, caseId: string) =>
     `/workspace/${workspaceId}/support/cases/${caseId}`,
@@ -188,6 +194,19 @@ export const WORKSPACE_ROUTES = {
     `/workspace/${workspaceId}/projects/${projectId}/deployments`,
   projectRequirements: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/requirements`,
+  projectFunctionalCatalog: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/functional-catalog`,
+  projectApplicationStructure: (
+    workspaceId: string,
+    projectId: string,
+    applicationId?: string
+  ) => {
+    const base = `/workspace/${workspaceId}/projects/${projectId}/application-structure`
+    if (applicationId) {
+      return `${base}?applicationId=${encodeURIComponent(applicationId)}`
+    }
+    return base
+  },
   projectTraceability: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/traceability`,
   projectGovernance: (workspaceId: string, projectId: string) =>

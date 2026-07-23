@@ -1,16 +1,33 @@
 'use client'
 
 import { useState } from 'react'
-import { useParams } from 'next/navigation'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button, Input, Modal, Select, Typography } from '@/shared/ui'
 import { useTaskResourceAssignments } from '../hooks/useTaskResourceAssignments'
+import { TaskAssignmentType } from '../../domain/enums/capacity.enum'
 import { formatHours } from '../../domain/rules/capacity.rules'
 
 interface TaskResourcesPanelProps {
   workspaceId: string
   projectId: string
   taskId: string
+}
+
+const ASSIGNMENT_TYPE_OPTIONS = [
+  { value: TaskAssignmentType.Owner, label: 'Owner' },
+  { value: TaskAssignmentType.Primary, label: 'Primary' },
+  { value: TaskAssignmentType.Support, label: 'Support' },
+  { value: TaskAssignmentType.Reviewer, label: 'Reviewer' },
+  { value: TaskAssignmentType.Qa, label: 'QA' },
+  { value: TaskAssignmentType.ApproverLabelOnly, label: 'Approver (label only)' },
+]
+
+function emptyForm() {
+  return {
+    resourceProfileId: '',
+    assignmentType: TaskAssignmentType.Primary as string,
+    plannedEffortHours: '',
+  }
 }
 
 export function TaskResourcesPanel({
@@ -20,23 +37,17 @@ export function TaskResourcesPanel({
 }: TaskResourcesPanelProps) {
   const {
     items,
-    roles,
-    members,
+    profiles,
     loading,
     error,
     saving,
     addAssignment,
     removeAssignment,
-    memberLabel,
-    roleLabel,
+    profileLabel,
   } = useTaskResourceAssignments(projectId, taskId, workspaceId)
 
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({
-    workspaceMemberId: '',
-    roleId: '',
-    estimatedHours: '',
-  })
+  const [form, setForm] = useState(emptyForm)
 
   return (
     <div>
@@ -73,11 +84,10 @@ export function TaskResourcesPanel({
             >
               <div>
                 <Typography variant="small" weight="medium">
-                  {memberLabel(a.workspaceMemberId)}
+                  {profileLabel(a.resourceProfileId)}
                 </Typography>
                 <Typography variant="caption" tone="muted">
-                  {roleLabel(a.roleId)} · Est {formatHours(a.estimatedHours)} · Actual{' '}
-                  {formatHours(a.actualHours)}
+                  {a.assignmentType} · Planned {formatHours(a.plannedEffortHours)}
                 </Typography>
               </div>
               <Button
@@ -103,53 +113,63 @@ export function TaskResourcesPanel({
             label: 'Add',
             variant: 'primary',
             loading: saving,
+            disabled: !form.resourceProfileId || !form.assignmentType,
             onClick: async () => {
               await addAssignment({
-                workspaceMemberId: form.workspaceMemberId,
-                roleId: form.roleId || null,
-                estimatedHours: form.estimatedHours
-                  ? Number(form.estimatedHours)
+                resourceProfileId: form.resourceProfileId,
+                assignmentType: form.assignmentType,
+                plannedEffortHours: form.plannedEffortHours
+                  ? Number(form.plannedEffortHours)
                   : null,
               })
               setOpen(false)
-              setForm({ workspaceMemberId: '', roleId: '', estimatedHours: '' })
+              setForm(emptyForm())
             },
           },
         ]}
       >
         <div className="flex flex-col gap-3">
+          {profiles.length === 0 ? (
+            <Typography variant="small" tone="muted">
+              No active resource profiles in this workspace. Create one under Capacity →
+              Resources & Profiles (or Sync from members), then try again.
+            </Typography>
+          ) : null}
           <div>
             <Typography variant="small" weight="medium" className="mb-1">
-              Resource
+              Resource profile
             </Typography>
             <Select
-              value={form.workspaceMemberId}
+              value={form.resourceProfileId}
               onValueChange={(v: string) =>
-                setForm((f) => ({ ...f, workspaceMemberId: v }))
+                setForm((f) => ({ ...f, resourceProfileId: v }))
               }
-              options={members.map((m) => ({
-                value: m.id,
-                label: memberLabel(m.id),
+              options={profiles.map((p) => ({
+                value: p.id,
+                label: `${p.displayName} (${p.resourceType})`,
               }))}
-              placeholder="Select member"
+              placeholder="Select resource"
             />
           </div>
           <div>
             <Typography variant="small" weight="medium" className="mb-1">
-              Role
+              Assignment type
             </Typography>
             <Select
-              value={form.roleId}
-              onValueChange={(v: string) => setForm((f) => ({ ...f, roleId: v }))}
-              options={roles.map((r) => ({ value: r.id, label: r.name }))}
-              placeholder="Optional role"
+              value={form.assignmentType}
+              onValueChange={(v: string) =>
+                setForm((f) => ({ ...f, assignmentType: v }))
+              }
+              options={ASSIGNMENT_TYPE_OPTIONS}
             />
           </div>
           <Input
-            label="Estimated hours"
+            label="Planned effort (hours)"
             type="number"
-            value={form.estimatedHours}
-            onChange={(e) => setForm((f) => ({ ...f, estimatedHours: e.target.value }))}
+            value={form.plannedEffortHours}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, plannedEffortHours: e.target.value }))
+            }
           />
         </div>
       </Modal>

@@ -134,43 +134,40 @@ PROJECT (root)
 
 ### 6.1 Nguyên tắc
 
-1. **Một nguồn sự thật cho lịch:** chỉ `TASK` (+ milestone riêng) có ngày “thật”.
-2. **Rollup chỉ đọc:** Phase / WBS / Project bar = phản ánh con, **không kéo trực tiếp** trên chart.
-3. **Recalculate là hành động project-level**, không gắn mỗi lần kéo task.
+1. **Lịch entity thật:** `TASK` (+ milestone riêng) có schedule/override.
+2. **Phase / WBS kéo được trên chart:** kéo bar summary → SVAR dịch task con; FE persist từng task (`move`, `recalculate: false`) và với **PHASE** còn cập nhật `plannedStartDate` / `plannedEndDate`.
+3. **PROJECT / MILESTONE** vẫn read-only trên chart.
+4. **Recalculate** là hành động project-level, không gắn mỗi lần kéo.
 
 ### 6.2 Bảng hành vi theo loại row
 
 | Loại row | Bar trên chart | Kéo bar (chart) | Resize bar | Click / edit | Sau khi task con đổi |
 |----------|----------------|-----------------|------------|--------------|----------------------|
-| **TASK** (scheduled) | Xanh dương (task) | ✅ Move → `move` API | ✅ Resize end → `resize` API | Mở task / edit dates | — |
-| **TASK** (unscheduled) | Placeholder + label | ✅ Move = **schedule lần đầu** (move API) | ✅ | Set dates modal | — |
-| **WBS_NODE** | Xám (summary) | ❌ Read-only | ❌ | Expand/collapse; link WBS page | Bar tự rollup |
-| **PHASE** | Xám (summary) | ❌ Read-only | ❌ | Link phase settings | Bar tự rollup |
-| **PROJECT** | Xám (summary) | ❌ Read-only | ❌ | — | Bar tự rollup |
-| **MILESTONE** | Kim cương | ❌ Trên Gantt | ❌ | Edit **Milestone** (không qua Gantt drag) | — |
+| **TASK** (scheduled) | Xanh dương (task) | ✅ Move → `move` API | ✅ Resize end → `resize` API | Double-click → edit dates | — |
+| **TASK** (unscheduled) | Placeholder + label | ✅ Move = schedule lần đầu | ✅ | Set dates modal | — |
+| **WBS_NODE** | Xám (summary) | ✅ Kéo → cascade `move` task con | ✅ (qua SVAR kids) | Hint: kéo để dịch task | Bar rollup lại |
+| **PHASE** | Xám (summary) | ✅ Kéo → cascade task + update phase planned dates | ✅ + update planned dates | Double-click → edit phase dates | Bar rollup lại |
+| **PROJECT** | Xám (summary) | ❌ Read-only | ❌ | — | Bar rollup |
+| **MILESTONE** | Kim cương | ❌ Trên Gantt | ❌ | Edit **Milestone** module | — |
 
-### 6.3 Vì sao kéo bar Phase/WBS “move cả plan”?
+### 6.3 Vì sao kéo Phase/WBS dịch task con?
 
-Thư viện SVAR Gantt: bar `type: summary` khi kéo ngang sẽ **`moveSummaryKids`** — dịch **toàn bộ task con** theo. Đó là behavior mặc định của Gantt chart, **không phải** API Scopery.
-
-Nếu thêm `recalculate: true` sau drag → BE còn reschedule thêm task khác theo dependency.
-
-**Kết luận:** Phase/WBS **phải block drag** trên chart; chỉ task leaf được kéo.
+Thư viện SVAR Gantt: bar `type: summary` khi kéo ngang sẽ **`moveSummaryKids`**. FE đọc ngày mới của từng task con và gọi `POST …/gantt/tasks/{id}/move` (batch, một refetch cuối). Phase thêm `PUT …/phases/{id}` cho planned dates.
 
 ### 6.4 Luồng user đề xuất
 
 ```text
 Muốn đổi lịch 1 việc:
-  → Kéo bar TASK (hoặc edit dates trong task drawer)
-  → Optional: bấm Recalculate nếu muốn engine tính lại dependent tasks
+  → Kéo bar TASK (hoặc double-click edit dates)
+  → Optional: Recalculate nếu muốn engine tính lại dependent tasks
 
-Muốn đổi khung phase:
-  → Sửa Phase planned dates (Project Control / Phase settings)
-  → Hoặc đổi task trong phase → phase bar rollup lại
+Muốn dời cả phase / WBS:
+  → Kéo bar Phase hoặc WBS trên timeline
+  → Task con được pin cùng delta; Phase planned dates cập nhật theo
 
-Muốn đổi phạm vi WBS:
-  → Đổi task gắn WBS đó / thêm task vào WBS
-  → WBS bar rollup lại
+Muốn sửa khung phase không kéo:
+  → Double-click Phase bar → modal planned start/end
+  → Hoặc Project Settings → Phases
 
 Muốn dời milestone:
   → Milestone workspace (không drag trên timeline)
@@ -186,10 +183,10 @@ Muốn dời milestone:
 | Tree | `buildGanttTree(items)` |
 | Chart | `@svar-ui/react-gantt` (`ProjectGanttView`) |
 | Mapper | `mapGanttTreeToSvarTasks` — `TASK` → `type: task`, còn lại → `summary` / `milestone` |
-| Drag task only | `intercept('drag-task')` + `isGanttChartDraggable()` — block phase/WBS/project |
+| Drag | TASK + PHASE + WBS (`isGanttChartDraggable`); block PROJECT / MILESTONE |
 | Persist task | `onUpdateTask` → `move` / `resize` với `recalculate: false` |
-| Edit dates | Double-click task bar → `GanttTaskScheduleModal` |
-| Rollup hint | Toast khi kéo phase/WBS; legend trên page |
+| Persist Phase/WBS | Cascade `move` task con (batch, 1 refetch); Phase → `updatePhase` planned dates |
+| Edit dates | Double-click task / phase → `GanttScheduleModal` |
 | Recalculate | Nút manual — reschedule toàn project |
 | Legacy custom UI | `GanttBarRow.tsx` — **không** dùng bởi view chính |
 
@@ -214,12 +211,12 @@ Trước khi code tiếp, product/BE/FE align các điểm sau:
 | `itemType` (BE) | SVAR `type` | `scopery` drag policy |
 |-----------------|-------------|------------------------|
 | `PROJECT` | `summary` | `rollup` — no drag |
-| `PHASE` | `summary` | `rollup` — no drag |
-| `WBS_NODE` | `summary` | `rollup` — no drag |
+| `PHASE` | `summary` | `editable` — drag (+ update planned dates) |
+| `WBS_NODE` | `summary` | `editable` — drag (cascade tasks) |
 | `TASK` | `task` | `editable` — drag + resize |
 | `MILESTONE` | `milestone` | `read-only` on chart |
 
-Helper FE (đã có / dự kiến): `isGanttChartDraggable()`, `ganttDragHintForItemType()`.
+Helper FE: `isGanttChartDraggable()`, `isGanttTaskDraggable()`, `isGanttSummaryDraggable()`, `ganttDragHintForItemType()`.
 
 ---
 

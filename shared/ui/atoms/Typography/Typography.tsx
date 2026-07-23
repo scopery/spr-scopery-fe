@@ -13,12 +13,14 @@ const typographySizes = {
   '4xl': 'text-4xl',
 }
 
-/* weight < 500 → Questrial | weight >= 500 → Cal Sans (Cal Sans đậm sẵn → CSS .font-calsans { font-weight: normal }) */
+/* weight < 500 → Questrial | weight >= 500 → Cal Sans
+ * Cal Sans is already heavy as a face — .font-calsans forces font-weight: normal,
+ * so never stack font-medium/semibold/bold on top. */
 const typographyWeights = {
   normal: 'font-normal font-questrial',
-  medium: 'font-medium font-calsans',
-  semibold: 'font-semibold font-calsans',
-  bold: 'font-bold font-calsans',
+  medium: 'font-calsans',
+  semibold: 'font-calsans',
+  bold: 'font-calsans',
 }
 
 const typographyAligns = {

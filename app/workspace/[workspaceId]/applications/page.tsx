@@ -1,7 +1,7 @@
 'use client'
 
-import { ApplicationRegistryView } from '@/modules/projects/traceability/ui/ApplicationRegistryView'
+import { ApplicationRegistryView } from '@/modules/projects'
 
-export default function Page() {
+export default function ApplicationsPage() {
   return <ApplicationRegistryView />
 }

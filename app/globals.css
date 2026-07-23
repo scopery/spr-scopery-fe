@@ -5,7 +5,7 @@
 @layer base {
   :root {
     /* Color Tokens — primary gradient (navy → cyan), solid #0a1121 for text/border */
-    --color-primary: #0a1121;
+    --color-primary: #3d3d3d;
     --color-primary-hover: #0f172a;
     --color-primary-active: #020617;
     --color-primary-gradient: linear-gradient(to right, #001f6d);
@@ -136,8 +136,9 @@ body {
   font-family: 'Cal Sans', 'Questrial', sans-serif;
 }
 
-/* Cal Sans đậm sẵn → luôn font-weight normal (override medium/semibold/bold) */
+/* Cal Sans — face is already heavy; keep weight normal */
 .font-calsans {
+  font-family: 'Cal Sans', 'Questrial', sans-serif;
   font-weight: normal !important;
 }
 

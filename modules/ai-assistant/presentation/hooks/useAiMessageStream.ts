@@ -58,6 +58,7 @@ export interface UseAiMessageStreamResult {
     pageCode?: string | null
     entityType?: string | null
     entityId?: string | null
+    sourceProjectId?: string | null
     onUserAccepted?: (userMessageId: string | undefined) => void
     onTerminal?: () => void
   }) => Promise<void>
@@ -327,6 +328,7 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
       pageCode?: string | null
       entityType?: string | null
       entityId?: string | null
+      sourceProjectId?: string | null
       onUserAccepted?: (userMessageId: string | undefined) => void
       onTerminal?: () => void
     }) => {
@@ -342,6 +344,7 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
         pageCode: args.pageCode ?? null,
         entityType: args.entityType ?? null,
         entityId: args.entityId ?? null,
+        sourceProjectId: args.sourceProjectId ?? null,
       })
 
       // Optimistic user message only after 202 accepted

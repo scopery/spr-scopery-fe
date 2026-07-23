@@ -1,4 +1,5 @@
 import { apiClient } from '@/shared/lib/apiClient'
+import { normalizeList, type ListPayload } from '@/shared/lib/normalizeListResponse'
 import { CAPACITY_ENDPOINTS } from './endpoints'
 import type {
   CreateResourceRolePayload,
@@ -8,7 +9,10 @@ import type {
 } from '../../domain/model/resource-catalog'
 
 export async function listResourceRoles(workspaceId: string): Promise<ResourceRole[]> {
-  return apiClient.get<ResourceRole[]>(CAPACITY_ENDPOINTS.roles.list(workspaceId))
+  const data = await apiClient.get<ListPayload<ResourceRole>>(
+    CAPACITY_ENDPOINTS.roles.list(workspaceId)
+  )
+  return normalizeList(data)
 }
 
 export async function createResourceRole(
@@ -19,7 +23,10 @@ export async function createResourceRole(
 }
 
 export async function listResourceSkills(workspaceId: string): Promise<ResourceSkill[]> {
-  return apiClient.get<ResourceSkill[]>(CAPACITY_ENDPOINTS.skills.list(workspaceId))
+  const data = await apiClient.get<ListPayload<ResourceSkill>>(
+    CAPACITY_ENDPOINTS.skills.list(workspaceId)
+  )
+  return normalizeList(data)
 }
 
 export async function createResourceSkill(

@@ -167,6 +167,17 @@ export function ProjectRequirementsView() {
                 {selected.description && (
                   <Typography tone="muted">{selected.description}</Typography>
                 )}
+                {(selected.functionalItemId || selected.nonFunctionalItemId) && (
+                  <Typography variant="small" tone="muted" className="mt-3">
+                    Catalog link
+                    {selected.functionalItemId
+                      ? ` · FR ${selected.functionalItemId.slice(0, 8)}…`
+                      : ''}
+                    {selected.nonFunctionalItemId
+                      ? ` · NFR ${selected.nonFunctionalItemId.slice(0, 8)}…`
+                      : ''}
+                  </Typography>
+                )}
               </div>
 
               <EntityEvidenceDocumentsPanel

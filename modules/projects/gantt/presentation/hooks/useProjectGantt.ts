@@ -78,19 +78,23 @@ export function useProjectGantt(projectId: string | null, params?: GanttViewPara
   )
 
   const moveTask = useCallback(
-    async (taskId: string, body: MoveGanttTaskPayload) => {
+    async (taskId: string, body: MoveGanttTaskPayload, opts?: { refresh?: boolean }) => {
       if (!projectId) return
       await ganttApi.moveGanttTask(projectId, taskId, body)
-      await load()
+      if (opts?.refresh !== false) {
+        await load()
+      }
     },
     [projectId, load]
   )
 
   const resizeTask = useCallback(
-    async (taskId: string, body: ResizeGanttTaskPayload) => {
+    async (taskId: string, body: ResizeGanttTaskPayload, opts?: { refresh?: boolean }) => {
       if (!projectId) return
       await ganttApi.resizeGanttTask(projectId, taskId, body)
-      await load()
+      if (opts?.refresh !== false) {
+        await load()
+      }
     },
     [projectId, load]
   )
