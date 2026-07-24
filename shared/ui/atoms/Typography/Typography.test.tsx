@@ -20,21 +20,21 @@ describe('Typography', () => {
       render(<Typography variant="h1">H1</Typography>)
       const element = screen.getByText('H1')
       expect(element.tagName).toBe('H1')
-      expect(element).toHaveClass('text-lg', 'font-semibold')
+      expect(element).toHaveClass('text-lg', 'font-calsans')
     })
 
     it('renders h2 variant', () => {
       render(<Typography variant="h2">H2</Typography>)
       const element = screen.getByText('H2')
       expect(element.tagName).toBe('H2')
-      expect(element).toHaveClass('text-xl', 'font-semibold')
+      expect(element).toHaveClass('text-xl', 'font-calsans')
     })
 
     it('renders h3 variant', () => {
       render(<Typography variant="h3">H3</Typography>)
       const element = screen.getByText('H3')
       expect(element.tagName).toBe('H3')
-      expect(element).toHaveClass('text-lg', 'font-semibold')
+      expect(element).toHaveClass('text-lg', 'font-calsans')
     })
 
     it('renders h4 variant', () => {
@@ -121,9 +121,22 @@ describe('Typography', () => {
       expect(screen.getByText('Normal H1')).toHaveClass('font-normal')
     })
 
-    it('applies semibold weight', () => {
+    it('applies semibold weight as Cal Sans (no numeric weight)', () => {
       render(<Typography weight="semibold">Semibold</Typography>)
-      expect(screen.getByText('Semibold')).toHaveClass('font-semibold')
+      expect(screen.getByText('Semibold')).toHaveClass('font-calsans')
+      expect(screen.getByText('Semibold')).not.toHaveClass('font-semibold')
+    })
+
+    it('applies bold weight as Cal Sans (no numeric weight)', () => {
+      render(<Typography weight="bold">Bold</Typography>)
+      expect(screen.getByText('Bold')).toHaveClass('font-calsans')
+      expect(screen.getByText('Bold')).not.toHaveClass('font-bold')
+    })
+
+    it('applies medium weight as Cal Sans (no numeric weight)', () => {
+      render(<Typography weight="medium">Medium</Typography>)
+      expect(screen.getByText('Medium')).toHaveClass('font-calsans')
+      expect(screen.getByText('Medium')).not.toHaveClass('font-medium')
     })
   })
 

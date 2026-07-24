@@ -129,14 +129,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Khi dùng font-medium / font-semibold / font-bold → dùng Cal Sans */
+/* Cal Sans face is already heavy — never stack medium/semibold/bold weight on it.
+ * Tailwind weight utilities map to Cal Sans + normal weight (not numeric weight). */
 .font-medium,
 .font-semibold,
-.font-bold {
-  font-family: 'Cal Sans', 'Questrial', sans-serif;
-}
-
-/* Cal Sans — face is already heavy; keep weight normal */
+.font-bold,
 .font-calsans {
   font-family: 'Cal Sans', 'Questrial', sans-serif;
   font-weight: normal !important;

@@ -842,6 +842,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
         email={profile?.email ?? session?.user?.email}
         organizationName={organizationName}
         avatarFallback={avatarFallback}
+        canAccessAdmin={canAccessAdmin}
         onLogout={() => void handleLogout()}
         onOpenHelp={() => setHelpOpen(true)}
         onOpenSettings={() => {

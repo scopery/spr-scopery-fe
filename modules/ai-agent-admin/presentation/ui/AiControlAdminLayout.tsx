@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import {
+  BookOpen,
   Bot,
   Boxes,
   Cpu,
@@ -116,6 +117,12 @@ export function AiControlAdminLayout({ children }: { children: React.ReactNode }
                   href: ADMIN_ROUTES.aiControlAssistantSettings,
                   icon: <MessageSquare size={16} />,
                   active: isActive(ADMIN_ROUTES.aiControlAssistantSettings),
+                },
+                {
+                  label: 'Knowledge base',
+                  href: ADMIN_ROUTES.aiControlKnowledge,
+                  icon: <BookOpen size={16} />,
+                  active: isActive(ADMIN_ROUTES.aiControlKnowledge),
                 },
               ],
             },

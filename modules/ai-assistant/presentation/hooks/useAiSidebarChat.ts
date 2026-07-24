@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react'
 import { AiMessageRole } from '../../domain/enums/ai-assistant.enum'
-import type { AiMessage } from '../../domain/model/conversation'
+import type { AiConversation, AiMessage } from '../../domain/model/conversation'
 import * as api from '../../infrastructure/api/ai-assistant.api'
 import { useAiMessageStream } from './useAiMessageStream'
 
@@ -22,6 +22,8 @@ export function useAiSidebarChat(opts: {
       return null
     }
   })
+  const [conversations, setConversations] = useState<AiConversation[]>([])
+  const [conversationsLoaded, setConversationsLoaded] = useState(false)
   const [messages, setMessages] = useState<AiMessage[]>([])
   const [messagesLoaded, setMessagesLoaded] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -51,6 +53,28 @@ export function useAiSidebarChat(opts: {
     }
   }, [])
 
+  const loadConversations = useCallback(async () => {
+    try {
+      const res = await api.listConversations({ size: 50 })
+      const filtered = res.items
+        .filter((c) => {
+          if (c.status === 'DELETED') return false
+          if (opts.projectId) return c.projectId === opts.projectId
+          return true
+        })
+        .sort((a, b) => {
+          const ta = a.lastMessageAt ?? a.updatedAt ?? a.createdAt
+          const tb = b.lastMessageAt ?? b.updatedAt ?? b.createdAt
+          return tb > ta ? 1 : -1
+        })
+      setConversations(filtered)
+    } catch {
+      // ignore — conversations list is non-critical
+    } finally {
+      setConversationsLoaded(true)
+    }
+  }, [opts.projectId])
+
   const ensureConversation = useCallback(async (): Promise<string | null> => {
     if (conversationId) {
       if (!messagesLoaded) await loadMessages(conversationId)
@@ -69,6 +93,7 @@ export function useAiSidebarChat(opts: {
         assistantAgentId: null,
       })
       setConversationId(created.id)
+      setConversations((prev) => [created, ...prev.filter((c) => c.id !== created.id)])
       try {
         sessionStorage.setItem(sessionKey(opts.projectId), created.id)
       } catch { /* ignore */ }
@@ -83,6 +108,19 @@ export function useAiSidebarChat(opts: {
       setCreating(false)
     }
   }, [conversationId, messagesLoaded, opts.workspaceId, opts.projectId, loadMessages])
+
+  const openConversation = useCallback(async (id: string) => {
+    closeStreamOnly()
+    resetStream()
+    setConversationId(id)
+    setMessages([])
+    setMessagesLoaded(false)
+    setError(null)
+    try {
+      sessionStorage.setItem(sessionKey(opts.projectId), id)
+    } catch { /* ignore */ }
+    await loadMessages(id)
+  }, [closeStreamOnly, resetStream, opts.projectId, loadMessages])
 
   const send = useCallback(
     async (text: string) => {
@@ -109,10 +147,12 @@ export function useAiSidebarChat(opts: {
         },
         onTerminal: () => {
           void loadMessages(cid)
+          // Refresh conversation list so title/lastMessageAt updates
+          void loadConversations()
         },
       })
     },
-    [isStreaming, ensureConversation, startFromSend, loadMessages]
+    [isStreaming, ensureConversation, startFromSend, loadMessages, loadConversations]
   )
 
   const reset = useCallback(() => {
@@ -125,12 +165,15 @@ export function useAiSidebarChat(opts: {
     try {
       sessionStorage.removeItem(sessionKey(opts.projectId))
     } catch { /* ignore */ }
+    // conversations list is preserved
   }, [closeStreamOnly, resetStream, opts.projectId])
 
   const initLoad = useCallback(async () => {
-    if (!conversationId || messagesLoaded) return
-    await loadMessages(conversationId)
-  }, [conversationId, messagesLoaded, loadMessages])
+    const tasks: Promise<void>[] = []
+    if (!conversationsLoaded) tasks.push(loadConversations())
+    if (conversationId && !messagesLoaded) tasks.push(loadMessages(conversationId))
+    await Promise.all(tasks)
+  }, [conversationId, messagesLoaded, conversationsLoaded, loadMessages, loadConversations])
 
   const cancelStream = useCallback(async () => {
     await cancelGeneration()
@@ -138,6 +181,7 @@ export function useAiSidebarChat(opts: {
 
   return {
     conversationId,
+    conversations,
     messages,
     streamingText,
     streamTools,
@@ -150,5 +194,6 @@ export function useAiSidebarChat(opts: {
     reset,
     cancelStream,
     initLoad,
+    openConversation,
   }
 }

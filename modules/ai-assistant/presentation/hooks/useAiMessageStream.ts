@@ -16,10 +16,13 @@ import {
   applyToken,
   applyToolCall,
   applyToolResult,
+  applyActionPlanReady,
+  dismissActionPlan,
   createInitialStreamState,
   isTerminalUiState,
   markEventSeen,
   shouldIgnoreDuplicateEvent,
+  type ActionPlanSummary,
   type StreamControllerState,
   type StreamToolCall,
 } from './aiMessageStream.reducer'
@@ -66,6 +69,7 @@ export interface UseAiMessageStreamResult {
   retryConnection: () => void
   closeStreamOnly: () => void
   resetStream: () => void
+  dismissActionPlan: (planId: string) => void
 }
 
 export function useAiMessageStream(): UseAiMessageStreamResult {
@@ -298,6 +302,12 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
               return next
             }
 
+            if (ev.event === 'action.plan_ready') {
+              const parsed = parseJsonSafe<ActionPlanSummary>(ev.data)
+              if (parsed?.planId) return applyActionPlanReady(next, parsed)
+              return next
+            }
+
             return next
           })
         },
@@ -404,6 +414,10 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
     connect(url, lastId)
   }, [connect])
 
+  const dismissActionPlanCallback = useCallback((planId: string) => {
+    setStreamState((prev) => dismissActionPlan(prev, planId))
+  }, [])
+
   // Unmount: close transport only (do not auto-cancel generation)
   useEffect(() => {
     return () => {
@@ -429,5 +443,6 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
     retryConnection,
     closeStreamOnly,
     resetStream,
+    dismissActionPlan: dismissActionPlanCallback,
   }
 }

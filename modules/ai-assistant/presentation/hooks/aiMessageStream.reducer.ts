@@ -1,5 +1,18 @@
 import { AiStreamUiState } from '../../domain/enums/ai-assistant.enum'
 
+export interface ActionPlanSummary {
+  requestId: string
+  planId: string
+  planHash: string
+  summary: string
+  riskLevel: string
+  requiresConfirmation: boolean
+  stepCount: number
+  planVersion?: number
+  toolCode?: string
+  displayHints?: Record<string, string>
+}
+
 export interface StreamToolCall {
   id: string
   toolName: string
@@ -17,6 +30,7 @@ export interface StreamControllerState {
   assistantMessageId: string | null
   messageStatus: string | null
   tools: StreamToolCall[]
+  pendingActionPlans: ActionPlanSummary[]
   lastEventId: string | null
   seenEventIds: Set<string>
   error: string | null
@@ -30,6 +44,7 @@ export function createInitialStreamState(): StreamControllerState {
     assistantMessageId: null,
     messageStatus: null,
     tools: [],
+    pendingActionPlans: [],
     lastEventId: null,
     seenEventIds: new Set(),
     error: null,
@@ -217,6 +232,25 @@ export function applyReconnectExhausted(
     uiState: AiStreamUiState.Failed,
     canRetryConnection: true,
     error: state.error ?? 'Connection lost. Retry to continue streaming.',
+  }
+}
+
+export function applyActionPlanReady(
+  state: StreamControllerState,
+  plan: ActionPlanSummary
+): StreamControllerState {
+  const alreadyAdded = state.pendingActionPlans.some((p) => p.planId === plan.planId)
+  if (alreadyAdded) return state
+  return { ...state, pendingActionPlans: [...state.pendingActionPlans, plan] }
+}
+
+export function dismissActionPlan(
+  state: StreamControllerState,
+  planId: string
+): StreamControllerState {
+  return {
+    ...state,
+    pendingActionPlans: state.pendingActionPlans.filter((p) => p.planId !== planId),
   }
 }
 

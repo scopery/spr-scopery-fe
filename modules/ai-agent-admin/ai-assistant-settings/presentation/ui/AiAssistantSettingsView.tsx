@@ -178,7 +178,7 @@ export function AiAssistantSettingsView() {
 
       {/* Model deployment */}
       <div className="space-y-3">
-        <Typography variant="label">Model Deployment</Typography>
+        <Typography variant="small" weight="semibold">Model Deployment</Typography>
         <Typography variant="small" tone="muted">
           Select an active deployment to use. This controls which provider and model ID are used.
         </Typography>
@@ -203,7 +203,7 @@ export function AiAssistantSettingsView() {
 
       {/* System prompt */}
       <div className="space-y-3">
-        <Typography variant="label">System Prompt</Typography>
+        <Typography variant="small" weight="semibold">System Prompt</Typography>
         <Typography variant="small" tone="muted">
           Override the assistant system prompt. Leave empty to use the default.
         </Typography>
@@ -221,7 +221,7 @@ export function AiAssistantSettingsView() {
 
       {/* Temperature */}
       <div className="space-y-3">
-        <Typography variant="label">Temperature</Typography>
+        <Typography variant="small" weight="semibold">Temperature</Typography>
         <Typography variant="small" tone="muted">
           Controls randomness (0.0 = deterministic, 2.0 = very creative). Default: {DEFAULT_TEMPERATURE}
         </Typography>
@@ -238,7 +238,7 @@ export function AiAssistantSettingsView() {
 
       {/* Max output tokens */}
       <div className="space-y-3">
-        <Typography variant="label">Max Output Tokens</Typography>
+        <Typography variant="small" weight="semibold">Max Output Tokens</Typography>
         <Typography variant="small" tone="muted">
           Maximum tokens in the AI response. Default: {DEFAULT_MAX_TOKENS}
         </Typography>

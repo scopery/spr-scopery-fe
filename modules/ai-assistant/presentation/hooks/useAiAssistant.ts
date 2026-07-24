@@ -82,6 +82,7 @@ export function useAiAssistant() {
     retryConnection,
     closeStreamOnly,
     resetStream,
+    dismissActionPlan,
   } = useAiMessageStream()
 
   const conversationHref = useCallback(
@@ -183,15 +184,16 @@ export function useAiAssistant() {
         if (opts?.navigate !== false && workspaceId) {
           const href = conversationHref(id)
           if (typeof window !== 'undefined' && window.location.pathname !== href) {
-            skipDeeplinkRef.current = id
-            router.push(href)
+            // Use history.pushState to update the URL without triggering a Next.js
+            // route change (which would unmount this component and lose in-flight stream state).
+            window.history.pushState(null, '', href)
           }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to open conversation')
       }
     },
-    [workspaceId, conversationHref, router, closeStreamOnly]
+    [workspaceId, conversationHref, closeStreamOnly]
   )
 
   // Deep-link: /workspace/.../ai/c/:conversationId
@@ -516,5 +518,6 @@ export function useAiAssistant() {
     feedbackByMessageId,
     refetch: loadConversations,
     homeHref,
+    dismissActionPlan,
   }
 }

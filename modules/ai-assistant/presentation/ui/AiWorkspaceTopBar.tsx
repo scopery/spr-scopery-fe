@@ -36,11 +36,11 @@ export function AiWorkspaceTopBar({
           icon={<Menu size={16} />}
           onClick={onToggleConversations}
         />
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center bg-primary-gradient text-white">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center bg-blue-400 text-white">
           <Sparkles size={14} />
         </span>
         <div className="min-w-0">
-          <Typography as="p" className="font-calsans truncate text-sm font-bold text-neutral-900">
+          <Typography as="p" className="font-calsans truncate text-sm text-neutral-900">
             Scopery AI
             {title ? (
               <span className="font-questrial ml-2 font-normal text-neutral-500">/ {title}</span>

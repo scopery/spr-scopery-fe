@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { CircleHelp, LogOut, Settings } from 'lucide-react'
 import { Avatar, Button, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
+import { AdminAppModeSwitch } from './AdminAppModeSwitch'
 
 export interface UserOrganizationMenuProps {
   collapsed: boolean
@@ -12,6 +13,7 @@ export interface UserOrganizationMenuProps {
   email?: string
   organizationName: string
   avatarFallback: string
+  canAccessAdmin?: boolean
   onLogout: () => void
   onOpenHelp: () => void
   onOpenSettings: () => void
@@ -23,6 +25,7 @@ export function UserOrganizationMenu({
   email,
   organizationName,
   avatarFallback,
+  canAccessAdmin,
   onLogout,
   onOpenHelp,
   onOpenSettings,
@@ -166,6 +169,13 @@ export function UserOrganizationMenu({
                   <Settings size={14} className="text-neutral-500" />
                   Settings
                 </button>
+                <AdminAppModeSwitch
+                  mode="app"
+                  canAccessAdmin={canAccessAdmin}
+                  loading={false}
+                  onNavigate={close}
+                  className="px-3 py-2 text-sm"
+                />
                 <button
                   type="button"
                   role="menuitem"

@@ -44,6 +44,7 @@ export const ADMIN_ROUTES = {
   aiControlTools: '/admin/ai-control/tools',
   aiControlTool: (toolId: string) => `/admin/ai-control/tools/${toolId}`,
   aiControlAssistantSettings: '/admin/ai-control/assistant-settings',
+  aiControlKnowledge: '/admin/ai-control/knowledge',
 
   iam: '/admin/iam',
   iamOverview: '/admin/iam/overview',

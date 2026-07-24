@@ -28,7 +28,7 @@ export function AiMessageShell({ role, children, footer, status }: AiMessageShel
             You
           </span>
         ) : (
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary-gradient text-white">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-blue-400 text-white">
             <Sparkles size={12} />
           </span>
         )}

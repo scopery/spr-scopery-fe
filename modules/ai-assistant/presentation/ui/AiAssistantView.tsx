@@ -38,6 +38,7 @@ import {
 } from './MessageFeedbackDialog'
 import { NewConversationDialog } from './NewConversationDialog'
 import { RenameConversationDialog } from './RenameConversationDialog'
+import { ActionConfirmationCard } from './ActionConfirmationCard'
 import { StreamingAssistantMessage } from './StreamingAssistantMessage'
 
 function formatRelativeWhen(iso: string | undefined | null): string {
@@ -93,6 +94,7 @@ export function AiAssistantView() {
     retryStreamConnection,
     rateMessage,
     feedbackByMessageId,
+    dismissActionPlan,
   } = useAiAssistant()
 
   const { workspaces, currentWorkspaceId } = useAuth()
@@ -509,6 +511,15 @@ export function AiAssistantView() {
                     onRetryConnection={retryStreamConnection}
                     onStop={() => void cancelStream()}
                   />
+                ) : null}
+                {streamState.pendingActionPlans.length > 0 ? (
+                  <div className="px-1">
+                    <ActionConfirmationCard
+                      plans={streamState.pendingActionPlans}
+                      isStreaming={isStreaming}
+                      onDismiss={dismissActionPlan}
+                    />
+                  </div>
                 ) : null}
                 <div ref={bottomRef} />
               </div>

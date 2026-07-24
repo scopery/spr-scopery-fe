@@ -109,7 +109,7 @@ export function AiWorkspaceComposer({
           />
         ) : null}
 
-        <div className="border border-neutral-200 bg-neutral-50 shadow-sm">
+        <div className="border border-neutral-200 bg-neutral-50">
           {sources.length > 0 ? (
             <div className="flex flex-wrap gap-1.5 border-b border-neutral-100 px-3 pt-3">
               {sources.map((s) => (
