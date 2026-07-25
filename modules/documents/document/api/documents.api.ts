@@ -9,6 +9,7 @@ import type {
   PlainDocumentContent,
   ProjectDocumentListItem,
 } from '../model/document'
+import { fromBeDocumentTypeCode } from '../model/document-type-codes'
 
 export async function listProjectDocuments(
   orgId: string,
@@ -52,6 +53,7 @@ export async function getDocument(
       createdAt?: string | null
       contentMode?: string | null
       description?: string | null
+      documentTypeCode?: string | null
     }>(DOCUMENT_ENDPOINTS.getProject(projectId, documentId))
     return mapProjectDocumentResponseToDocument(be, orgId)
   }
@@ -69,6 +71,7 @@ function mapProjectDocumentResponseToDocument(
     description?: string | null
     code?: string | null
     contentMode?: string | null
+    documentTypeCode?: string | null
   },
   orgId: string
 ): Document {
@@ -88,7 +91,7 @@ function mapProjectDocumentResponseToDocument(
     title: (be.title ?? be.code ?? 'Untitled').trim() || 'Untitled',
     content: { format: 'plain', body: be.description ?? '' },
     plain_text: be.description ?? '',
-    document_type: 'other',
+    document_type: fromBeDocumentTypeCode(be.documentTypeCode),
     visibility: 'project',
     status,
     workflow_status,

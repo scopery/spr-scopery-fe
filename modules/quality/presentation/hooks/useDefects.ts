@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import * as api from '../../infrastructure/api/quality.api'
-import type { Defect } from '../../domain/model/quality'
+import type { CreateDefectPayload, Defect } from '../../domain/model/quality'
 
 export function useDefects(projectId: string | null) {
   const [items, setItems] = useState<Defect[]>([])
@@ -28,6 +28,14 @@ export function useDefects(projectId: string | null) {
     void load()
   }, [load])
 
+  const create = useCallback(
+    async (body: CreateDefectPayload) => {
+      if (!projectId) return
+      await api.createDefect(projectId, body)
+    },
+    [projectId]
+  )
+
   const close = useCallback(
     async (defectId: string) => {
       if (!projectId) return
@@ -42,5 +50,5 @@ export function useDefects(projectId: string | null) {
     [projectId, load]
   )
 
-  return { items, loading, error, actionError, refetch: load, close }
+  return { items, loading, error, actionError, refetch: load, create, close }
 }

@@ -64,6 +64,17 @@ function marksToProps(marks: unknown): UnknownRecord {
     else if (mark.type === 'italic') props.italic = true
     else if (mark.type === 'underline') props.underline = true
     else if (mark.type === 'code') props.code = true
+    else if (mark.type === 'highlightBg') {
+      const tone = mark.attrs && isRecord(mark.attrs) ? mark.attrs.tone : mark.tone
+      if (typeof tone === 'string') props.highlightBg = tone
+    } else if (mark.type === 'highlightText') {
+      const tone = mark.attrs && isRecord(mark.attrs) ? mark.attrs.tone : mark.tone
+      if (typeof tone === 'string') props.highlightText = tone
+    } else if (mark.type === 'textHighlight' || mark.type === 'highlight') {
+      const tone = mark.attrs && isRecord(mark.attrs) ? mark.attrs.tone : mark.tone
+      if (typeof tone === 'string') props.highlightBg = tone
+      else props.highlightBg = 'amber'
+    }
   }
   return props
 }

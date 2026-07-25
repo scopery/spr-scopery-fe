@@ -34,14 +34,14 @@ export function EditorLinkFloating() {
       ref={floatingRef}
       {...floatingProps}
       className={cn(
-        'flex items-center gap-2 rounded-lg border border-neutral-200 bg-white p-2 shadow-md',
+        'flex items-center gap-2 rounded-none border border-neutral-200 bg-white p-2 shadow-md',
         'min-w-[280px]'
       )}
       role="dialog"
       aria-label="Link editor"
     >
       <FloatingLinkUrlInput
-        className="flex-1 rounded-md border border-neutral-200 px-2 py-1.5 text-sm outline-none focus:border-neutral-400"
+        className="flex-1 rounded-none border border-neutral-200 px-2 py-1.5 text-sm outline-none focus:border-neutral-400"
         placeholder="Paste or type a URL"
         aria-label="Link URL"
       />

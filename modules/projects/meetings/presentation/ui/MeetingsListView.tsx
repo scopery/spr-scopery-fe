@@ -154,7 +154,9 @@ export function MeetingsListView() {
                     <td className="px-4 py-3">{formatDateTime(m.startAt)}</td>
                     <td className="px-4 py-3">{m.location ?? '—'}</td>
                     <td className="px-4 py-3">
-                      <Badge tone={meetingStatusTone(m.status)}>{meetingStatusLabel(m.status)}</Badge>
+                      <Badge variant="solid" tone={meetingStatusTone(m.status)}>
+                        {meetingStatusLabel(m.status)}
+                      </Badge>
                     </td>
                     <td className="px-4 py-3">
                       <Stack direction="horizontal" spacing="sm">

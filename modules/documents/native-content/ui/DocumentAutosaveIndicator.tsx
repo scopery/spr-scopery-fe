@@ -3,25 +3,40 @@
 import { cn } from '@/utils/cn'
 import type { NativeEditorSaveStatus } from '../model/document-content'
 
-const SAVE_COPY: Record<NativeEditorSaveStatus, string> = {
-  idle: '',
-  saved: 'Saved',
-  saving: 'Saving…',
-  unsaved: 'Unsaved changes',
-  conflict: 'Conflict detected',
-  error: 'Save failed',
+function labelFor(
+  status: NativeEditorSaveStatus,
+  autosaveInSeconds: number | null | undefined
+): string {
+  switch (status) {
+    case 'idle':
+      return ''
+    case 'saved':
+      return 'Saved'
+    case 'saving':
+      return 'Saving…'
+    case 'unsaved':
+      return autosaveInSeconds != null
+        ? `Autosave in ${autosaveInSeconds}s`
+        : 'Unsaved changes'
+    case 'conflict':
+      return 'Conflict detected'
+    case 'error':
+      return 'Save failed'
+  }
 }
 
 export function DocumentAutosaveIndicator({
   status,
   lastSavedAt,
+  autosaveInSeconds,
   className,
 }: {
   status: NativeEditorSaveStatus
   lastSavedAt?: string
+  autosaveInSeconds?: number | null
   className?: string
 }) {
-  const label = SAVE_COPY[status]
+  const label = labelFor(status, autosaveInSeconds)
   if (!label && !lastSavedAt) return null
 
   return (

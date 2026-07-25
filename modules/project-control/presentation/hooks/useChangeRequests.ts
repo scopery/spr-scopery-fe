@@ -7,6 +7,7 @@ import type {
   ChangeImpact,
   ChangeRequest,
   CreateChangeRequestPayload,
+  UpdateChangeRequestPayload,
 } from '../../domain/model/project-control'
 
 export function useChangeRequests(projectId: string | null) {
@@ -65,13 +66,13 @@ export function useChangeRequests(projectId: string | null) {
   }
 }
 
+/** @deprecated Tabs removed — continuous workflow page. Kept for facade compatibility. */
 export type CrWorkbenchTab = 'overview' | 'items' | 'impact' | 'orders'
 
 export function useChangeRequestWorkbench(
   projectId: string | null,
   changeRequestId: string | null
 ) {
-  const [tab, setTab] = useState<CrWorkbenchTab>('overview')
   const [cr, setCr] = useState<ChangeRequest | null>(null)
   const [items, setItems] = useState<Awaited<ReturnType<typeof api.listChangeRequestItems>>>(
     []
@@ -81,6 +82,8 @@ export function useChangeRequestWorkbench(
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [forbidden, setForbidden] = useState(false)
+  const [analyzingImpact, setAnalyzingImpact] = useState(false)
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
 
   const load = useCallback(async () => {
     if (!projectId || !changeRequestId) return
@@ -110,6 +113,17 @@ export function useChangeRequestWorkbench(
   useEffect(() => {
     void load()
   }, [load])
+
+  const saveDraft = useCallback(
+    async (body: UpdateChangeRequestPayload) => {
+      if (!projectId || !changeRequestId) return null
+      const updated = await api.updateChangeRequest(projectId, changeRequestId, body)
+      setCr(updated)
+      setLastSavedAt(new Date())
+      return updated
+    },
+    [projectId, changeRequestId]
+  )
 
   const lifecycle = useCallback(
     async (
@@ -157,6 +171,7 @@ export function useChangeRequestWorkbench(
         body
       )
       await load()
+      setLastSavedAt(new Date())
       return created
     },
     [projectId, changeRequestId, load]
@@ -167,26 +182,23 @@ export function useChangeRequestWorkbench(
       if (!projectId || !changeRequestId) return
       await api.deleteChangeRequestItem(projectId, changeRequestId, itemId)
       await load()
+      setLastSavedAt(new Date())
     },
     [projectId, changeRequestId, load]
   )
 
   const calculateImpact = useCallback(async () => {
     if (!projectId || !changeRequestId) return null
-    const result = await api.calculateChangeImpact(projectId, changeRequestId)
-    setImpact(result)
-    return result
-  }, [projectId, changeRequestId])
-
-  const saveImpact = useCallback(
-    async (body: Parameters<typeof api.putChangeImpact>[2]) => {
-      if (!projectId || !changeRequestId) return null
-      const result = await api.putChangeImpact(projectId, changeRequestId, body)
+    setAnalyzingImpact(true)
+    try {
+      const result = await api.calculateChangeImpact(projectId, changeRequestId)
       setImpact(result)
+      setLastSavedAt(new Date())
       return result
-    },
-    [projectId, changeRequestId]
-  )
+    } finally {
+      setAnalyzingImpact(false)
+    }
+  }, [projectId, changeRequestId])
 
   const addOrder = useCallback(
     async (body: Parameters<typeof api.createChangeOrder>[2]) => {
@@ -199,8 +211,6 @@ export function useChangeRequestWorkbench(
   )
 
   return {
-    tab,
-    setTab,
     cr,
     items,
     impact,
@@ -208,12 +218,14 @@ export function useChangeRequestWorkbench(
     loading,
     error,
     forbidden,
+    analyzingImpact,
+    lastSavedAt,
     refetch: load,
+    saveDraft,
     lifecycle,
     addItem,
     removeItem,
     calculateImpact,
-    saveImpact,
     addOrder,
   }
 }

@@ -86,7 +86,7 @@ export const Select = React.forwardRef(
         >
           <SelectPrimitive.Trigger
             className={cn(
-              'inline-flex w-full min-w-0 items-center justify-between gap-2',
+              'flex w-full min-w-0 items-center justify-between gap-2',
               'overflow-hidden border border-neutral-300',
               'bg-white text-neutral-900',
               'transition-colors duration-200',
@@ -96,11 +96,11 @@ export const Select = React.forwardRef(
             )}
             aria-label="Select option"
           >
-            <SelectPrimitive.Value
-              placeholder={placeholder}
-              className="min-w-0 flex-1 truncate text-left"
-            />
-            <SelectPrimitive.Icon className="flex-shrink-0">
+            {/* Wrapper required: Radix Value often ignores its own className for truncate. */}
+            <span className="min-w-0 flex-1 overflow-hidden text-left [&>span]:block [&>span]:truncate">
+              <SelectPrimitive.Value placeholder={placeholder} />
+            </span>
+            <SelectPrimitive.Icon className="shrink-0">
               <ChevronDown size={16} className={cn('transition-transform', open && 'rotate-180')} />
             </SelectPrimitive.Icon>
           </SelectPrimitive.Trigger>
@@ -129,13 +129,15 @@ export const Select = React.forwardRef(
                       value={itemValue}
                       disabled={option.disabled}
                       className={cn(
-                        'relative flex cursor-pointer select-none items-center rounded-sm',
+                        'relative flex cursor-pointer select-none items-center pr-8',
                         'outline-none focus:bg-neutral-100 focus:text-neutral-900',
                         'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
                         selectSizes[size].item
                       )}
                     >
-                      <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+                      <SelectPrimitive.ItemText className="min-w-0 truncate">
+                        {option.label}
+                      </SelectPrimitive.ItemText>
                       <SelectPrimitive.ItemIndicator className="absolute right-2 flex items-center">
                         <Check size={16} />
                       </SelectPrimitive.ItemIndicator>

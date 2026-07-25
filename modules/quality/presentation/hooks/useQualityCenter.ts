@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import * as api from '../../infrastructure/api/quality.api'
-import type { QualityPlan } from '../../domain/model/quality'
+import type {
+  CreateQualityPlanPayload,
+  QualityPlan,
+} from '../../domain/model/quality'
 
 export function useQualityCenter(scopeId: string | null) {
   const [items, setItems] = useState<QualityPlan[]>([])
@@ -27,6 +30,14 @@ export function useQualityCenter(scopeId: string | null) {
   useEffect(() => {
     void load()
   }, [load])
+
+  const create = useCallback(
+    async (body: CreateQualityPlanPayload) => {
+      if (!scopeId) return
+      await api.createQualityPlan(scopeId, body)
+    },
+    [scopeId]
+  )
 
   const approve = useCallback(
     async (planId: string) => {
@@ -56,5 +67,14 @@ export function useQualityCenter(scopeId: string | null) {
     [scopeId, load]
   )
 
-  return { items, loading, error, actionError, refetch: load, approve, markCurrent }
+  return {
+    items,
+    loading,
+    error,
+    actionError,
+    refetch: load,
+    create,
+    approve,
+    markCurrent,
+  }
 }

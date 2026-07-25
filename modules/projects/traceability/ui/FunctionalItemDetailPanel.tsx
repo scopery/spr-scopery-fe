@@ -7,7 +7,6 @@ import { ApiError } from '@/shared/lib/api-types'
 import { cn } from '@/utils/cn'
 import {
   BusinessRuleSeverity,
-  CustomPropertyFieldType,
   type FunctionalItem,
   type UpdateFunctionalItemBody,
 } from '../model/functional-catalog'
@@ -15,6 +14,7 @@ import { useFunctionalItemDetail } from '../hooks/useFunctionalItemDetail'
 import { useArchitectureNodeCatalog } from '../hooks/useArchitectureNodeCatalog'
 import { labelArchitectureNode } from '../model/anchor-mapping'
 import { ScreenStructureEditor } from './ScreenStructureEditor'
+import { FunctionalItemCustomPropertiesPanel } from './FunctionalItemCustomPropertiesPanel'
 
 type DetailTab = 'anchors' | 'properties' | 'rules'
 
@@ -102,26 +102,7 @@ function ViewField({
   )
 }
 
-const FIELD_TYPE_OPTIONS = Object.values(CustomPropertyFieldType)
 const SEVERITY_OPTIONS = Object.values(BusinessRuleSeverity)
-
-const PROPERTY_COLS = [
-  {
-    key: 'propKey',
-    label: 'Key',
-    required: true,
-    placeholder: 'persona',
-    lockedOnExisting: true,
-  },
-  { key: 'propValue', label: 'Value', placeholder: 'Optional' },
-  {
-    key: 'fieldType',
-    label: 'Type',
-    required: true,
-    placeholder: 'TEXT',
-    options: FIELD_TYPE_OPTIONS,
-  },
-]
 
 const RULE_COLS = [
   {
@@ -252,19 +233,6 @@ export function FunctionalItemDetailPanel({
       setSaving(false)
     }
   }, [editDescription, editPriority, editTitle, editType, item, onSave])
-
-  const propertyItems = useMemo(
-    () =>
-      properties.map((p) => ({
-        id: p.id,
-        values: {
-          propKey: p.propKey,
-          propValue: p.propValue ?? '',
-          fieldType: p.fieldType,
-        },
-      })),
-    [properties]
-  )
 
   const ruleItems = useMemo(
     () =>
@@ -463,32 +431,12 @@ export function FunctionalItemDetailPanel({
           ) : null}
 
           {tab === 'properties' ? (
-            <ScreenStructureEditor
-              columns={PROPERTY_COLS}
-              items={propertyItems}
-              emptyLabel="No custom fields yet."
-              addTitle="Add fields"
-              editTitle="Edit fields"
-              itemLabel="field"
-              allowDelete={false}
-              onCreate={async (values) => {
-                await addProperty({
-                  propKey: values.propKey.trim(),
-                  propValue: values.propValue.trim() || null,
-                  fieldType:
-                    (values.fieldType.trim().toUpperCase() as typeof CustomPropertyFieldType.Text) ||
-                    CustomPropertyFieldType.Text,
-                })
-              }}
-              onUpdate={async (id, values) => {
-                await updateProperty(id, {
-                  propValue: values.propValue.trim() || null,
-                  fieldType:
-                    (values.fieldType.trim().toUpperCase() as typeof CustomPropertyFieldType.Text) ||
-                    CustomPropertyFieldType.Text,
-                })
-              }}
-              onDelete={removeProperty}
+            <FunctionalItemCustomPropertiesPanel
+              properties={properties}
+              loading={loading}
+              onAdd={addProperty}
+              onUpdate={updateProperty}
+              onRemove={removeProperty}
             />
           ) : null}
 

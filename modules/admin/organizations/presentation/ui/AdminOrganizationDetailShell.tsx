@@ -87,7 +87,7 @@ export function AdminOrganizationDetailShell({ children }: { children: React.Rea
               href={href}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'border-b-2 px-3 py-2 text-sm transition-colors',
+                'rounded-none border-b-2 px-3 py-2 text-sm transition-colors',
                 active
                   ? 'border-primary text-neutral-900'
                   : 'border-transparent text-neutral-600 hover:text-neutral-900'

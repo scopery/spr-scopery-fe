@@ -17,7 +17,11 @@ interface WorkflowStatusBadgeProps {
 
 export function WorkflowStatusBadge({ status, size = 'sm' }: WorkflowStatusBadgeProps) {
   return (
-    <Badge variant="soft" tone={TONE[status]} size={size}>
+    <Badge
+      variant={status === 'approved' ? 'solid' : 'soft'}
+      tone={TONE[status]}
+      size={size}
+    >
       {DOCUMENT_WORKFLOW_STATUS_LABEL[status]}
     </Badge>
   )

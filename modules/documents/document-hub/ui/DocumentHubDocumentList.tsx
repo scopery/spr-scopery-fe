@@ -33,11 +33,6 @@ type DocumentHubDocumentListProps = {
 
 function docHref(orgId: string, doc: DocumentHubItem) {
   if (!doc.project_id) return ROUTES.workspace.document(orgId, doc.id)
-  const mode = (doc.content_mode ?? '').toUpperCase()
-  // Native editor only for NATIVE / HYBRID — FILE uses workbench / upload flow
-  if (mode === 'FILE') {
-    return ROUTES.workspace.projectDocumentWorkbench(orgId, doc.project_id, doc.id)
-  }
   return ROUTES.workspace.projectDocumentEdit(orgId, doc.project_id, doc.id)
 }
 

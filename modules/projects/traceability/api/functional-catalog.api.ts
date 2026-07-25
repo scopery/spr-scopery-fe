@@ -1,5 +1,6 @@
 import { apiPath } from '@/shared/lib/api-paths'
 import { apiClient } from '@/shared/lib/apiClient'
+import { type BulkJobResponse, pollBulkJobUntilDone } from '@/shared/lib/bulkJobs'
 import { normalizeItemList, type ListPayload } from '@/shared/lib/normalizeListResponse'
 import type {
   AddFunctionalItemAnchorBody,
@@ -40,6 +41,10 @@ export const FUNCTIONAL_CATALOG_ENDPOINTS = {
   customProperties: (projectId: string, functionalItemId: string) =>
     apiPath(
       `/projects/${projectId}/functional-items/${functionalItemId}/custom-properties`
+    ),
+  customPropertiesBulk: (projectId: string, functionalItemId: string) =>
+    apiPath(
+      `/projects/${projectId}/functional-items/${functionalItemId}/custom-properties/bulk`
     ),
   customProperty: (projectId: string, functionalItemId: string, id: string) =>
     apiPath(
@@ -129,6 +134,13 @@ export async function listNonFunctionalItems(
     FUNCTIONAL_CATALOG_ENDPOINTS.nonFunctionalItems(projectId) + (qs ? `?${qs}` : '')
   )
   return normalizeItemList(res)
+}
+
+export async function getNonFunctionalItem(
+  projectId: string,
+  id: string
+): Promise<NonFunctionalItem> {
+  return apiClient.get(FUNCTIONAL_CATALOG_ENDPOINTS.nonFunctionalItem(projectId, id))
 }
 
 export async function createNonFunctionalItem(
@@ -234,6 +246,21 @@ export async function deleteCustomProperty(
   await apiClient.delete(
     FUNCTIONAL_CATALOG_ENDPOINTS.customProperty(projectId, functionalItemId, id)
   )
+}
+
+export async function bulkCreateCustomProperties(
+  projectId: string,
+  functionalItemId: string,
+  items: CreateCustomPropertyBody[]
+): Promise<void> {
+  const job = await apiClient.post<BulkJobResponse>(
+    FUNCTIONAL_CATALOG_ENDPOINTS.customPropertiesBulk(projectId, functionalItemId),
+    { items }
+  )
+  const done = await pollBulkJobUntilDone(job.id)
+  if (done.status === 'FAILED') {
+    throw new Error(done.errorMessage ?? 'Bulk create failed')
+  }
 }
 
 export async function listAnchors(

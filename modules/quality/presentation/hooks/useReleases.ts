@@ -2,16 +2,16 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import * as api from '../../infrastructure/api/quality.api'
-import type { ReleasePackage } from '../../domain/model/quality'
+import type { CreateReleasePayload, ReleasePackage } from '../../domain/model/quality'
 
 export function useReleases(projectId: string | null) {
   const [items, setItems] = useState<ReleasePackage[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [readiness, setReadiness] = useState<Record<string, { ready: boolean; blockers?: string[] }>>(
-    {}
-  )
+  const [readiness, setReadiness] = useState<
+    Record<string, { ready: boolean; blockers?: string[] }>
+  >({})
 
   const load = useCallback(async () => {
     if (!projectId) return
@@ -30,6 +30,14 @@ export function useReleases(projectId: string | null) {
   useEffect(() => {
     void load()
   }, [load])
+
+  const create = useCallback(
+    async (body: CreateReleasePayload) => {
+      if (!projectId) return
+      await api.createRelease(projectId, body)
+    },
+    [projectId]
+  )
 
   const checkReadiness = useCallback(
     async (releaseId: string) => {
@@ -80,6 +88,7 @@ export function useReleases(projectId: string | null) {
     actionError,
     readiness,
     refetch: load,
+    create,
     checkReadiness,
     markReady,
     markAsReleased,

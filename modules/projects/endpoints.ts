@@ -95,6 +95,8 @@ export const PROJECT_ENDPOINTS = {
       apiPath(`/projects/${projectId}/tasks/${taskId}/cancel`),
     archive: (projectId: string, taskId: string) =>
       apiPath(`/projects/${projectId}/tasks/${taskId}/archive`),
+    reopen: (projectId: string, taskId: string) =>
+      apiPath(`/projects/${projectId}/tasks/${taskId}/reopen`),
   },
 
   /* --- Questions (legacy v2 paths — not yet migrated) --- */

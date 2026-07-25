@@ -4,6 +4,10 @@ import { useCreateDeliverableDialog } from '../hooks/useCreateDeliverableDialog'
 import type { CreateDeliverableDialogProps } from '../model/create-deliverable-dialog'
 import { CreateDeliverableDialogView } from './CreateDeliverableDialogView'
 
+/** Stable defaults — inline `= []` creates a new array every render and loops reset effects. */
+const EMPTY_DOCUMENT_IDS: string[] = []
+const EMPTY_DOCUMENT_TITLES: string[] = []
+
 export function CreateDeliverableDialog({
   orgId,
   projectId,
@@ -14,8 +18,8 @@ export function CreateDeliverableDialog({
   initialDeliverableType,
   initialSourceEntityType,
   initialSourceEntityId,
-  initialSelectedDocumentIds = [],
-  selectedDocumentTitles: initialSelectedDocumentTitles = [],
+  initialSelectedDocumentIds = EMPTY_DOCUMENT_IDS,
+  selectedDocumentTitles: initialSelectedDocumentTitles = EMPTY_DOCUMENT_TITLES,
   lockDeliverableType,
 }: CreateDeliverableDialogProps) {
   const {

@@ -19,7 +19,7 @@ export function buildGanttTree(items: GanttItem[]): GanttTreeItem[] {
   }
 
   const sortRecursive = (list: GanttTreeItem[]) => {
-    list.sort((a, b) => a.sortOrder - b.sortOrder)
+    list.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
     list.forEach((item) => sortRecursive(item.children))
   }
   sortRecursive(roots)

@@ -41,9 +41,79 @@ import type {
 } from '../model/overall-structure'
 
 export const TRACEABILITY_ENDPOINTS = {
-  coverageMatrix: (projectId: string) =>
-    apiPath(`/projects/${projectId}/reports/coverage-matrix`),
-  traceLinks: (projectId: string) => apiPath(`/projects/${projectId}/trace-links`),
+  coverageMatrix: (
+    projectId: string,
+    params?: {
+      q?: string
+      coverageStatus?: string
+      latestResult?: string
+      priority?: string
+      module?: string
+      releaseId?: string
+      hasOpenDefect?: boolean
+      limit?: number
+      offset?: number
+    }
+  ) => {
+    const p = new URLSearchParams()
+    if (params?.q) p.set('q', params.q)
+    if (params?.coverageStatus) p.set('coverageStatus', params.coverageStatus)
+    if (params?.latestResult) p.set('latestResult', params.latestResult)
+    if (params?.priority) p.set('priority', params.priority)
+    if (params?.module) p.set('module', params.module)
+    if (params?.releaseId) p.set('releaseId', params.releaseId)
+    if (params?.hasOpenDefect != null) p.set('hasOpenDefect', String(params.hasOpenDefect))
+    if (params?.limit != null) p.set('limit', String(params.limit))
+    if (params?.offset != null) p.set('offset', String(params.offset))
+    const q = p.toString()
+    return (
+      apiPath(`/projects/${projectId}/reports/coverage-matrix`) + (q ? `?${q}` : '')
+    )
+  },
+  coverageMatrixRequirement: (projectId: string, requirementId: string) =>
+    apiPath(
+      `/projects/${projectId}/reports/coverage-matrix/requirements/${requirementId}`
+    ),
+  traceLinks: (projectId: string, params?: {
+    linkType?: string
+    sourceType?: string
+    sourceId?: string
+    targetType?: string
+    q?: string
+    limit?: number
+    offset?: number
+  }) => {
+    const p = new URLSearchParams()
+    if (params?.linkType) p.set('linkType', params.linkType)
+    if (params?.sourceType) p.set('sourceType', params.sourceType)
+    if (params?.sourceId) p.set('sourceId', params.sourceId)
+    if (params?.targetType) p.set('targetType', params.targetType)
+    if (params?.q) p.set('q', params.q)
+    if (params?.limit != null) p.set('limit', String(params.limit))
+    if (params?.offset != null) p.set('offset', String(params.offset))
+    const q = p.toString()
+    return apiPath(`/projects/${projectId}/trace-links`) + (q ? `?${q}` : '')
+  },
+  traceLinksBatch: (projectId: string) =>
+    apiPath(`/projects/${projectId}/trace-links/batch`),
+  requirementTestCaseLinks: (projectId: string, requirementId: string) =>
+    apiPath(`/projects/${projectId}/requirements/${requirementId}/test-case-links`),
+  linkableTestCases: (
+    projectId: string,
+    requirementId: string,
+    params?: { q?: string; limit?: number; offset?: number }
+  ) => {
+    const p = new URLSearchParams()
+    if (params?.q) p.set('q', params.q)
+    if (params?.limit != null) p.set('limit', String(params.limit))
+    if (params?.offset != null) p.set('offset', String(params.offset))
+    const q = p.toString()
+    return (
+      apiPath(
+        `/projects/${projectId}/requirements/${requirementId}/linkable-test-cases`
+      ) + (q ? `?${q}` : '')
+    )
+  },
   applications: (workspaceId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications`),
   application: (workspaceId: string, applicationId: string) =>
@@ -104,44 +174,206 @@ export const TRACEABILITY_ENDPOINTS = {
     apiPath(`/workspaces/${workspaceId}/screens/${screenId}/components/${componentId}`),
 } as const
 
+export type CoverageLatestResult =
+  | 'PASSED'
+  | 'FAILED'
+  | 'BLOCKED'
+  | 'NOT_RUN'
+  | 'SKIPPED'
+
+export type CoverageStatusApi =
+  | 'MISSING_TESTS'
+  | 'NOT_EVALUATED'
+  | 'AT_RISK'
+  | 'COVERED'
+
+export interface CoverageDefectSummary {
+  id: string
+  code?: string | null
+  title: string
+  status?: string | null
+  severity?: string | null
+}
+
+export interface CoverageTestCaseSummary {
+  id: string
+  code?: string | null
+  title: string
+  linkId?: string | null
+  latestResult?: CoverageLatestResult | string | null
+  latestResultAt?: string | null
+}
+
+export interface CoverageTargetRelease {
+  id: string
+  name: string
+  status?: string | null
+}
+
+/** Rich coverage row from BE (P0+). Booleans kept for backward compatibility. */
 export interface CoverageMatrixCell {
   requirementId: string
+  code?: string
+  title?: string
+  /** @deprecated use code */
   requirementCode?: string
+  /** @deprecated use title */
   requirementTitle?: string
+  requirementType?: string | null
+  priority?: string | null
+  moduleName?: string | null
+  applicationId?: string | null
+  functionalItemId?: string | null
+  coverageStatus?: CoverageStatusApi | string | null
+  testCaseCount?: number
+  executedCount?: number
+  passedCount?: number
+  failedCount?: number
+  blockedCount?: number
+  notRunCount?: number
+  latestResult?: CoverageLatestResult | string | null
+  latestResultAt?: string | null
+  latestTestRunId?: string | null
+  latestTestCaseId?: string | null
+  latestTestCaseCode?: string | null
+  latestTestCaseTitle?: string | null
+  openDefectCount?: number
+  openDefects?: CoverageDefectSummary[]
+  targetRelease?: CoverageTargetRelease | null
+  testCases?: CoverageTestCaseSummary[]
+  /** @deprecated */
   hasTestCase?: boolean
+  /** @deprecated */
   hasResult?: boolean
+  /** @deprecated */
   hasDefect?: boolean
+  /** @deprecated */
   hasRelease?: boolean
+  /** @deprecated */
   gap?: boolean
+}
+
+export interface CoverageMatrixSummary {
+  requirements: number
+  covered: number
+  coveredPct: number
+  missingTests: number
+  failed: number
+  blocked: number
+  notEvaluated?: number
+  atRisk?: number
+}
+
+export interface CoverageMatrixResponse {
+  summary?: CoverageMatrixSummary | null
+  items: CoverageMatrixCell[]
+  page?: { limit: number; offset: number; total: number } | null
+  generatedAt?: string | null
+  stale?: boolean | null
 }
 
 export interface TraceLink {
   id: string
   sourceType: string
   sourceId: string
+  sourceCode?: string | null
+  sourceTitle?: string | null
   targetType: string
   targetId: string
+  targetCode?: string | null
+  targetTitle?: string | null
   linkType: string
   status?: string
+  createdAt?: string | null
+  createdByUserId?: string | null
+  createdByDisplayName?: string | null
+  updatedAt?: string | null
+}
+
+export interface BatchCreateTraceLinkBody {
+  links: Array<{
+    sourceType: string
+    sourceId: string
+    targetType: string
+    targetId: string
+    linkType: string
+  }>
+}
+
+export interface BatchCreateTraceLinkResponse {
+  created: TraceLink[]
+  skipped: Array<{ targetId?: string; sourceId?: string; reason: string }>
+  failed: Array<{ targetId?: string; sourceId?: string; reason: string }>
+}
+
+export interface LinkableTestCase {
+  id: string
+  code?: string | null
+  title: string
+  status?: string | null
 }
 
 /** @deprecated Prefer RegistryApplication — kept for existing list callers */
 export type ApplicationItem = RegistryApplication
 
 export async function getCoverageMatrix(
-  projectId: string
-): Promise<{ items: CoverageMatrixCell[] }> {
-  const res = await apiClient.get<ListPayload<CoverageMatrixCell>>(
-    TRACEABILITY_ENDPOINTS.coverageMatrix(projectId)
+  projectId: string,
+  params?: {
+    q?: string
+    coverageStatus?: string
+    latestResult?: string
+    priority?: string
+    module?: string
+    releaseId?: string
+    hasOpenDefect?: boolean
+    limit?: number
+    offset?: number
+  }
+): Promise<CoverageMatrixResponse> {
+  const res = await apiClient.get<
+    CoverageMatrixResponse | CoverageMatrixCell[] | ListPayload<CoverageMatrixCell>
+  >(TRACEABILITY_ENDPOINTS.coverageMatrix(projectId, params))
+
+  // New shape: { summary, items, page }
+  if (res && typeof res === 'object' && !Array.isArray(res) && 'items' in res) {
+    const typed = res as CoverageMatrixResponse
+    return {
+      summary: typed.summary ?? null,
+      items: typed.items ?? [],
+      page: typed.page ?? null,
+      generatedAt: typed.generatedAt ?? null,
+      stale: typed.stale ?? null,
+    }
+  }
+
+  // Legacy: bare list
+  const { items } = normalizeItemList(res as ListPayload<CoverageMatrixCell>)
+  return { summary: null, items, page: null }
+}
+
+export async function getCoverageMatrixRequirement(
+  projectId: string,
+  requirementId: string
+): Promise<CoverageMatrixCell> {
+  return apiClient.get<CoverageMatrixCell>(
+    TRACEABILITY_ENDPOINTS.coverageMatrixRequirement(projectId, requirementId)
   )
-  return normalizeItemList(res)
 }
 
 export async function listTraceLinks(
-  projectId: string
+  projectId: string,
+  params?: {
+    linkType?: string
+    sourceType?: string
+    sourceId?: string
+    targetType?: string
+    q?: string
+    limit?: number
+    offset?: number
+  }
 ): Promise<{ items: TraceLink[] }> {
   const res = await apiClient.get<ListPayload<TraceLink>>(
-    TRACEABILITY_ENDPOINTS.traceLinks(projectId)
+    TRACEABILITY_ENDPOINTS.traceLinks(projectId, params)
   )
   return normalizeItemList(res)
 }
@@ -157,6 +389,38 @@ export async function createTraceLink(
   }
 ): Promise<TraceLink> {
   return apiClient.post(TRACEABILITY_ENDPOINTS.traceLinks(projectId), body)
+}
+
+export async function batchCreateTraceLinks(
+  projectId: string,
+  body: BatchCreateTraceLinkBody
+): Promise<BatchCreateTraceLinkResponse> {
+  return apiClient.post<BatchCreateTraceLinkResponse>(
+    TRACEABILITY_ENDPOINTS.traceLinksBatch(projectId),
+    body
+  )
+}
+
+export async function linkTestCasesToRequirement(
+  projectId: string,
+  requirementId: string,
+  testCaseIds: string[]
+): Promise<BatchCreateTraceLinkResponse | TraceLink[]> {
+  return apiClient.post(
+    TRACEABILITY_ENDPOINTS.requirementTestCaseLinks(projectId, requirementId),
+    { testCaseIds }
+  )
+}
+
+export async function listLinkableTestCases(
+  projectId: string,
+  requirementId: string,
+  params?: { q?: string; limit?: number; offset?: number }
+): Promise<{ items: LinkableTestCase[] }> {
+  const res = await apiClient.get<ListPayload<LinkableTestCase>>(
+    TRACEABILITY_ENDPOINTS.linkableTestCases(projectId, requirementId, params)
+  )
+  return normalizeItemList(res)
 }
 
 export async function listApplications(

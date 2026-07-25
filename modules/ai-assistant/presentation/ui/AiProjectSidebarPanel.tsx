@@ -9,6 +9,7 @@ import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
 import { AiStreamUiState } from '../../domain/enums/ai-assistant.enum'
 import { useAiSidebarChat } from '../hooks/useAiSidebarChat'
+import { ActionConfirmationCard } from './ActionConfirmationCard'
 import { AiMarkdownContent } from './AiMarkdownContent'
 
 // ─── Context-aware prompts ────────────────────────────────────────────────────
@@ -153,6 +154,7 @@ export function AiProjectSidebarPanel({
     messages,
     streamingText,
     streamUiState,
+    streamState,
     isStreaming,
     creating,
     error,
@@ -161,13 +163,14 @@ export function AiProjectSidebarPanel({
     cancelStream,
     initLoad,
     openConversation,
+    dismissActionPlan,
   } = useAiSidebarChat({ workspaceId, projectId })
 
   useEffect(() => { void initLoad() }, [initLoad])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages.length, streamingText])
+  }, [messages.length, streamingText, streamState.pendingActionPlans.length])
 
   // ── Drag resize ──
 
@@ -504,6 +507,16 @@ export function AiProjectSidebarPanel({
                         <span className="h-1.5 w-1.5 animate-bounce bg-neutral-400 [animation-delay:300ms]" />
                       </div>
                     )}
+                  </div>
+                ) : null}
+
+                {streamState.pendingActionPlans.length > 0 ? (
+                  <div className="px-4 pt-3">
+                    <ActionConfirmationCard
+                      plans={streamState.pendingActionPlans}
+                      isStreaming={isStreaming}
+                      onDismiss={dismissActionPlan}
+                    />
                   </div>
                 ) : null}
 

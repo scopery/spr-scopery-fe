@@ -1850,6 +1850,10 @@ GET /api/v1/projects/{projectId}/attention-items
 GET /api/v1/workspaces/{workspaceId}/my-work
 ```
 
+> **FE contract (proposed):** [`MY_WORK_API_CONTRACT.md`](./MY_WORK_API_CONTRACT.md) — path unversioned `/api/workspaces/{workspaceId}/my-work`, full query/response/acceptance checklist for BE.
+>
+> **My Insights (personal dashboard UI):** [`MY_INSIGHTS_API_CONTRACT.md`](./MY_INSIGHTS_API_CONTRACT.md) — single-page `/workspace/{workspaceId}/my-insights`.
+
 ## Structured Notification Target
 
 ```json

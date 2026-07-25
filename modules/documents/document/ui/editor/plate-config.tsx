@@ -52,6 +52,11 @@ import {
 } from './plate-elements'
 import { SlashCommandMenu } from './SlashCommandMenu'
 import { ResourceMentionPlugin, SyncedBlockPlugin } from './resource-embed-plugins'
+import {
+  HighlightBgPlugin,
+  HighlightTextPlugin,
+  LegacyTextHighlightPlugin,
+} from './TextHighlightPlugin'
 
 export { emptyPlateValue } from './empty-plate-value'
 
@@ -72,6 +77,9 @@ function buildEditorPlugins() {
     ItalicPlugin,
     UnderlinePlugin,
     CodePlugin.withComponent(CodeLeaf),
+    HighlightBgPlugin,
+    HighlightTextPlugin,
+    LegacyTextHighlightPlugin,
     ParagraphPlugin.withComponent(ParagraphElement),
     H1Plugin.configure({
       inputRules: [HeadingRules.markdown()],
@@ -146,6 +154,8 @@ export const plateContentClassName = cn(
   '[&_li]:mb-1',
   '[&_strong]:font-semibold [&_em]:italic [&_u]:underline',
   '[&_a]:text-blue-600 [&_a]:underline [&_a]:underline-offset-2',
+  // Prevent native <mark> yellow if any leftover mark tags appear
+  '[&_mark]:bg-transparent [&_mark]:text-inherit',
   '[&_table]:w-full',
   '[&_pre]:my-3 [&_pre]:overflow-x-auto'
 )

@@ -15,7 +15,7 @@ export interface GanttItem {
   assigneeUserId: string | null
   phaseId: string | null
   wbsNodeId: string | null
-  sortOrder: number
+  sortOrder: number | null
   zeroDuration: boolean
   metadata: Record<string, unknown>
   /** Resolved client-side by `buildGanttTree`. */

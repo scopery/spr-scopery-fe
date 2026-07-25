@@ -7,6 +7,7 @@ import type {
   DocumentType,
   DocumentWorkflowStatus,
 } from '@/modules/documents/document'
+import { fromBeDocumentTypeCode } from '@/modules/documents/document/model/document-type-codes'
 import { restoreDocument } from '@/modules/documents/document/api/documents.api'
 import {
   exportDocumentHub,
@@ -87,7 +88,7 @@ function mapBeDocumentToHubItem(
   return {
     id: doc.id,
     title: (doc.title ?? doc.code ?? 'Untitled').trim() || 'Untitled',
-    document_type: 'other',
+    document_type: fromBeDocumentTypeCode(doc.documentTypeCode),
     origin_type: 'manual',
     generated_by_ai: false,
     status: mapBeStatusToLifecycle(doc.status),

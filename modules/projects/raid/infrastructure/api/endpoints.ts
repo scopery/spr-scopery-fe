@@ -29,7 +29,7 @@ export const RAID_ENDPOINTS = {
   archive: (projectId: string, raidItemId: string) =>
     apiPath(`/projects/${projectId}/raid-items/${raidItemId}/archive`),
   convertToIssue: (projectId: string, raidItemId: string) =>
-    apiPath(`/projects/${projectId}/raid-items/${raidItemId}/convert-to-issue`),
+    apiPath(`/projects/${projectId}/raid-items/${raidItemId}/convert-risk-to-issue`),
   createCRDraft: (projectId: string, raidItemId: string) =>
     apiPath(`/projects/${projectId}/raid-items/${raidItemId}/create-change-request-draft`),
 } as const

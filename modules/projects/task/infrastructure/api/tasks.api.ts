@@ -53,3 +53,7 @@ export async function cancelTask(projectId: string, taskId: string): Promise<Pro
 export async function archiveTask(projectId: string, taskId: string): Promise<ProjectTask> {
   return apiClient.patch<ProjectTask>(PROJECT_ENDPOINTS.tasks.archive(projectId, taskId))
 }
+
+export async function reopenTask(projectId: string, taskId: string): Promise<ProjectTask> {
+  return apiClient.patch<ProjectTask>(PROJECT_ENDPOINTS.tasks.reopen(projectId, taskId))
+}

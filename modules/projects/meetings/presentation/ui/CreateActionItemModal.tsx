@@ -56,7 +56,7 @@ export function CreateActionItemModal({ open, onClose, onSubmit }: CreateActionI
       title="New action item"
       size="md"
       actions={[
-        { label: 'Cancel', onClick: onClose, variant: 'ghost' },
+        { label: 'Close', onClick: onClose, variant: 'ghost' },
         { label: 'Create', onClick: () => void handleSubmit(), variant: 'primary', loading },
       ]}
     >

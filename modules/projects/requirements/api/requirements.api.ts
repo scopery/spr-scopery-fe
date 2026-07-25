@@ -1,13 +1,18 @@
 import { PROJECT_ENDPOINTS } from '../../endpoints'
 import { apiClient } from '@/shared/lib/apiClient'
-import type { Requirement, RequirementsListResponse } from '../model/requirements'
+import type {
+  CreateRequirementPayload,
+  Requirement,
+  RequirementsListResponse,
+  UpdateRequirementPayload,
+} from '../model/requirements'
 
 export type { Requirement, RequirementType, RequirementsListResponse } from '../model/requirements'
 
 export async function listRequirements(
   orgId: string,
   projectId: string,
-  params?: { limit?: number; offset?: number }
+  _params?: { limit?: number; offset?: number }
 ): Promise<RequirementsListResponse> {
   const url = PROJECT_ENDPOINTS.requirements(orgId, projectId)
   const res = await apiClient.get<RequirementsListResponse | Requirement[]>(url)
@@ -15,4 +20,24 @@ export async function listRequirements(
     return { items: res }
   }
   return res
+}
+
+export async function createRequirement(
+  orgId: string,
+  projectId: string,
+  body: CreateRequirementPayload
+): Promise<Requirement> {
+  return apiClient.post<Requirement>(PROJECT_ENDPOINTS.requirements(orgId, projectId), body)
+}
+
+export async function updateRequirement(
+  orgId: string,
+  projectId: string,
+  requirementId: string,
+  body: UpdateRequirementPayload
+): Promise<Requirement> {
+  return apiClient.patch<Requirement>(
+    PROJECT_ENDPOINTS.requirement(orgId, projectId, requirementId),
+    body
+  )
 }

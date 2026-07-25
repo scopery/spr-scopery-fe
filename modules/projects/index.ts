@@ -13,12 +13,14 @@ export { useProjectPhases } from './phase/presentation/hooks/useProjectPhases'
 export { MeetingsListView } from './meetings/presentation/ui/MeetingsListView'
 export { MeetingWorkspaceView } from './meetings/presentation/ui/MeetingWorkspaceView'
 export { MeetingModeSwitcher } from './meetings/presentation/ui/MeetingModeSwitcher'
+export { MeetingLifecycleStepper } from './meetings/presentation/ui/MeetingLifecycleStepper'
 export { CreateActionItemModal } from './meetings/presentation/ui/CreateActionItemModal'
 export { useProjectMeetings } from './meetings/presentation/hooks/useProjectMeetings'
 export { useMeetingDetail } from './meetings/presentation/hooks/useMeetingDetail'
 export {
   defaultMeetingWorkspaceMode,
   MEETING_WORKSPACE_MODE_LABEL,
+  MEETING_WORKSPACE_STEPS,
   type MeetingWorkspaceMode,
 } from './meetings/domain/rules/meeting.rules'
 export { ProjectQuestionsView } from './questions/ui/ProjectQuestionsView'

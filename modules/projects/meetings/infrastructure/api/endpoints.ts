@@ -104,13 +104,13 @@ export const MEETING_ENDPOINTS = {
     archive: (projectId: string, meetingId: string, noteId: string) =>
       apiPath(`/projects/${projectId}/meetings/${meetingId}/notes/${noteId}/archive`),
     convertToDecision: (projectId: string, meetingId: string, noteId: string) =>
-      apiPath(`/projects/${projectId}/meetings/${meetingId}/notes/${noteId}/convert-to-decision`),
+      apiPath(`/projects/${projectId}/meetings/${meetingId}/notes/${noteId}/create-decision`),
     convertToRaidItem: (projectId: string, meetingId: string, noteId: string) =>
-      apiPath(`/projects/${projectId}/meetings/${meetingId}/notes/${noteId}/convert-to-raid-item`),
+      apiPath(`/projects/${projectId}/meetings/${meetingId}/notes/${noteId}/create-raid-item`),
     convertToRequirement: (projectId: string, meetingId: string, noteId: string) =>
-      apiPath(`/projects/${projectId}/meetings/${meetingId}/notes/${noteId}/convert-to-requirement`),
+      apiPath(`/projects/${projectId}/meetings/${meetingId}/notes/${noteId}/create-requirement`),
     convertToChangeRequest: (projectId: string, meetingId: string, noteId: string) =>
-      apiPath(`/projects/${projectId}/meetings/${meetingId}/notes/${noteId}/convert-to-change-request`),
+      apiPath(`/projects/${projectId}/meetings/${meetingId}/notes/${noteId}/create-change-request-draft`),
   },
 
   artifactLinks: {

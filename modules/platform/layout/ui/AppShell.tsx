@@ -261,6 +261,9 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     pathActive(pathname, ROUTES.workspace.documentHub(workspaceId)) ||
     pathActive(pathname, ROUTES.workspace.settingsTemplates(workspaceId))
   const workInboxActive = pathActive(pathname, ROUTES.workspace.workInbox(workspaceId))
+  const myWorkActive =
+    pathActive(pathname, ROUTES.workspace.myInsights(workspaceId)) ||
+    pathActive(pathname, ROUTES.workspace.myWork(workspaceId))
   const clientsActive = pathActive(pathname, ROUTES.workspace.clients(workspaceId))
   const capacityActive = pathActive(pathname, ROUTES.workspace.capacity(workspaceId))
   const formsActive =
@@ -379,6 +382,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     const reportsHref = ROUTES.workspace.projectReports(workspaceId, projectId)
     const meetingsHref = ROUTES.workspace.projectMeetings(workspaceId, projectId)
     const qualityHref = ROUTES.workspace.projectQuality(workspaceId, projectId)
+    const testPlansHref = ROUTES.workspace.projectTestPlans(workspaceId, projectId)
     const defectsHref = ROUTES.workspace.projectDefects(workspaceId, projectId)
     const releasesHref = ROUTES.workspace.projectReleases(workspaceId, projectId)
     const requirementsHref = ROUTES.workspace.projectRequirements(workspaceId, projectId)
@@ -464,7 +468,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
           ...(FEATURES.requirementsTraceability
             ? [
                 {
-                  label: 'Requirements',
+                  label: 'Requirement Evidence',
                   href: requirementsHref,
                   icon: <ClipboardList size={16} />,
                   active: pathActive(pathname, requirementsHref),
@@ -500,7 +504,13 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
                   label: 'Quality',
                   href: qualityHref,
                   icon: <Gauge size={16} />,
-                  active: pathActive(pathname, qualityHref),
+                  active: pathActive(pathname, qualityHref) && !pathActive(pathname, testPlansHref),
+                },
+                {
+                  label: 'Test plans',
+                  href: testPlansHref,
+                  icon: <ClipboardList size={16} />,
+                  active: pathActive(pathname, testPlansHref),
                 },
                 {
                   label: 'Defects',
@@ -780,6 +790,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
             collapsed={opts.collapsed}
             documentHubActive={documentHubActive}
             workInboxActive={workInboxActive}
+            myWorkActive={myWorkActive}
             notificationsActive={notificationsActive}
             agentControlActive={agentControlActive}
             canViewDocumentHub={canViewDocumentHub}

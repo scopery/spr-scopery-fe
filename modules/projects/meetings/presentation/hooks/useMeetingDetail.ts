@@ -104,12 +104,24 @@ export function useMeetingDetail(projectId: string | null, meetingId: string | n
   const latestMinutes = minutesList.length > 0 ? minutesList[minutesList.length - 1] : null
 
   const saveMinutes = useCallback(
-    async (body: CreateMinutesPayload | UpdateMinutesPayload) => {
+    async (body: CreateMinutesPayload | UpdateMinutesPayload, opts?: { quiet?: boolean }) => {
       if (!projectId || !meetingId) return null
       const result = latestMinutes
         ? await meetingsApi.updateMinutes(projectId, meetingId, latestMinutes.id, body)
         : await meetingsApi.createMinutes(projectId, meetingId, body as CreateMinutesPayload)
-      await load()
+      if (opts?.quiet) {
+        setMinutesList((prev) => {
+          const idx = prev.findIndex((m) => m.id === result.id)
+          if (idx >= 0) {
+            const next = [...prev]
+            next[idx] = result
+            return next
+          }
+          return [...prev, result]
+        })
+      } else {
+        await load()
+      }
       return result
     },
     [projectId, meetingId, latestMinutes, load]
@@ -146,10 +158,14 @@ export function useMeetingDetail(projectId: string | null, meetingId: string | n
   )
 
   const createActionItem = useCallback(
-    async (body: CreateActionItemPayload) => {
+    async (body: CreateActionItemPayload, opts?: { quiet?: boolean }) => {
       if (!projectId || !meetingId) return null
       const created = await meetingsApi.createActionItem(projectId, meetingId, body)
-      await load()
+      if (opts?.quiet) {
+        setActionItems((prev) => [...prev, created])
+      } else {
+        await load()
+      }
       return created
     },
     [projectId, meetingId, load]
@@ -188,12 +204,34 @@ export function useMeetingDetail(projectId: string | null, meetingId: string | n
   const updateAgendaItem = useCallback(
     async (
       agendaItemId: string,
-      body: { title?: string; description?: string | null; durationMinutes?: number | null }
+      body: {
+        title?: string
+        description?: string | null
+        ownerUserId?: string | null
+        timeboxMinutes?: number | null
+        durationMinutes?: number | null
+      }
     ) => {
       if (!projectId || !meetingId) return null
       const result = await meetingsApi.updateAgendaItem(projectId, meetingId, agendaItemId, body)
       await load()
       return result
+    },
+    [projectId, meetingId, load]
+  )
+
+  const createAgendaItem = useCallback(
+    async (body: {
+      title: string
+      description?: string | null
+      ownerUserId?: string | null
+      sortOrder?: number
+      timeboxMinutes?: number | null
+    }) => {
+      if (!projectId || !meetingId) return null
+      const created = await meetingsApi.createAgendaItem(projectId, meetingId, body)
+      await load()
+      return created
     },
     [projectId, meetingId, load]
   )
@@ -382,6 +420,7 @@ export function useMeetingDetail(projectId: string | null, meetingId: string | n
     updateActionItem,
     archiveActionItem,
     updateAgendaItem,
+    createAgendaItem,
     deleteAgendaItem,
     reorderAgendaItems,
     updateParticipant,

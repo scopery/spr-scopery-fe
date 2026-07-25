@@ -96,6 +96,7 @@ export interface CreateChangeRequestItemPayload {
   targetId?: string | null
   operation: ChangeItemOperation
   summary: string
+  affectedAreas?: string[] | null
   beforeSnapshotJson?: unknown
   afterSnapshotJson?: unknown
   applyPayloadJson?: unknown
@@ -108,6 +109,7 @@ export interface ChangeRequestItem {
   targetId: string | null
   operation: ChangeItemOperation | string
   summary: string
+  affectedAreas?: string[] | null
   beforeSnapshotJson: unknown
   afterSnapshotJson: unknown
   applyPayloadJson: unknown

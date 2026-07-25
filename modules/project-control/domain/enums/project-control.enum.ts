@@ -66,3 +66,16 @@ export const ChangeOrderStatus = {
 } as const
 export type ChangeOrderStatus =
   (typeof ChangeOrderStatus)[keyof typeof ChangeOrderStatus]
+
+/** Areas impacted by a proposed change item (stored as JSONB list on BE). */
+export const AffectedArea = {
+  AcceptanceCriteria: 'ACCEPTANCE_CRITERIA',
+  BusinessRules: 'BUSINESS_RULES',
+  Screens: 'SCREENS',
+  Api: 'API',
+  Data: 'DATA',
+  Estimate: 'ESTIMATE',
+  Dates: 'DATES',
+  Assignment: 'ASSIGNMENT',
+} as const
+export type AffectedArea = (typeof AffectedArea)[keyof typeof AffectedArea]

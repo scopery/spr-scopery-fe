@@ -324,6 +324,14 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
           // Mid-stream end without terminal — openSseStream already retried;
           // if we still land here, offer manual retry.
           setStreamState((prev) => applyReconnectExhausted(prev))
+          // Always fire the onTerminal callback even on SSE failure so the caller
+          // can reload messages. The AI turn may have completed in the backend
+          // while the SSE connection was dropping/retrying.
+          const cb = onTerminalRef.current
+          if (cb) {
+            onTerminalRef.current = null
+            cb()
+          }
         },
       })
       cancelFnRef.current = cancel

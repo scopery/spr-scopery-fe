@@ -40,6 +40,7 @@ export function useAiSidebarChat(opts: {
     cancelGeneration,
     closeStreamOnly,
     resetStream,
+    dismissActionPlan,
   } = useAiMessageStream()
 
   const loadMessages = useCallback(async (cid: string) => {
@@ -195,5 +196,6 @@ export function useAiSidebarChat(opts: {
     cancelStream,
     initLoad,
     openConversation,
+    dismissActionPlan,
   }
 }

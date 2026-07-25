@@ -190,12 +190,12 @@ export function ChangeRequestsRegisterView() {
                       </td>
                       <td className="px-4 py-3">{changeTypeLabel(cr.changeType)}</td>
                       <td className="px-4 py-3">
-                        <Badge size="sm" tone={priorityTone(cr.priority)}>
+                        <Badge size="sm" variant="solid" tone={priorityTone(cr.priority)}>
                           {cr.priority}
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
-                        <Badge tone={crStatusTone(cr.status)}>
+                        <Badge variant="solid" tone={crStatusTone(cr.status)}>
                           {crStatusLabel(cr.status)}
                         </Badge>
                       </td>

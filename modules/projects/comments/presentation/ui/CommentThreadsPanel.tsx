@@ -101,7 +101,7 @@ export function CommentThreadsPanel({ projectId, targetType, targetId }: Props) 
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2 rounded border border-neutral-200 bg-neutral-50 p-3">
+      <div className="space-y-2 border border-neutral-200 bg-neutral-50 p-3">
         <Typography variant="small" weight="medium">New comment</Typography>
         <Textarea
           value={newThreadBody}

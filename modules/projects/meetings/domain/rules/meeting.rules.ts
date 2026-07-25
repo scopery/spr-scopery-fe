@@ -33,7 +33,9 @@ export function meetingStatusLabel(status: string): string {
   }
 }
 
-export function meetingStatusTone(status: string): 'neutral' | 'success' | 'warning' | 'error' {
+export function meetingStatusTone(
+  status: string
+): 'neutral' | 'success' | 'warning' | 'error' | 'secondary' {
   switch (status) {
     case MeetingStatus.InProgress:
       return 'warning'
@@ -103,17 +105,24 @@ export function actionItemStatusLabel(status: string): string {
 }
 
 /**
- * Meeting workspace UI mode:
- * - `pre` — meeting hasn't started yet (SCHEDULED, or a future DRAFT-like state)
- * - `during` — meeting is happening now (IN_PROGRESS)
- * - `post` — meeting has ended (COMPLETED, CANCELLED, ARCHIVED)
+ * Meeting workspace view phase (UI only — does NOT change meeting status).
+ * - `pre` — Prepare
+ * - `during` — Live meeting
+ * - `post` — Follow-up
  */
 export type MeetingWorkspaceMode = 'pre' | 'during' | 'post'
 
 export const MEETING_WORKSPACE_MODE_LABEL: Record<MeetingWorkspaceMode, string> = {
-  pre: 'Pre-meeting',
-  during: 'During meeting',
-  post: 'Post-meeting',
+  pre: 'Prepare',
+  during: 'Live meeting',
+  post: 'Follow-up',
+}
+
+/** Ordered steps for the lifecycle stepper. */
+export const MEETING_WORKSPACE_STEPS: MeetingWorkspaceMode[] = ['pre', 'during', 'post']
+
+export function meetingWorkspaceStepIndex(mode: MeetingWorkspaceMode): number {
+  return MEETING_WORKSPACE_STEPS.indexOf(mode)
 }
 
 export function defaultMeetingWorkspaceMode(status: string): MeetingWorkspaceMode {

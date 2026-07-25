@@ -27,6 +27,15 @@ vi.mock('../api/traceability.api', () => ({
       },
     ],
   })),
+  createTraceLink: vi.fn(),
+}))
+
+vi.mock('@/modules/quality/infrastructure/api/quality.api', () => ({
+  listTestCases: vi.fn(async () => ({ items: [] })),
+}))
+
+vi.mock('@/modules/projects/requirements/api/requirements.api', () => ({
+  listRequirements: vi.fn(async () => ({ items: [] })),
 }))
 
 describe('useTraceabilityMatrix', () => {
@@ -35,9 +44,11 @@ describe('useTraceabilityMatrix', () => {
   })
 
   it('loads coverage cells and links', async () => {
-    const { result } = renderHook(() => useTraceabilityMatrix('p1'))
+    const { result } = renderHook(() => useTraceabilityMatrix('p1', 'ws1'))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.cells[0].requirementCode).toBe('REQ-001')
     expect(result.current.links[0].linkType).toBe('TESTED_BY')
+    expect(result.current.rows.length).toBeGreaterThanOrEqual(1)
+    expect(result.current.summary.requirements).toBeGreaterThanOrEqual(1)
   })
 })

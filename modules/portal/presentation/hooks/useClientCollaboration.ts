@@ -32,7 +32,7 @@ export function useClientCollaboration(
     setLoading(true)
     setError(null)
     try {
-      const [i, p, g, r, f, c, a] = await Promise.all([
+      const results = await Promise.allSettled([
         api.listPortalInvites(projectId),
         api.listPortalPermissionPolicies(workspaceId),
         api.listPortalAccessGrants(projectId),
@@ -41,13 +41,32 @@ export function useClientCollaboration(
         api.listClientComments(projectId),
         api.listPortalAuditLogs(projectId),
       ])
-      setInvites(i.items)
-      setPolicies(p.items)
-      setGrants(g.items)
-      setReviews(r.items)
-      setFeedback(f.items)
-      setComments(c.items)
-      setAuditLogs(a.items)
+
+      const value = <T,>(i: number, fallback: T): T => {
+        const r = results[i]
+        return r?.status === 'fulfilled' ? (r.value as T) : fallback
+      }
+
+      setInvites(value(0, { items: [] as PortalInvite[] }).items)
+      setPolicies(value(1, { items: [] as PortalPermissionPolicy[] }).items)
+      setGrants(value(2, { items: [] as PortalAccessGrant[] }).items)
+      setReviews(value(3, { items: [] as ClientReviewItem[] }).items)
+      setFeedback(value(4, { items: [] as ClientFeedbackItem[] }).items)
+      setComments(value(5, { items: [] as ClientFeedbackItem[] }).items)
+      setAuditLogs(
+        value(6, { items: [] as Array<{ id: string; action?: string; createdAt?: string }> })
+          .items
+      )
+
+      const failed = results.filter((r) => r.status === 'rejected').length
+      if (failed === results.length) {
+        const first = results.find((r) => r.status === 'rejected') as PromiseRejectedResult
+        setError(
+          first.reason instanceof Error
+            ? first.reason.message
+            : 'Failed to load collaboration'
+        )
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load collaboration')
     } finally {

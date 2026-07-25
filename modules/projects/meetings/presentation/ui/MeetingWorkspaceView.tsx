@@ -1,205 +1,34 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, PageSkeleton, Stack, Textarea, Typography } from '@/shared/ui'
+import { PageSkeleton, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import { ROUTES } from '@/constants/routes'
 import { useProject } from '../../../project/hooks/useProject'
 import { useMeetingDetail } from '../hooks/useMeetingDetail'
-import { MeetingModeSwitcher } from './MeetingModeSwitcher'
-import { CreateActionItemModal } from './CreateActionItemModal'
 import {
-  actionItemStatusLabel,
-  allowedMeetingLifecycleActions,
   defaultMeetingWorkspaceMode,
-  meetingStatusLabel,
-  meetingStatusTone,
-  minutesStatusLabel,
-  minutesStatusTone,
   type MeetingLifecycleAction,
   type MeetingWorkspaceMode,
 } from '../../domain/rules/meeting.rules'
-import type { MeetingAgendaItem, MeetingParticipant } from '../../domain/model/meeting'
-import type { MeetingActionItem } from '../../domain/model/meeting-action-item'
-import { MeetingNotesPanel } from './MeetingNotesPanel'
-import { ArtifactLinksPanel } from './ArtifactLinksPanel'
+import { MeetingLifecycleStepper } from './MeetingLifecycleStepper'
+import { MeetingHeader, type AutosaveState } from './MeetingHeader'
+import { MeetingContextRail } from './MeetingContextRail'
+import { MeetingCanvasEditor, type SlashCapture } from './MeetingCanvasEditor'
+import { MeetingActionItemList } from './MeetingActionItemList'
+import { MeetingRecap } from './MeetingRecap'
+import { CreateActionItemModal } from './CreateActionItemModal'
+import { AddAgendaItemModal } from './AddAgendaItemModal'
+import { AddParticipantModal } from './AddParticipantModal'
+import { LinkProjectItemDrawer } from './LinkProjectItemDrawer'
+import { createDecision } from '@/modules/projects/decisions/infrastructure/api/decisions.api'
+import { createRaidItem } from '@/modules/projects/raid/infrastructure/api/raid.api'
+import { DecisionCategory } from '@/modules/projects/decisions/domain/enums/decision.enum'
 
-const LIFECYCLE_LABEL: Record<MeetingLifecycleAction, string> = {
-  start: 'Start meeting',
-  complete: 'Mark complete',
-  cancel: 'Cancel',
-  archive: 'Archive',
-}
-
-function formatDateTime(iso: string | null | undefined) {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
-
-function AgendaCard({ agendaItems }: { agendaItems: MeetingAgendaItem[] }) {
-  return (
-    <div className="border border-neutral-200 bg-white p-4">
-      <Typography weight="semibold" className="mb-3">
-        Agenda
-      </Typography>
-      {agendaItems.length === 0 ? (
-        <Typography variant="small" tone="muted">
-          No agenda items
-        </Typography>
-      ) : (
-        <ul className="space-y-2">
-          {agendaItems.map((a) => (
-            <li key={a.id} className="border border-neutral-100 px-3 py-2">
-              <Typography weight="medium">{a.title}</Typography>
-              {a.description && (
-                <Typography variant="small" tone="muted">
-                  {a.description}
-                </Typography>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
-}
-
-function ParticipantsCard({
-  participants,
-  onMarkAttended,
-  onRemove,
-}: {
-  participants: MeetingParticipant[]
-  onMarkAttended?: (participantId: string) => void
-  onRemove?: (participantId: string) => void
-}) {
-  return (
-    <div className="border border-neutral-200 bg-white p-4">
-      <Typography weight="semibold" className="mb-3">
-        Participants
-      </Typography>
-      {participants.length === 0 ? (
-        <Typography variant="small" tone="muted">
-          No participants added
-        </Typography>
-      ) : (
-        <ul className="space-y-2">
-          {participants.map((p) => (
-            <li
-              key={p.id}
-              className="flex items-center justify-between border border-neutral-100 px-3 py-2"
-            >
-              <div className="flex items-center gap-2">
-                {onMarkAttended && (
-                  <input
-                    type="checkbox"
-                    aria-label="Attended"
-                    checked={p.attendanceStatus === 'ATTENDED'}
-                    onChange={() => {
-                      if (p.attendanceStatus !== 'ATTENDED') onMarkAttended(p.id)
-                    }}
-                    className="h-4 w-4 cursor-pointer accent-neutral-800"
-                  />
-                )}
-                <Typography variant="small">{p.displayNameSnapshot ?? p.targetId}</Typography>
-              </div>
-              <Stack direction="horizontal" spacing="sm" className="items-center">
-                <Badge tone="neutral">{p.participantRole}</Badge>
-                {onRemove && (
-                  <Button size="sm" variant="ghost" tone="error" onClick={() => onRemove(p.id)}>
-                    Remove
-                  </Button>
-                )}
-              </Stack>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
-}
-
-function ActionItemsCard({
-  actionItems,
-  onAdd,
-  onComplete,
-  onArchive,
-  onCreateLinkedTask,
-  compact = false,
-}: {
-  actionItems: MeetingActionItem[]
-  onAdd: () => void
-  onComplete?: (id: string) => void
-  onArchive?: (id: string) => void
-  onCreateLinkedTask?: (id: string) => void
-  compact?: boolean
-}) {
-  return (
-    <div className="border border-neutral-200 bg-white p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <Typography weight="semibold">Action items</Typography>
-        <Button size="sm" variant="secondary" icon={<Plus size={14} />} onClick={onAdd}>
-          {compact ? 'Quick add' : 'Add action item'}
-        </Button>
-      </div>
-      {actionItems.length === 0 ? (
-        <Typography variant="small" tone="muted">
-          No action items
-        </Typography>
-      ) : (
-        <ul className="space-y-2">
-          {actionItems.map((a) => (
-            <li
-              key={a.id}
-              className="flex items-center justify-between border border-neutral-100 px-3 py-2"
-            >
-              <div>
-                <Typography weight="medium">{a.title}</Typography>
-                {a.dueDate && (
-                  <Typography variant="small" tone="muted">
-                    Due {a.dueDate}
-                  </Typography>
-                )}
-              </div>
-              <Stack direction="horizontal" spacing="sm" className="items-center">
-                <Badge tone={a.status === 'COMPLETED' ? 'success' : 'neutral'}>
-                  {actionItemStatusLabel(a.status)}
-                </Badge>
-                {a.status !== 'COMPLETED' && onComplete && (
-                  <Button size="sm" variant="ghost" onClick={() => onComplete(a.id)}>
-                    Complete
-                  </Button>
-                )}
-                {a.status !== 'ARCHIVED' && onArchive && (
-                  <Button size="sm" variant="ghost" tone="error" onClick={() => onArchive(a.id)}>
-                    Archive
-                  </Button>
-                )}
-                {onCreateLinkedTask && (
-                  <Button size="sm" variant="ghost" onClick={() => onCreateLinkedTask(a.id)}>
-                    Create task
-                  </Button>
-                )}
-              </Stack>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
-}
+const AUTOSAVE_MS = 900
 
 export function MeetingWorkspaceView() {
   const router = useRouter()
@@ -224,33 +53,44 @@ export function MeetingWorkspaceView() {
     saveMinutes,
     submitMinutesForReview,
     approveMinutes,
+    rejectMinutes,
     createActionItem,
     completeActionItem,
     archiveActionItem,
     markParticipantAttended,
     removeParticipant,
+    addParticipant,
     createLinkedTaskFromActionItem,
-    createNote,
-    archiveNote,
-    convertNoteToDecision,
-    convertNoteToRaidItem,
-    convertNoteToRequirement,
-    convertNoteToChangeRequest,
     addArtifactLink,
     removeArtifactLink,
+    generateMinutesDocument,
+    createAgendaItem,
+    deleteAgendaItem,
   } = useMeetingDetail(projectId, meetingId)
 
   const [summary, setSummary] = useState('')
-  const [savingMinutes, setSavingMinutes] = useState(false)
+  const [autosaveState, setAutosaveState] = useState<AutosaveState>('idle')
   const [manualMode, setManualMode] = useState<MeetingWorkspaceMode | null>(null)
   const [addActionItemOpen, setAddActionItemOpen] = useState(false)
+  const [addAgendaOpen, setAddAgendaOpen] = useState(false)
+  const [addParticipantOpen, setAddParticipantOpen] = useState(false)
+  const [linkDrawerOpen, setLinkDrawerOpen] = useState(false)
+  const [generatingDoc, setGeneratingDoc] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const hydratedRef = useRef(false)
 
   useEffect(() => {
-    setSummary(latestMinutes?.summary ?? '')
-  }, [latestMinutes])
+    if (!latestMinutes) {
+      if (!hydratedRef.current) {
+        setSummary('')
+        hydratedRef.current = true
+      }
+      return
+    }
+    setSummary(latestMinutes.summary ?? '')
+    hydratedRef.current = true
+  }, [latestMinutes?.id, latestMinutes?.summary])
 
-  // Reset any manual override whenever the meeting's lifecycle status changes,
-  // so the workspace re-syncs to the new auto-selected mode.
   useEffect(() => {
     setManualMode(null)
   }, [meeting?.status])
@@ -258,44 +98,109 @@ export function MeetingWorkspaceView() {
   const autoMode = defaultMeetingWorkspaceMode(meeting?.status ?? '')
   const mode = manualMode ?? autoMode
 
+  // Live meeting elapsed timer (client-only)
+  useEffect(() => {
+    if (mode !== 'during' || meeting?.status !== 'IN_PROGRESS') {
+      setElapsed(0)
+      return
+    }
+    const started = meeting.updatedAt ? new Date(meeting.updatedAt).getTime() : Date.now()
+    const tick = () => setElapsed(Math.max(0, Math.floor((Date.now() - started) / 1000)))
+    tick()
+    const id = window.setInterval(tick, 1000)
+    return () => window.clearInterval(id)
+  }, [mode, meeting?.status, meeting?.updatedAt])
+
+  // Autosave minutes summary
+  useEffect(() => {
+    if (!meeting || !hydratedRef.current) return
+    const serverSummary = latestMinutes?.summary ?? ''
+    if (summary === serverSummary) return
+
+    setAutosaveState('saving')
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          await saveMinutes({ summary: summary.trim() || null }, { quiet: true })
+          setAutosaveState('saved')
+        } catch {
+          setAutosaveState('error')
+        }
+      })()
+    }, AUTOSAVE_MS)
+
+    return () => window.clearTimeout(timer)
+  }, [summary, meeting, latestMinutes?.summary, saveMinutes])
+
   const handleLifecycle = async (action: MeetingLifecycleAction) => {
     try {
       await runLifecycle(action)
-      toast.success('Meeting updated')
+      toast.success(
+        action === 'start'
+          ? 'Meeting started'
+          : action === 'complete'
+            ? 'Meeting ended'
+            : action === 'cancel'
+              ? 'Meeting cancelled'
+              : 'Meeting archived'
+      )
     } catch (err) {
       toast.error(getProblemToastMessage(err))
     }
   }
 
-  const handleSaveMinutes = async () => {
-    setSavingMinutes(true)
-    try {
-      await saveMinutes({ summary: summary.trim() || null })
-      toast.success('Minutes saved')
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    } finally {
-      setSavingMinutes(false)
-    }
-  }
+  const handleSlashCapture = useCallback(
+    async (capture: SlashCapture) => {
+      const title = capture.content.trim()
+      if (!title) throw new Error('Title is required')
 
-  const handleSubmitForReview = async () => {
-    try {
-      await submitMinutesForReview()
-      toast.success('Minutes submitted for review')
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    }
-  }
+      const slug = title
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_|_$/g, '')
+        .slice(0, 20)
+      const suffix = Date.now().toString(36).toUpperCase().slice(-4)
 
-  const handleApproveMinutes = async () => {
-    try {
-      await approveMinutes()
-      toast.success('Minutes approved')
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    }
-  }
+      try {
+        if (capture.kind === 'action') {
+          await createActionItem({ title }, { quiet: true })
+          toast.success('Action item created')
+          return
+        }
+
+        if (capture.kind === 'decision') {
+          await createDecision(projectId, {
+            title,
+            code: `DEC_${slug || 'MTG'}_${suffix}`,
+            category: DecisionCategory.Other,
+            rationale: `Captured from meeting ${meetingId}`,
+          })
+          toast.success('Decision created')
+          return
+        }
+
+        if (capture.kind === 'risk' || capture.kind === 'issue') {
+          const type = capture.kind === 'risk' ? 'RISK' : 'ISSUE'
+          await createRaidItem(projectId, {
+            type,
+            title,
+            code: `${type === 'RISK' ? 'RSK' : 'ISS'}_${slug || 'MTG'}_${suffix}`,
+            description: `Captured from meeting ${meetingId}`,
+          })
+          toast.success(capture.kind === 'risk' ? 'Risk created' : 'Issue created')
+          return
+        }
+
+        toast.message('Added to notes only', {
+          description: 'Requirement / change convert needs BE support.',
+        })
+      } catch (err) {
+        toast.error(getProblemToastMessage(err))
+        throw err
+      }
+    },
+    [createActionItem, projectId, meetingId]
+  )
 
   const handleCompleteActionItem = async (actionItemId: string) => {
     try {
@@ -315,24 +220,6 @@ export function MeetingWorkspaceView() {
     }
   }
 
-  const handleMarkParticipantAttended = async (participantId: string) => {
-    try {
-      await markParticipantAttended(participantId)
-      toast.success('Attendance marked')
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    }
-  }
-
-  const handleRemoveParticipant = async (participantId: string) => {
-    try {
-      await removeParticipant(participantId)
-      toast.success('Participant removed')
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    }
-  }
-
   const handleCreateLinkedTask = async (actionItemId: string) => {
     try {
       await createLinkedTaskFromActionItem(actionItemId)
@@ -340,6 +227,26 @@ export function MeetingWorkspaceView() {
     } catch (err) {
       toast.error(getProblemToastMessage(err))
     }
+  }
+
+  const handleGenerateMinutesDoc = async () => {
+    if (!latestMinutes) return
+    setGeneratingDoc(true)
+    try {
+      await generateMinutesDocument(latestMinutes.id)
+      toast.success('Meeting note published')
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    } finally {
+      setGeneratingDoc(false)
+    }
+  }
+
+  const formatElapsed = (secs: number) => {
+    const h = Math.floor(secs / 3600)
+    const m = Math.floor((secs % 3600) / 60)
+    const s = secs % 60
+    return [h, m, s].map((n) => String(n).padStart(2, '0')).join(':')
   }
 
   if (loading && !meeting) return <PageSkeleton variant="list" />
@@ -360,8 +267,6 @@ export function MeetingWorkspaceView() {
     )
   }
 
-  const lifecycleActions = allowedMeetingLifecycleActions(meeting.status)
-
   return (
     <div>
       <WorkspaceHierarchyBreadcrumb
@@ -370,213 +275,184 @@ export function MeetingWorkspaceView() {
         current="Meetings"
       />
 
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4 border-b border-neutral-200 pb-6">
-        <div>
-          <button
-            type="button"
-            className="mb-1 text-sm text-neutral-500 hover:underline"
-            onClick={() => router.push(ROUTES.workspace.projectMeetings(wsId, projectId))}
-          >
-            ← Back to meetings
-          </button>
-          <Typography as="h1" size="lg" weight="semibold">
-            {meeting.title}
-          </Typography>
-          <Stack direction="horizontal" spacing="sm" className="mt-2 items-center">
-            <Badge tone={meetingStatusTone(meeting.status)}>{meetingStatusLabel(meeting.status)}</Badge>
-            <Typography variant="small" tone="muted">
-              {formatDateTime(meeting.startAt)}
-              {meeting.location ? ` · ${meeting.location}` : ''}
-            </Typography>
-          </Stack>
-        </div>
-        {lifecycleActions.length > 0 && (
-          <Stack direction="horizontal" spacing="sm" className="flex-wrap">
-            {lifecycleActions.map((action) => (
-              <Button
-                key={action}
-                size="sm"
-                variant={action === 'cancel' || action === 'archive' ? 'ghost' : 'secondary'}
-                disabled={acting}
-                onClick={() => void handleLifecycle(action)}
-              >
-                {LIFECYCLE_LABEL[action]}
-              </Button>
-            ))}
-          </Stack>
-        )}
-      </div>
+      <MeetingHeader
+        meeting={meeting}
+        participantCount={participants.length}
+        autosaveState={autosaveState}
+        acting={acting}
+        onLifecycle={(action) => void handleLifecycle(action)}
+        onBack={() => router.push(ROUTES.workspace.projectMeetings(wsId, projectId))}
+      />
 
-      {meeting.description && (
-        <Typography variant="small" tone="muted" className="mb-4">
-          {meeting.description}
-        </Typography>
-      )}
-
-      <div className="mb-6">
-        <MeetingModeSwitcher mode={mode} autoMode={autoMode} onChange={setManualMode} />
-      </div>
-
-      {mode === 'pre' && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <AgendaCard agendaItems={agendaItems} />
-          <ParticipantsCard
-            participants={participants}
-            onMarkAttended={(id) => void handleMarkParticipantAttended(id)}
-            onRemove={(id) => void handleRemoveParticipant(id)}
-          />
-          <div className="border border-neutral-200 bg-white p-4 lg:col-span-2">
-            <Typography weight="semibold" className="mb-1">
-              Prep notes
-            </Typography>
-            <Typography variant="small" tone="muted" className="mb-3">
-              Capture context or talking points ahead of the meeting.
-            </Typography>
-            <Textarea
-              fullWidth
-              rows={4}
-              placeholder="Preparation notes…"
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-            />
-            <Stack direction="horizontal" spacing="sm" className="mt-3">
-              <Button
-                size="sm"
-                variant="secondary"
-                loading={savingMinutes}
-                onClick={() => void handleSaveMinutes()}
-              >
-                Save prep notes
-              </Button>
-            </Stack>
-          </div>
-        </div>
-      )}
-
-      {mode === 'during' && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="border border-neutral-200 bg-white p-4 lg:col-span-2">
-            <div className="mb-3 flex items-center justify-between">
-              <Typography weight="semibold">Live notes / minutes</Typography>
-              {latestMinutes && (
-                <Badge tone={minutesStatusTone(latestMinutes.status)}>
-                  {minutesStatusLabel(latestMinutes.status)}
-                </Badge>
-              )}
-            </div>
-            <Textarea
-              fullWidth
-              rows={8}
-              placeholder="Capture discussion, decisions and notes as the meeting happens…"
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-            />
-            <Stack direction="horizontal" spacing="sm" className="mt-3">
-              <Button
-                size="sm"
-                variant="primary"
-                loading={savingMinutes}
-                onClick={() => void handleSaveMinutes()}
-              >
-                Save notes
-              </Button>
-            </Stack>
-          </div>
-          <div className="lg:col-span-2">
-            <ActionItemsCard
-              actionItems={actionItems}
-              onAdd={() => setAddActionItemOpen(true)}
-              onComplete={(id) => void handleCompleteActionItem(id)}
-              onArchive={(id) => void handleArchiveActionItem(id)}
-              onCreateLinkedTask={(id) => void handleCreateLinkedTask(id)}
-              compact
-            />
-          </div>
-          <AgendaCard agendaItems={agendaItems} />
-          <ParticipantsCard
-            participants={participants}
-            onMarkAttended={(id) => void handleMarkParticipantAttended(id)}
-            onRemove={(id) => void handleRemoveParticipant(id)}
-          />
-        </div>
-      )}
-
-      {mode === 'post' && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="border border-neutral-200 bg-white p-4 lg:col-span-2">
-            <div className="mb-3 flex items-center justify-between">
-              <Typography weight="semibold">Minutes</Typography>
-              {latestMinutes && (
-                <Badge tone={minutesStatusTone(latestMinutes.status)}>
-                  {minutesStatusLabel(latestMinutes.status)}
-                </Badge>
-              )}
-            </div>
-            <Textarea
-              fullWidth
-              rows={5}
-              placeholder="Meeting summary…"
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-            />
-            <Stack direction="horizontal" spacing="sm" className="mt-3">
-              <Button
-                size="sm"
-                variant="secondary"
-                loading={savingMinutes}
-                onClick={() => void handleSaveMinutes()}
-              >
-                Save
-              </Button>
-              {latestMinutes && latestMinutes.status === 'DRAFT' && (
-                <Button size="sm" variant="primary" onClick={() => void handleSubmitForReview()}>
-                  Submit for review
-                </Button>
-              )}
-              {latestMinutes && latestMinutes.status === 'IN_REVIEW' && (
-                <Button size="sm" variant="primary" onClick={() => void handleApproveMinutes()}>
-                  Approve
-                </Button>
-              )}
-            </Stack>
-          </div>
-          <div className="lg:col-span-2">
-            <ActionItemsCard
-              actionItems={actionItems}
-              onAdd={() => setAddActionItemOpen(true)}
-              onComplete={(id) => void handleCompleteActionItem(id)}
-              onArchive={(id) => void handleArchiveActionItem(id)}
-              onCreateLinkedTask={(id) => void handleCreateLinkedTask(id)}
-            />
-          </div>
-          <AgendaCard agendaItems={agendaItems} />
-          <ParticipantsCard
-            participants={participants}
-            onMarkAttended={(id) => void handleMarkParticipantAttended(id)}
-            onRemove={(id) => void handleRemoveParticipant(id)}
-          />
-        </div>
-      )}
-
-      <div className="mt-6 border border-neutral-200 bg-white p-4">
-        <Typography weight="semibold" className="mb-3">Notes</Typography>
-        <MeetingNotesPanel
-          notes={notes ?? []}
-          onCreateNote={createNote}
-          onArchiveNote={archiveNote}
-          onConvertToDecision={convertNoteToDecision}
-          onConvertToRaidItem={convertNoteToRaidItem}
-          onConvertToRequirement={convertNoteToRequirement}
-          onConvertToChangeRequest={convertNoteToChangeRequest}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <MeetingLifecycleStepper
+          mode={mode}
+          autoMode={autoMode}
+          onChange={setManualMode}
         />
+        {mode === 'during' && meeting.status === 'IN_PROGRESS' ? (
+          <div className="inline-flex items-center gap-2 bg-warning px-3 py-1.5 text-sm text-white">
+            <span className="h-1.5 w-1.5 shrink-0 bg-white" aria-hidden />
+            Meeting in progress · {formatElapsed(elapsed)}
+          </div>
+        ) : null}
       </div>
 
-      <div className="mt-6 border border-neutral-200 bg-white p-4">
-        <Typography weight="semibold" className="mb-3">Artifacts</Typography>
-        <ArtifactLinksPanel
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-6">
+          {mode === 'pre' && (
+            <>
+              <MeetingCanvasEditor
+                label="Meeting objective & preparation notes"
+                helper="What must this meeting achieve? Notes here autosave and carry into live notes."
+                placeholder="Objective, talking points, prep context…"
+                value={summary}
+                rows={8}
+                onChange={setSummary}
+              />
+            </>
+          )}
+
+          {mode === 'during' && (
+            <>
+              <MeetingCanvasEditor
+                label="Live notes"
+                helper="Write discussion notes freely. Use Quick capture below to create follow-ups without leaving the canvas."
+                placeholder="Capture discussion…"
+                value={summary}
+                rows={12}
+                onChange={setSummary}
+                onSlashCapture={handleSlashCapture}
+                showSlashHints
+              />
+              <MeetingActionItemList
+                actionItems={actionItems}
+                onAdd={() => setAddActionItemOpen(true)}
+                onComplete={(id) => void handleCompleteActionItem(id)}
+                onArchive={(id) => void handleArchiveActionItem(id)}
+                onCreateLinkedTask={(id) => void handleCreateLinkedTask(id)}
+                hint="Or use Quick capture → Action above the notes."
+              />
+            </>
+          )}
+
+          {mode === 'post' && (
+            <>
+              <MeetingRecap
+                latestMinutes={latestMinutes}
+                summary={summary}
+                actionItems={actionItems}
+                participants={participants}
+                notes={notes ?? []}
+                acting={acting}
+                generatingDoc={generatingDoc}
+                onSubmitForReview={() => {
+                  void (async () => {
+                    try {
+                      if (summary !== (latestMinutes?.summary ?? '')) {
+                        await saveMinutes({ summary: summary.trim() || null })
+                      }
+                      await submitMinutesForReview()
+                      toast.success('Minutes submitted for review')
+                    } catch (err) {
+                      toast.error(getProblemToastMessage(err))
+                    }
+                  })()
+                }}
+                onApprove={() => {
+                  void (async () => {
+                    try {
+                      await approveMinutes()
+                      toast.success('Minutes approved')
+                    } catch (err) {
+                      toast.error(getProblemToastMessage(err))
+                    }
+                  })()
+                }}
+                onReject={() => {
+                  void (async () => {
+                    try {
+                      await rejectMinutes()
+                      toast.success('Changes requested')
+                    } catch (err) {
+                      toast.error(getProblemToastMessage(err))
+                    }
+                  })()
+                }}
+                onGenerateDoc={() => void handleGenerateMinutesDoc()}
+                onOpenDoc={() => {
+                  if (latestMinutes?.documentId) {
+                    router.push(ROUTES.workspace.document(wsId, latestMinutes.documentId))
+                  }
+                }}
+              />
+              <MeetingCanvasEditor
+                label="Edit summary"
+                helper="Autosaves. Changes feed the recap above."
+                placeholder="Meeting summary…"
+                value={summary}
+                rows={6}
+                onChange={setSummary}
+              />
+              <MeetingActionItemList
+                actionItems={actionItems}
+                onAdd={() => setAddActionItemOpen(true)}
+                onComplete={(id) => void handleCompleteActionItem(id)}
+                onArchive={(id) => void handleArchiveActionItem(id)}
+                onCreateLinkedTask={(id) => void handleCreateLinkedTask(id)}
+              />
+            </>
+          )}
+        </div>
+
+        <MeetingContextRail
+          mode={mode}
+          agendaItems={agendaItems}
+          participants={participants}
           artifactLinks={artifactLinks ?? []}
-          onAdd={addArtifactLink}
-          onRemove={removeArtifactLink}
+          onAddAgenda={() => setAddAgendaOpen(true)}
+          onRemoveAgenda={(id) => {
+            void (async () => {
+              try {
+                await deleteAgendaItem(id)
+                toast.success('Agenda item removed')
+              } catch (err) {
+                toast.error(getProblemToastMessage(err))
+              }
+            })()
+          }}
+          onAddParticipant={() => setAddParticipantOpen(true)}
+          onRemoveParticipant={(id) => {
+            void (async () => {
+              try {
+                await removeParticipant(id)
+                toast.success('Participant removed')
+              } catch (err) {
+                toast.error(getProblemToastMessage(err))
+              }
+            })()
+          }}
+          onMarkAttended={(id) => {
+            void (async () => {
+              try {
+                await markParticipantAttended(id)
+                toast.success('Marked present')
+              } catch (err) {
+                toast.error(getProblemToastMessage(err))
+              }
+            })()
+          }}
+          onLinkItem={() => setLinkDrawerOpen(true)}
+          onRemoveLink={(id) => {
+            void (async () => {
+              try {
+                await removeArtifactLink(id)
+                toast.success('Link removed')
+              } catch (err) {
+                toast.error(getProblemToastMessage(err))
+              }
+            })()
+          }}
         />
       </div>
 
@@ -587,6 +463,52 @@ export function MeetingWorkspaceView() {
           try {
             await createActionItem(body)
             toast.success('Action item added')
+          } catch (err) {
+            toast.error(getProblemToastMessage(err))
+            throw err
+          }
+        }}
+      />
+
+      <AddAgendaItemModal
+        open={addAgendaOpen}
+        onClose={() => setAddAgendaOpen(false)}
+        onSubmit={async (body) => {
+          try {
+            await createAgendaItem({
+              ...body,
+              sortOrder: agendaItems.length + 1,
+            })
+            toast.success('Agenda item added')
+          } catch (err) {
+            toast.error(getProblemToastMessage(err))
+            throw err
+          }
+        }}
+      />
+
+      <AddParticipantModal
+        open={addParticipantOpen}
+        onClose={() => setAddParticipantOpen(false)}
+        onSubmit={async (body) => {
+          try {
+            await addParticipant(body)
+            toast.success('Participant added')
+          } catch (err) {
+            toast.error(getProblemToastMessage(err))
+            throw err
+          }
+        }}
+      />
+
+      <LinkProjectItemDrawer
+        open={linkDrawerOpen}
+        onClose={() => setLinkDrawerOpen(false)}
+        projectId={projectId}
+        onLink={async (body) => {
+          try {
+            await addArtifactLink(body)
+            toast.success('Item linked')
           } catch (err) {
             toast.error(getProblemToastMessage(err))
             throw err

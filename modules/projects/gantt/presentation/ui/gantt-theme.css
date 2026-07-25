@@ -65,3 +65,46 @@
 .scopery-gantt .wx-slack {
   border-radius: 0 !important;
 }
+
+/*
+ * Always show scrollbars so mouse users can pan the chart.
+ * Trackpad gestures work without them; overlay scrollbars hide the affordance.
+ */
+.scopery-gantt .wx-gantt,
+.scopery-gantt .wx-chart,
+.scopery-gantt .wx-table-container {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #a1a1aa #f4f4f5;
+}
+
+.scopery-gantt .wx-gantt::-webkit-scrollbar,
+.scopery-gantt .wx-chart::-webkit-scrollbar,
+.scopery-gantt .wx-table-container::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.scopery-gantt .wx-gantt::-webkit-scrollbar-track,
+.scopery-gantt .wx-chart::-webkit-scrollbar-track,
+.scopery-gantt .wx-table-container::-webkit-scrollbar-track {
+  background: #f4f4f5;
+}
+
+.scopery-gantt .wx-gantt::-webkit-scrollbar-thumb,
+.scopery-gantt .wx-chart::-webkit-scrollbar-thumb,
+.scopery-gantt .wx-table-container::-webkit-scrollbar-thumb {
+  background: #a1a1aa;
+  border: 2px solid #f4f4f5;
+}
+
+.scopery-gantt .wx-gantt::-webkit-scrollbar-thumb:hover,
+.scopery-gantt .wx-chart::-webkit-scrollbar-thumb:hover,
+.scopery-gantt .wx-table-container::-webkit-scrollbar-thumb:hover {
+  background: #71717a;
+}
+
+.scopery-gantt .wx-gantt::-webkit-scrollbar-corner,
+.scopery-gantt .wx-chart::-webkit-scrollbar-corner,
+.scopery-gantt .wx-table-container::-webkit-scrollbar-corner {
+  background: #f4f4f5;
+}

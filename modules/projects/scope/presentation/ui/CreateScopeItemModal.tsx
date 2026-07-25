@@ -12,10 +12,12 @@ interface CreateScopeItemModalProps {
 }
 
 const TYPE_OPTIONS = [
-  { value: ScopeItemType.Functional, label: 'Functional' },
-  { value: ScopeItemType.NonFunctional, label: 'Non-functional' },
-  { value: ScopeItemType.Technical, label: 'Technical' },
-  { value: ScopeItemType.Integration, label: 'Integration' },
+  { value: ScopeItemType.Feature, label: 'Feature' },
+  { value: ScopeItemType.Workstream, label: 'Workstream' },
+  { value: ScopeItemType.DeliverableGroup, label: 'Deliverable Group' },
+  { value: ScopeItemType.Constraint, label: 'Constraint' },
+  { value: ScopeItemType.Assumption, label: 'Assumption' },
+  { value: ScopeItemType.Exclusion, label: 'Exclusion' },
   { value: ScopeItemType.Other, label: 'Other' },
 ]
 
@@ -30,7 +32,7 @@ export function CreateScopeItemModal({ open, onClose, onSubmit }: CreateScopeIte
   const [title, setTitle] = useState('')
   const [code, setCode] = useState('')
   const [description, setDescription] = useState('')
-  const [type, setType] = useState<string>(ScopeItemType.Functional)
+  const [type, setType] = useState<string>(ScopeItemType.Feature)
   const [priority, setPriority] = useState<string>(ScopeItemPriority.Medium)
   const [inScope, setInScope] = useState(true)
   const [acceptanceRequired, setAcceptanceRequired] = useState(false)
@@ -41,7 +43,7 @@ export function CreateScopeItemModal({ open, onClose, onSubmit }: CreateScopeIte
     setTitle('')
     setCode('')
     setDescription('')
-    setType(ScopeItemType.Functional)
+    setType(ScopeItemType.Feature)
     setPriority(ScopeItemPriority.Medium)
     setInScope(true)
     setAcceptanceRequired(false)

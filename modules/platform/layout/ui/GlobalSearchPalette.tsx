@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import {
   Bell,
+  ClipboardList,
   FileText,
   FolderKanban,
   Inbox,
@@ -136,6 +137,15 @@ export function GlobalSearchPalette({
         group: 'Navigate',
       },
     ]
+    if (FEATURES.myWork) {
+      items.push({
+        id: 'nav-my-insights',
+        label: 'My Insights',
+        href: ROUTES.workspace.myInsights(workspaceId),
+        icon: <ClipboardList size={14} />,
+        group: 'Navigate',
+      })
+    }
     if (FEATURES.workInbox) {
       items.push({
         id: 'nav-inbox',

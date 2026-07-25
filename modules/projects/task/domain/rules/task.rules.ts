@@ -1,6 +1,6 @@
 import { TaskStatus } from '../../../project/domain/enums/project.enum'
 
-export type TaskLifecycleAction = 'start' | 'block' | 'complete' | 'cancel' | 'archive'
+export type TaskLifecycleAction = 'start' | 'block' | 'complete' | 'cancel' | 'archive' | 'reopen'
 
 /** Target board statuses that can be reached via lifecycle PATCH (no reverse). */
 export type TaskBoardStatus =
@@ -13,8 +13,8 @@ const ALLOWED: Record<string, TaskLifecycleAction[]> = {
   [TaskStatus.Todo]: ['start', 'cancel', 'archive'],
   [TaskStatus.InProgress]: ['block', 'complete', 'cancel', 'archive'],
   [TaskStatus.Blocked]: ['start', 'cancel', 'archive'],
-  [TaskStatus.Completed]: ['archive'],
-  [TaskStatus.Cancelled]: ['archive'],
+  [TaskStatus.Completed]: ['reopen', 'archive'],
+  [TaskStatus.Cancelled]: ['reopen', 'archive'],
   [TaskStatus.Archived]: [],
 }
 

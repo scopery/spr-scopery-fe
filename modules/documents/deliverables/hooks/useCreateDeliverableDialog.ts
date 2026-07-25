@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   getAvailableDeliverableTypes,
   getEffectiveSourceForDeliverable,
@@ -134,8 +134,11 @@ export function useCreateDeliverableDialog({
     }
   }, [open, initialSelectedDocumentIds, initialSelectedDocumentTitles])
 
+  // Only reset on open → closed (not while closed with changing callback identity)
+  const wasOpenRef = useRef(open)
   useEffect(() => {
-    if (!open) resetState()
+    if (wasOpenRef.current && !open) resetState()
+    wasOpenRef.current = open
   }, [open, resetState])
 
   useEffect(() => {

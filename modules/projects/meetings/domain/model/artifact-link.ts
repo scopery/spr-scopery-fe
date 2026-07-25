@@ -1,14 +1,17 @@
 export interface MeetingArtifactLink {
   id: string
   meetingId: string
-  artifactType: string
-  artifactId: string
-  artifactName: string | null
+  targetType: string
+  targetId: string
+  linkType: string
   createdAt: string
 }
 
 export interface CreateArtifactLinkPayload {
-  artifactType: string
-  artifactId: string
-  artifactName?: string | null
+  targetType: string
+  targetId: string
+  linkType: string
+  agendaItemId?: string | null
+  noteId?: string | null
+  actionItemId?: string | null
 }

@@ -61,6 +61,15 @@ export function useFunctionalItemDetail(
     [projectId, functionalItemId, load]
   )
 
+  const bulkAddProperties = useCallback(
+    async (items: CreateCustomPropertyBody[]) => {
+      if (!projectId || !functionalItemId || items.length === 0) return
+      await api.bulkCreateCustomProperties(projectId, functionalItemId, items)
+      await load()
+    },
+    [projectId, functionalItemId, load]
+  )
+
   const updateProperty = useCallback(
     async (id: string, body: UpdateCustomPropertyBody) => {
       if (!projectId || !functionalItemId) return
@@ -132,6 +141,7 @@ export function useFunctionalItemDetail(
     error,
     refetch: load,
     addProperty,
+    bulkAddProperties,
     updateProperty,
     removeProperty,
     addRule,

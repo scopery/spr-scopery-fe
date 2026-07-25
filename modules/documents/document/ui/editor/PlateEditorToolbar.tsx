@@ -35,6 +35,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/shared/ui'
 import { cn } from '@/utils/cn'
+import { TextHighlightToolbarControl } from './TextHighlightPlugin'
 
 interface PlateEditorToolbarProps {
   editor: PlateEditor
@@ -111,6 +112,7 @@ export function PlateEditorToolbar({ editor, className }: PlateEditorToolbarProp
         onClick={() => editor.tf.toggleMark(KEYS.underline)}
       />
       <ToolbarButton label="Code" icon={<Code2 size={15} />} onClick={() => editor.tf.toggleMark(KEYS.code)} />
+      <TextHighlightToolbarControl />
       <Divider />
       <ToolbarButton {...bulletBtn.props} label="Bullets" icon={<List size={15} />} />
       <ToolbarButton {...numberedBtn.props} label="Numbered" icon={<ListOrdered size={15} />} />

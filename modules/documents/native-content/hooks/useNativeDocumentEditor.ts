@@ -17,7 +17,8 @@ import {
   type NativeEditorSaveStatus,
 } from '../model/document-content'
 
-const AUTOSAVE_MS = 1500
+/** Idle debounce before autosave. Edits reset the timer; no continuous saves. */
+const AUTOSAVE_MS = 30_000
 
 function isNativeContentUnsupported(err: unknown): boolean {
   const code = getProblemCode(err)
@@ -45,8 +46,17 @@ export function useNativeDocumentEditor(projectId: string, documentId: string) {
 
   const saveTokenRef = useRef(0)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autosaveDueAtRef = useRef<number | null>(null)
   const payloadRef = useRef({ plateValue: emptyPlateValue() as Value, revisionNo: 0 })
   const nativeUnsupportedRef = useRef(false)
+  const [autosaveInSeconds, setAutosaveInSeconds] = useState<number | null>(null)
+
+  const clearAutosaveTimer = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = null
+    autosaveDueAtRef.current = null
+    setAutosaveInSeconds(null)
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -152,7 +162,8 @@ export function useNativeDocumentEditor(projectId: string, documentId: string) {
         payloadRef.current = { plateValue: snapshot.plateValue, revisionNo: saved.revisionNo }
         setConflictServerValue(null)
         setConflictServerRevision(null)
-        setSaveStatus('saved')
+        // Pending debounce means newer edits arrived during this save — keep unsaved.
+        setSaveStatus(debounceRef.current ? 'unsaved' : 'saved')
         if (source === 'manual') toast.success('Document saved')
       } catch (err) {
         if (token !== saveTokenRef.current) return
@@ -160,6 +171,7 @@ export function useNativeDocumentEditor(projectId: string, documentId: string) {
         if (isNativeContentUnsupported(err)) {
           nativeUnsupportedRef.current = true
           setNativeUnsupported(true)
+          clearAutosaveTimer()
           setSaveStatus('error')
           toast.error(
             'This document is FILE mode — native content is not supported. Create a NATIVE document to edit text.'
@@ -174,6 +186,7 @@ export function useNativeDocumentEditor(projectId: string, documentId: string) {
           (code === CONTENT_OPTIMISTIC_LOCK_CONFLICT || !code)
 
         if (isConflict) {
+          clearAutosaveTimer()
           setSaveStatus('conflict')
           try {
             const server = await DocumentContentGateway.getEditableContent(projectId, documentId)
@@ -189,7 +202,7 @@ export function useNativeDocumentEditor(projectId: string, documentId: string) {
         toast.error(getProblemToastMessage(err))
       }
     },
-    [projectId, documentId, schemaVersion]
+    [projectId, documentId, schemaVersion, clearAutosaveTimer]
   )
 
   const scheduleAutosave = useCallback(() => {
@@ -199,10 +212,31 @@ export function useNativeDocumentEditor(projectId: string, documentId: string) {
     }
     setSaveStatus((prev) => (prev === 'conflict' ? prev : 'unsaved'))
     if (debounceRef.current) clearTimeout(debounceRef.current)
+    const dueAt = Date.now() + AUTOSAVE_MS
+    autosaveDueAtRef.current = dueAt
+    setAutosaveInSeconds(Math.ceil(AUTOSAVE_MS / 1000))
     debounceRef.current = setTimeout(() => {
+      debounceRef.current = null
+      autosaveDueAtRef.current = null
+      setAutosaveInSeconds(null)
       void performSave('autosave')
     }, AUTOSAVE_MS)
   }, [performSave])
+
+  useEffect(() => {
+    if (saveStatus !== 'unsaved' || autosaveDueAtRef.current == null) return
+    const tick = () => {
+      const due = autosaveDueAtRef.current
+      if (due == null) {
+        setAutosaveInSeconds(null)
+        return
+      }
+      setAutosaveInSeconds(Math.max(0, Math.ceil((due - Date.now()) / 1000)))
+    }
+    tick()
+    const id = setInterval(tick, 250)
+    return () => clearInterval(id)
+  }, [saveStatus])
 
   useEffect(() => {
     return () => {
@@ -211,9 +245,32 @@ export function useNativeDocumentEditor(projectId: string, documentId: string) {
   }, [])
 
   const handleManualSave = useCallback(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
+    clearAutosaveTimer()
     void performSave('manual')
-  }, [performSave])
+  }, [clearAutosaveTimer, performSave])
+
+  const renameTitle = useCallback(
+    async (nextTitle: string): Promise<boolean> => {
+      const trimmed = nextTitle.trim()
+      if (!trimmed) {
+        toast.error('Title is required')
+        return false
+      }
+      if (trimmed === title) return true
+      try {
+        const updated = await workbenchApi.updateProjectDocument(projectId, documentId, {
+          title: trimmed,
+        })
+        setTitle(updated.title)
+        toast.success('Title updated')
+        return true
+      } catch (err) {
+        toast.error(getProblemToastMessage(err))
+        return false
+      }
+    },
+    [projectId, documentId, title]
+  )
 
   const onPlateChange = useCallback(
     (value: Value) => {
@@ -258,7 +315,9 @@ export function useNativeDocumentEditor(projectId: string, documentId: string) {
       case 'saving':
         return 'Saving…'
       case 'unsaved':
-        return 'Unsaved changes'
+        return autosaveInSeconds != null
+          ? `Autosave in ${autosaveInSeconds}s`
+          : 'Unsaved changes'
       case 'conflict':
         return 'Conflict — content changed elsewhere'
       case 'error':
@@ -275,12 +334,14 @@ export function useNativeDocumentEditor(projectId: string, documentId: string) {
     revisionNo,
     saveStatus,
     statusLabel,
+    autosaveInSeconds,
     loading,
     loadError,
     lastSavedAt,
     conflictServerValue,
     onPlateChange,
     handleManualSave,
+    renameTitle,
     keepLocalAndRetry,
     loadServerVersion,
     refetch: load,

@@ -27,7 +27,6 @@ export {
   DocumentVersionUploadPanel,
   DocumentGeneratedJobsView,
 } from './ui/DocumentVersionUploadPanel'
-export { DocumentWorkbenchView } from './ui/DocumentWorkbenchView'
 export { WorkspaceDocumentTemplatesView } from './ui/WorkspaceDocumentTemplatesView'
 export {
   useDocumentFolders,

@@ -2,14 +2,7 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import {
-  Button,
-  ClientVisibilityToggle,
-  Input,
-  PageSkeleton,
-  Stack,
-  Typography
-} from '@/shared/ui'
+import { Button, Input, PageSkeleton, Stack, Typography } from '@/shared/ui'
 
 import { useClientCollaboration } from '../hooks/useClientCollaboration'
 
@@ -35,7 +28,6 @@ export function ClientCollaborationView() {
     suspendAccount,
     deactivateAccount,
   } = useClientCollaboration(workspaceId, projectId)
-  const [visible, setVisible] = useState(false)
   const [email, setEmail] = useState('')
 
   if (loading) return <PageSkeleton variant="list" className="p-lg" />
@@ -45,9 +37,9 @@ export function ClientCollaborationView() {
     <Stack direction="vertical" spacing="md" className="p-lg">
       <Typography variant="h2">Client Collaboration</Typography>
       <Typography tone="muted">
-        Manage portal accounts, access grants, reviews and UAT for this project.
+        Staff console to invite portal clients, manage access grants, and decide client
+        reviews. Client-facing portal lives under <code className="text-xs">/portal</code>.
       </Typography>
-      <ClientVisibilityToggle visibleToClient={visible} onChange={setVisible} />
       {actionError ? <Typography tone="error">{actionError}</Typography> : null}
 
       <Typography variant="h4">Invites</Typography>

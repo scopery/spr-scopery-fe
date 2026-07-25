@@ -171,6 +171,8 @@ export const WORKSPACE_ROUTES = {
   // ── Wave 4 ─────────────────────────────────────────────────
   search: (workspaceId: string) => `/workspace/${workspaceId}/search`,
   workInbox: (workspaceId: string) => `/workspace/${workspaceId}/work-inbox`,
+  myInsights: (workspaceId: string) => `/workspace/${workspaceId}/my-insights`,
+  myWork: (workspaceId: string) => `/workspace/${workspaceId}/my-work`,
   savedItems: (workspaceId: string) => `/workspace/${workspaceId}/saved-items`,
   applications: (workspaceId: string) => `/workspace/${workspaceId}/applications`,
   /** Application workbench detail. */
@@ -217,11 +219,6 @@ export const WORKSPACE_ROUTES = {
     `/workspace/${workspaceId}/projects/${projectId}/recommendations`,
   projectNotificationSettings: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/settings/notifications`,
-  projectDocumentWorkbench: (workspaceId: string, projectId: string, documentId?: string) => {
-    const base = `/workspace/${workspaceId}/projects/${projectId}/documents/workbench`
-    if (documentId) return `${base}?documentId=${encodeURIComponent(documentId)}`
-    return base
-  },
   projectDocumentEdit: (workspaceId: string, projectId: string, documentId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/documents/${documentId}/edit`,
   projectClientCollaboration: (workspaceId: string, projectId: string) =>

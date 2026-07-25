@@ -87,6 +87,7 @@ export function useProjectTasks(projectId: string | null, filters?: ListTasksPar
         else if (action === 'block') await tasksApi.blockTask(projectId, taskId)
         else if (action === 'complete') await tasksApi.completeTask(projectId, taskId)
         else if (action === 'cancel') await tasksApi.cancelTask(projectId, taskId)
+        else if (action === 'reopen') await tasksApi.reopenTask(projectId, taskId)
         else await tasksApi.archiveTask(projectId, taskId)
         await load()
       } finally {

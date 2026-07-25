@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import type { Value } from 'platejs'
@@ -14,6 +14,7 @@ import {
   MoreHorizontal,
   Paperclip,
   PanelLeft,
+  Pencil,
   RefreshCw,
   Save,
   Sparkles,
@@ -123,9 +124,47 @@ export function NativeDocumentEditorView({
   const [canvasWidth, setCanvasWidth] = useState<CanvasWidth>('full')
   const [inspectorOpen, setInspectorOpen] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState('')
+  const [renamingTitle, setRenamingTitle] = useState(false)
   const mediaInputRef = useRef<HTMLInputElement | null>(null)
-  const backHref = WORKSPACE_ROUTES.projectDocumentWorkbench(workspaceId, projectId, documentId)
+  const titleInputRef = useRef<HTMLInputElement | null>(null)
+  const skipTitleCommitRef = useRef(false)
   const hubHref = WORKSPACE_ROUTES.documentHub(workspaceId)
+  const backHref = hubHref
+
+  const startEditTitle = useCallback(() => {
+    skipTitleCommitRef.current = false
+    setTitleDraft(editor.title || '')
+    setEditingTitle(true)
+  }, [editor.title])
+
+  const cancelEditTitle = useCallback(() => {
+    skipTitleCommitRef.current = true
+    setEditingTitle(false)
+    setTitleDraft('')
+  }, [])
+
+  const commitEditTitle = useCallback(async () => {
+    if (skipTitleCommitRef.current) {
+      skipTitleCommitRef.current = false
+      return
+    }
+    if (renamingTitle) return
+    setRenamingTitle(true)
+    try {
+      const ok = await editor.renameTitle(titleDraft)
+      if (ok) setEditingTitle(false)
+    } finally {
+      setRenamingTitle(false)
+    }
+  }, [editor, renamingTitle, titleDraft])
+
+  useEffect(() => {
+    if (!editingTitle) return
+    titleInputRef.current?.focus()
+    titleInputRef.current?.select()
+  }, [editingTitle])
 
   const setPanel = useCallback(
     (panel: EditorSidePanel) => {
@@ -280,7 +319,7 @@ export function NativeDocumentEditorView({
         <div className="mb-2 flex items-center gap-2">
           <Link
             href={backHref}
-            aria-label="Back to document"
+            aria-label="Back to Document Hub"
             className="inline-flex h-7 w-7 shrink-0 items-center justify-center text-neutral-500 hover:text-neutral-900"
           >
             <ArrowLeft size={16} />
@@ -295,9 +334,50 @@ export function NativeDocumentEditorView({
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <Typography as="h1" size="lg" weight="semibold" className="min-w-0 truncate">
-              {editor.title || 'Untitled'}
-            </Typography>
+            {editingTitle ? (
+              <input
+                ref={titleInputRef}
+                type="text"
+                value={titleDraft}
+                disabled={renamingTitle}
+                aria-label="Document title"
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onBlur={() => void commitEditTitle()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    void commitEditTitle()
+                  }
+                  if (e.key === 'Escape') {
+                    e.preventDefault()
+                    cancelEditTitle()
+                  }
+                }}
+                className={cn(
+                  'min-w-[12rem] max-w-full flex-1 bg-transparent px-0 py-0.5',
+                  'text-lg font-semibold text-neutral-900',
+                  'border-0 border-b border-dashed border-neutral-400',
+                  'rounded-none outline-none ring-0',
+                  'focus:border-neutral-700 focus:outline-none focus:ring-0',
+                  'disabled:opacity-60'
+                )}
+              />
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={startEditTitle}
+                  aria-label="Edit document title"
+                  title="Edit title"
+                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center text-neutral-500 hover:text-neutral-900"
+                >
+                  <Pencil size={14} />
+                </button>
+                <Typography as="h1" size="lg" weight="semibold" className="min-w-0 truncate">
+                  {editor.title || 'Untitled'}
+                </Typography>
+              </>
+            )}
             {editor.documentStatus ? (
               <Badge variant="soft" tone="neutral" size="sm">
                 {editor.documentStatus}
@@ -306,6 +386,7 @@ export function NativeDocumentEditorView({
             <DocumentAutosaveIndicator
               status={editor.saveStatus}
               lastSavedAt={editor.lastSavedAt}
+              autosaveInSeconds={editor.autosaveInSeconds}
             />
             <Typography variant="caption" tone="muted" className="hidden sm:inline">
               Rev {editor.revisionNo}
@@ -449,9 +530,6 @@ export function NativeDocumentEditorView({
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Button size="sm" variant="outline" as={Link} href={hubHref}>
                       Back to Document Hub
-                    </Button>
-                    <Button size="sm" variant="outline" as={Link} href={backHref}>
-                      Open workbench
                     </Button>
                   </div>
                 </div>

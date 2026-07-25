@@ -1,4 +1,5 @@
 import type { Document, DocumentType, DocumentVisibility } from '../model/document'
+import { toBeDocumentTypeCode } from '../model/document-type-codes'
 import { createProjectDocument as createWorkbenchDocument } from '@/modules/documents/document-hub/api/document-workbench.api'
 import {
   createDocumentFromTemplateInProject,
@@ -23,7 +24,7 @@ export async function createBlankProjectDocument(
 ): Promise<Document> {
   const created = await createWorkbenchDocument(projectId, {
     title: body.title,
-    documentTypeCode: body.document_type,
+    documentTypeCode: toBeDocumentTypeCode(body.document_type),
     contentMode: 'NATIVE',
   })
   return {

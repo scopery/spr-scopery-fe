@@ -26,6 +26,7 @@ export const FEATURES = {
   // ── Document Hub / Productivity / Knowledge / AI / Quality … ──
   globalSearch: true,
   workInbox: true,
+  myWork: true,
   savedItems: true,
   documentHub: true,
   knowledge: true,

@@ -6,10 +6,12 @@ export const ScopePackageStatus = {
 export type ScopePackageStatus = (typeof ScopePackageStatus)[keyof typeof ScopePackageStatus]
 
 export const ScopeItemType = {
-  Functional: 'FUNCTIONAL',
-  NonFunctional: 'NON_FUNCTIONAL',
-  Technical: 'TECHNICAL',
-  Integration: 'INTEGRATION',
+  Feature: 'FEATURE',
+  Workstream: 'WORKSTREAM',
+  DeliverableGroup: 'DELIVERABLE_GROUP',
+  Constraint: 'CONSTRAINT',
+  Assumption: 'ASSUMPTION',
+  Exclusion: 'EXCLUSION',
   Other: 'OTHER',
 } as const
 export type ScopeItemType = (typeof ScopeItemType)[keyof typeof ScopeItemType]

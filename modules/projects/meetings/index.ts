@@ -1,5 +1,6 @@
 export { MeetingsListView } from './presentation/ui/MeetingsListView'
 export { MeetingWorkspaceView } from './presentation/ui/MeetingWorkspaceView'
+export { MeetingLifecycleStepper } from './presentation/ui/MeetingLifecycleStepper'
 export { MeetingModeSwitcher } from './presentation/ui/MeetingModeSwitcher'
 export { CreateActionItemModal } from './presentation/ui/CreateActionItemModal'
 export { CreateMeetingModal } from './presentation/ui/CreateMeetingModal'
@@ -10,6 +11,7 @@ export { MeetingStatus, MeetingMinutesStatus, MeetingActionItemStatus } from './
 export {
   defaultMeetingWorkspaceMode,
   MEETING_WORKSPACE_MODE_LABEL,
+  MEETING_WORKSPACE_STEPS,
   type MeetingWorkspaceMode,
 } from './domain/rules/meeting.rules'
 export type { Meeting, CreateMeetingPayload, UpdateMeetingPayload } from './domain/model/meeting'

@@ -1,17 +1,19 @@
 'use client'
 
-import { useParams, useSearchParams } from 'next/navigation'
-import { DocumentWorkbenchView } from '@/modules/documents/document-hub/ui/DocumentWorkbenchView'
-import { Typography } from '@/shared/ui'
+import { useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { PageSkeleton } from '@/shared/ui'
+import { WORKSPACE_ROUTES } from '@/modules/org/lib/routes'
 
-export default function ProjectDocumentWorkbenchPage() {
-  const { projectId } = useParams<{ projectId: string }>()
-  const search = useSearchParams()
-  const documentId = search.get('documentId')
+/** Legacy workbench URL — redirect to Document Hub. */
+export default function ProjectDocumentWorkbenchRedirectPage() {
+  const { workspaceId } = useParams<{ workspaceId: string }>()
+  const router = useRouter()
 
-  if (!projectId) {
-    return <Typography tone="muted">Missing project</Typography>
-  }
+  useEffect(() => {
+    if (!workspaceId) return
+    router.replace(WORKSPACE_ROUTES.documentHub(workspaceId))
+  }, [workspaceId, router])
 
-  return <DocumentWorkbenchView projectId={projectId} initialDocumentId={documentId} />
+  return <PageSkeleton variant="detail" />
 }

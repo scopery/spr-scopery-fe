@@ -82,11 +82,37 @@ export async function listAgendaItems(
   return apiClient.get<MeetingAgendaItem[]>(MEETING_ENDPOINTS.agendaItems.list(projectId, meetingId))
 }
 
+export interface CreateAgendaItemPayload {
+  title: string
+  description?: string | null
+  ownerUserId?: string | null
+  sortOrder?: number
+  timeboxMinutes?: number | null
+  clientVisible?: boolean
+}
+
+export async function createAgendaItem(
+  projectId: string,
+  meetingId: string,
+  body: CreateAgendaItemPayload
+): Promise<MeetingAgendaItem> {
+  return apiClient.post<MeetingAgendaItem>(
+    MEETING_ENDPOINTS.agendaItems.create(projectId, meetingId),
+    body
+  )
+}
+
 export async function updateAgendaItem(
   projectId: string,
   meetingId: string,
   agendaItemId: string,
-  body: { title?: string; description?: string | null; durationMinutes?: number | null }
+  body: {
+    title?: string
+    description?: string | null
+    ownerUserId?: string | null
+    timeboxMinutes?: number | null
+    durationMinutes?: number | null
+  }
 ): Promise<MeetingAgendaItem> {
   return apiClient.patch<MeetingAgendaItem>(
     MEETING_ENDPOINTS.agendaItems.update(projectId, meetingId, agendaItemId),
@@ -327,7 +353,7 @@ export async function updateNote(
   noteId: string,
   body: UpdateNotePayload
 ): Promise<MeetingNote> {
-  return apiClient.patch<MeetingNote>(
+  return apiClient.put<MeetingNote>(
     MEETING_ENDPOINTS.notes.update(projectId, meetingId, noteId),
     body
   )
@@ -338,7 +364,7 @@ export async function archiveNote(
   meetingId: string,
   noteId: string
 ): Promise<void> {
-  await apiClient.post<void>(MEETING_ENDPOINTS.notes.archive(projectId, meetingId, noteId))
+  await apiClient.patch<void>(MEETING_ENDPOINTS.notes.archive(projectId, meetingId, noteId))
 }
 
 export async function convertNoteToDecision(

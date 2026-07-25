@@ -45,8 +45,8 @@ export function DocumentHubFilters({
   projects,
 }: DocumentHubFiltersProps) {
   return (
-    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-      <div className="relative lg:col-span-1">
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="relative min-w-[12rem] flex-1 basis-[14rem]">
         <Search
           className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
           size={16}
@@ -60,6 +60,7 @@ export function DocumentHubFilters({
         />
       </div>
       <Select
+        className="min-w-0 basis-[10rem] flex-1 sm:max-w-[13rem]"
         value={projectId || '__all__'}
         onValueChange={(v: string) => onProjectIdChange(v === '__all__' ? '' : v)}
         options={[
@@ -68,6 +69,7 @@ export function DocumentHubFilters({
         ]}
       />
       <Select
+        className="min-w-0 basis-[10rem] flex-1 sm:max-w-[13rem]"
         value={documentType || '__all__'}
         onValueChange={(v: string) => onDocumentTypeChange(v === '__all__' ? '' : v)}
         options={[
@@ -76,6 +78,7 @@ export function DocumentHubFilters({
         ]}
       />
       <Select
+        className="min-w-0 basis-[9rem] flex-1 sm:max-w-[11rem]"
         value={originType || '__all__'}
         onValueChange={(v: string) => onOriginTypeChange(v === '__all__' ? '' : v)}
         options={[
@@ -90,6 +93,7 @@ export function DocumentHubFilters({
         ]}
       />
       <Select
+        className="min-w-0 basis-[8rem] flex-1 sm:max-w-[10rem]"
         value={aiOnly || '__all__'}
         onValueChange={(v: string) => onAiOnlyChange(v === '__all__' ? '' : v)}
         options={[
@@ -99,6 +103,7 @@ export function DocumentHubFilters({
         ]}
       />
       <Select
+        className="min-w-0 basis-[7rem] flex-1 sm:max-w-[9rem]"
         value={lifecycleStatus}
         onValueChange={(v: string) => onLifecycleStatusChange(v as 'active' | 'archived')}
         options={[
@@ -107,6 +112,7 @@ export function DocumentHubFilters({
         ]}
       />
       <Select
+        className="min-w-0 basis-[8rem] flex-1 sm:max-w-[11rem]"
         value={workflowStatus || '__all__'}
         onValueChange={(v: string) =>
           onWorkflowStatusChange(v === '__all__' ? '' : (v as DocumentWorkflowStatus))

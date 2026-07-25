@@ -17,7 +17,8 @@ import * as documentDetailApi from '../api/document-detail.api'
 import type { SaveStatus } from '../model/document-editor'
 import { contentToPlateValue, plateValueToContent } from '../ui/editor/content-adapter'
 
-const AUTOSAVE_MS = 1000
+/** Idle debounce before autosave. Edits reset the timer; no continuous saves. */
+const AUTOSAVE_MS = 30_000
 
 interface UseDocumentEditorOptions {
   orgId: string
@@ -55,6 +56,8 @@ export function useDocumentEditor({
 
   const saveTokenRef = useRef(0)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autosaveDueAtRef = useRef<number | null>(null)
+  const [autosaveInSeconds, setAutosaveInSeconds] = useState<number | null>(null)
   const payloadRef = useRef({
     title: initialDoc.title,
     plateValue: contentToPlateValue(initialDoc.content),
@@ -62,6 +65,13 @@ export function useDocumentEditor({
     visibility: initialDoc.visibility,
     workflowStatus: initialDoc.workflow_status ?? 'draft',
   })
+
+  const clearAutosaveTimer = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = null
+    autosaveDueAtRef.current = null
+    setAutosaveInSeconds(null)
+  }, [])
 
   useEffect(() => {
     payloadRef.current = { title, plateValue, documentType, visibility, workflowStatus }
@@ -99,7 +109,7 @@ export function useDocumentEditor({
         if (token !== saveTokenRef.current) return
 
         setUpdatedAt(saved.updated_at)
-        setSaveStatus('saved')
+        setSaveStatus(debounceRef.current ? 'unsaved' : 'saved')
         if (source === 'manual') toast.success('Document saved')
       } catch (err) {
         if (token !== saveTokenRef.current) return
@@ -114,10 +124,31 @@ export function useDocumentEditor({
     if (!canEdit) return
     setSaveStatus('unsaved')
     if (debounceRef.current) clearTimeout(debounceRef.current)
+    const dueAt = Date.now() + AUTOSAVE_MS
+    autosaveDueAtRef.current = dueAt
+    setAutosaveInSeconds(Math.ceil(AUTOSAVE_MS / 1000))
     debounceRef.current = setTimeout(() => {
+      debounceRef.current = null
+      autosaveDueAtRef.current = null
+      setAutosaveInSeconds(null)
       void performSave('autosave')
     }, AUTOSAVE_MS)
   }, [canEdit, performSave])
+
+  useEffect(() => {
+    if (saveStatus !== 'unsaved' || autosaveDueAtRef.current == null) return
+    const tick = () => {
+      const due = autosaveDueAtRef.current
+      if (due == null) {
+        setAutosaveInSeconds(null)
+        return
+      }
+      setAutosaveInSeconds(Math.max(0, Math.ceil((due - Date.now()) / 1000)))
+    }
+    tick()
+    const id = setInterval(tick, 250)
+    return () => clearInterval(id)
+  }, [saveStatus])
 
   useEffect(() => {
     return () => {
@@ -126,7 +157,7 @@ export function useDocumentEditor({
   }, [])
 
   const handleManualSave = () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
+    clearAutosaveTimer()
     void performSave('manual')
   }
 
@@ -192,11 +223,13 @@ export function useDocumentEditor({
       case 'saving':
         return 'Saving…'
       case 'unsaved':
-        return 'Unsaved changes'
+        return autosaveInSeconds != null
+          ? `Autosave in ${autosaveInSeconds}s`
+          : 'Unsaved changes'
       case 'error':
         return 'Error saving'
     }
-  }, [saveStatus])
+  }, [saveStatus, autosaveInSeconds])
 
   return {
     title,
@@ -211,6 +244,7 @@ export function useDocumentEditor({
     setWorkflowStatus,
     updatedAt,
     saveStatus,
+    autosaveInSeconds,
     archiveOpen,
     setArchiveOpen,
     archiving,

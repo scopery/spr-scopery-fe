@@ -8,12 +8,22 @@ import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import type { MeetingArtifactLink } from '../../domain/model/artifact-link'
 import type { CreateArtifactLinkPayload } from '../../domain/model/artifact-link'
 
-const ARTIFACT_TYPE_OPTIONS = [
+const TARGET_TYPE_OPTIONS = [
   { value: 'TASK', label: 'Task' },
-  { value: 'DELIVERABLE', label: 'Deliverable' },
+  { value: 'DOCUMENT', label: 'Document' },
   { value: 'DECISION', label: 'Decision' },
   { value: 'RAID_ITEM', label: 'RAID item' },
-  { value: 'DOCUMENT', label: 'Document' },
+]
+
+const LINK_TYPE_OPTIONS = [
+  { value: 'REFERENCE', label: 'Reference' },
+  { value: 'DISCUSSED', label: 'Discussed' },
+  { value: 'REVIEWED', label: 'Reviewed' },
+  { value: 'DECIDED', label: 'Decided' },
+  { value: 'ACTION_FOR', label: 'Action for' },
+  { value: 'BLOCKED_BY', label: 'Blocked by' },
+  { value: 'FOLLOW_UP_FOR', label: 'Follow-up for' },
+  { value: 'EVIDENCE', label: 'Evidence' },
 ]
 
 interface Props {
@@ -23,22 +33,21 @@ interface Props {
 }
 
 export function ArtifactLinksPanel({ artifactLinks, onAdd, onRemove }: Props) {
-  const [artifactType, setArtifactType] = useState('TASK')
-  const [artifactId, setArtifactId] = useState('')
-  const [artifactName, setArtifactName] = useState('')
+  const [targetType, setTargetType] = useState('TASK')
+  const [targetId, setTargetId] = useState('')
+  const [linkType, setLinkType] = useState('REFERENCE')
   const [adding, setAdding] = useState(false)
 
   const handleAdd = async () => {
-    if (!artifactId.trim()) return
+    if (!targetId.trim()) return
     setAdding(true)
     try {
       await onAdd({
-        artifactType,
-        artifactId: artifactId.trim(),
-        artifactName: artifactName.trim() || null,
+        targetType,
+        targetId: targetId.trim(),
+        linkType,
       })
-      setArtifactId('')
-      setArtifactName('')
+      setTargetId('')
       toast.success('Artifact linked')
     } catch (err) {
       toast.error(getProblemToastMessage(err))
@@ -61,25 +70,25 @@ export function ArtifactLinksPanel({ artifactLinks, onAdd, onRemove }: Props) {
       <div className="space-y-2 rounded border border-neutral-200 p-3">
         <Typography variant="small" weight="medium">Link artifact</Typography>
         <Select
-          value={artifactType}
-          onValueChange={setArtifactType}
-          options={ARTIFACT_TYPE_OPTIONS}
+          value={targetType}
+          onValueChange={setTargetType}
+          options={TARGET_TYPE_OPTIONS}
         />
         <Input
-          value={artifactId}
-          onChange={(e) => setArtifactId(e.target.value)}
-          placeholder="Artifact ID"
+          value={targetId}
+          onChange={(e) => setTargetId(e.target.value)}
+          placeholder="Target ID (UUID)"
         />
-        <Input
-          value={artifactName}
-          onChange={(e) => setArtifactName(e.target.value)}
-          placeholder="Display name (optional)"
+        <Select
+          value={linkType}
+          onValueChange={setLinkType}
+          options={LINK_TYPE_OPTIONS}
         />
         <Button
           size="sm"
           variant="secondary"
           icon={<Plus size={14} />}
-          disabled={adding || !artifactId.trim()}
+          disabled={adding || !targetId.trim()}
           onClick={() => void handleAdd()}
         >
           {adding ? 'Linking…' : 'Link'}
@@ -93,18 +102,18 @@ export function ArtifactLinksPanel({ artifactLinks, onAdd, onRemove }: Props) {
           <table className="min-w-full text-left text-sm">
             <thead className="bg-neutral-50 text-neutral-500">
               <tr>
-                <th className="px-3 py-2 font-medium">Name</th>
                 <th className="px-3 py-2 font-medium">Type</th>
-                <th className="px-3 py-2 font-medium">ID</th>
+                <th className="px-3 py-2 font-medium">Target ID</th>
+                <th className="px-3 py-2 font-medium">Link</th>
                 <th className="px-3 py-2 font-medium"></th>
               </tr>
             </thead>
             <tbody>
               {artifactLinks.map((link) => (
                 <tr key={link.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-3 py-2">{link.artifactName ?? '—'}</td>
-                  <td className="px-3 py-2 text-neutral-500">{link.artifactType}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-neutral-500">{link.artifactId}</td>
+                  <td className="px-3 py-2 text-neutral-500">{link.targetType}</td>
+                  <td className="px-3 py-2 font-mono text-xs text-neutral-500">{link.targetId}</td>
+                  <td className="px-3 py-2 text-neutral-500">{link.linkType}</td>
                   <td className="px-3 py-2">
                     <Stack direction="horizontal" spacing="sm">
                       <Button

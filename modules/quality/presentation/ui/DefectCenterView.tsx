@@ -1,28 +1,46 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import {
-  Button,
-  PageSkeleton,
-  Stack,
-  Typography
-} from '@/shared/ui'
+import { toast } from 'sonner'
+import { Button, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useDefects } from '../hooks/useDefects'
+import { QualityAddBar } from './QualityAddBar'
+import type { QualityCreateInput } from './quality-bulk.model'
 
 export function DefectCenterView() {
   const params = useParams<{ workspaceId: string; projectId?: string }>()
   const scopeId = params.projectId ?? null
-  const { items, loading, error, actionError, close } = useDefects(scopeId)
+  const { items, loading, error, actionError, create, close, refetch } = useDefects(scopeId)
+
+  const handleCreate = async (input: QualityCreateInput) => {
+    if (input.kind !== 'DEFECT') return
+    await create(input.payload)
+  }
 
   if (loading) return <PageSkeleton variant="list" className="p-lg" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
     <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Defect Center</Typography>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Typography variant="h2">Defect Center</Typography>
+          <Typography tone="muted" variant="caption">
+            Create defects one-by-one or bulk paste from Excel.
+          </Typography>
+        </div>
+        <QualityAddBar
+          kind="DEFECT"
+          onCreate={handleCreate}
+          onBatchComplete={async () => {
+            await refetch()
+            toast.success('Defect(s) created')
+          }}
+        />
+      </div>
       {actionError ? <Typography tone="error">{actionError}</Typography> : null}
       {items.length === 0 ? (
-        <Typography tone="muted">No items yet.</Typography>
+        <Typography tone="muted">No defects yet.</Typography>
       ) : (
         <ul className="divide-y divide-neutral-200 border border-neutral-200">
           {items.map((item) => (
@@ -31,11 +49,11 @@ export function DefectCenterView() {
                 <Typography variant="small" weight="medium">
                   {item.title ?? item.code ?? item.id}
                 </Typography>
-                {item.status ? (
-                  <Typography variant="caption" tone="muted">
-                    {[item.priority, item.status].filter(Boolean).join(' · ')}
-                  </Typography>
-                ) : null}
+                <Typography variant="caption" tone="muted">
+                  {[item.code, item.category, item.severity, item.priority, item.status]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </Typography>
               </div>
               {item.status !== 'CLOSED' ? (
                 <Button size="sm" variant="outline" onClick={() => void close(item.id)}>

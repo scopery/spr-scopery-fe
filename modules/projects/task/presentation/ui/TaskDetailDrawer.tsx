@@ -1,13 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { X } from 'lucide-react'
-import { Badge, Button, Input, Stack, Textarea, Typography } from '@/shared/ui'
+import { toast } from 'sonner'
+import { Badge, Button, Input, Select, Stack, Textarea, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
-import { UserIdentity } from '@/modules/platform/identity/presentation/ui/UserIdentity'
+import { useAuth } from '@/modules/auth'
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
-import type { ProjectTask } from '../../domain/model/task'
+import { useWorkspaceMembers } from '@/modules/org/workspace/hooks/useWorkspaceMembers'
+import { useProjectWbs, WbsNodeStatus, type WbsTreeNode } from '@/modules/projects/wbs'
+import type { ProjectPhase } from '../../../phase/domain/model/phase'
+import type { ProjectTask, UpdateTaskPayload } from '../../domain/model/task'
 import {
   allowedTaskLifecycleActions,
   taskPriorityLabel,
@@ -27,25 +31,48 @@ const ACTION_LABEL: Record<TaskLifecycleAction, string> = {
   complete: 'Complete',
   cancel: 'Cancel',
   archive: 'Archive',
+  reopen: 'Reopen',
+}
+
+function isActiveMember(status: string): boolean {
+  return status === 'ACTIVE' || status === 'active'
+}
+
+function flattenWbsOptions(
+  nodes: WbsTreeNode[],
+  depth = 0,
+  selectedId?: string | null
+): { value: string; label: string }[] {
+  const out: { value: string; label: string }[] = []
+  for (const n of nodes) {
+    const include = n.status !== WbsNodeStatus.Archived || n.id === selectedId
+    if (include) {
+      const prefix = depth > 0 ? `${'—'.repeat(depth)} ` : ''
+      out.push({ value: n.id, label: `${prefix}${n.code} · ${n.title}` })
+    }
+    if (n.children.length) {
+      out.push(...flattenWbsOptions(n.children, depth + 1, selectedId))
+    }
+  }
+  return out
 }
 
 interface TaskDetailDrawerProps {
   workspaceId: string
   projectId: string
+  phases: ProjectPhase[]
   task: ProjectTask | null
   open: boolean
   acting?: boolean
   onClose: () => void
   onLifecycle: (taskId: string, action: TaskLifecycleAction) => Promise<void>
-  onSave: (
-    taskId: string,
-    body: { title: string; description: string | null; dueDate: string | null }
-  ) => Promise<void>
+  onSave: (taskId: string, body: UpdateTaskPayload) => Promise<void>
 }
 
 export function TaskDetailDrawer({
   workspaceId,
   projectId,
+  phases,
   task,
   open,
   acting,
@@ -54,19 +81,94 @@ export function TaskDetailDrawer({
   onSave,
 }: TaskDetailDrawerProps) {
   const router = useRouter()
+  const { session, profile } = useAuth()
+  const currentUserId = session?.user?.id ?? profile?.user_id ?? ''
+  const currentUserLabel =
+    profile?.display_name ||
+    session?.user?.fullName ||
+    session?.user?.email ||
+    session?.user?.username ||
+    'You'
+
   const [tab, setTab] = useState<DrawerTab>('details')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [dueDate, setDueDate] = useState('')
+  const [phaseId, setPhaseId] = useState('')
+  const [assigneeId, setAssigneeId] = useState('')
+  const [wbsNodeId, setWbsNodeId] = useState('')
+  const [estimateHours, setEstimateHours] = useState('')
   const [saving, setSaving] = useState(false)
-  const { peopleById } = useResolveUsers([task?.inChargeUserId])
+
+  const { members } = useWorkspaceMembers(open ? workspaceId : null)
+  const { tree: wbsTree } = useProjectWbs(open ? projectId : null)
+  const memberUserIds = useMemo(() => members.map((m) => m.userId), [members])
+  const { labelFor } = useResolveUsers(memberUserIds)
 
   useEffect(() => {
     if (!task) return
     setTitle(task.title)
     setDescription(task.description ?? '')
     setDueDate(task.dueDate ?? '')
+    setPhaseId(task.projectPhaseId ?? '')
+    setAssigneeId(task.inChargeUserId ?? '')
+    setWbsNodeId(task.wbsNodeId ?? '')
+    setEstimateHours(
+      task.estimateHours != null && Number.isFinite(task.estimateHours)
+        ? String(task.estimateHours)
+        : ''
+    )
   }, [task])
+
+  const phaseOptions = useMemo(
+    () => [
+      { value: '', label: 'No phase' },
+      ...phases.map((p) => ({ value: p.id, label: p.name })),
+    ],
+    [phases]
+  )
+
+  const assigneeOptions = useMemo(() => {
+    const active = members.filter((m) => isActiveMember(m.status))
+    const seen = new Set<string>()
+    const options: { value: string; label: string }[] = [{ value: '', label: 'Unassigned' }]
+
+    if (currentUserId) {
+      seen.add(currentUserId)
+      options.push({
+        value: currentUserId,
+        label: `You — ${currentUserLabel}`,
+      })
+    }
+
+    // Keep current assignee selectable even if not in active members
+    if (assigneeId && !seen.has(assigneeId)) {
+      seen.add(assigneeId)
+      options.push({
+        value: assigneeId,
+        label: labelFor(assigneeId, { currentUserId, youLabel: currentUserLabel }),
+      })
+    }
+
+    for (const m of active) {
+      if (seen.has(m.userId)) continue
+      seen.add(m.userId)
+      options.push({
+        value: m.userId,
+        label: labelFor(m.userId, { currentUserId, youLabel: currentUserLabel }),
+      })
+    }
+
+    return options
+  }, [members, currentUserId, currentUserLabel, labelFor, assigneeId])
+
+  const wbsOptions = useMemo(
+    () => [
+      { value: '', label: 'No WBS node' },
+      ...flattenWbsOptions(wbsTree, 0, wbsNodeId || null),
+    ],
+    [wbsTree, wbsNodeId]
+  )
 
   if (!open || !task) return null
 
@@ -78,12 +180,31 @@ export function TaskDetailDrawer({
   }
 
   const handleSave = async () => {
+    const trimmedTitle = title.trim()
+    if (!trimmedTitle) {
+      toast.error('Title is required')
+      return
+    }
+
+    let hours: number | null = null
+    if (estimateHours.trim()) {
+      hours = Number.parseFloat(estimateHours)
+      if (!Number.isFinite(hours) || hours < 0.01) {
+        toast.error('Estimate hours must be at least 0.01')
+        return
+      }
+    }
+
     setSaving(true)
     try {
       await onSave(task.id, {
-        title: title.trim(),
+        title: trimmedTitle,
         description: description.trim() || null,
         dueDate: dueDate || null,
+        projectPhaseId: phaseId || null,
+        inChargeUserId: assigneeId || null,
+        wbsNodeId: wbsNodeId || null,
+        estimateHours: hours,
       })
     } finally {
       setSaving(false)
@@ -157,51 +278,54 @@ export function TaskDetailDrawer({
                 onChange={(e) => setDescription(e.target.value)}
                 rows={4}
               />
-              <Input
-                label="Due date"
-                type="date"
-                fullWidth
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <Typography variant="small" tone="muted">
-                    Assignee
-                  </Typography>
-                  <UserIdentity
-                    userId={task.inChargeUserId}
-                    person={task.inChargeUserId ? peopleById[task.inChargeUserId] : null}
-                    size="xs"
-                    compact
-                  />
-                </div>
-                <div>
-                  <Typography variant="small" tone="muted">
-                    Phase ID
-                  </Typography>
-                  <Typography className="font-mono text-xs">
-                    {task.projectPhaseId ? `${task.projectPhaseId.slice(0, 8)}…` : '—'}
-                  </Typography>
-                </div>
-                <div>
-                  <Typography variant="small" tone="muted">
-                    WBS node
-                  </Typography>
-                  <Typography className="font-mono text-xs">
-                    {task.wbsNodeId ? `${task.wbsNodeId.slice(0, 8)}…` : '—'}
-                  </Typography>
-                </div>
-                <div>
-                  <Typography variant="small" tone="muted">
-                    Estimate (h)
-                  </Typography>
-                  <Typography>{task.estimateHours ?? '—'}</Typography>
-                </div>
+              <div>
+                <Typography variant="small" className="mb-1.5">
+                  Phase
+                </Typography>
+                <Select value={phaseId} onValueChange={setPhaseId} options={phaseOptions} />
+              </div>
+              <div>
+                <Typography variant="small" className="mb-1.5">
+                  Assignee
+                </Typography>
+                <Select
+                  value={assigneeId}
+                  onValueChange={setAssigneeId}
+                  options={assigneeOptions}
+                />
+              </div>
+              <div>
+                <Typography variant="small" className="mb-1.5">
+                  WBS node
+                </Typography>
+                <Select value={wbsNodeId} onValueChange={setWbsNodeId} options={wbsOptions} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="Estimate (h)"
+                  type="number"
+                  min={0.01}
+                  step={0.25}
+                  fullWidth
+                  value={estimateHours}
+                  onChange={(e) => setEstimateHours(e.target.value)}
+                  placeholder="e.g. 4"
+                />
+                <Input
+                  label="Due date"
+                  type="date"
+                  fullWidth
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                />
               </div>
             </>
           ) : tab === 'dependencies' ? (
-            <TaskDependenciesPanel projectId={projectId} taskId={task.id} />
+            <TaskDependenciesPanel
+              projectId={projectId}
+              taskId={task.id}
+              currentTaskTitle={task.title}
+            />
           ) : tab === 'resources' ? (
             <TaskResourcesPanel
               workspaceId={workspaceId}
@@ -229,9 +353,11 @@ export function TaskDetailDrawer({
               ))}
             </Stack>
           )}
-          <Button variant="primary" fullWidth loading={saving} onClick={() => void handleSave()}>
-            Save changes
-          </Button>
+          {tab === 'details' ? (
+            <Button variant="primary" fullWidth loading={saving} onClick={() => void handleSave()}>
+              Save changes
+            </Button>
+          ) : null}
         </div>
       </aside>
     </>

@@ -4,6 +4,7 @@ export {
   ChangeType,
   ChangePriority,
   ChangeItemOperation,
+  AffectedArea,
   ScopeImpact,
   RiskImpact,
   ChangeOrderStatus,
@@ -35,7 +36,18 @@ export {
   canApplyChangeRequest,
   changeTypeLabel,
   priorityTone,
+  priorityLabel,
+  changeItemOperationLabel,
+  changeItemTargetLabel,
+  affectedAreaLabel,
+  getCrSubmitBlockers,
+  isCrReadyToSubmit,
+  getCrWorkflowPhase,
+  getCrNextStepHint,
+  shouldShowImplementationPlan,
 } from './domain/rules/project-control.rules'
+
+export type { CrWorkflowPhase } from './domain/rules/project-control.rules'
 
 export * as projectControlApi from './infrastructure/api/project-control.api'
 

@@ -16,6 +16,8 @@ export const DOCUMENT_WORKBENCH_ENDPOINTS = {
     create: (projectId: string) => apiPath(`/projects/${projectId}/documents`),
     get: (projectId: string, documentId: string) =>
       apiPath(`/projects/${projectId}/documents/${documentId}`),
+    update: (projectId: string, documentId: string) =>
+      apiPath(`/projects/${projectId}/documents/${documentId}`),
     getMasked: (projectId: string, documentId: string) =>
       apiPath(`/projects/${projectId}/documents/${documentId}/masked`),
     approve: (projectId: string, documentId: string) =>
@@ -71,6 +73,7 @@ export interface ProjectDocument {
   createdAt?: string
   description?: string | null
   folderId?: string | null
+  documentTypeCode?: string | null
 }
 
 export interface DocumentFolder {
@@ -135,6 +138,14 @@ export async function getProjectDocument(
   documentId: string
 ): Promise<ProjectDocument> {
   return apiClient.get(DOCUMENT_WORKBENCH_ENDPOINTS.documents.get(projectId, documentId))
+}
+
+export async function updateProjectDocument(
+  projectId: string,
+  documentId: string,
+  body: { title: string }
+): Promise<ProjectDocument> {
+  return apiClient.patch(DOCUMENT_WORKBENCH_ENDPOINTS.documents.update(projectId, documentId), body)
 }
 
 export async function getProjectDocumentMasked(

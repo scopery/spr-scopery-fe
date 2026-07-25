@@ -9,12 +9,31 @@ export const QUALITY_ENDPOINTS = {
   markCurrentPlan: (projectId: string, id: string) =>
     apiPath(`/projects/${projectId}/quality-plans/${id}/mark-current`),
   testPlans: (projectId: string) => apiPath(`/projects/${projectId}/test-plans`),
+  testPlan: (projectId: string, id: string) =>
+    apiPath(`/projects/${projectId}/test-plans/${id}`),
   approveTestPlan: (projectId: string, id: string) =>
     apiPath(`/projects/${projectId}/test-plans/${id}/approve`),
+  testSuites: (projectId: string, testPlanId: string) =>
+    apiPath(`/projects/${projectId}/test-plans/${testPlanId}/suites`),
   testCases: (projectId: string) => apiPath(`/projects/${projectId}/test-cases`),
+  testCase: (projectId: string, id: string) =>
+    apiPath(`/projects/${projectId}/test-cases/${id}`),
+  approveTestCase: (projectId: string, id: string) =>
+    apiPath(`/projects/${projectId}/test-cases/${id}/approve`),
+  testCaseCoverage: (projectId: string, testCaseId: string) =>
+    apiPath(`/projects/${projectId}/test-cases/${testCaseId}/coverage`),
   testRuns: (projectId: string) => apiPath(`/projects/${projectId}/test-runs`),
+  testRun: (projectId: string, id: string) =>
+    apiPath(`/projects/${projectId}/test-runs/${id}`),
+  startTestRun: (projectId: string, id: string) =>
+    apiPath(`/projects/${projectId}/test-runs/${id}/start`),
+  completeTestRun: (projectId: string, id: string) =>
+    apiPath(`/projects/${projectId}/test-runs/${id}/complete`),
+  cancelTestRun: (projectId: string, id: string) =>
+    apiPath(`/projects/${projectId}/test-runs/${id}/cancel`),
   defects: (projectId: string) => apiPath(`/projects/${projectId}/defects`),
-  defect: (projectId: string, id: string) => apiPath(`/projects/${projectId}/defects/${id}`),
+  defect: (projectId: string, id: string) =>
+    apiPath(`/projects/${projectId}/defects/${id}`),
   closeDefect: (projectId: string, id: string) =>
     apiPath(`/projects/${projectId}/defects/${id}/close`),
   releases: (projectId: string) => apiPath(`/projects/${projectId}/releases`),
@@ -37,12 +56,6 @@ export const QUALITY_ENDPOINTS = {
     apiPath(`/projects/${projectId}/deployments/${id}/fail`),
   rollbackDeployment: (projectId: string, id: string) =>
     apiPath(`/projects/${projectId}/deployments/${id}/rollback`),
-  startTestRun: (projectId: string, id: string) =>
-    apiPath(`/projects/${projectId}/test-runs/${id}/start`),
-  completeTestRun: (projectId: string, id: string) =>
-    apiPath(`/projects/${projectId}/test-runs/${id}/complete`),
-  cancelTestRun: (projectId: string, id: string) =>
-    apiPath(`/projects/${projectId}/test-runs/${id}/cancel`),
   deploymentEnvironments: (projectId: string) =>
     apiPath(`/projects/${projectId}/deployment-environments`),
   archiveDeploymentEnvironment: (projectId: string, envId: string) =>

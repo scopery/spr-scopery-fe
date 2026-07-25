@@ -6,7 +6,8 @@ export async function listDependencies(
   projectId: string,
   params?: { predecessorTaskId?: string; successorTaskId?: string }
 ): Promise<TaskDependency[]> {
-  return apiClient.get<TaskDependency[]>(TASK_DEP_ENDPOINTS.list(projectId, params))
+  const res = await apiClient.get<{ items: TaskDependency[] }>(TASK_DEP_ENDPOINTS.list(projectId, params))
+  return res?.items ?? []
 }
 
 export async function getDependency(

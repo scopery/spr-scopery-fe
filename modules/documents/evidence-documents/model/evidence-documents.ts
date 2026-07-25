@@ -37,6 +37,8 @@ export interface EntityEvidenceDocumentsPanelProps extends EvidenceEntityProps {
   enableBulkLink?: boolean
   title?: string
   emptyStateText?: string
+  /** Label for the primary link action. Default: "Link document" */
+  linkButtonLabel?: string
   compact?: boolean
 }
 

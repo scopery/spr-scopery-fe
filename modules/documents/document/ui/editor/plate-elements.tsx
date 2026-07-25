@@ -183,7 +183,7 @@ export function LinkElement(props: PlateElementProps) {
   )
 }
 
-export function TableElement(props: PlateElementProps) {
+export function TableElement({ children, ...props }: PlateElementProps) {
   const { props: tableProps } = useTableElement()
 
   return (
@@ -193,7 +193,9 @@ export function TableElement(props: PlateElementProps) {
         className="w-full min-w-[320px] border-collapse text-sm"
         {...props}
         {...tableProps}
-      />
+      >
+        <tbody>{children}</tbody>
+      </PlateElement>
     </div>
   )
 }

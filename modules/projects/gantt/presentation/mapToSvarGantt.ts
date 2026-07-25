@@ -38,6 +38,24 @@ function mapItemType(itemType: string): ITask['type'] {
   return 'summary'
 }
 
+/**
+ * Resolve inclusive bar dates from BE start/end (either side may be null).
+ * PARTIAL tasks often only have dueDate → endDate with startDate null.
+ */
+export function resolveInclusiveBarDates(
+  startDate: string | null | undefined,
+  endDate: string | null | undefined
+): { start: Date; end: Date } | null {
+  const start = parseLocalDate(startDate)
+  const end = parseLocalDate(endDate)
+  if (start && end) {
+    return end < start ? { start, end: start } : { start, end }
+  }
+  if (start) return { start, end: start }
+  if (end) return { start: end, end }
+  return null
+}
+
 /** Scan tree for any real schedule dates; fallback = today → +30d. */
 function resolveFallbackRange(tree: GanttTreeItem[]): { start: Date; end: Date } {
   let min: Date | undefined
@@ -45,10 +63,11 @@ function resolveFallbackRange(tree: GanttTreeItem[]): { start: Date; end: Date }
 
   const visit = (nodes: GanttTreeItem[]) => {
     for (const n of nodes) {
-      const s = parseLocalDate(n.startDate)
-      const e = parseLocalDate(n.endDate ?? n.startDate)
-      if (s && (!min || s < min)) min = s
-      if (e && (!max || e > max)) max = e
+      const bar = resolveInclusiveBarDates(n.startDate, n.endDate)
+      if (bar) {
+        if (!min || bar.start < min) min = bar.start
+        if (!max || bar.end > max) max = bar.end
+      }
       if (n.children.length) visit(n.children)
     }
   }
@@ -63,6 +82,28 @@ function resolveFallbackRange(tree: GanttTreeItem[]): { start: Date; end: Date }
   return { start, end: addLocalDays(start, 30) }
 }
 
+/** Chart viewport: pad real bars so SVAR doesn't clip at today. */
+export function resolveChartViewport(tasks: ITask[], padDays = 7): { start: Date; end: Date } {
+  let min: Date | undefined
+  let maxExclusive: Date | undefined
+  for (const t of tasks) {
+    if (!t.start || typeof t.duration !== 'number' || t.duration < 1) continue
+    if (t.isPlaceholderSchedule) continue
+    const endEx = addLocalDays(t.start, t.duration)
+    if (!min || t.start < min) min = t.start
+    if (!maxExclusive || endEx > maxExclusive) maxExclusive = endEx
+  }
+  if (!min || !maxExclusive) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return { start: addLocalDays(today, -padDays), end: addLocalDays(today, 30 + padDays) }
+  }
+  return {
+    start: addLocalDays(min, -padDays),
+    end: addLocalDays(maxExclusive, padDays),
+  }
+}
+
 function rollupFromSlice(
   tasks: ITask[],
   from: number,
@@ -73,6 +114,7 @@ function rollupFromSlice(
   for (let i = from; i < to; i++) {
     const t = tasks[i]
     if (!t?.start || typeof t.duration !== 'number' || t.duration < 1) continue
+    if (t.isPlaceholderSchedule) continue
     const endEx = addLocalDays(t.start, t.duration)
     if (!min || t.start < min) min = t.start
     if (!maxExclusive || endEx > maxExclusive) maxExclusive = endEx
@@ -100,16 +142,15 @@ export function mapGanttTreeToSvarTasks(
   const walk = (nodes: GanttTreeItem[], parentId: string | number = 0) => {
     for (const node of nodes) {
       const isTask = node.itemType === 'TASK'
-      const ownStart = parseLocalDate(node.startDate)
-      const ownEnd = parseLocalDate(node.endDate ?? node.startDate)
-      const unscheduled = !ownStart
+      const ownBar = resolveInclusiveBarDates(node.startDate, node.endDate)
+      const unscheduled = !ownBar
 
       if (isTask) {
         if (unscheduled && !includeUnscheduled) continue
 
-        const start = ownStart ?? fallback.start
-        const duration = ownStart
-          ? inclusiveDaySpan(ownStart, ownEnd ?? ownStart)
+        const start = ownBar?.start ?? fallback.start
+        const duration = ownBar
+          ? inclusiveDaySpan(ownBar.start, ownBar.end)
           : 1
 
         out.push({
@@ -123,6 +164,7 @@ export function mapGanttTreeToSvarTasks(
           sourceEntityId: node.sourceEntityId,
           sourceEntityType: node.sourceEntityType,
           itemType: node.itemType,
+          scheduleStatus: node.scheduleStatus,
           isPlaceholderSchedule: unscheduled,
         })
         continue
@@ -133,9 +175,9 @@ export function mapGanttTreeToSvarTasks(
       const childCount = out.length - insertAt
       const rolled = rollupFromSlice(out, insertAt, out.length)
 
-      const start = ownStart ?? rolled?.start ?? fallback.start
-      const duration = ownStart
-        ? inclusiveDaySpan(ownStart, ownEnd ?? ownStart)
+      const start = ownBar?.start ?? rolled?.start ?? fallback.start
+      const duration = ownBar
+        ? inclusiveDaySpan(ownBar.start, ownBar.end)
         : (rolled?.duration ?? inclusiveDaySpan(fallback.start, fallback.end))
 
       const task: ITask = {
@@ -149,7 +191,8 @@ export function mapGanttTreeToSvarTasks(
         sourceEntityId: node.sourceEntityId,
         sourceEntityType: node.sourceEntityType,
         itemType: node.itemType,
-        isPlaceholderSchedule: !ownStart && !rolled,
+        scheduleStatus: node.scheduleStatus,
+        isPlaceholderSchedule: !ownBar && !rolled,
       }
 
       if (childCount > 0) task.open = true

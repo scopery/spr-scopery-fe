@@ -1,6 +1,6 @@
 'use client'
 
-import { Archive, Check } from 'lucide-react'
+import { Archive, Check, Plus } from 'lucide-react'
 
 import React from 'react'
 import NextLink from 'next/link'
@@ -51,12 +51,15 @@ export function AdminOrganizationsListView() {
             {totalElements > 0 ? ` ${totalElements} total.` : ''}
           </Typography>
         </div>
-        <NextLink
+        <Button
+          as={NextLink}
           href={ADMIN_ROUTES.organizationNew}
-          className="inline-flex items-center bg-primary px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+          variant="primary"
+          size="sm"
+          icon={<Plus size={16} />}
         >
           Create organization
-        </NextLink>
+        </Button>
       </div>
 
       <Stack direction="horizontal" spacing="sm" className="mb-6 flex-wrap items-center">

@@ -4,6 +4,13 @@ import { PRODUCTIVITY_ENDPOINTS } from './endpoints'
 import type { SearchResponse, SearchResultItem } from '../../domain/model/search'
 import type { WorkInboxItem, WorkInboxListResponse } from '../../domain/model/work-inbox'
 import type { FavoriteItem, RecentItem, SavedView } from '../../domain/model/saved-items'
+import type { MyWorkParams, MyWorkResponse } from '../../domain/model/my-work'
+import type { MyInsightsParams, MyInsightsResponse } from '../../domain/model/my-insights'
+import { MyWorkWindow } from '../../domain/enums/my-work.enum'
+import {
+  mapMyWorkBundleToInsights,
+  resolveInsightsRange,
+} from '../mappers/map-my-work-to-insights'
 
 export async function searchGlobal(params: {
   q: string
@@ -55,6 +62,57 @@ export async function markWorkInboxRead(
 ): Promise<void> {
   await apiClient.post<void>(PRODUCTIVITY_ENDPOINTS.markInboxRead(workspaceId, itemId), undefined, {
     parseJson: false,
+  })
+}
+
+export async function getMyWork(
+  workspaceId: string,
+  params?: MyWorkParams
+): Promise<MyWorkResponse> {
+  return apiClient.get<MyWorkResponse>(PRODUCTIVITY_ENDPOINTS.myWork(workspaceId, params))
+}
+
+export async function getMyInsights(
+  workspaceId: string,
+  params?: MyInsightsParams
+): Promise<MyInsightsResponse> {
+  const { range, dateFrom, dateTo } = resolveInsightsRange(params)
+  const projectId = params?.projectId
+  const base = { projectId, size: 100, page: 0 } as const
+
+  const [open, inRange, overdue, upcoming] = await Promise.all([
+    getMyWork(workspaceId, {
+      ...base,
+      window: MyWorkWindow.AllOpen,
+      includeCompleted: false,
+    }),
+    getMyWork(workspaceId, {
+      ...base,
+      window: MyWorkWindow.Custom,
+      dateFrom,
+      dateTo,
+      includeCompleted: true,
+    }),
+    getMyWork(workspaceId, {
+      ...base,
+      window: MyWorkWindow.Overdue,
+      includeCompleted: false,
+    }),
+    getMyWork(workspaceId, {
+      ...base,
+      window: MyWorkWindow.Upcoming,
+      includeCompleted: false,
+    }),
+  ])
+
+  return mapMyWorkBundleToInsights({
+    open,
+    inRange,
+    overdue,
+    upcoming,
+    range,
+    dateFrom,
+    dateTo,
   })
 }
 

@@ -32,6 +32,7 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
     enableBulkLink = true,
     title = 'Evidence documents',
     emptyStateText = 'No evidence documents linked yet.',
+    linkButtonLabel = 'Link document',
     compact = false,
   } = props
   const panel = useEntityEvidenceDocumentsPanel(props)
@@ -49,9 +50,9 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
 
   return (
     <div className={compact ? 'space-y-3' : 'space-y-4 border border-neutral-200 bg-white p-4'}>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Link2 size={compact ? 16 : 18} className="text-neutral-600" />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <Link2 size={compact ? 16 : 18} className="shrink-0 text-neutral-600" />
           <Typography weight="semibold" size={compact ? 'sm' : 'md'}>
             {title}
           </Typography>
@@ -61,7 +62,7 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {canRestore && (
             <Button variant="ghost" onClick={() => panel.setShowArchivedLinks((v) => !v)} icon={<Eye size={16} />}>
               {panel.showArchivedLinks ? 'Hide archived' : 'Show archived'}
@@ -98,7 +99,7 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
               icon={<Plus size={14} />}
               onClick={() => panel.setAddOpen(true)}
             >
-              Link document
+              {linkButtonLabel}
             </Button>
           )}
         </div>

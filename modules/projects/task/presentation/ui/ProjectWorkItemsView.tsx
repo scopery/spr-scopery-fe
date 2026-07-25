@@ -381,6 +381,7 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
       <TaskDetailDrawer
         workspaceId={workspaceId}
         projectId={projectId}
+        phases={phases}
         task={selectedTask}
         open={!!selectedTask}
         acting={actingId === selectedTask?.id}

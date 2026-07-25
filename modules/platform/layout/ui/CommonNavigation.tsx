@@ -2,7 +2,7 @@
 
 import type { RefObject } from 'react'
 import NextLink from 'next/link'
-import { Bell, FileText, Inbox, Search, Sparkles } from 'lucide-react'
+import { Bell, ClipboardList, FileText, Inbox, Search, Sparkles } from 'lucide-react'
 import { Link as DesignLink, Typography } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { FEATURES } from '@/config/features'
@@ -15,6 +15,7 @@ export interface CommonNavigationProps {
   documentHubActive: boolean
   notificationsActive: boolean
   workInboxActive?: boolean
+  myWorkActive?: boolean
   agentControlActive?: boolean
   canViewDocumentHub: boolean
   unreadCount: number
@@ -35,6 +36,7 @@ export function CommonNavigation({
   documentHubActive,
   notificationsActive,
   workInboxActive,
+  myWorkActive,
   agentControlActive,
   canViewDocumentHub,
   unreadCount,
@@ -59,6 +61,7 @@ export function CommonNavigation({
     projectId ? { projectId } : undefined
   )
   const workInboxHref = ROUTES.workspace.workInbox(workspaceId)
+  const myWorkHref = ROUTES.workspace.myInsights(workspaceId)
 
   return (
     <nav aria-label="Common navigation" className={cn('py-2', collapsed ? 'px-1' : 'px-2')}>
@@ -175,6 +178,31 @@ export function CommonNavigation({
             ) : null}
           </button>
         </li>
+        {FEATURES.myWork ? (
+          <li>
+            <DesignLink
+              as={NextLink}
+              href={myWorkHref}
+              title={collapsed ? 'My Insights' : undefined}
+              aria-current={myWorkActive ? 'page' : undefined}
+              className={itemClass(myWorkActive)}
+            >
+              <ClipboardList
+                size={16}
+                className={cn(
+                  'shrink-0',
+                  myWorkActive ? 'text-primary' : 'text-neutral-500'
+                )}
+                aria-hidden
+              />
+              {!collapsed ? (
+                <Typography as="span" variant="small" className="truncate">
+                  My Insights
+                </Typography>
+              ) : null}
+            </DesignLink>
+          </li>
+        ) : null}
         {FEATURES.workInbox ? (
           <li>
             <DesignLink

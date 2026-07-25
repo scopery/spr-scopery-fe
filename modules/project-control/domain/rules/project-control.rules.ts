@@ -1,5 +1,14 @@
-import { BaselineStatus, ChangeRequestStatus } from '../enums/project-control.enum'
-import type { ChangeRequest, ProjectBaseline } from '../model/project-control'
+import {
+  BaselineStatus,
+  ChangeItemOperation,
+  ChangeRequestStatus,
+} from '../enums/project-control.enum'
+import type {
+  ChangeImpact,
+  ChangeRequest,
+  ChangeRequestItem,
+  ProjectBaseline,
+} from '../model/project-control'
 
 export function baselineStatusLabel(status: string): string {
   switch (status) {
@@ -97,6 +106,154 @@ export function canEditChangeRequest(cr: ChangeRequest): boolean {
 
 export function canSubmitChangeRequest(cr: ChangeRequest): boolean {
   return cr.status === ChangeRequestStatus.Draft
+}
+
+export type CrWorkflowPhase = 'details' | 'changes' | 'impact' | 'review'
+
+export function priorityLabel(priority: string): string {
+  switch (priority) {
+    case 'CRITICAL':
+      return 'Critical'
+    case 'HIGH':
+      return 'High'
+    case 'MEDIUM':
+      return 'Medium'
+    case 'LOW':
+      return 'Low'
+    default:
+      return priority
+  }
+}
+
+export function changeItemOperationLabel(operation: string): string {
+  switch (operation) {
+    case ChangeItemOperation.Add:
+      return 'New'
+    case ChangeItemOperation.Modify:
+      return 'Modify'
+    case ChangeItemOperation.Remove:
+      return 'Remove'
+    default:
+      return operation
+  }
+}
+
+export function changeItemTargetLabel(targetType: string): string {
+  const normalized = targetType.trim().toUpperCase()
+  switch (normalized) {
+    case 'FUNCTION':
+      return 'Function'
+    case 'TASK':
+      return 'Task'
+    case 'SCHEDULE':
+      return 'Schedule'
+    case 'STAFFING':
+      return 'Staffing'
+    default:
+      return targetType.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase())
+  }
+}
+
+export function affectedAreaLabel(area: string): string {
+  switch (area) {
+    case 'ACCEPTANCE_CRITERIA':
+      return 'Acceptance criteria'
+    case 'BUSINESS_RULES':
+      return 'Business rules'
+    case 'SCREENS':
+      return 'Screens'
+    case 'API':
+      return 'APIs'
+    case 'DATA':
+      return 'Data'
+    case 'ESTIMATE':
+      return 'Estimate'
+    case 'DATES':
+      return 'Dates'
+    case 'ASSIGNMENT':
+      return 'Assignment'
+    default:
+      return area.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase())
+  }
+}
+
+/** What the user still needs before Submit for review (Draft only). */
+export function getCrSubmitBlockers(
+  cr: ChangeRequest,
+  items: ChangeRequestItem[],
+  impact: ChangeImpact | null
+): string[] {
+  if (cr.status !== ChangeRequestStatus.Draft) return []
+  const blockers: string[] = []
+  if (!cr.reason.trim()) blockers.push('Reason for change')
+  if (items.length === 0) blockers.push('At least one proposed change')
+  if (!impact) blockers.push('Impact analysis')
+  return blockers
+}
+
+export function isCrReadyToSubmit(
+  cr: ChangeRequest,
+  items: ChangeRequestItem[],
+  impact: ChangeImpact | null
+): boolean {
+  return (
+    canSubmitChangeRequest(cr) && getCrSubmitBlockers(cr, items, impact).length === 0
+  )
+}
+
+export function getCrWorkflowPhase(
+  cr: ChangeRequest,
+  items: ChangeRequestItem[],
+  impact: ChangeImpact | null
+): CrWorkflowPhase {
+  if (cr.status !== ChangeRequestStatus.Draft) return 'review'
+  if (!cr.reason.trim()) return 'details'
+  if (items.length === 0) return 'changes'
+  if (!impact) return 'impact'
+  return 'review'
+}
+
+export function getCrNextStepHint(
+  cr: ChangeRequest,
+  items: ChangeRequestItem[],
+  impact: ChangeImpact | null
+): string {
+  if (cr.status === ChangeRequestStatus.Submitted) {
+    return 'Waiting for approval.'
+  }
+  if (cr.status === ChangeRequestStatus.Approved) {
+    return 'Apply the change request, or review the implementation plan.'
+  }
+  if (cr.status === ChangeRequestStatus.Applied) {
+    return 'This change request has been applied.'
+  }
+  if (
+    cr.status === ChangeRequestStatus.Rejected ||
+    cr.status === ChangeRequestStatus.Cancelled ||
+    cr.status === ChangeRequestStatus.Archived
+  ) {
+    return 'No further action on this change request.'
+  }
+
+  const phase = getCrWorkflowPhase(cr, items, impact)
+  switch (phase) {
+    case 'details':
+      return 'Complete the request details (reason and outcome).'
+    case 'changes':
+      return 'Add at least one proposed change.'
+    case 'impact':
+      return 'Run impact analysis.'
+    case 'review':
+      return 'Review the summary, then submit for review.'
+  }
+}
+
+export function shouldShowImplementationPlan(cr: ChangeRequest): boolean {
+  return (
+    cr.status === ChangeRequestStatus.Approved ||
+    cr.status === ChangeRequestStatus.Applied ||
+    cr.status === ChangeRequestStatus.Archived
+  )
 }
 
 export function canApproveChangeRequest(cr: ChangeRequest): boolean {

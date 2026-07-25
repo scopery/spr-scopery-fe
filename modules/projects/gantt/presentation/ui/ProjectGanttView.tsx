@@ -2,13 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Download, RefreshCw } from 'lucide-react'
+import { Download, Eye, EyeOff, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Gantt, Willow, type IApi, type ITask } from '@svar-ui/react-gantt'
 import '@svar-ui/react-gantt/all.css'
 import './gantt-theme.css'
-import { Badge, Button, PageSkeleton, Typography } from '@/shared/ui'
-import { cn } from '@/utils/cn'
+import { Badge, Button, PageSkeleton, Select, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import * as phasesApi from '../../../phase/infrastructure/api/phases.api'
@@ -26,12 +25,14 @@ import {
   isGanttTaskDraggable,
   mapGanttDepsToSvarLinks,
   mapGanttTreeToSvarTasks,
+  resolveChartViewport,
   resolveSourceEntityId,
   resolveSourceTaskId,
   toDateOnlyFromSvar,
   toInclusiveFinishFromSvar,
 } from '../mapToSvarGantt'
 import { GanttScheduleModal } from './GanttScheduleModal'
+import { TimelineLegendHint } from './TimelineLegendHint'
 
 const SCALE_OPTIONS: { value: GanttTimeScale; label: string }[] = [
   { value: 'day', label: 'Day' },
@@ -162,6 +163,8 @@ export function ProjectGanttView() {
   )
   const tasksRef = useRef(tasks)
   tasksRef.current = tasks
+
+  const chartViewport = useMemo(() => resolveChartViewport(tasks), [tasks])
 
   const links = useMemo(
     () => mapGanttDepsToSvarLinks(ganttDependencies, tasks),
@@ -446,17 +449,15 @@ export function ProjectGanttView() {
       return
     }
     setExporting(true)
-    try {
-      downloadGanttExcel(tree.length ? tree : items, {
-        projectName: project?.name ?? project?.code ?? projectId,
-        fileName: `${project?.code ?? 'project'}-timeline`,
+    void downloadGanttExcel(tree.length ? tree : items, {
+      projectName: project?.name ?? project?.code ?? projectId,
+      fileName: `${project?.code ?? 'project'}-timeline`,
+    })
+      .then(() => toast.success('Excel downloaded'))
+      .catch((err) => {
+        toast.error(err instanceof Error ? err.message : 'Export failed')
       })
-      toast.success('Excel downloaded')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Export failed')
-    } finally {
-      setExporting(false)
-    }
+      .finally(() => setExporting(false))
   }
 
   if (loading && tree.length === 0) return <PageSkeleton variant="list" />
@@ -478,7 +479,7 @@ export function ProjectGanttView() {
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-4">
-        <div>
+        <div className="min-w-0">
           <Typography as="h1" size="lg" weight="semibold">
             Timeline
           </Typography>
@@ -489,30 +490,15 @@ export function ProjectGanttView() {
           ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex overflow-hidden rounded border border-neutral-200 bg-white">
-            {SCALE_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setScale(opt.value)}
-                className={cn(
-                  'px-3 py-1.5 text-sm transition-colors',
-                  scale === opt.value
-                    ? 'bg-secondary/10 text-secondary'
-                    : 'bg-white text-neutral-600 hover:bg-neutral-50 hover:text-neutral-800'
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
+          <div className="w-[7.5rem]">
+            <Select
+              size="md"
+              value={scale}
+              onValueChange={(v: string) => setScale(v as GanttTimeScale)}
+              options={SCALE_OPTIONS}
+              aria-label="Timeline scale"
+            />
           </div>
-          <Button
-            variant={hideUnscheduled ? 'outline' : 'ghost'}
-            size="sm"
-            onClick={() => setHideUnscheduled((v) => !v)}
-          >
-            {hideUnscheduled ? 'Show unscheduled' : 'Hide unscheduled'}
-          </Button>
           <Button
             variant="outline"
             icon={<Download size={16} />}
@@ -541,40 +527,43 @@ export function ProjectGanttView() {
         </div>
       ) : null}
 
-      {summary ? (
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <Badge variant="solid" tone="neutral">
-            {summary.itemCount} items
-          </Badge>
-          <Badge variant="solid" tone="success">
-            {summary.scheduledTaskCount} scheduled
-          </Badge>
-          <Badge variant="solid" tone="warning">
-            {summary.unscheduledTaskCount} unscheduled
-          </Badge>
-          {summary.milestoneCount > 0 ? (
-            <Badge variant="solid" tone="info">
-              {summary.milestoneCount} milestones
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {summary ? (
+          <>
+            <Badge variant="solid" tone="neutral">
+              {summary.itemCount} items
             </Badge>
-          ) : null}
-          {summary.issueCount > 0 ? (
-            <Badge variant="solid" tone="error">
-              {summary.issueCount} issues
+            <Badge variant="solid" tone="success">
+              {summary.scheduledTaskCount} scheduled
             </Badge>
-          ) : null}
-          <Typography variant="small" tone="muted" className="ml-1">
-            <span className="mr-3 inline-flex items-center gap-1">
-              <span className="inline-block h-2.5 w-6 bg-sky-300" />
-              Task — drag or double-click
-            </span>
-            <span className="mr-3 inline-flex items-center gap-1">
-              <span className="inline-block h-2.5 w-6 bg-slate-300" />
-              Phase/WBS — drag to shift children
-            </span>
-            Recalculate reschedules dependencies project-wide.
-          </Typography>
-        </div>
-      ) : null}
+            <Badge variant="solid" className="bg-primary-gradient text-white">
+              {summary.unscheduledTaskCount} unscheduled
+            </Badge>
+            {summary.milestoneCount > 0 ? (
+              <Badge variant="solid" tone="info">
+                {summary.milestoneCount} milestones
+              </Badge>
+            ) : null}
+            {summary.issueCount > 0 ? (
+              <Badge variant="solid" tone="error">
+                {summary.issueCount} issues
+              </Badge>
+            ) : null}
+          </>
+        ) : null}
+        <Button
+          variant={hideUnscheduled ? 'outline' : 'ghost'}
+          size="sm"
+          aria-pressed={hideUnscheduled}
+          aria-label={hideUnscheduled ? 'Show unscheduled tasks' : 'Hide unscheduled tasks'}
+          title={hideUnscheduled ? 'Show unscheduled' : 'Hide unscheduled'}
+          icon={hideUnscheduled ? <EyeOff size={16} /> : <Eye size={16} />}
+          onClick={() => setHideUnscheduled((v) => !v)}
+        >
+          {hideUnscheduled ? 'Show unscheduled' : 'Hide unscheduled'}
+        </Button>
+        <TimelineLegendHint className="ml-auto shrink-0" />
+      </div>
 
       <div className="scopery-gantt h-[min(70vh,720px)] min-h-[480px] overflow-hidden border border-neutral-200 bg-white">
         {!mounted ? (
@@ -588,11 +577,14 @@ export function ProjectGanttView() {
         ) : (
           <Willow fonts={false}>
             <Gantt
-              key={`${scale}-${ganttDataVersion}`}
+              key={`${scale}-${ganttDataVersion}-${hideUnscheduled ? 'hide' : 'show'}`}
               tasks={tasks}
               links={links}
               scales={scales}
               columns={COLUMNS}
+              start={chartViewport.start}
+              end={chartViewport.end}
+              autoScale
               init={init}
               onUpdateTask={handleUpdateTask}
               readonly={false}
