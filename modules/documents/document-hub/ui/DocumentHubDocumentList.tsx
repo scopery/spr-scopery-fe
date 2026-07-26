@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowUpRight, FileText, Plus, RotateCcw } from 'lucide-react'
 import { Badge, Button, Checkbox, PageSkeleton, Typography } from '@/shared/ui'
@@ -8,6 +8,7 @@ import { ROUTES } from '@/constants/routes'
 import { AIGeneratedBadge, originLabel } from '@/modules/ai-document-intelligence'
 import { DocumentTypeBadge, WorkflowStatusBadge } from '@/modules/documents/document'
 import { cn } from '@/utils/cn'
+import { knowledgeApi, type DocumentIndexStatus } from '@/modules/knowledge'
 import type { DocumentHubSelectionMode } from '../model/document-hub'
 import type { DocumentHubItem } from '../hooks/useDocumentHub'
 import type { DocumentHubViewMode } from './DocumentHubHeader'
@@ -54,6 +55,29 @@ function DocMetaLine({ doc }: { doc: DocumentHubItem }) {
   )
 }
 
+function DocumentIndexBadge({ projectId, documentId }: { projectId: string; documentId: string }) {
+  const [status, setStatus] = useState<DocumentIndexStatus | null>(null)
+
+  useEffect(() => {
+    knowledgeApi
+      .getDocumentIndexStatus(projectId, documentId)
+      .then(setStatus)
+      .catch(() => {/* non-critical */})
+  }, [projectId, documentId])
+
+  if (!status) return null
+
+  return status.indexed ? (
+    <Badge variant="solid" tone="warning" size="sm">
+      Indexed
+    </Badge>
+  ) : (
+    <Badge variant="soft" tone="neutral" size="sm">
+      {status.totalChunks > 0 ? `Partial ${status.embeddedChunks}/${status.totalChunks}` : 'Not indexed'}
+    </Badge>
+  )
+}
+
 function DocBadges({ doc }: { doc: DocumentHubItem }) {
   const isArchived = doc.status === 'archived'
   return (
@@ -61,20 +85,23 @@ function DocBadges({ doc }: { doc: DocumentHubItem }) {
       <DocumentTypeBadge type={doc.document_type} />
       {doc.workflow_status ? <WorkflowStatusBadge status={doc.workflow_status} /> : null}
       {isArchived ? (
-        <Badge variant="soft" tone="warning">
+        <Badge variant="soft" tone="warning" size="sm">
           Archived
         </Badge>
       ) : null}
       <AIGeneratedBadge generatedByAI={doc.generated_by_ai} originType={doc.origin_type} />
       {doc.origin_type && doc.origin_type !== 'manual' ? (
-        <Badge variant="soft" tone="neutral">
+        <Badge variant="soft" tone="neutral" size="sm">
           {originLabel(doc.origin_type)}
         </Badge>
       ) : null}
       {(doc.link_count ?? 0) > 0 ? (
-        <Badge variant="soft" tone="info">
+        <Badge variant="soft" tone="info" size="sm">
           {doc.link_count} link{(doc.link_count ?? 0) === 1 ? '' : 's'}
         </Badge>
+      ) : null}
+      {doc.project_id ? (
+        <DocumentIndexBadge projectId={doc.project_id} documentId={doc.id} />
       ) : null}
     </div>
   )

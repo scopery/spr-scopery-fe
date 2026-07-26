@@ -17,6 +17,7 @@ export function useEntityEvidenceDocumentsPanel({
   linkedEntityId,
   sessionId,
   canView,
+  onLinksChanged,
 }: EntityEvidenceDocumentsPanelProps): UseEntityEvidenceDocumentsPanelState {
   const [items, setItems] = useState<LinkedDocumentForEntity[]>([])
   const [loading, setLoading] = useState(true)
@@ -71,6 +72,7 @@ export function useEntityEvidenceDocumentsPanel({
       toast.success('Link removed')
       setRemoveTarget(null)
       await load()
+      onLinksChanged?.()
     } catch (err) {
       const msg = err instanceof ApiError ? err.problem.detail : 'Failed to remove link'
       toast.error(msg)
@@ -92,6 +94,7 @@ export function useEntityEvidenceDocumentsPanel({
       toast.success('Link restored')
       setRestoreLinkTarget(null)
       await load()
+      onLinksChanged?.()
     } catch (err) {
       const msg = err instanceof ApiError ? err.problem.detail : 'Failed to restore link'
       toast.error(msg)
@@ -108,6 +111,7 @@ export function useEntityEvidenceDocumentsPanel({
       toast.success('Document restored')
       setRestoreDocTarget(null)
       await load()
+      onLinksChanged?.()
     } catch (err) {
       const msg = err instanceof ApiError ? err.problem.detail : 'Failed to restore document'
       toast.error(msg)

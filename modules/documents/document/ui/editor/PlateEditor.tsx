@@ -45,6 +45,12 @@ export const PlateEditorBody = forwardRef<PlateEditorHandle, PlateEditorBodyProp
       plugins,
       value,
       readOnly,
+      // Slate chunking + content-visibility:auto — default chunkSize (1000) is too
+      // coarse for typical docs; smaller chunks keep paint cost down after large pastes.
+      chunking: {
+        chunkSize: 64,
+        contentVisibilityAuto: true,
+      },
     })
 
     useImperativeHandle(

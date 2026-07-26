@@ -23,6 +23,63 @@ export interface UpdateBaselinePayload {
   description?: string | null
 }
 
+/** Matches BE BaselineSummaryDto */
+export interface BaselineSummary {
+  phaseCount: number
+  wbsCount: number
+  taskCount: number
+  dependencyCount: number
+  milestoneCount: number
+  plannedStartDate: string | null
+  plannedEndDate: string | null
+  estimateHours: number | null
+  revenue: number | null
+  directCost: number | null
+  overhead: number | null
+  grossMargin: number | null
+  pbt: number | null
+  currencyCode: string | null
+  totalQuotedAmount: number | null
+  targetMarginPercent: number | null
+}
+
+/** Matches BE BaselineTreeNodeDto — Phase → WBS → Task */
+export interface BaselineTreeNode {
+  id: string
+  type: string
+  code: string | null
+  name: string
+  meta: Record<string, unknown> | null
+  children: BaselineTreeNode[]
+}
+
+/** Matches BE BaselineHealthDto */
+export interface BaselineHealth {
+  snapshotStatus: string | null
+  sources: Array<{ source: string; status: string | null }>
+  approval: {
+    status: string | null
+    approvedAt: string | null
+    approvedBy: string | null
+  } | null
+  issues: Array<{
+    code: string | null
+    message: string | null
+    severity: string | null
+  }>
+}
+
+/** Matches BE BaselineProvenanceDto */
+export interface BaselineProvenance {
+  sources: Array<{
+    source: string
+    id: string | null
+    label: string | null
+    status: string | null
+    capturedAt: string | null
+  }>
+}
+
 export interface ProjectBaseline {
   id: string
   projectId: string
@@ -36,9 +93,10 @@ export interface ProjectBaseline {
   sourceEstimationRunId: string | null
   sourceFinanceScenarioId: string | null
   sourceQuoteVersionId: string | null
-  snapshotJson: unknown
-  summaryJson: unknown
-  validationJson: unknown
+  summary: BaselineSummary | null
+  projectTree: BaselineTreeNode[] | null
+  health: BaselineHealth | null
+  provenance: BaselineProvenance | null
   formulaVersion: string | null
   approvedAt: string | null
   approvedBy: string | null
@@ -46,6 +104,30 @@ export interface ProjectBaseline {
   archivedBy: string | null
   createdAt: string
   updatedAt: string
+}
+
+/** Matches BE BaselineCompareResponse */
+export interface BaselineCompareResponse {
+  left: { label: string; summary: BaselineSummary | null }
+  right: { label: string; summary: BaselineSummary | null }
+  deltas: Array<{
+    field: string
+    label: string
+    baseline: unknown
+    current: unknown
+    direction: string | null
+  }>
+  changeCounts: {
+    phasesAdded: number
+    phasesRemoved: number
+    wbsAdded: number
+    wbsRemoved: number
+    tasksAdded: number
+    tasksRemoved: number
+    milestonesAdded: number
+    milestonesRemoved: number
+  }
+  highlights: string[]
 }
 
 export interface CreateChangeRequestPayload {

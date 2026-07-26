@@ -18,8 +18,8 @@ export const FEATURES = {
   orgInvites: true,
   /** Wave 3 — quote PDF/email send until BE document/send contract exists */
   wave3QuoteDocuments: false,
-  /** Wave 3 — baseline deep compare until BE compare endpoints exist */
-  wave3BaselineCompare: false,
+  /** Wave 3 — baseline compare-current (typed deltas + change counts) */
+  wave3BaselineCompare: true,
   /** Wave 3 — CR apply until atomic apply contract is confirmed */
   wave3CrApply: false,
 

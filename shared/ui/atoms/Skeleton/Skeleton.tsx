@@ -2,14 +2,8 @@ import React from 'react'
 import { cn } from '@/utils/cn'
 import type { SkeletonProps } from './Skeleton.types'
 
-const skeletonVariants = {
-  text: 'rounded',
-  circular: 'rounded-full',
-  rectangular: 'rounded-md',
-}
-
 /**
- * Skeleton component - Loading placeholder
+ * Skeleton component - Loading placeholder (square corners — no rounding)
  *
  * @example
  * ```tsx
@@ -34,12 +28,7 @@ export const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
         aria-busy="true"
         aria-live="polite"
         aria-label="Loading..."
-        className={cn(
-          'bg-neutral-200',
-          skeletonVariants[variant],
-          !noAnimation && 'animate-pulse',
-          className
-        )}
+        className={cn('bg-neutral-200', !noAnimation && 'animate-pulse', className)}
         style={inlineStyles}
         {...props}
       />

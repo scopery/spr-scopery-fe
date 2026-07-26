@@ -14,6 +14,35 @@ export async function getProjectDashboard(
   return apiClient.get(REPORTING_ENDPOINTS.dashboard(projectId))
 }
 
+async function getOptionalDashboardSlice(
+  projectId: string,
+  url: string
+): Promise<Record<string, unknown> | null> {
+  try {
+    return await apiClient.get<Record<string, unknown>>(url, { skipErrorToast: true })
+  } catch {
+    return null
+  }
+}
+
+export async function getProjectDashboardHealth(
+  projectId: string
+): Promise<Record<string, unknown> | null> {
+  return getOptionalDashboardSlice(projectId, REPORTING_ENDPOINTS.dashboardHealth(projectId))
+}
+
+export async function getProjectDashboardKpis(
+  projectId: string
+): Promise<Record<string, unknown> | null> {
+  return getOptionalDashboardSlice(projectId, REPORTING_ENDPOINTS.dashboardKpis(projectId))
+}
+
+export async function getProjectDashboardAttention(
+  projectId: string
+): Promise<Record<string, unknown> | null> {
+  return getOptionalDashboardSlice(projectId, REPORTING_ENDPOINTS.dashboardAttention(projectId))
+}
+
 export async function listReportDefinitions(): Promise<{ items: ReportDefinition[] }> {
   const res = await apiClient.get<ListPayload<ReportDefinition>>(REPORTING_ENDPOINTS.definitions())
   return normalizeItemList(res)
@@ -78,12 +107,20 @@ export async function getProjectReport(
   projectId: string,
   reportKey: string
 ): Promise<Record<string, unknown>> {
-  return apiClient.get(REPORTING_ENDPOINTS.projectReport(projectId, reportKey))
+  return apiClient.get(REPORTING_ENDPOINTS.projectReport(projectId, reportKey), {
+    skipErrorToast: true,
+  })
 }
 
 export async function listActivityFeed(
   projectId: string
-): Promise<{ items: Array<{ id: string; summary?: string; createdAt?: string }> }> {
-  const res = await apiClient.get<ListPayload<{ id: string; summary?: string; createdAt?: string }>>(REPORTING_ENDPOINTS.activityFeed(projectId, { page: 0, size: 20 }))
+): Promise<{ items: Record<string, unknown>[] }> {
+  const res = await apiClient.get<ListPayload<Record<string, unknown>>>(
+    REPORTING_ENDPOINTS.activityFeed(projectId, { page: 0, size: 20 }),
+    {
+      // Feed is secondary on dashboard — avoid global toast when BE auth mis-resolves.
+      skipErrorToast: true,
+    }
+  )
   return normalizeItemList(res)
 }

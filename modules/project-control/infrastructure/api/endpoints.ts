@@ -19,6 +19,8 @@ export const PROJECT_CONTROL_ENDPOINTS = {
       apiPath(`/projects/${projectId}/baselines/${baselineId}/mark-current`),
     archive: (projectId: string, baselineId: string) =>
       apiPath(`/projects/${projectId}/baselines/${baselineId}/archive`),
+    compareCurrent: (projectId: string, baselineId: string) =>
+      apiPath(`/projects/${projectId}/baselines/${baselineId}/compare-current`),
   },
   changeRequests: {
     list: (projectId: string) => apiPath(`/projects/${projectId}/change-requests`),

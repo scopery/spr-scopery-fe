@@ -21,7 +21,7 @@ export function AIGeneratedBadge({ generatedByAI, originType }: AIGeneratedBadge
   const label = (originType && ORIGIN_LABELS[originType]) || 'AI generated'
 
   return (
-    <Badge variant="soft" tone="primary">
+    <Badge variant="soft" tone="primary" size="sm">
       {label}
     </Badge>
   )

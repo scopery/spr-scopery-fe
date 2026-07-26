@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, Input, Stack, Textarea, Typography } from '@/shared/ui'
+import { MeetingNoteAiEditToolbar } from './MeetingNoteAiEditToolbar'
 
 export type SlashCaptureKind = 'action' | 'decision' | 'risk' | 'issue' | 'requirement' | 'change'
 
@@ -16,6 +17,7 @@ interface MeetingCanvasEditorProps {
   placeholder?: string
   value: string
   rows?: number
+  workspaceId?: string
   onChange: (value: string) => void
   onSlashCapture?: (capture: SlashCapture) => Promise<void> | void
   showSlashHints?: boolean
@@ -61,6 +63,7 @@ export function MeetingCanvasEditor({
   placeholder,
   value,
   rows = 10,
+  workspaceId,
   onChange,
   onSlashCapture,
   showSlashHints = false,
@@ -251,15 +254,31 @@ export function MeetingCanvasEditor({
         </div>
       ) : null}
 
-      <Textarea
-        ref={taRef}
-        fullWidth
-        rows={rows}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => void onKeyDown(e)}
-      />
+      <div className="relative">
+        <Textarea
+          ref={taRef}
+          fullWidth
+          rows={rows}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => void onKeyDown(e)}
+        />
+        <MeetingNoteAiEditToolbar
+          textareaRef={taRef}
+          value={value}
+          workspaceId={workspaceId}
+          onApply={(next, selection) => {
+            onChange(next)
+            requestAnimationFrame(() => {
+              const el = taRef.current
+              if (!el) return
+              el.focus()
+              el.setSelectionRange(selection.start, selection.end)
+            })
+          }}
+        />
+      </div>
 
       {feedback ? (
         <Typography

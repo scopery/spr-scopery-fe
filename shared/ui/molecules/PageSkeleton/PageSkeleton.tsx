@@ -24,7 +24,7 @@ function ListSkeleton() {
         <Skeleton variant="rectangular" width={160} height={40} />
       </div>
       <div className="overflow-hidden border border-neutral-200">
-        <Skeleton variant="rectangular" width="100%" height={44} className="rounded-none" />
+        <Skeleton variant="rectangular" width="100%" height={44} />
         {Array.from({ length: 6 }).map((_, index) => (
           <div
             key={index}

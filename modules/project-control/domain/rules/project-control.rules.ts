@@ -34,7 +34,7 @@ export function baselineStatusTone(
     case BaselineStatus.Validated:
       return 'progress'
     case BaselineStatus.Draft:
-      return 'info'
+      return 'neutral'
     case BaselineStatus.Archived:
       return 'neutral'
     default:
@@ -56,6 +56,276 @@ export function canApproveBaseline(b: ProjectBaseline): boolean {
 
 export function canMarkBaselineCurrent(b: ProjectBaseline): boolean {
   return b.status === BaselineStatus.Approved && !b.currentFlag
+}
+
+/** Draft baselines may re-capture; approved snapshots are immutable history. */
+export function canCaptureBaselineSnapshot(b: ProjectBaseline): boolean {
+  return b.status === BaselineStatus.Draft && !b.archivedAt
+}
+
+export function shouldCreateUpdatedBaseline(b: ProjectBaseline): boolean {
+  return (
+    !b.archivedAt &&
+    (b.status === BaselineStatus.Approved || b.status === BaselineStatus.Validated)
+  )
+}
+
+export type BaselineViewMode = 'baseline' | 'current' | 'difference'
+
+export interface BaselineSummaryMetrics {
+  phaseCount: number | null
+  wbsCount: number | null
+  taskCount: number | null
+  estimateHours: number | null
+  cost: number | null
+  revenue: number | null
+  marginPercent: number | null
+  scheduleStart: string | null
+  scheduleEnd: string | null
+  workingDays: number | null
+  currencyCode: string | null
+  dependencyCount: number | null
+  milestoneCount: number | null
+  pbt: number | null
+  quoteAmount: number | null
+}
+
+export function mapBaselineSummaryToMetrics(
+  summary: ProjectBaseline['summary']
+): BaselineSummaryMetrics {
+  if (!summary) {
+    return {
+      phaseCount: null,
+      wbsCount: null,
+      taskCount: null,
+      estimateHours: null,
+      cost: null,
+      revenue: null,
+      marginPercent: null,
+      scheduleStart: null,
+      scheduleEnd: null,
+      workingDays: null,
+      currencyCode: null,
+      dependencyCount: null,
+      milestoneCount: null,
+      pbt: null,
+      quoteAmount: null,
+    }
+  }
+  return {
+    phaseCount: summary.phaseCount,
+    wbsCount: summary.wbsCount,
+    taskCount: summary.taskCount,
+    estimateHours: toNullableNumber(summary.estimateHours),
+    cost: toNullableNumber(summary.directCost),
+    revenue: toNullableNumber(summary.revenue),
+    marginPercent: toNullableNumber(summary.targetMarginPercent),
+    scheduleStart: summary.plannedStartDate,
+    scheduleEnd: summary.plannedEndDate,
+    workingDays: null,
+    currencyCode: summary.currencyCode,
+    dependencyCount: summary.dependencyCount,
+    milestoneCount: summary.milestoneCount,
+    pbt: toNullableNumber(summary.pbt),
+    quoteAmount: toNullableNumber(summary.totalQuotedAmount),
+  }
+}
+
+function toNullableNumber(value: unknown): number | null {
+  if (typeof value === 'number' && !Number.isNaN(value)) return value
+  if (typeof value === 'string' && value.trim() !== '' && !Number.isNaN(Number(value))) {
+    return Number(value)
+  }
+  return null
+}
+
+export interface SnapshotTreeNode {
+  id: string
+  label: string
+  meta?: string
+  type?: string
+  children?: SnapshotTreeNode[]
+}
+
+function formatTreeMeta(meta: Record<string, unknown> | null | undefined): string | undefined {
+  if (!meta) return undefined
+  if (typeof meta.label === 'string' && meta.label.trim()) return meta.label
+  if (typeof meta.taskCount === 'number') return `${meta.taskCount} Tasks`
+  if (typeof meta.estimateHours === 'number') return `${meta.estimateHours}h`
+  return undefined
+}
+
+/** Map typed BE projectTree → UI tree nodes. */
+export function mapProjectTree(
+  tree: ProjectBaseline['projectTree']
+): SnapshotTreeNode[] {
+  if (!tree || tree.length === 0) return []
+  return tree.map((node) => ({
+    id: String(node.id),
+    label: node.code ? `${node.code} · ${node.name}` : node.name,
+    meta: formatTreeMeta(node.meta),
+    type: node.type,
+    children:
+      node.children && node.children.length > 0
+        ? mapProjectTree(node.children)
+        : undefined,
+  }))
+}
+
+export interface BaselineHealthSummary {
+  snapshotReady: boolean
+  snapshotStatus: string
+  passed: number
+  warnings: number
+  blocking: number
+  sourcesPresent: number
+  sourcesTotal: number
+  sourcesLabel: string
+  approvalLabel: string
+  nextStep: string
+  issues: Array<{ id: string; label: string; message?: string }>
+  sourceChecks: Array<{ source: string; status: string }>
+}
+
+function severityIsBlocking(severity: string | null | undefined): boolean {
+  const s = (severity ?? '').toUpperCase()
+  return s === 'ERROR' || s === 'BLOCKING' || s === 'CRITICAL'
+}
+
+function severityIsWarning(severity: string | null | undefined): boolean {
+  const s = (severity ?? '').toUpperCase()
+  return s === 'WARNING' || s === 'WARN'
+}
+
+export function buildBaselineHealth(b: ProjectBaseline): BaselineHealthSummary {
+  const health = b.health
+  const issues = health?.issues ?? []
+  const blocking = issues.filter((i) => severityIsBlocking(i.severity)).length
+  const warnings = issues.filter((i) => severityIsWarning(i.severity)).length
+  const passed = Math.max(0, issues.length === 0 && health?.snapshotStatus === 'VALID' ? 1 : 0)
+
+  const sourceChecks = (health?.sources ?? []).map((s) => ({
+    source: s.source,
+    status: s.status ?? 'UNKNOWN',
+  }))
+  const sourcesPresent = sourceChecks.filter((s) => {
+    const st = s.status.toUpperCase()
+    return st && st !== 'MISSING' && st !== 'NOT_APPLICABLE' && st !== 'UNKNOWN'
+  }).length
+  const sourcesTotal = Math.max(sourceChecks.length, 4)
+
+  const snapshotStatus = health?.snapshotStatus ?? 'MISSING'
+  const snapshotReady =
+    snapshotStatus.toUpperCase() === 'VALID' ||
+    snapshotStatus.toUpperCase() === 'READY' ||
+    (b.projectTree != null && b.projectTree.length > 0) ||
+    b.summary != null
+
+  let approvalLabel = health?.approval?.status ?? 'Pending'
+  if (b.currentFlag) approvalLabel = 'Active baseline'
+  else if (b.status === BaselineStatus.Approved) approvalLabel = 'Approved'
+  else if (b.status === BaselineStatus.Validated) approvalLabel = 'Validated'
+  else if (b.status === BaselineStatus.Archived) approvalLabel = 'Archived'
+  else if (b.status === BaselineStatus.Draft) approvalLabel = 'Pending'
+
+  let sourcesLabel = 'Incomplete'
+  if (sourceChecks.length === 0) {
+    const linked = [
+      b.sourceScheduleRunId,
+      b.sourceEstimationRunId,
+      b.sourceFinanceScenarioId,
+      b.sourceQuoteVersionId,
+    ].filter(Boolean).length
+    if (linked === 0) sourcesLabel = 'Not captured'
+    else if (linked === 4) sourcesLabel = 'Up to date'
+    else sourcesLabel = `${linked} of 4 linked`
+  } else if (sourcesPresent === 0) sourcesLabel = 'Not captured'
+  else if (sourcesPresent >= sourcesTotal) sourcesLabel = 'Up to date'
+  else sourcesLabel = `${sourcesPresent} of ${sourcesTotal} ready`
+
+  let nextStep = 'Capture the latest project state, then check this baseline.'
+  if (!snapshotReady && !b.summary) {
+    nextStep = 'Capture the latest project state.'
+  } else if (!health || (issues.length === 0 && snapshotStatus === 'DRAFT')) {
+    nextStep = 'Check baseline health before approving.'
+  } else if (blocking > 0) {
+    nextStep = `Resolve ${blocking} blocking issue${blocking === 1 ? '' : 's'}.`
+  } else if (warnings > 0) {
+    nextStep = `Review ${warnings} warning${warnings === 1 ? '' : 's'}.`
+  } else if (canApproveBaseline(b)) {
+    nextStep = 'Ready to approve as a reference plan.'
+  } else if (canMarkBaselineCurrent(b)) {
+    nextStep = 'Use as the active project baseline.'
+  } else if (b.currentFlag) {
+    nextStep = 'This is the active project baseline.'
+  } else {
+    nextStep = 'No further action required.'
+  }
+
+  return {
+    snapshotReady,
+    snapshotStatus,
+    passed,
+    warnings,
+    blocking,
+    sourcesPresent,
+    sourcesTotal,
+    sourcesLabel,
+    approvalLabel,
+    nextStep,
+    issues: issues.map((c, i) => ({
+      id: c.code ?? `issue-${i}`,
+      label: c.code ?? 'Issue',
+      message: c.message ?? undefined,
+    })),
+    sourceChecks,
+  }
+}
+
+export function formatBaselineCapturedAt(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return iso
+  }
+}
+
+export function formatMetricNumber(value: number | null, suffix = ''): string {
+  if (value == null) return '—'
+  const formatted = Number.isInteger(value)
+    ? value.toLocaleString()
+    : value.toLocaleString(undefined, { maximumFractionDigits: 1 })
+  return `${formatted}${suffix}`
+}
+
+export function formatMoneyMetric(
+  value: number | null,
+  currencyCode?: string | null
+): string {
+  if (value == null) return '—'
+  const code = currencyCode && currencyCode.length === 3 ? currencyCode : 'USD'
+  try {
+    return value.toLocaleString(undefined, {
+      style: 'currency',
+      currency: code,
+      maximumFractionDigits: 0,
+    })
+  } catch {
+    return `${value.toLocaleString()} ${code}`
+  }
+}
+
+export function formatDeltaValue(value: unknown): string {
+  if (value == null) return '—'
+  if (typeof value === 'number') return formatMetricNumber(value)
+  if (typeof value === 'string') return value
+  return String(value)
 }
 
 export function crStatusLabel(status: string): string {

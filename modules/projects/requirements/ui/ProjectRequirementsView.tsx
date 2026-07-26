@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { ExternalLink, Search } from 'lucide-react'
@@ -121,6 +121,30 @@ export function ProjectRequirementsView() {
   }, [project, org])
 
   useEffect(() => {
+    if (requirements.length === 0) {
+      setEvidenceCounts({})
+      return
+    }
+    const ids = requirements.map((r) => r.id)
+    let cancelled = false
+    documentLinksApi
+      .getEntityLinkCounts(orgId, {
+        linked_entity_type: 'requirement',
+        project_id: projectId,
+        linked_entity_ids: ids,
+      })
+      .then((res) => {
+        if (!cancelled) setEvidenceCounts(res.counts)
+      })
+      .catch(() => {
+        if (!cancelled) setEvidenceCounts({})
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [orgId, projectId, requirements])
+
+  const refreshEvidenceCounts = useCallback(() => {
     if (requirements.length === 0) {
       setEvidenceCounts({})
       return
@@ -524,6 +548,7 @@ export function ProjectRequirementsView() {
                       title="Evidence documents"
                       linkButtonLabel="Link supporting document"
                       emptyStateText="No supporting documents linked. Link specifications, meeting notes, test reports or other documents that provide evidence for this requirement."
+                      onLinksChanged={refreshEvidenceCounts}
                     />
 
                     {linkPerms.canCreate ? (

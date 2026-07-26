@@ -72,6 +72,8 @@ export interface MyInsightsTaskRow {
   phaseName: string | null
   title: string
   dueDate: string | null
+  /** Planned start — used for “due this week” window matching (My Work contract). */
+  plannedStartDate: string | null
   estimateHours: number | null
   status: string
   chips: Array<'overdue' | 'blocked' | 'unscheduled' | 'today' | 'upcoming'>

@@ -1,66 +1,115 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import {
-  PageSkeleton,
-  Stack,
-  Typography
-} from '@/shared/ui'
+import { PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useProjectDashboard } from '../hooks/useProjectDashboard'
+import { ProjectAttentionQueue } from './pulse/ProjectAttentionQueue'
+import { ProjectActivityTimeline } from './pulse/ProjectActivityTimeline'
+import { ProjectExecutiveBrief, ProjectPulseHeader } from './pulse/ProjectExecutiveBrief'
+import { ProjectProgressForecast } from './pulse/ProjectProgressForecast'
+import { DashboardInsightGrid } from './pulse/DashboardInsightGrid'
+import { DashboardFilters } from './pulse/DashboardFilters'
+import { ProjectChangeSinceLastVisit } from './pulse/ProjectChangeSinceLastVisit'
+import {
+  BaselineOverlayWidget,
+  BurnupChartWidget,
+  CapacityHeatmapWidget,
+} from './pulse/ProjectPulseCharts'
+import { AiProjectReviewWidget } from './pulse/AiProjectReviewWidget'
+import { ProjectSetupMode } from './pulse/ProjectSetupMode'
 
 export function ProjectDashboardView() {
-  const { projectId } = useParams<{ projectId: string }>()
-  const { data, reports, activity, loading, error } = useProjectDashboard(projectId)
+  const { workspaceId, projectId } = useParams<{
+    workspaceId: string
+    projectId: string
+  }>()
+  const { pulse, loading, error, refetch, filters, reviewSelectedSuggestions } =
+    useProjectDashboard(workspaceId, projectId)
 
-  if (loading) return <PageSkeleton variant="cards" className="p-lg" />
-  if (error) return <Typography tone="error">{error}</Typography>
+  if (loading && !pulse) return <PageSkeleton variant="cards" className="p-lg" />
+  if (error && !pulse) return <Typography tone="error">{error}</Typography>
+  if (!pulse) {
+    return (
+      <Typography tone="muted" className="p-lg">
+        Project Pulse is unavailable for this project.
+      </Typography>
+    )
+  }
+
+  const setupMode = pulse.setup.show
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Project Dashboard</Typography>
-      {!data || data.metrics.length === 0 ? (
-        <Typography tone="muted">No dashboard metrics available.</Typography>
-      ) : (
-        <div className="grid grid-cols-2 gap-md md:grid-cols-4">
-          {data.metrics.map((m) => (
-            <div key={m.key} className="border border-neutral-200 p-md">
-              <Typography variant="caption" tone="muted">
-                {m.label}
-              </Typography>
-              <Typography variant="h3">{m.value}</Typography>
+    <div className="-m-lg min-h-full bg-neutral-50 p-lg">
+      <Stack direction="vertical" spacing="lg">
+        <ProjectPulseHeader brief={pulse.brief} onRefresh={() => void refetch()} refreshing={loading} />
+
+        {setupMode ? (
+          <ProjectSetupMode
+            setup={pulse.setup}
+            attention={pulse.attention}
+            activity={pulse.activity}
+          />
+        ) : (
+          <>
+            <DashboardFilters
+              period={filters.period}
+              onPeriodChange={filters.setPeriod}
+              phase={phasesafe(filters.phase, filters.phaseOptions)}
+              onPhaseChange={filters.setPhase}
+              phaseOptions={filters.phaseOptions}
+              baseline={filters.baseline}
+              onBaselineChange={filters.setBaseline}
+              baselineOptions={filters.baselineOptions}
+            />
+
+            <ProjectExecutiveBrief brief={pulse.brief} />
+
+            <ProjectChangeSinceLastVisit insight={pulse.changeSince} />
+
+            <div className="grid grid-cols-1 gap-md xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+              <ProjectAttentionQueue items={pulse.attention} />
+              <ProjectProgressForecast
+                progress={pulse.progress}
+                scheduleHref={pulse.links.schedule}
+              />
             </div>
-          ))}
-        </div>
-      )}
 
-      <Typography variant="h4">Project reports</Typography>
-      <div className="grid grid-cols-1 gap-sm md:grid-cols-3">
-        {Object.entries(reports).map(([key, value]) => (
-          <div key={key} className="border border-neutral-200 p-md">
-            <Typography variant="caption" tone="muted">
-              {key}
-            </Typography>
-            <Typography variant="small">
-              {Object.keys(value).length === 0 ? 'No data' : `${Object.keys(value).length} fields`}
-            </Typography>
-          </div>
-        ))}
-      </div>
+            <div className="grid grid-cols-1 gap-md xl:grid-cols-2">
+              <BaselineOverlayWidget
+                insight={pulse.baselineOverlay}
+                href={pulse.links.schedule}
+              />
+              <BurnupChartWidget insight={pulse.burnup} />
+            </div>
 
-      <Typography variant="h4">Activity feed</Typography>
-      {activity.length === 0 ? (
-        <Typography tone="muted" variant="caption">
-          No activity.
-        </Typography>
-      ) : (
-        <ul className="divide-y divide-neutral-200 border border-neutral-200">
-          {activity.map((a) => (
-            <li key={a.id} className="p-md text-sm">
-              {[a.summary ?? a.id, a.createdAt].filter(Boolean).join(' · ')}
-            </li>
-          ))}
-        </ul>
-      )}
-    </Stack>
+            <CapacityHeatmapWidget
+              insight={pulse.capacityHeatmap}
+              href={pulse.links.resources}
+            />
+
+            <DashboardInsightGrid
+              schedule={pulse.schedule}
+              capacity={pulse.capacity}
+              scopeChange={pulse.scopeChange}
+              quality={pulse.quality}
+              financials={pulse.financials}
+              risks={pulse.risks}
+              hrefs={pulse.links}
+            />
+
+            <AiProjectReviewWidget
+              insight={pulse.aiReview}
+              onReviewSelected={(ids) => void reviewSelectedSuggestions(ids)}
+            />
+
+            <ProjectActivityTimeline items={pulse.activity} />
+          </>
+        )}
+      </Stack>
+    </div>
   )
+}
+
+function phasesafe(phase: string, options: Array<{ value: string }>): string {
+  return options.some((o) => o.value === phase) ? phase : 'all'
 }

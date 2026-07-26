@@ -40,6 +40,8 @@ export interface EntityEvidenceDocumentsPanelProps extends EvidenceEntityProps {
   /** Label for the primary link action. Default: "Link document" */
   linkButtonLabel?: string
   compact?: boolean
+  /** Fired after links are created/removed/restored so parents can refresh counts. */
+  onLinksChanged?: () => void
 }
 
 export interface AnswerEvidenceStripProps {

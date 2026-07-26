@@ -44,7 +44,7 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
     `${ROUTES.workspace.document(orgId, documentId)}?projectId=${encodeURIComponent(projectId)}`
 
   const activeItems = panel.items.filter(
-    (item) => !item.archived_at && item.document_status === 'active'
+    (item) => !item.archived_at && item.document_status !== 'archived'
   )
   const displayItems = panel.showArchivedLinks ? panel.items : activeItems
 
@@ -221,6 +221,7 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
             onSuccess={() => {
               panel.setAddOpen(false)
               void panel.load()
+              props.onLinksChanged?.()
             }}
           />
           {enableBulkLink && (
@@ -235,6 +236,7 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
               onSuccess={() => {
                 panel.setBulkOpen(false)
                 void panel.load()
+                props.onLinksChanged?.()
               }}
             />
           )}
@@ -283,6 +285,7 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
           onSuccess={() => {
             panel.setDeliverableOpen(false)
             void panel.load()
+            props.onLinksChanged?.()
           }}
           entryContext={
             linkedEntityType === 'session' ? 'session_evidence' : 'requirement_evidence'

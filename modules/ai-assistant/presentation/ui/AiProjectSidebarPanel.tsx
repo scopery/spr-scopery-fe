@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import NextLink from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ArrowRight, ChevronLeft, ExternalLink, History, Plus, Search, Send, Sparkles, Square, X } from 'lucide-react'
+import { ArrowRight, ChevronLeft, ExternalLink, HelpCircle, History, Plus, Search, Send, Sparkles, Square, X } from 'lucide-react'
 import { Typography } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
@@ -11,6 +11,7 @@ import { AiStreamUiState } from '../../domain/enums/ai-assistant.enum'
 import { useAiSidebarChat } from '../hooks/useAiSidebarChat'
 import { ActionConfirmationCard } from './ActionConfirmationCard'
 import { AiMarkdownContent } from './AiMarkdownContent'
+import { AiActionsGuide } from './AiActionsGuide'
 
 // ─── Context-aware prompts ────────────────────────────────────────────────────
 
@@ -128,6 +129,7 @@ export function AiProjectSidebarPanel({
 
   const [draft, setDraft] = useState('')
   const [composerFocused, setComposerFocused] = useState(false)
+  const [actionsGuideOpen, setActionsGuideOpen] = useState(false)
   const [view, setView] = useState<'chat' | 'history'>('chat')
   const [historySearch, setHistorySearch] = useState('')
 
@@ -267,7 +269,7 @@ export function AiProjectSidebarPanel({
 
   return (
     <div
-      className="relative hidden shrink-0 flex-col border-l border-neutral-200 bg-white lg:flex"
+      className="relative hidden h-full min-h-0 shrink-0 flex-col border-l border-neutral-200 bg-white lg:flex"
       style={{ width }}
     >
       {/* Resize drag handle */}
@@ -534,6 +536,9 @@ export function AiProjectSidebarPanel({
 
           {/* ── Composer ── */}
           <div className="shrink-0 border-t border-neutral-200 p-3">
+            <div className="relative">
+              {actionsGuideOpen ? <AiActionsGuide onClose={() => setActionsGuideOpen(false)} /> : null}
+            </div>
             <div
               className={cn(
                 'flex items-center gap-2 border bg-white px-3 py-2.5 transition-colors',
@@ -574,11 +579,20 @@ export function AiProjectSidebarPanel({
                 </button>
               )}
             </div>
-            {composerFocused ? (
-              <p className="mt-1.5 px-0.5 text-xs text-neutral-400">
-                Enter to send · Shift+Enter for new line
-              </p>
-            ) : null}
+            <div className="mt-1.5 flex items-center justify-between px-0.5">
+              {composerFocused ? (
+                <p className="text-xs text-neutral-400">Enter to send · Shift+Enter for new line</p>
+              ) : <span />}
+              <button
+                type="button"
+                onClick={() => setActionsGuideOpen((v) => !v)}
+                className="flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-600"
+                aria-label="Show available AI actions"
+              >
+                <HelpCircle size={12} />
+                Actions
+              </button>
+            </div>
           </div>
         </>
       )}

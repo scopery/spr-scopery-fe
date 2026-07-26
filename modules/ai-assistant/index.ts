@@ -3,6 +3,7 @@
 export { AiAssistantView } from './presentation/ui/AiAssistantView'
 export { useAiAssistant } from './presentation/hooks/useAiAssistant'
 export { useAiMessageStream } from './presentation/hooks/useAiMessageStream'
+export { useAiTextRewrite } from './presentation/hooks/useAiTextRewrite'
 export { useContextualGuide } from './presentation/hooks/useContextualGuide'
 export type {
   AiConversation,

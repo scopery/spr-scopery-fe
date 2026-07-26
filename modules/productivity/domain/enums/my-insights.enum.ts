@@ -19,8 +19,8 @@ export type MyInsightsAttentionKind =
   (typeof MyInsightsAttentionKind)[keyof typeof MyInsightsAttentionKind]
 
 export const MyInsightsWorkChip = {
+  AllOpen: 'all_open',
   NotStarted: 'not_started',
-  DueToday: 'due_today',
   DueThisWeek: 'due_this_week',
   Unscheduled: 'unscheduled',
   Blocked: 'blocked',

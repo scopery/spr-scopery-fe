@@ -83,9 +83,9 @@ export function ClarityPanel({
   if (summaryLoading) {
     return (
       <div className="space-y-4">
-        <div className="h-4 animate-pulse rounded bg-neutral-100" />
-        <div className="h-20 animate-pulse rounded bg-neutral-100" />
-        <div className="h-24 animate-pulse rounded bg-neutral-100" />
+        <div className="h-4 animate-pulse bg-neutral-100" />
+        <div className="h-20 animate-pulse bg-neutral-100" />
+        <div className="h-24 animate-pulse bg-neutral-100" />
       </div>
     )
   }

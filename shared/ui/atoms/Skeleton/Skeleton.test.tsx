@@ -26,19 +26,24 @@ describe('Skeleton', () => {
   })
 
   describe('Variants', () => {
-    it('applies text variant by default', () => {
+    it('applies text variant by default without rounding', () => {
       const { container } = render(<Skeleton />)
-      expect(container.firstChild).toHaveClass('rounded')
+      expect(container.firstChild).toHaveClass('bg-neutral-200')
+      expect(container.firstChild).not.toHaveClass('rounded')
+      expect(container.firstChild).not.toHaveClass('rounded-md')
+      expect(container.firstChild).not.toHaveClass('rounded-full')
     })
 
-    it('applies circular variant', () => {
+    it('applies circular variant without rounding', () => {
       const { container } = render(<Skeleton variant="circular" />)
-      expect(container.firstChild).toHaveClass('rounded-full')
+      expect(container.firstChild).toHaveClass('bg-neutral-200')
+      expect(container.firstChild).not.toHaveClass('rounded-full')
     })
 
-    it('applies rectangular variant', () => {
+    it('applies rectangular variant without rounding', () => {
       const { container } = render(<Skeleton variant="rectangular" />)
-      expect(container.firstChild).toHaveClass('rounded-md')
+      expect(container.firstChild).toHaveClass('bg-neutral-200')
+      expect(container.firstChild).not.toHaveClass('rounded-md')
     })
   })
 

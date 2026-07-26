@@ -28,7 +28,11 @@ import { createDecision } from '@/modules/projects/decisions/infrastructure/api/
 import { createRaidItem } from '@/modules/projects/raid/infrastructure/api/raid.api'
 import { DecisionCategory } from '@/modules/projects/decisions/domain/enums/decision.enum'
 
-const AUTOSAVE_MS = 900
+const AUTOSAVE_MS = 30_000
+
+function normalizeMinutesSummary(value: string | null | undefined): string {
+  return (value ?? '').trim()
+}
 
 export function MeetingWorkspaceView() {
   const router = useRouter()
@@ -70,6 +74,7 @@ export function MeetingWorkspaceView() {
 
   const [summary, setSummary] = useState('')
   const [autosaveState, setAutosaveState] = useState<AutosaveState>('idle')
+  const [autosaveSecondsLeft, setAutosaveSecondsLeft] = useState<number | null>(null)
   const [manualMode, setManualMode] = useState<MeetingWorkspaceMode | null>(null)
   const [addActionItemOpen, setAddActionItemOpen] = useState(false)
   const [addAgendaOpen, setAddAgendaOpen] = useState(false)
@@ -78,6 +83,9 @@ export function MeetingWorkspaceView() {
   const [generatingDoc, setGeneratingDoc] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const hydratedRef = useRef(false)
+  const saveMinutesRef = useRef(saveMinutes)
+  saveMinutesRef.current = saveMinutes
+  const saveGenerationRef = useRef(0)
 
   useEffect(() => {
     if (!latestMinutes) {
@@ -111,26 +119,59 @@ export function MeetingWorkspaceView() {
     return () => window.clearInterval(id)
   }, [mode, meeting?.status, meeting?.updatedAt])
 
-  // Autosave minutes summary
+  // Autosave minutes summary — debounce 30s after last edit; countdown in header.
   useEffect(() => {
     if (!meeting || !hydratedRef.current) return
-    const serverSummary = latestMinutes?.summary ?? ''
-    if (summary === serverSummary) return
+    const serverSummary = normalizeMinutesSummary(latestMinutes?.summary)
+    const localSummary = normalizeMinutesSummary(summary)
+    if (localSummary === serverSummary) {
+      setAutosaveSecondsLeft(null)
+      setAutosaveState((prev) => (prev === 'pending' ? 'idle' : prev))
+      return
+    }
 
-    setAutosaveState('saving')
+    const generation = ++saveGenerationRef.current
+    const startedAt = Date.now()
+    setAutosaveState('pending')
+    setAutosaveSecondsLeft(Math.ceil(AUTOSAVE_MS / 1000))
+
+    const tickId = window.setInterval(() => {
+      const left = Math.max(0, Math.ceil((AUTOSAVE_MS - (Date.now() - startedAt)) / 1000))
+      setAutosaveSecondsLeft(left)
+    }, 250)
+
     const timer = window.setTimeout(() => {
+      window.clearInterval(tickId)
+      if (generation !== saveGenerationRef.current) return
+      setAutosaveSecondsLeft(null)
+      setAutosaveState('saving')
       void (async () => {
         try {
-          await saveMinutes({ summary: summary.trim() || null }, { quiet: true })
+          await saveMinutesRef.current(
+            { summary: localSummary || null },
+            { quiet: true }
+          )
+          if (generation !== saveGenerationRef.current) return
           setAutosaveState('saved')
         } catch {
+          if (generation !== saveGenerationRef.current) return
           setAutosaveState('error')
         }
       })()
     }, AUTOSAVE_MS)
 
-    return () => window.clearTimeout(timer)
-  }, [summary, meeting, latestMinutes?.summary, saveMinutes])
+    return () => {
+      window.clearTimeout(timer)
+      window.clearInterval(tickId)
+    }
+  }, [summary, meeting, latestMinutes?.summary])
+
+  // Clear "Saved just now" after a short beat so it doesn't stick forever.
+  useEffect(() => {
+    if (autosaveState !== 'saved') return
+    const id = window.setTimeout(() => setAutosaveState('idle'), 4000)
+    return () => window.clearTimeout(id)
+  }, [autosaveState])
 
   const handleLifecycle = async (action: MeetingLifecycleAction) => {
     try {
@@ -279,6 +320,7 @@ export function MeetingWorkspaceView() {
         meeting={meeting}
         participantCount={participants.length}
         autosaveState={autosaveState}
+        autosaveSecondsLeft={autosaveSecondsLeft}
         acting={acting}
         onLifecycle={(action) => void handleLifecycle(action)}
         onBack={() => router.push(ROUTES.workspace.projectMeetings(wsId, projectId))}
@@ -304,10 +346,11 @@ export function MeetingWorkspaceView() {
             <>
               <MeetingCanvasEditor
                 label="Meeting objective & preparation notes"
-                helper="What must this meeting achieve? Notes here autosave and carry into live notes."
+                helper="What must this meeting achieve? Notes autosave 30s after you stop typing. Select text → AI to rewrite."
                 placeholder="Objective, talking points, prep context…"
                 value={summary}
                 rows={8}
+                workspaceId={wsId}
                 onChange={setSummary}
               />
             </>
@@ -317,10 +360,11 @@ export function MeetingWorkspaceView() {
             <>
               <MeetingCanvasEditor
                 label="Live notes"
-                helper="Write discussion notes freely. Use Quick capture below to create follow-ups without leaving the canvas."
+                helper="Write freely. Notes autosave 30s after you stop typing. Select text → AI to rewrite. Use Quick capture for follow-ups."
                 placeholder="Capture discussion…"
                 value={summary}
                 rows={12}
+                workspaceId={wsId}
                 onChange={setSummary}
                 onSlashCapture={handleSlashCapture}
                 showSlashHints
@@ -388,10 +432,11 @@ export function MeetingWorkspaceView() {
               />
               <MeetingCanvasEditor
                 label="Edit summary"
-                helper="Autosaves. Changes feed the recap above."
+                helper="Autosaves 30s after you stop typing. Select text → AI to rewrite. Changes feed the recap above."
                 placeholder="Meeting summary…"
                 value={summary}
                 rows={6}
+                workspaceId={wsId}
                 onChange={setSummary}
               />
               <MeetingActionItemList

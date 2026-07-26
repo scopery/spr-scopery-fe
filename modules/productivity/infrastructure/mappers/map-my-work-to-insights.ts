@@ -18,7 +18,38 @@ function addDays(d: Date, n: number) {
 
 function parseDay(iso: string | null | undefined): string | null {
   if (!iso) return null
-  return iso.slice(0, 10)
+  // Accept "2026-07-29", ISO datetime, or odd stringified values
+  const m = String(iso).match(/^(\d{4}-\d{2}-\d{2})/)
+  return m ? m[1] : null
+}
+
+function normalizeMyWorkTask(t: MyWorkTaskItem): MyWorkTaskItem {
+  return {
+    ...t,
+    taskId: String(t.taskId ?? ''),
+    projectId: String(t.projectId ?? ''),
+    dueDate: parseDay(t.dueDate) ?? t.dueDate,
+    plannedStartDate: parseDay(t.plannedStartDate) ?? t.plannedStartDate,
+    estimateHours: t.estimateHours == null ? null : Number(t.estimateHours),
+  }
+}
+
+function asTaskList(items: MyWorkTaskItem[] | null | undefined): MyWorkTaskItem[] {
+  if (!items) return []
+  if (!Array.isArray(items)) return [items as MyWorkTaskItem]
+  return items
+}
+
+function dedupeTasks(items: MyWorkTaskItem[]): MyWorkTaskItem[] {
+  const seen = new Set<string>()
+  const out: MyWorkTaskItem[] = []
+  for (const raw of items) {
+    const t = normalizeMyWorkTask(raw)
+    if (!t.taskId || seen.has(t.taskId)) continue
+    seen.add(t.taskId)
+    out.push(t)
+  }
+  return out
 }
 
 export function resolveInsightsRange(params?: MyInsightsParams): {
@@ -66,6 +97,7 @@ function toCurrentWorkRow(t: MyWorkTaskItem, todayIso: string): MyInsightsTaskRo
     phaseName: t.projectPhaseName,
     title: t.title,
     dueDate: t.dueDate,
+    plannedStartDate: t.plannedStartDate,
     estimateHours: t.estimateHours,
     status: t.status,
     chips: taskChips(t, todayIso),
@@ -283,17 +315,21 @@ export function mapMyWorkBundleToInsights(bundle: MyWorkInsightsBundle): MyInsig
   today.setHours(12, 0, 0, 0)
   const todayIso = toIsoDate(today)
 
-  const openItems = bundle.open.items
-  const rangeItems = bundle.inRange.items
-  const allForAnalytics = [...openItems, ...rangeItems].filter(
-    (t, i, arr) => arr.findIndex((x) => x.taskId === t.taskId) === i
-  )
+  // Merge ALL_OPEN + UPCOMING + OVERDUE so due-soon tasks aren't dropped if one window is thin.
+  const openItems = dedupeTasks([
+    ...asTaskList(bundle.open.items),
+    ...asTaskList(bundle.upcoming.items),
+    ...asTaskList(bundle.overdue.items),
+  ]).filter((t) => isOpen(t.status))
+
+  const rangeItems = dedupeTasks(asTaskList(bundle.inRange.items))
+  const allForAnalytics = dedupeTasks([...openItems, ...rangeItems])
 
   const completedInRange = rangeItems.filter(
     (t) => t.status === 'DONE' || t.status === 'COMPLETED'
   ).length
 
-  const remaining = bundle.open.summary.total
+  const remaining = Math.max(bundle.open.summary.total, openItems.length)
   const overdue = bundle.open.summary.overdue
   const blocked = bundle.open.summary.blocked
 

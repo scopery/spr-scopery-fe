@@ -30,4 +30,8 @@ export const KNOWLEDGE_ENDPOINTS = {
     withQuery(apiPath(`/knowledge/sources/${sourceId}/chunks`), params),
   reindexSource: (sourceId: string) =>
     apiPath(`/knowledge/sources/${sourceId}/reindex`),
+  documentStatus: (projectId: string, documentId: string) =>
+    apiPath(`/knowledge/indexing/projects/${projectId}/documents/${documentId}/status`),
+  reindexDocument: (projectId: string, documentId: string) =>
+    apiPath(`/knowledge/indexing/projects/${projectId}/documents/${documentId}/reindex`),
 } as const

@@ -87,3 +87,26 @@ export async function reindexKnowledgeSource(
 ): Promise<{ id: string; status: string }> {
   return apiClient.post(KNOWLEDGE_ENDPOINTS.reindexSource(sourceId), {})
 }
+
+export interface DocumentIndexStatus {
+  documentId: string
+  projectId: string
+  indexed: boolean
+  totalChunks: number
+  embeddedChunks: number
+  lastIndexedAt: string | null
+}
+
+export async function getDocumentIndexStatus(
+  projectId: string,
+  documentId: string
+): Promise<DocumentIndexStatus> {
+  return apiClient.get(KNOWLEDGE_ENDPOINTS.documentStatus(projectId, documentId))
+}
+
+export async function reindexDocument(
+  projectId: string,
+  documentId: string
+): Promise<DocumentIndexStatus> {
+  return apiClient.post(KNOWLEDGE_ENDPOINTS.reindexDocument(projectId, documentId), {})
+}

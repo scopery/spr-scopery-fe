@@ -18,6 +18,7 @@ import type {
 } from '../../domain/model/my-insights'
 import { useMyInsights } from '../hooks/useMyInsights'
 import { InsightWidgetShell } from './my-insights/InsightWidgetShell'
+import { useProjects } from '@/modules/projects'
 
 const RANGE_OPTIONS = [
   { value: '7d', label: 'Last 7 days' },
@@ -27,8 +28,8 @@ const RANGE_OPTIONS = [
 ]
 
 const WORK_CHIPS: { value: string; label: string }[] = [
+  { value: MyInsightsWorkChip.AllOpen, label: 'All open' },
   { value: MyInsightsWorkChip.NotStarted, label: 'Not started' },
-  { value: MyInsightsWorkChip.DueToday, label: 'Due today' },
   { value: MyInsightsWorkChip.DueThisWeek, label: 'Due this week' },
   { value: MyInsightsWorkChip.Unscheduled, label: 'Unscheduled' },
   { value: MyInsightsWorkChip.Blocked, label: 'Blocked' },
@@ -64,6 +65,35 @@ function addDaysIso(iso: string, days: number) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
+/** Monday–Sunday calendar week containing `iso` (local date). */
+function calendarWeekRange(iso: string): { weekStart: string; weekEnd: string } {
+  const d = new Date(`${iso}T12:00:00`)
+  const mondayOffset = (d.getDay() + 6) % 7
+  const weekStart = addDaysIso(iso, -mondayOffset)
+  return { weekStart, weekEnd: addDaysIso(weekStart, 6) }
+}
+
+/** Matches My Work THIS_WEEK window rules (due / planned / span overlap).
+ * Uses calendar Mon–Sun ∪ rolling next 7 days so Sunday still surfaces mid-next-week dues.
+ */
+function isInDueThisWeekWindow(
+  t: MyInsightsTaskRow,
+  weekStart: string,
+  weekEnd: string,
+  today: string,
+  rollingEnd: string
+): boolean {
+  const due = t.dueDate
+  const start = t.plannedStartDate
+  const inRange = (from: string, to: string) => {
+    if (due && due >= from && due <= to) return true
+    if (start && start >= from && start <= to) return true
+    if (start && due && start <= to && due >= from) return true
+    return false
+  }
+  return inRange(weekStart, weekEnd) || inRange(today, rollingEnd)
+}
+
 function statusBadgeClass(status: string) {
   if (status === 'BLOCKED') return 'bg-sky-600 text-white'
   if (status === 'DONE' || status === 'COMPLETED') return 'bg-emerald-500 text-white'
@@ -79,9 +109,11 @@ function chipBadgeClass(chip: 'overdue' | 'blocked') {
 
 function filterTasks(tasks: MyInsightsTaskRow[], chip: string | null, attention: string | null) {
   const today = todayIsoDate()
-  const weekEnd = addDaysIso(today, 6)
+  const { weekStart, weekEnd } = calendarWeekRange(today)
+  const rollingEnd = addDaysIso(today, 6)
 
   return tasks.filter((t) => {
+    const status = (t.status || '').toUpperCase()
     if (attention) {
       if (attention === 'overdue') return t.chips.includes('overdue')
       if (attention === 'blocked') return t.chips.includes('blocked')
@@ -89,14 +121,15 @@ function filterTasks(tasks: MyInsightsTaskRow[], chip: string | null, attention:
       if (attention === 'missing_estimate') return t.estimateHours == null
       if (attention === 'no_due_date') return t.dueDate == null
     }
-    if (!chip || chip === MyInsightsWorkChip.DueThisWeek) {
-      if (!chip) return true
-      return Boolean(t.dueDate && t.dueDate >= today && t.dueDate <= weekEnd)
+    if (!chip || chip === MyInsightsWorkChip.AllOpen) return true
+    if (chip === MyInsightsWorkChip.DueThisWeek) {
+      return isInDueThisWeekWindow(t, weekStart, weekEnd, today, rollingEnd)
     }
-    if (chip === MyInsightsWorkChip.NotStarted) return t.status === 'TODO'
-    if (chip === MyInsightsWorkChip.DueToday) return t.dueDate === today
+    if (chip === MyInsightsWorkChip.NotStarted) {
+      return status === 'TODO' || status === 'NOT_STARTED' || status === 'OPEN'
+    }
     if (chip === MyInsightsWorkChip.Unscheduled) return t.chips.includes('unscheduled')
-    if (chip === MyInsightsWorkChip.Blocked) return t.chips.includes('blocked')
+    if (chip === MyInsightsWorkChip.Blocked) return t.chips.includes('blocked') || status === 'BLOCKED'
     if (chip === MyInsightsWorkChip.Overdue) return t.chips.includes('overdue')
     return true
   })
@@ -397,7 +430,7 @@ export function MyInsightsView() {
   const range = searchParams.get('range') ?? '30d'
   const projectId = searchParams.get('projectId') ?? ''
   const attention = searchParams.get('attention')
-  const workChip = searchParams.get('work') ?? MyInsightsWorkChip.DueThisWeek
+  const workChip = searchParams.get('work') ?? MyInsightsWorkChip.AllOpen
   const [selectedDay, setSelectedDay] = useState<MyInsightsHeatmapDay | null>(null)
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [hidden, setHidden] = useState<Record<string, boolean>>({})
@@ -416,16 +449,22 @@ export function MyInsightsView() {
     range,
     projectId: projectId || undefined,
   })
+  // Project filter options must NOT come from filtered insights data — selecting one
+  // project would shrink the dropdown to that single project.
+  const { projects: workspaceProjects } = useProjects(workspaceId)
 
   const tasks = useMemo(
     () => filterTasks(data?.currentWork ?? [], workChip, attention),
     [data?.currentWork, workChip, attention]
   )
 
-  const projectOptions = [
-    { value: '', label: 'All projects' },
-    ...(data?.projects ?? []).map((p) => ({ value: p.id, label: p.name })),
-  ]
+  const projectOptions = useMemo(
+    () => [
+      { value: '', label: 'All projects' },
+      ...workspaceProjects.map((p) => ({ value: p.id, label: p.name })),
+    ],
+    [workspaceProjects]
+  )
 
   const scrollToCurrentWork = () => {
     document.getElementById('my-insights-current-work')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -532,15 +571,15 @@ export function MyInsightsView() {
         active={attention}
         onSelect={(key) => {
           if (key === 'completed') {
-            setParams({ attention: null, work: MyInsightsWorkChip.DueThisWeek })
+            setParams({ attention: null, work: MyInsightsWorkChip.AllOpen })
           } else if (key === 'remaining') {
-            setParams({ attention: null, work: MyInsightsWorkChip.NotStarted })
+            setParams({ attention: null, work: MyInsightsWorkChip.AllOpen })
           } else if (key === 'overdue') {
             setParams({ attention: 'overdue', work: MyInsightsWorkChip.Overdue })
           } else if (key === 'blocked') {
             setParams({ attention: 'blocked', work: MyInsightsWorkChip.Blocked })
           } else {
-            setParams({ attention: key, work: MyInsightsWorkChip.DueThisWeek })
+            setParams({ attention: key, work: MyInsightsWorkChip.AllOpen })
           }
           scrollToCurrentWork()
         }}
@@ -604,8 +643,11 @@ export function MyInsightsView() {
         >
           <div id="my-insights-current-work" />
           <ul className="divide-y divide-neutral-200">
-            {tasks.map((t) => (
-              <li key={t.taskId} className="flex items-start gap-3 py-3">
+            {tasks.map((t, index) => (
+              <li
+                key={t.taskId ? `${t.projectId}:${t.taskId}` : `current-work-${index}`}
+                className="flex items-start gap-3 py-3"
+              >
                 <Checkbox className="mt-0.5 rounded-none" aria-label={`Complete ${t.title}`} />
                 <div className="min-w-0 flex-1">
                   <Link

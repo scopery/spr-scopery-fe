@@ -273,7 +273,7 @@ export function DocumentEditorRightPanel({
                 <AiContextPanel projectId={projectId} documentId={documentId} />
               ) : null}
               {activePanel === 'indexing' ? (
-                <DocumentIndexingPanel workspaceId={workspaceId} projectId={projectId} />
+                <DocumentIndexingPanel workspaceId={workspaceId} projectId={projectId} documentId={documentId} />
               ) : null}
             </div>
           </aside>

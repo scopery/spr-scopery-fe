@@ -1,10 +1,11 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import {
   AtSign,
   FileText,
   FolderKanban,
+  HelpCircle,
   Paperclip,
   Plus,
   SendHorizontal,
@@ -15,6 +16,7 @@ import { Button, Typography } from '@/shared/ui'
 import { AiStreamUiState } from '../../domain/enums/ai-assistant.enum'
 import type { AiChatSource } from './AiContextPicker'
 import { AiContextPicker, sourceKey } from './AiContextPicker'
+import { AiActionsGuide } from './AiActionsGuide'
 
 interface ProjectOption {
   id: string
@@ -77,10 +79,12 @@ export function AiWorkspaceComposer({
 }: AiWorkspaceComposerProps) {
   const cancelling = streamUiState === AiStreamUiState.Cancelling
   const addBtnRef = useRef<HTMLSpanElement>(null)
+  const [actionsOpen, setActionsOpen] = useState(false)
 
   return (
     <div className="mt-auto shrink-0 border-t border-neutral-200 bg-white px-3 py-3 md:px-4">
       <div className="relative mx-auto w-full max-w-[880px]">
+        {actionsOpen ? <AiActionsGuide onClose={() => setActionsOpen(false)} /> : null}
         {streamError || canRetryConnection ? (
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border border-warning/30 bg-white px-3 py-2">
             <Typography variant="small" className="text-neutral-800">
@@ -187,6 +191,16 @@ export function AiWorkspaceComposer({
                 aria-label="Attach document (coming soon)"
               >
                 Attach
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                icon={<HelpCircle size={14} />}
+                onClick={() => setActionsOpen((v) => !v)}
+                aria-label="Show available AI actions"
+              >
+                Actions
               </Button>
             </div>
 

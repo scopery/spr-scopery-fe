@@ -11,12 +11,14 @@ import {
 } from '../../domain/rules/meeting.rules'
 import type { Meeting } from '../../domain/model/meeting'
 
-export type AutosaveState = 'idle' | 'saving' | 'saved' | 'error'
+export type AutosaveState = 'idle' | 'pending' | 'saving' | 'saved' | 'error'
 
 interface MeetingHeaderProps {
   meeting: Meeting
   participantCount: number
   autosaveState: AutosaveState
+  /** Seconds remaining before autosave fires (when pending). */
+  autosaveSecondsLeft?: number | null
   acting: boolean
   onLifecycle: (action: MeetingLifecycleAction) => void
   onBack: () => void
@@ -41,8 +43,12 @@ function formatDateTime(iso: string | null | undefined) {
   })
 }
 
-function autosaveLabel(state: AutosaveState) {
+function autosaveLabel(state: AutosaveState, secondsLeft?: number | null) {
   switch (state) {
+    case 'pending':
+      return secondsLeft != null && secondsLeft > 0
+        ? `Unsaved · saves in ${secondsLeft}s`
+        : 'Unsaved · saving soon…'
     case 'saving':
       return 'Saving…'
     case 'saved':
@@ -58,6 +64,7 @@ export function MeetingHeader({
   meeting,
   participantCount,
   autosaveState,
+  autosaveSecondsLeft = null,
   acting,
   onLifecycle,
   onBack,
@@ -78,7 +85,7 @@ export function MeetingHeader({
     return () => document.removeEventListener('mousedown', onDoc)
   }, [moreOpen])
 
-  const saveLabel = autosaveLabel(autosaveState)
+  const saveLabel = autosaveLabel(autosaveState, autosaveSecondsLeft)
 
   return (
     <div className="mb-4 border-b border-neutral-200 pb-5">

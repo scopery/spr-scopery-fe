@@ -3,16 +3,29 @@ import { normalizeItemList, type ListPayload } from '@/shared/lib/normalizeListR
 import { AI_RECOMMENDATION_ENDPOINTS } from './endpoints'
 import type { AiRecommendation } from '../../domain/model/recommendation'
 
-export async function listRecommendations(params?: {
-  projectId?: string
-  workspaceId?: string
-}): Promise<{ items: AiRecommendation[] }> {
-  const res = await apiClient.get<ListPayload<AiRecommendation>>(AI_RECOMMENDATION_ENDPOINTS.list(params))
+export async function listRecommendations(
+  params?: {
+    projectId?: string
+    workspaceId?: string
+  },
+  options?: { skipErrorToast?: boolean }
+): Promise<{ items: AiRecommendation[] }> {
+  const res = await apiClient.get<ListPayload<AiRecommendation>>(
+    AI_RECOMMENDATION_ENDPOINTS.list(params),
+    options
+  )
   return normalizeItemList(res)
 }
 
-export async function markRecommendationViewed(suggestionRef: string): Promise<void> {
-  await apiClient.post(AI_RECOMMENDATION_ENDPOINTS.view(suggestionRef), {}, { parseJson: false })
+export async function markRecommendationViewed(
+  suggestionRef: string,
+  options?: { skipErrorToast?: boolean }
+): Promise<void> {
+  await apiClient.post(
+    AI_RECOMMENDATION_ENDPOINTS.view(suggestionRef),
+    {},
+    { parseJson: false, ...options }
+  )
 }
 
 export async function acceptRecommendation(

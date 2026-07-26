@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import NextLink from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge, Button, Input, Modal, PageSkeleton, Select, Textarea, Typography } from '@/shared/ui'
@@ -19,6 +19,7 @@ import {
   baselineStatusLabel,
   baselineStatusTone,
   canApproveBaseline,
+  canCaptureBaselineSnapshot,
   canMarkBaselineCurrent,
   canValidateBaseline,
 } from '../../domain/rules/project-control.rules'
@@ -36,11 +37,16 @@ function fmt(value: string | null | undefined): string {
 export function BaselinesRegisterView() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const workspaceId = params.workspaceId as string
   const projectId = params.projectId as string
 
   const [createOpen, setCreateOpen] = useState(false)
   const { project } = useProject(workspaceId, projectId)
+
+  useEffect(() => {
+    if (searchParams.get('create') === '1') setCreateOpen(true)
+  }, [searchParams])
   const {
     baselines,
     current,
@@ -84,15 +90,15 @@ export function BaselinesRegisterView() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
         <div>
           <Typography as="h1" size="lg" weight="semibold">
-            Baseline Register
+            Baselines
           </Typography>
           {current ? (
             <Typography variant="small" tone="muted" className="mt-1">
-              Current: {current.name} (#{current.baselineNumber})
+              Active baseline: {current.name} (#{current.baselineNumber})
             </Typography>
           ) : (
             <Typography variant="small" tone="muted" className="mt-1">
-              No current baseline
+              No active baseline yet
             </Typography>
           )}
         </div>
@@ -116,7 +122,7 @@ export function BaselinesRegisterView() {
               <th className="px-4 py-3 font-medium">Baseline</th>
               <th className="px-4 py-3 font-medium">#</th>
               <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Current</th>
+              <th className="px-4 py-3 font-medium">Active</th>
               <th className="px-4 py-3 font-medium">Approved</th>
               <th className="px-4 py-3 font-medium">Updated</th>
               <th className="px-4 py-3 font-medium">Actions</th>
@@ -144,13 +150,13 @@ export function BaselinesRegisterView() {
                   </td>
                   <td className="px-4 py-3">{b.baselineNumber}</td>
                   <td className="px-4 py-3">
-                    <Badge tone={baselineStatusTone(b.status)}>
+                    <Badge variant="solid" tone={baselineStatusTone(b.status)}>
                       {baselineStatusLabel(b.status)}
                     </Badge>
                   </td>
                   <td className="px-4 py-3">
                     {b.currentFlag ? (
-                      <Badge tone="success" size="sm">
+                      <Badge variant="solid" tone="success" size="sm">
                         Yes
                       </Badge>
                     ) : (
@@ -161,20 +167,24 @@ export function BaselinesRegisterView() {
                   <td className="px-4 py-3">{fmt(b.updatedAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => void run('Snapshot refreshed', () => refresh(b.id))}
-                      >
-                        Refresh
-                      </Button>
+                      {canCaptureBaselineSnapshot(b) ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            void run('Latest project state captured', () => refresh(b.id))
+                          }
+                        >
+                          Capture
+                        </Button>
+                      ) : null}
                       {canValidateBaseline(b) ? (
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => void run('Validated', () => validate(b.id))}
+                          onClick={() => void run('Baseline checked', () => validate(b.id))}
                         >
-                          Validate
+                          Check
                         </Button>
                       ) : null}
                       {canApproveBaseline(b) ? (
@@ -190,9 +200,9 @@ export function BaselinesRegisterView() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => void run('Marked current', () => markCurrent(b.id))}
+                          onClick={() => void run('Now the active baseline', () => markCurrent(b.id))}
                         >
-                          Mark current
+                          Use as active
                         </Button>
                       ) : null}
                       {b.status !== 'ARCHIVED' ? (
@@ -218,7 +228,12 @@ export function BaselinesRegisterView() {
 
       <CreateBaselineModal
         open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onClose={() => {
+          setCreateOpen(false)
+          if (searchParams.get('create') === '1') {
+            router.replace(ROUTES.workspace.projectBaselines(workspaceId, projectId))
+          }
+        }}
         projectId={projectId}
         onSubmit={async (body) => {
           try {

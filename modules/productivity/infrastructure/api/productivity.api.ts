@@ -69,7 +69,15 @@ export async function getMyWork(
   workspaceId: string,
   params?: MyWorkParams
 ): Promise<MyWorkResponse> {
-  return apiClient.get<MyWorkResponse>(PRODUCTIVITY_ENDPOINTS.myWork(workspaceId, params))
+  const res = await apiClient.get<MyWorkResponse & { content?: MyWorkResponse['items'] }>(
+    PRODUCTIVITY_ENDPOINTS.myWork(workspaceId, params)
+  )
+  const items = Array.isArray(res.items)
+    ? res.items
+    : Array.isArray(res.content)
+      ? res.content
+      : []
+  return { ...res, items }
 }
 
 export async function getMyInsights(

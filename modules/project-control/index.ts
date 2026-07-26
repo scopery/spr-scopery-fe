@@ -12,6 +12,11 @@ export {
 
 export type {
   ProjectBaseline,
+  BaselineSummary,
+  BaselineTreeNode,
+  BaselineHealth,
+  BaselineProvenance,
+  BaselineCompareResponse,
   CreateBaselinePayload,
   ChangeRequest,
   CreateChangeRequestPayload,
@@ -27,6 +32,11 @@ export {
   canValidateBaseline,
   canApproveBaseline,
   canMarkBaselineCurrent,
+  canCaptureBaselineSnapshot,
+  shouldCreateUpdatedBaseline,
+  mapBaselineSummaryToMetrics,
+  mapProjectTree,
+  buildBaselineHealth,
   crStatusLabel,
   crStatusTone,
   canEditChangeRequest,
@@ -47,15 +57,18 @@ export {
   shouldShowImplementationPlan,
 } from './domain/rules/project-control.rules'
 
-export type { CrWorkflowPhase } from './domain/rules/project-control.rules'
+export type {
+  CrWorkflowPhase,
+  BaselineViewMode,
+  BaselineSummaryMetrics,
+  BaselineHealthSummary,
+  SnapshotTreeNode,
+} from './domain/rules/project-control.rules'
 
 export * as projectControlApi from './infrastructure/api/project-control.api'
 
 export { useBaselines } from './presentation/hooks/useBaselines'
-export {
-  useBaselineDetail,
-  type BaselineDetailTab,
-} from './presentation/hooks/useBaselineDetail'
+export { useBaselineDetail } from './presentation/hooks/useBaselineDetail'
 export {
   useChangeRequests,
   useChangeRequestWorkbench,

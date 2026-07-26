@@ -57,6 +57,7 @@ import {
   HighlightTextPlugin,
   LegacyTextHighlightPlugin,
 } from './TextHighlightPlugin'
+import { ChunkedPastePlugin } from './ChunkedPastePlugin'
 
 export { emptyPlateValue } from './empty-plate-value'
 
@@ -135,6 +136,8 @@ function buildEditorPlugins() {
     TableCellHeaderPlugin.withComponent(TableHeaderCellElement),
     ResourceMentionPlugin,
     SyncedBlockPlugin,
+    // Last so it wraps Plate's parser insertData / insertFragment
+    ChunkedPastePlugin,
   ]
 }
 

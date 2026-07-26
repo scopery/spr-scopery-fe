@@ -879,6 +879,11 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     immersiveAiWorkspace ||
     immersiveApplications ||
     immersiveFunctionalCatalog
+  // Immersive pages used to hide the AI sidebar (!immersiveMain). Keep full-bleed
+  // content, but still allow the project chat beside it — except on the dedicated AI workspace.
+  const showAiProjectSidebar = Boolean(
+    aiSidebarOpen && isProjectWorkbench && projectId && !immersiveAiWorkspace
+  )
 
   return (
     <Box as="div" className="flex h-screen flex-row overflow-hidden bg-neutral-50">
@@ -918,8 +923,10 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
       <Box
         as="main"
         className={cn(
-          'relative min-h-0 min-w-0 flex-1 flex motion-main-resize',
-          immersiveMain ? 'flex-col overflow-hidden p-0' : 'flex-row overflow-hidden'
+          'relative min-h-0 min-w-0 flex-1 flex overflow-hidden motion-main-resize',
+          // AI sidebar needs a row layout even on immersive pages
+          showAiProjectSidebar || !immersiveMain ? 'flex-row' : 'flex-col',
+          immersiveMain && 'p-0'
         )}
       >
         <div
@@ -961,7 +968,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
           </PageContentEnter>
         </div>
 
-        {aiSidebarOpen && isProjectWorkbench && !immersiveMain && projectId ? (
+        {showAiProjectSidebar ? (
           <AiProjectSidebarPanel
             key={projectId}
             workspaceId={workspaceId}

@@ -27,16 +27,25 @@ const TOOL_CONFIG: Record<string, ToolConfig> = {
       h.priority ? { label: 'Priority', value: h.priority } : null,
     ].filter(Boolean) as { label: string; value: string }[],
   },
+  update_task_status: {
+    cardTitle: 'Update task status',
+    itemLabel: 'Task',
+    badge: 'Task',
+    extraFields: (h) => [
+      h.currentStatus ? { label: 'Current', value: h.currentStatus } : null,
+      h.newStatus ? { label: 'New status', value: h.newStatus } : null,
+    ].filter(Boolean) as { label: string; value: string }[],
+  },
   create_functional_item: {
-    cardTitle: 'Suggested requirements',
-    itemLabel: 'Requirement',
+    cardTitle: 'Suggested functional items',
+    itemLabel: 'Functional item',
     badge: 'FR',
     extraFields: (h) => [
       h.type ? { label: 'Type', value: h.type } : null,
       h.priority ? { label: 'Priority', value: h.priority } : null,
     ].filter(Boolean) as { label: string; value: string }[],
   },
-  create_nfr: {
+  create_non_functional_item: {
     cardTitle: 'Suggested NFRs',
     itemLabel: 'NFR',
     badge: 'NFR',
@@ -45,29 +54,6 @@ const TOOL_CONFIG: Record<string, ToolConfig> = {
       h.targetMetric ? { label: 'Target', value: h.targetMetric } : null,
       h.priority ? { label: 'Priority', value: h.priority } : null,
     ].filter(Boolean) as { label: string; value: string }[],
-  },
-  create_screen: {
-    cardTitle: 'Suggested screens',
-    itemLabel: 'Screen',
-    badge: 'Screen',
-    extraFields: (h) => [
-      (h.screenPath ?? h.path) ? { label: 'Path', value: h.screenPath ?? h.path } : null,
-    ].filter(Boolean) as { label: string; value: string }[],
-  },
-  create_api_endpoint: {
-    cardTitle: 'Suggested API endpoints',
-    itemLabel: 'Endpoint',
-    badge: 'API',
-    extraFields: (h) => [
-      h.method ? { label: 'Method', value: h.method } : null,
-      h.pathPattern ? { label: 'Path', value: h.pathPattern } : null,
-    ].filter(Boolean) as { label: string; value: string }[],
-  },
-  create_module: {
-    cardTitle: 'Suggested modules',
-    itemLabel: 'Module',
-    badge: 'Module',
-    extraFields: () => [],
   },
   create_requirement: {
     cardTitle: 'Suggested requirements',
@@ -85,6 +71,63 @@ const TOOL_CONFIG: Record<string, ToolConfig> = {
     extraFields: (h) => [
       h.type ? { label: 'Type', value: h.type } : null,
       h.priority ? { label: 'Priority', value: h.priority } : null,
+    ].filter(Boolean) as { label: string; value: string }[],
+  },
+  create_screen: {
+    cardTitle: 'Suggested screens',
+    itemLabel: 'Screen',
+    badge: 'Screen',
+    extraFields: (h) => [
+      (h.routePath ?? h.screenPath ?? h.path) ? { label: 'Path', value: h.routePath ?? h.screenPath ?? h.path } : null,
+    ].filter(Boolean) as { label: string; value: string }[],
+  },
+  create_api_endpoint: {
+    cardTitle: 'Suggested API endpoints',
+    itemLabel: 'Endpoint',
+    badge: 'API',
+    extraFields: (h) => [
+      h.method ? { label: 'Method', value: h.method } : null,
+      h.pathPattern ? { label: 'Path', value: h.pathPattern } : null,
+    ].filter(Boolean) as { label: string; value: string }[],
+  },
+  create_app_module: {
+    cardTitle: 'Suggested modules',
+    itemLabel: 'Module',
+    badge: 'Module',
+    extraFields: (h) => [
+      (h.name ?? h.title) ? { label: 'Name', value: h.name ?? h.title } : null,
+    ].filter(Boolean) as { label: string; value: string }[],
+  },
+  create_data_entity: {
+    cardTitle: 'Suggested data entities',
+    itemLabel: 'Data entity',
+    badge: 'Entity',
+    extraFields: (h) => [
+      h.tableName ? { label: 'Table', value: h.tableName } : null,
+    ].filter(Boolean) as { label: string; value: string }[],
+  },
+  create_app_component: {
+    cardTitle: 'Suggested components',
+    itemLabel: 'Component',
+    badge: 'Comp',
+    extraFields: (h) => [
+      h.componentType ? { label: 'Type', value: h.componentType } : null,
+    ].filter(Boolean) as { label: string; value: string }[],
+  },
+  create_wbs_node: {
+    cardTitle: 'Suggested WBS nodes',
+    itemLabel: 'WBS node',
+    badge: 'WBS',
+    extraFields: (h) => [
+      h.nodeType ? { label: 'Type', value: h.nodeType } : null,
+    ].filter(Boolean) as { label: string; value: string }[],
+  },
+  create_project_phase: {
+    cardTitle: 'Suggested project phases',
+    itemLabel: 'Phase',
+    badge: 'Phase',
+    extraFields: (h) => [
+      (h.name ?? h.title) ? { label: 'Name', value: h.name ?? h.title } : null,
     ].filter(Boolean) as { label: string; value: string }[],
   },
 }
@@ -195,7 +238,7 @@ function TaskRow({
             <>
               {/* Badge + title */}
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="inline-flex items-center rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-neutral-500">
+                <span className="inline-flex items-center bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-neutral-500">
                   {config.badge}
                 </span>
                 <Typography

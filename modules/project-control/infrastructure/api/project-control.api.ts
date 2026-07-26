@@ -1,6 +1,8 @@
 import { apiClient } from '@/shared/lib/apiClient'
+import { ApiError } from '@/shared/lib/api-types'
 import { PROJECT_CONTROL_ENDPOINTS } from './endpoints'
 import type {
+  BaselineCompareResponse,
   ChangeImpact,
   ChangeOrder,
   ChangeRequest,
@@ -41,10 +43,13 @@ export async function getCurrentBaseline(
 ): Promise<ProjectBaseline | null> {
   try {
     return await apiClient.get<ProjectBaseline>(
-      PROJECT_CONTROL_ENDPOINTS.baselines.current(projectId)
+      PROJECT_CONTROL_ENDPOINTS.baselines.current(projectId),
+      { skipErrorToast: true }
     )
-  } catch {
-    return null
+  } catch (err) {
+    // No active baseline is a valid empty state (BE returns 404).
+    if (err instanceof ApiError && err.status === 404) return null
+    throw err
   }
 }
 
@@ -115,6 +120,16 @@ export async function archiveBaseline(
   return apiClient.patch<ProjectBaseline>(
     PROJECT_CONTROL_ENDPOINTS.baselines.archive(projectId, baselineId),
     {}
+  )
+}
+
+export async function compareBaselineToCurrent(
+  projectId: string,
+  baselineId: string
+): Promise<BaselineCompareResponse> {
+  return apiClient.get<BaselineCompareResponse>(
+    PROJECT_CONTROL_ENDPOINTS.baselines.compareCurrent(projectId, baselineId),
+    { skipErrorToast: true }
   )
 }
 

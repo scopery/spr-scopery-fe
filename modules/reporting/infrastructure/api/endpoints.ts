@@ -2,6 +2,10 @@ import { apiPath } from '@/shared/lib/api-paths'
 
 export const REPORTING_ENDPOINTS = {
   dashboard: (projectId: string) => apiPath(`/projects/${projectId}/dashboard`),
+  dashboardHealth: (projectId: string) => apiPath(`/projects/${projectId}/dashboard/health`),
+  dashboardKpis: (projectId: string) => apiPath(`/projects/${projectId}/dashboard/kpis`),
+  dashboardAttention: (projectId: string) =>
+    apiPath(`/projects/${projectId}/dashboard/attention`),
   definitions: () => apiPath('/reports/definitions'),
   run: () => apiPath('/reports/runs'),
   runStatus: (runId: string) => apiPath(`/reports/runs/${runId}`),

@@ -21,16 +21,21 @@ export function useBaselines(projectId: string | null) {
     setError(null)
     setForbidden(false)
     try {
-      const [list, cur] = await Promise.all([
-        api.listBaselines(projectId),
-        api.getCurrentBaseline(projectId),
-      ])
+      const list = await api.listBaselines(projectId)
       setBaselines(list)
-      setCurrent(cur)
+
+      let cur: ProjectBaseline | null = null
+      try {
+        cur = await api.getCurrentBaseline(projectId)
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 403) setForbidden(true)
+      }
+      setCurrent(cur ?? list.find((b) => b.currentFlag) ?? null)
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) setForbidden(true)
       setError(err instanceof Error ? err.message : 'Failed to load baselines')
       setBaselines([])
+      setCurrent(null)
     } finally {
       setLoading(false)
     }
