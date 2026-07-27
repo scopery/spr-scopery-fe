@@ -37,9 +37,6 @@ import { cn } from '@/utils/cn'
 const DEFAULT_STATUS_FILTERS = [
   TaskStatus.Todo,
   TaskStatus.InProgress,
-  TaskStatus.Blocked,
-  TaskStatus.Completed,
-  TaskStatus.Cancelled,
 ] as const
 
 const STATUS_CHECKBOX_OPTIONS: { value: string; label: string }[] = [
@@ -105,10 +102,9 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
     if (selectedStatuses.length === 0) return 'No statuses'
     if (
       selectedStatuses.length === DEFAULT_STATUS_FILTERS.length &&
-      DEFAULT_STATUS_FILTERS.every((s) => selectedStatuses.includes(s)) &&
-      !selectedStatuses.includes(TaskStatus.Archived)
+      DEFAULT_STATUS_FILTERS.every((s) => selectedStatuses.includes(s))
     ) {
-      return 'All active'
+      return 'To do & In progress'
     }
     if (selectedStatuses.length === STATUS_CHECKBOX_OPTIONS.length) return 'All statuses'
     if (selectedStatuses.length === 1) {
