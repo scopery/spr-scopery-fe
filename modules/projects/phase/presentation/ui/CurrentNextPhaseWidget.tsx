@@ -119,7 +119,11 @@ export function CurrentNextPhaseWidget({
                       : ''}
                   </Typography>
                   {phase.progressPercent != null ? (
-                    <Progress value={phase.progressPercent} size="sm" />
+                    <Progress
+                      value={phase.progressPercent}
+                      size="sm"
+                      className="[&_[role=progressbar]]:rounded-none"
+                    />
                   ) : null}
                   {phase.blockedTaskCount > 0 ? (
                     <Badge variant="solid" tone="error" className="rounded-none">

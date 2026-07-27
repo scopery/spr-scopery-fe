@@ -78,7 +78,11 @@ export function ActivePhaseBlock({
         {` · ${phase.statusLabel}`}
       </Typography>
       {phase.progressPercent != null && !compact ? (
-        <Progress value={phase.progressPercent} size="sm" className="mt-1 max-w-[12rem]" />
+        <Progress
+          value={phase.progressPercent}
+          size="sm"
+          className="mt-1 max-w-[12rem] [&_[role=progressbar]]:rounded-none"
+        />
       ) : null}
     </div>
   )

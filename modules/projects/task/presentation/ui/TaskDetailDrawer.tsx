@@ -18,7 +18,7 @@ import {
   taskStatusLabel,
   type TaskLifecycleAction,
 } from '../../domain/rules/task.rules'
-import { TaskStatus } from '../../../project/domain/enums/project.enum'
+import { TaskPriority, TaskStatus } from '../../../project/domain/enums/project.enum'
 import { TaskDependenciesPanel } from '@/modules/projects/task-dependency'
 import { TaskResourcesPanel } from '@/modules/capacity'
 import { CommentThreadsPanel } from '@/modules/projects/comments'
@@ -33,6 +33,13 @@ const ACTION_LABEL: Record<TaskLifecycleAction, string> = {
   archive: 'Archive',
   reopen: 'Reopen',
 }
+
+const PRIORITY_OPTIONS = [
+  { value: TaskPriority.Low, label: 'Low' },
+  { value: TaskPriority.Medium, label: 'Medium' },
+  { value: TaskPriority.High, label: 'High' },
+  { value: TaskPriority.Critical, label: 'Critical' },
+]
 
 function isActiveMember(status: string): boolean {
   return status === 'ACTIVE' || status === 'active'
@@ -93,6 +100,7 @@ export function TaskDetailDrawer({
   const [tab, setTab] = useState<DrawerTab>('details')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [priority, setPriority] = useState<string>(TaskPriority.Medium)
   const [dueDate, setDueDate] = useState('')
   const [phaseId, setPhaseId] = useState('')
   const [assigneeId, setAssigneeId] = useState('')
@@ -109,6 +117,7 @@ export function TaskDetailDrawer({
     if (!task) return
     setTitle(task.title)
     setDescription(task.description ?? '')
+    setPriority(task.priority || TaskPriority.Medium)
     setDueDate(task.dueDate ?? '')
     setPhaseId(task.projectPhaseId ?? '')
     setAssigneeId(task.inChargeUserId ?? '')
@@ -200,6 +209,7 @@ export function TaskDetailDrawer({
       await onSave(task.id, {
         title: trimmedTitle,
         description: description.trim() || null,
+        priority,
         dueDate: dueDate || null,
         projectPhaseId: phaseId || null,
         inChargeUserId: assigneeId || null,
@@ -238,7 +248,7 @@ export function TaskDetailDrawer({
               >
                 {taskStatusLabel(task.status)}
               </Badge>
-              <Badge tone="neutral">{taskPriorityLabel(task.priority)}</Badge>
+              <Badge tone="neutral">{taskPriorityLabel(priority)}</Badge>
             </Stack>
           </div>
           <Button variant="ghost" size="sm" iconOnly aria-label="Close" onClick={handleClose} icon={<X size={16} />} />
@@ -278,6 +288,12 @@ export function TaskDetailDrawer({
                 onChange={(e) => setDescription(e.target.value)}
                 rows={4}
               />
+              <div>
+                <Typography variant="small" className="mb-1.5">
+                  Priority
+                </Typography>
+                <Select value={priority} onValueChange={setPriority} options={PRIORITY_OPTIONS} />
+              </div>
               <div>
                 <Typography variant="small" className="mb-1.5">
                   Phase
