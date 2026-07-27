@@ -693,6 +693,30 @@ export function MyInsightsView() {
                 effort · {selectedDay.overdueResolved} overdue resolved · {selectedDay.projectCount}{' '}
                 projects
               </Typography>
+              {(selectedDay.completedTaskItems?.length ?? 0) > 0 ? (
+                <ul className="mt-3 divide-y divide-sky-600/10 border-t border-sky-600/15 pt-2">
+                  {selectedDay.completedTaskItems!.map((t) => (
+                    <li key={`${t.projectId}:${t.taskId}`} className="py-2">
+                      <Link
+                        href={ROUTES.workspace.projectWorkTask(workspaceId, t.projectId, t.taskId)}
+                        className="block hover:underline"
+                      >
+                        <Typography size="sm" className="text-neutral-900">
+                          {t.title}
+                        </Typography>
+                      </Link>
+                      <Typography variant="small" tone="muted" className="mt-0.5">
+                        {t.projectName}
+                        {t.estimateHours != null ? ` · ${t.estimateHours}h` : ''}
+                      </Typography>
+                    </li>
+                  ))}
+                </ul>
+              ) : selectedDay.completedTasks === 0 ? (
+                <Typography variant="small" tone="muted" className="mt-2">
+                  No completed tasks on this day.
+                </Typography>
+              ) : null}
             </div>
           ) : null}
         </InsightWidgetShell>

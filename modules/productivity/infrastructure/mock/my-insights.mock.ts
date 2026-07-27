@@ -56,6 +56,16 @@ export function buildMockMyInsights(
       completedEffortHours: level === 0 ? 0 : Number((((h % 80) / 10) + 0.5).toFixed(1)),
       overdueResolved: level >= 3 ? h % 2 : 0,
       projectCount: level === 0 ? 0 : (h % 3) + 1,
+      completedTaskItems:
+        level === 0
+          ? []
+          : Array.from({ length: (h % 3) + 1 }, (_, idx) => ({
+              taskId: `mock-${iso}-${idx}`,
+              projectId: `proj-${(h + idx) % 3}`,
+              projectName: ['Scopery', 'HM Logistics', 'Website'][(h + idx) % 3]!,
+              title: `Completed task ${idx + 1}`,
+              estimateHours: ((h + idx) % 4) + 1,
+            })),
     })
   }
 

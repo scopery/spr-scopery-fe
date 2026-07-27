@@ -107,7 +107,19 @@ function toCurrentWorkRow(t: MyWorkTaskItem, todayIso: string): MyInsightsTaskRo
 function buildHeatmap(items: MyWorkTaskItem[], today: Date): MyInsightsResponse['heatmap'] {
   const byDay = new Map<
     string,
-    { completedTasks: number; completedEffortHours: number; overdueResolved: number; projects: Set<string> }
+    {
+      completedTasks: number
+      completedEffortHours: number
+      overdueResolved: number
+      projects: Set<string>
+      completedTaskItems: Array<{
+        taskId: string
+        projectId: string
+        projectName: string
+        title: string
+        estimateHours: number | null
+      }>
+    }
   >()
 
   for (let i = 364; i >= 0; i--) {
@@ -116,6 +128,7 @@ function buildHeatmap(items: MyWorkTaskItem[], today: Date): MyInsightsResponse[
       completedEffortHours: 0,
       overdueResolved: 0,
       projects: new Set(),
+      completedTaskItems: [],
     })
   }
 
@@ -128,6 +141,13 @@ function buildHeatmap(items: MyWorkTaskItem[], today: Date): MyInsightsResponse[
       bucket.completedTasks += 1
       bucket.completedEffortHours += t.estimateHours ?? 0
       if (t.isOverdue || (t.dueDate && t.dueDate < day)) bucket.overdueResolved += 1
+      bucket.completedTaskItems.push({
+        taskId: t.taskId,
+        projectId: t.projectId,
+        projectName: t.projectName || t.projectCode || 'Project',
+        title: t.title,
+        estimateHours: t.estimateHours,
+      })
     } else if (isOpen(t.status)) {
       // Treat open-task activity on updated day as light activity signal
       bucket.completedEffortHours += (t.estimateHours ?? 0) * 0.15
@@ -150,6 +170,7 @@ function buildHeatmap(items: MyWorkTaskItem[], today: Date): MyInsightsResponse[
       completedEffortHours: Number(effort.toFixed(1)),
       overdueResolved: v.overdueResolved,
       projectCount: v.projects.size,
+      completedTaskItems: v.completedTaskItems,
     }
   })
 

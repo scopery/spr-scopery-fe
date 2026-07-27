@@ -39,6 +39,14 @@ export interface MyInsightsWorkloadDay {
   state: MyInsightsWorkloadState | string
 }
 
+export interface MyInsightsHeatmapCompletedTask {
+  taskId: string
+  projectId: string
+  projectName: string
+  title: string
+  estimateHours: number | null
+}
+
 export interface MyInsightsHeatmapDay {
   date: string
   level: 0 | 1 | 2 | 3 | 4
@@ -46,6 +54,8 @@ export interface MyInsightsHeatmapDay {
   completedEffortHours: number
   overdueResolved: number
   projectCount: number
+  /** Tasks completed (or marked done) on this day — for day drill-down. */
+  completedTaskItems?: MyInsightsHeatmapCompletedTask[]
 }
 
 export interface MyInsightsTrendPoint {
