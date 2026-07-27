@@ -7,7 +7,7 @@ import { cn } from '@/utils/cn'
 import { PhaseWatchFollowUpKind } from '../../domain/enums/phase-watch.enum'
 import { usePhaseWatch } from '../hooks/usePhaseWatch'
 import { PhaseFollowUpDrawer } from './PhaseFollowUpDrawer'
-import { PhaseWatchProjectRowView } from './PhaseWatchRow'
+import { PhaseWatchTable } from './PhaseWatchRow'
 
 interface PhaseWatchWidgetProps {
   workspaceId: string
@@ -66,27 +66,7 @@ export function PhaseWatchWidget({ workspaceId, projectId, className }: PhaseWat
             </Typography>
           ) : (
             <div>
-              <div className="mb-2 hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_auto] gap-3 border-b border-neutral-200 pb-2 lg:grid">
-                <Typography variant="small" tone="muted" weight="medium">
-                  Project
-                </Typography>
-                <Typography variant="small" tone="muted" weight="medium">
-                  Current phase
-                </Typography>
-                <Typography variant="small" tone="muted" weight="medium">
-                  Next phase
-                </Typography>
-                <Typography variant="small" tone="muted" weight="medium" className="text-right">
-                  Follow-up
-                </Typography>
-              </div>
-              {previewRows.map((row) => (
-                <PhaseWatchProjectRowView
-                  key={row.projectId}
-                  row={row}
-                  workspaceId={workspaceId}
-                />
-              ))}
+              <PhaseWatchTable rows={previewRows} workspaceId={workspaceId} />
               {allRows.length > previewRows.length ? (
                 <Typography variant="small" tone="muted" className="mt-2">
                   Showing {previewRows.length} of {allRows.length} projects

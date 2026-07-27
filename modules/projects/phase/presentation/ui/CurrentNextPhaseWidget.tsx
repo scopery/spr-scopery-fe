@@ -98,10 +98,10 @@ export function CurrentNextPhaseWidget({
                 const title = phaseDisplayTitle(phase)
                 return (
                 <li key={phase.phaseId} className="min-w-0 space-y-1.5">
-                  <Typography as="p" size="sm" weight="semibold" className="truncate" title={title}>
+                  <Typography as="p" size="sm" weight="semibold" className="break-words">
                     {title}
                   </Typography>
-                  <Typography variant="small" tone="muted" className="truncate">
+                  <Typography variant="small" tone="muted" className="break-words">
                     {phase.progressPercent == null
                       ? 'No tasks yet'
                       : `${phase.progressPercent}% complete`}
@@ -130,13 +130,7 @@ export function CurrentNextPhaseWidget({
           </Typography>
           {row.nextPhase ? (
             <div className="min-w-0 space-y-1.5">
-              <Typography
-                as="p"
-                size="sm"
-                weight="semibold"
-                className="truncate"
-                title={phaseDisplayTitle(row.nextPhase)}
-              >
+              <Typography as="p" size="sm" weight="semibold" className="break-words">
                 {phaseDisplayTitle(row.nextPhase)}
               </Typography>
               <Typography variant="small" tone="muted">

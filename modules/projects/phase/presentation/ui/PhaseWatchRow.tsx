@@ -12,6 +12,16 @@ import {
   phaseWatchSignalLabel,
 } from '../../domain/rules/phase-watch.rules'
 
+/** Shared column widths — keeps header + body aligned. */
+export const PHASE_WATCH_COLGROUP = (
+  <colgroup>
+    <col className="w-[22%]" />
+    <col className="w-[32%]" />
+    <col className="w-[30%]" />
+    <col className="w-[16%]" />
+  </colgroup>
+)
+
 function signalTone(signal: string): 'error' | 'warning' | 'info' | 'success' | 'neutral' {
   switch (signal) {
     case PhaseWatchSignal.HasBlockers:
@@ -31,7 +41,7 @@ function signalTone(signal: string): 'error' | 'warning' | 'info' | 'success' | 
 
 export function PhaseSignalBadge({ signal }: { signal: string }) {
   return (
-    <Badge variant="solid" tone={signalTone(signal)} className="rounded-none">
+    <Badge variant="solid" tone={signalTone(signal)} className="rounded-none whitespace-nowrap">
       {phaseWatchSignalLabel(signal as never)}
     </Badge>
   )
@@ -47,16 +57,10 @@ export function ActivePhaseBlock({
   const title = phaseDisplayTitle(phase)
   return (
     <div className={cn('min-w-0', compact ? 'space-y-0.5' : 'space-y-1')}>
-      <Typography
-        as="p"
-        size="sm"
-        weight="medium"
-        className="truncate text-neutral-900"
-        title={title}
-      >
+      <Typography as="p" size="sm" weight="medium" className="break-words text-neutral-900">
         {title}
       </Typography>
-      <Typography variant="small" tone="muted" className="truncate">
+      <Typography variant="small" tone="muted" className="break-words">
         {phase.progressPercent == null ? 'No tasks' : `${phase.progressPercent}%`}
         {phase.plannedEndDate ? ` · Ends ${formatPhaseWatchDate(phase.plannedEndDate)}` : ''}
         {` · ${phase.statusLabel}`}
@@ -87,22 +91,16 @@ export function NextPhaseBlock({
   const title = phaseDisplayTitle(phase)
   return (
     <div className={cn('min-w-0', compact ? 'space-y-0.5' : 'space-y-1')}>
-      <Typography
-        as="p"
-        size="sm"
-        weight="medium"
-        className="truncate text-neutral-900"
-        title={title}
-      >
+      <Typography as="p" size="sm" weight="medium" className="break-words text-neutral-900">
         {title}
       </Typography>
-      <Typography variant="small" tone="muted" className="truncate">
+      <Typography variant="small" tone="muted" className="break-words">
         {phase.plannedStartDate
           ? `Starts ${formatPhaseWatchDate(phase.plannedStartDate)}`
           : 'Start date not scheduled'}
       </Typography>
       {followUpLabels && followUpLabels.length > 0 ? (
-        <Typography variant="small" className="truncate text-neutral-700" title={followUpLabels.join(' · ')}>
+        <Typography variant="small" className="break-words text-neutral-700">
           {followUpLabels.join(' · ')}
         </Typography>
       ) : null}
@@ -110,7 +108,36 @@ export function NextPhaseBlock({
   )
 }
 
-export function PhaseWatchProjectRowView({
+export function PhaseWatchTableHeader({ followUpLabel = 'Follow-up' }: { followUpLabel?: string }) {
+  return (
+    <thead>
+      <tr className="border-b border-neutral-200 text-left">
+        <th className="pb-2 pr-3 align-bottom">
+          <Typography variant="small" tone="muted" weight="medium">
+            Project
+          </Typography>
+        </th>
+        <th className="pb-2 pr-3 align-bottom">
+          <Typography variant="small" tone="muted" weight="medium">
+            Current phase
+          </Typography>
+        </th>
+        <th className="pb-2 pr-3 align-bottom">
+          <Typography variant="small" tone="muted" weight="medium">
+            Next phase
+          </Typography>
+        </th>
+        <th className="pb-2 align-bottom text-right">
+          <Typography variant="small" tone="muted" weight="medium">
+            {followUpLabel}
+          </Typography>
+        </th>
+      </tr>
+    </thead>
+  )
+}
+
+export function PhaseWatchTableRow({
   row,
   workspaceId,
   compact,
@@ -120,73 +147,106 @@ export function PhaseWatchProjectRowView({
   compact?: boolean
 }) {
   return (
-    <div
-      className={cn(
-        'grid gap-3 border-b border-neutral-100 py-3 last:border-0',
-        compact
-          ? 'grid-cols-1'
-          : 'lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_auto]'
-      )}
-    >
-      <div className="min-w-0 overflow-hidden">
-        <Link
-          href={ROUTES.workspace.projectOverview(workspaceId, row.projectId)}
-          className="block min-w-0 hover:underline"
-          title={row.projectName}
-        >
-          <Typography as="p" size="sm" weight="semibold" className="truncate text-neutral-900">
-            {row.projectName}
-          </Typography>
-        </Link>
-        {row.projectCode ? (
-          <Typography
-            as="p"
-            variant="small"
-            tone="muted"
-            className="truncate font-mono"
-            title={row.projectCode}
+    <tr className="border-b border-neutral-100 last:border-0">
+      <td className="py-3 pr-3 align-top">
+        <div className="min-w-0">
+          <Link
+            href={ROUTES.workspace.projectOverview(workspaceId, row.projectId)}
+            className="block hover:underline"
           >
-            {row.projectCode}
-          </Typography>
-        ) : null}
-      </div>
+            <Typography as="p" size="sm" weight="semibold" className="break-words text-neutral-900">
+              {row.projectName}
+            </Typography>
+          </Link>
+          {row.projectCode ? (
+            <Typography as="p" variant="small" tone="muted" className="break-all font-mono">
+              {row.projectCode}
+            </Typography>
+          ) : null}
+        </div>
+      </td>
 
-      <div className="min-w-0 overflow-hidden space-y-2">
-        {!compact ? (
-          <Typography variant="small" tone="muted" className="lg:hidden">
-            Current
-          </Typography>
-        ) : null}
-        {row.activePhases.length === 0 ? (
-          <Typography variant="small" tone="muted">
-            No current phase
-          </Typography>
-        ) : (
-          row.activePhases.map((p) => <ActivePhaseBlock key={p.phaseId} phase={p} compact={compact} />)
-        )}
-        {row.activePhases.length > 1 ? (
-          <Typography variant="small" tone="muted">
-            Current phases · {row.activePhases.length}
-          </Typography>
-        ) : null}
-      </div>
+      <td className="py-3 pr-3 align-top">
+        <div className="min-w-0 space-y-2">
+          {row.activePhases.length === 0 ? (
+            <Typography variant="small" tone="muted">
+              No current phase
+            </Typography>
+          ) : (
+            row.activePhases.map((p) => (
+              <ActivePhaseBlock key={p.phaseId} phase={p} compact={compact} />
+            ))
+          )}
+          {row.activePhases.length > 1 ? (
+            <Typography variant="small" tone="muted">
+              Current phases · {row.activePhases.length}
+            </Typography>
+          ) : null}
+        </div>
+      </td>
 
-      <div className="min-w-0 overflow-hidden">
-        {!compact ? (
-          <Typography variant="small" tone="muted" className="lg:hidden">
-            Next
-          </Typography>
-        ) : null}
-        <NextPhaseBlock
-          phase={row.nextPhase}
-          followUpLabels={row.followUpLabels.filter((l) => l !== 'Ready')}
-          compact={compact}
-        />
-      </div>
+      <td className="py-3 pr-3 align-top">
+        <div className="min-w-0">
+          <NextPhaseBlock
+            phase={row.nextPhase}
+            followUpLabels={row.followUpLabels.filter((l) => l !== 'Ready')}
+            compact={compact}
+          />
+        </div>
+      </td>
 
-      <div className="flex items-start lg:justify-end">
-        <PhaseSignalBadge signal={row.primarySignal} />
-      </div>
+      <td className="py-3 align-top text-right">
+        <div className="inline-flex justify-end">
+          <PhaseSignalBadge signal={row.primarySignal} />
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+export function PhaseWatchTable({
+  rows,
+  workspaceId,
+  followUpLabel,
+  compact,
+}: {
+  rows: PhaseWatchProjectRow[]
+  workspaceId: string
+  followUpLabel?: string
+  compact?: boolean
+}) {
+  return (
+    <div className="w-full overflow-x-auto">
+      <table className="w-full table-fixed border-collapse">
+        {PHASE_WATCH_COLGROUP}
+        <PhaseWatchTableHeader followUpLabel={followUpLabel} />
+        <tbody>
+          {rows.map((row) => (
+            <PhaseWatchTableRow
+              key={row.projectId}
+              row={row}
+              workspaceId={workspaceId}
+              compact={compact}
+            />
+          ))}
+        </tbody>
+      </table>
     </div>
+  )
+}
+
+/** @deprecated Prefer PhaseWatchTable / PhaseWatchTableRow */
+export function PhaseWatchProjectRowView(props: {
+  row: PhaseWatchProjectRow
+  workspaceId: string
+  compact?: boolean
+}) {
+  return (
+    <table className="w-full table-fixed border-collapse">
+      {PHASE_WATCH_COLGROUP}
+      <tbody>
+        <PhaseWatchTableRow {...props} />
+      </tbody>
+    </table>
   )
 }

@@ -4,7 +4,7 @@ import { Button, DetailDrawer, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { PhaseWatchFollowUpKind } from '../../domain/enums/phase-watch.enum'
 import type { PhaseWatchProjectRow } from '../../domain/model/phase-watch'
-import { PhaseWatchProjectRowView } from './PhaseWatchRow'
+import { PhaseWatchTable } from './PhaseWatchRow'
 
 const FILTERS: { value: string; label: string }[] = [
   { value: PhaseWatchFollowUpKind.All, label: 'All' },
@@ -74,29 +74,7 @@ export function PhaseFollowUpDrawer({
             No projects match this filter.
           </Typography>
         ) : (
-          <div>
-            <div className="mb-2 hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_auto] gap-3 border-b border-neutral-200 pb-2 lg:grid">
-              <Typography variant="small" tone="muted" weight="medium">
-                Project
-              </Typography>
-              <Typography variant="small" tone="muted" weight="medium">
-                Current phase
-              </Typography>
-              <Typography variant="small" tone="muted" weight="medium">
-                Next phase
-              </Typography>
-              <Typography variant="small" tone="muted" weight="medium" className="text-right">
-                Status
-              </Typography>
-            </div>
-            {rows.map((row) => (
-              <PhaseWatchProjectRowView
-                key={row.projectId}
-                row={row}
-                workspaceId={workspaceId}
-              />
-            ))}
-          </div>
+          <PhaseWatchTable rows={rows} workspaceId={workspaceId} followUpLabel="Status" />
         )}
       </div>
     </DetailDrawer>
