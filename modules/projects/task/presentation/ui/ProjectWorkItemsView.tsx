@@ -260,29 +260,39 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
                 aria-label="Close status filter"
                 onClick={() => setStatusMenuOpen(false)}
               />
-              <div className="absolute left-0 top-full z-20 mt-1 w-56 border border-neutral-200 bg-white p-2 shadow-md">
-                <Typography variant="small" tone="muted" className="mb-2 px-1">
-                  Status
-                </Typography>
-                <ul className="space-y-1">
-                  {STATUS_CHECKBOX_OPTIONS.map((opt) => (
-                    <li key={opt.value}>
-                      <label
-                        className={cn(
-                          'flex cursor-pointer items-center gap-2 px-1 py-1 text-sm text-neutral-800 hover:bg-neutral-50',
-                          opt.value === TaskStatus.Archived && 'border-t border-neutral-100 pt-2'
-                        )}
-                      >
-                        <Checkbox
-                          size="sm"
-                          checked={selectedStatuses.includes(opt.value)}
-                          onChange={() => toggleStatus(opt.value)}
-                          aria-label={opt.label}
-                        />
-                        <span>{opt.label}</span>
-                      </label>
-                    </li>
-                  ))}
+              <div
+                className={cn(
+                  'absolute left-0 top-full z-[100] mt-1 w-full overflow-hidden',
+                  'border border-neutral-200 bg-white shadow-lg',
+                  'animate-in fade-in-0 zoom-in-95 slide-in-from-top-2'
+                )}
+                role="listbox"
+                aria-multiselectable
+              >
+                <ul className="max-h-[min(24rem,70vh)] overflow-y-auto p-1">
+                  {STATUS_CHECKBOX_OPTIONS.map((opt) => {
+                    const checked = selectedStatuses.includes(opt.value)
+                    return (
+                      <li key={opt.value} role="option" aria-selected={checked}>
+                        <label
+                          className={cn(
+                            'relative flex cursor-pointer select-none items-center gap-2',
+                            'px-3 py-2 text-sm text-neutral-900 outline-none',
+                            'hover:bg-neutral-100 focus-within:bg-neutral-100',
+                            opt.value === TaskStatus.Archived && 'mt-1 border-t border-neutral-100'
+                          )}
+                        >
+                          <Checkbox
+                            size="sm"
+                            checked={checked}
+                            onChange={() => toggleStatus(opt.value)}
+                            aria-label={opt.label}
+                          />
+                          <span className="min-w-0 truncate">{opt.label}</span>
+                        </label>
+                      </li>
+                    )
+                  })}
                 </ul>
               </div>
             </>

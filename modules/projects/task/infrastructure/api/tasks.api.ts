@@ -12,7 +12,40 @@ export async function listTasks(
   projectId: string,
   params?: ListTasksParams
 ): Promise<ProjectTaskPageResponse> {
-  return apiClient.get<ProjectTaskPageResponse>(PROJECT_ENDPOINTS.tasks.list(projectId, params))
+  // Strip status before building URLs — BE accepts one enum; arrays become "A,B,C" via toString().
+  const { status: statusFilter, ...rest } = params ?? {}
+  const statuses =
+    statusFilter == null
+      ? []
+      : (Array.isArray(statusFilter) ? statusFilter : [statusFilter]).filter(Boolean)
+
+  if (statuses.length > 1) {
+    const pages = await Promise.all(
+      statuses.map((status) =>
+        apiClient.get<ProjectTaskPageResponse>(
+          PROJECT_ENDPOINTS.tasks.list(projectId, { ...rest, status })
+        )
+      )
+    )
+    const byId = new Map<string, ProjectTask>()
+    for (const page of pages) {
+      for (const item of page.items ?? []) byId.set(item.id, item)
+    }
+    const items = [...byId.values()]
+    return {
+      items,
+      page: 0,
+      size: items.length,
+      totalElements: items.length,
+    }
+  }
+
+  return apiClient.get<ProjectTaskPageResponse>(
+    PROJECT_ENDPOINTS.tasks.list(projectId, {
+      ...rest,
+      status: statuses[0],
+    })
+  )
 }
 
 export async function getTask(projectId: string, taskId: string): Promise<ProjectTask> {

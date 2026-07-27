@@ -62,7 +62,8 @@ export const PROJECT_ENDPOINTS = {
       params?: {
         projectPhaseId?: string
         wbsNodeId?: string
-        status?: string | string[]
+        /** Single status only — BE rejects comma-joined / multi status. */
+        status?: string
         priority?: string
         keyword?: string
         page?: number
@@ -72,12 +73,8 @@ export const PROJECT_ENDPOINTS = {
       const p = new URLSearchParams()
       if (params?.projectPhaseId) p.set('projectPhaseId', params.projectPhaseId)
       if (params?.wbsNodeId) p.set('wbsNodeId', params.wbsNodeId)
-      if (params?.status != null) {
-        const statuses = Array.isArray(params.status) ? params.status : [params.status]
-        for (const s of statuses) {
-          if (s) p.append('status', s)
-        }
-      }
+      // Never pass arrays — URLSearchParams stringifies them as "A,B,C" and BE rejects.
+      if (typeof params?.status === 'string' && params.status) p.set('status', params.status)
       if (params?.priority) p.set('priority', params.priority)
       if (params?.keyword) p.set('keyword', params.keyword)
       if (params?.page != null) p.set('page', String(params.page))

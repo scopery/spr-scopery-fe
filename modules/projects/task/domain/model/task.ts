@@ -73,7 +73,7 @@ export interface ProjectTaskPageResponse {
 export interface ListTasksParams {
   projectPhaseId?: string
   wbsNodeId?: string
-  /** Single status or multiple (repeated `status` query params). */
+  /** One status, or multiple — API fans out to one request per status (BE is single-value). */
   status?: string | string[]
   priority?: string
   keyword?: string
