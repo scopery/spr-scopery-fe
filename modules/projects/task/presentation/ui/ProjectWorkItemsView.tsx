@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { Plus } from 'lucide-react'
+import { ChevronDown, Plus } from 'lucide-react'
 import {
   Typography,
   Button,
@@ -241,17 +241,25 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
           />
         </div>
         <div className="relative min-w-[10rem] flex-1 basis-[10rem]">
-          <Button
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            className="w-full justify-between rounded-none"
+            className={cn(
+              'flex h-9 w-full min-w-0 items-center justify-between gap-2 overflow-hidden px-3',
+              'border border-neutral-300 bg-white text-[13px] text-neutral-900',
+              'transition-colors duration-200',
+              'focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20'
+            )}
             onClick={() => setStatusMenuOpen((v) => !v)}
             aria-expanded={statusMenuOpen}
             aria-haspopup="listbox"
+            aria-label="Filter by status"
           >
-            <span className="truncate">{statusFilterLabel}</span>
-          </Button>
+            <span className="min-w-0 flex-1 truncate text-left">{statusFilterLabel}</span>
+            <ChevronDown
+              size={16}
+              className={cn('shrink-0 transition-transform', statusMenuOpen && 'rotate-180')}
+            />
+          </button>
           {statusMenuOpen ? (
             <>
               <button

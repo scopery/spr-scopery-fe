@@ -19,7 +19,8 @@ export const TaskStatus = {
   Todo: 'TODO',
   InProgress: 'IN_PROGRESS',
   Blocked: 'BLOCKED',
-  Completed: 'COMPLETED',
+  /** BE enum is DONE (not COMPLETED). */
+  Completed: 'DONE',
   Cancelled: 'CANCELLED',
   Archived: 'ARCHIVED',
 } as const

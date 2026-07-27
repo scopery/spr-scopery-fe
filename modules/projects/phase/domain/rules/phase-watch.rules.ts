@@ -123,7 +123,7 @@ export function selectNextPhase(phases: ProjectPhase[], todayIso: string): Proje
 
 function isTaskCompleted(status: string): boolean {
   const s = (status || '').toUpperCase()
-  return s === TaskStatus.Completed || s === 'DONE' || s === 'COMPLETE'
+  return s === TaskStatus.Completed || s === 'COMPLETED' || s === 'COMPLETE'
 }
 
 function isTaskOpen(status: string): boolean {

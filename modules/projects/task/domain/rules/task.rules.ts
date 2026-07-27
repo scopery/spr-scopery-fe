@@ -78,6 +78,7 @@ export function taskStatusLabel(status: string): string {
     case TaskStatus.Blocked:
       return 'Blocked'
     case TaskStatus.Completed:
+    case 'COMPLETED':
       return 'Completed'
     case TaskStatus.Cancelled:
       return 'Cancelled'
