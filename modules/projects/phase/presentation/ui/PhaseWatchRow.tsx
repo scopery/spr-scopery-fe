@@ -44,12 +44,19 @@ export function ActivePhaseBlock({
   phase: PhaseWatchPhaseSummary
   compact?: boolean
 }) {
+  const title = phaseDisplayTitle(phase)
   return (
-    <div className={cn(compact ? 'space-y-0.5' : 'space-y-1')}>
-      <Typography size="sm" weight="medium" className="text-neutral-900">
-        {phaseDisplayTitle(phase)}
+    <div className={cn('min-w-0', compact ? 'space-y-0.5' : 'space-y-1')}>
+      <Typography
+        as="p"
+        size="sm"
+        weight="medium"
+        className="truncate text-neutral-900"
+        title={title}
+      >
+        {title}
       </Typography>
-      <Typography variant="small" tone="muted">
+      <Typography variant="small" tone="muted" className="truncate">
         {phase.progressPercent == null ? 'No tasks' : `${phase.progressPercent}%`}
         {phase.plannedEndDate ? ` · Ends ${formatPhaseWatchDate(phase.plannedEndDate)}` : ''}
         {` · ${phase.statusLabel}`}
@@ -77,18 +84,25 @@ export function NextPhaseBlock({
       </Typography>
     )
   }
+  const title = phaseDisplayTitle(phase)
   return (
-    <div className={cn(compact ? 'space-y-0.5' : 'space-y-1')}>
-      <Typography size="sm" weight="medium" className="text-neutral-900">
-        {phaseDisplayTitle(phase)}
+    <div className={cn('min-w-0', compact ? 'space-y-0.5' : 'space-y-1')}>
+      <Typography
+        as="p"
+        size="sm"
+        weight="medium"
+        className="truncate text-neutral-900"
+        title={title}
+      >
+        {title}
       </Typography>
-      <Typography variant="small" tone="muted">
+      <Typography variant="small" tone="muted" className="truncate">
         {phase.plannedStartDate
           ? `Starts ${formatPhaseWatchDate(phase.plannedStartDate)}`
           : 'Start date not scheduled'}
       </Typography>
       {followUpLabels && followUpLabels.length > 0 ? (
-        <Typography variant="small" className="text-neutral-700">
+        <Typography variant="small" className="truncate text-neutral-700" title={followUpLabels.join(' · ')}>
           {followUpLabels.join(' · ')}
         </Typography>
       ) : null}
@@ -114,23 +128,30 @@ export function PhaseWatchProjectRowView({
           : 'lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_minmax(0,1.4fr)_auto]'
       )}
     >
-      <div className="min-w-0">
+      <div className="min-w-0 overflow-hidden">
         <Link
           href={ROUTES.workspace.projectOverview(workspaceId, row.projectId)}
-          className="hover:underline"
+          className="block min-w-0 hover:underline"
+          title={row.projectName}
         >
-          <Typography size="sm" weight="semibold" className="text-neutral-900">
+          <Typography as="p" size="sm" weight="semibold" className="truncate text-neutral-900">
             {row.projectName}
           </Typography>
         </Link>
         {row.projectCode ? (
-          <Typography variant="small" tone="muted" className="font-mono">
+          <Typography
+            as="p"
+            variant="small"
+            tone="muted"
+            className="truncate font-mono"
+            title={row.projectCode}
+          >
             {row.projectCode}
           </Typography>
         ) : null}
       </div>
 
-      <div className="min-w-0 space-y-2">
+      <div className="min-w-0 overflow-hidden space-y-2">
         {!compact ? (
           <Typography variant="small" tone="muted" className="lg:hidden">
             Current
@@ -150,7 +171,7 @@ export function PhaseWatchProjectRowView({
         ) : null}
       </div>
 
-      <div className="min-w-0">
+      <div className="min-w-0 overflow-hidden">
         {!compact ? (
           <Typography variant="small" tone="muted" className="lg:hidden">
             Next

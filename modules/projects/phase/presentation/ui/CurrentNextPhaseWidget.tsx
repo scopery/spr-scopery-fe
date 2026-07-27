@@ -94,12 +94,14 @@ export function CurrentNextPhaseWidget({
             </Typography>
           ) : (
             <ul className="space-y-3">
-              {row.activePhases.map((phase) => (
-                <li key={phase.phaseId} className="space-y-1.5">
-                  <Typography size="sm" weight="semibold">
-                    {phaseDisplayTitle(phase)}
+              {row.activePhases.map((phase) => {
+                const title = phaseDisplayTitle(phase)
+                return (
+                <li key={phase.phaseId} className="min-w-0 space-y-1.5">
+                  <Typography as="p" size="sm" weight="semibold" className="truncate" title={title}>
+                    {title}
                   </Typography>
-                  <Typography variant="small" tone="muted">
+                  <Typography variant="small" tone="muted" className="truncate">
                     {phase.progressPercent == null
                       ? 'No tasks yet'
                       : `${phase.progressPercent}% complete`}
@@ -116,7 +118,8 @@ export function CurrentNextPhaseWidget({
                     </Badge>
                   ) : null}
                 </li>
-              ))}
+                )
+              })}
             </ul>
           )}
         </div>
@@ -126,8 +129,14 @@ export function CurrentNextPhaseWidget({
             Next
           </Typography>
           {row.nextPhase ? (
-            <div className="space-y-1.5">
-              <Typography size="sm" weight="semibold">
+            <div className="min-w-0 space-y-1.5">
+              <Typography
+                as="p"
+                size="sm"
+                weight="semibold"
+                className="truncate"
+                title={phaseDisplayTitle(row.nextPhase)}
+              >
                 {phaseDisplayTitle(row.nextPhase)}
               </Typography>
               <Typography variant="small" tone="muted">
