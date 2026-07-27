@@ -11,6 +11,7 @@ import {
   PageSkeleton,
   Stack,
   Badge,
+  Checkbox,
 } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
@@ -31,14 +32,23 @@ import {
   taskStatusLabel,
 } from '../../domain/rules/task.rules'
 import { TaskStatus } from '../../../project/domain/enums/project.enum'
+import { cn } from '@/utils/cn'
 
-const STATUS_FILTER_OPTIONS = [
-  { value: '', label: 'All statuses' },
+const DEFAULT_STATUS_FILTERS = [
+  TaskStatus.Todo,
+  TaskStatus.InProgress,
+  TaskStatus.Blocked,
+  TaskStatus.Completed,
+  TaskStatus.Cancelled,
+] as const
+
+const STATUS_CHECKBOX_OPTIONS: { value: string; label: string }[] = [
   { value: TaskStatus.Todo, label: 'To do' },
   { value: TaskStatus.InProgress, label: 'In progress' },
   { value: TaskStatus.Blocked, label: 'Blocked' },
   { value: TaskStatus.Completed, label: 'Completed' },
   { value: TaskStatus.Cancelled, label: 'Cancelled' },
+  { value: TaskStatus.Archived, label: 'Archived' },
 ]
 
 function formatDate(iso: string | null | undefined) {
@@ -57,7 +67,8 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
 
   const view = searchParams.get('view') === 'board' ? 'board' : 'list'
   const [keyword, setKeyword] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([...DEFAULT_STATUS_FILTERS])
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false)
   const [phaseFilter, setPhaseFilter] = useState('')
   const [assigneeFilter, setAssigneeFilter] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
@@ -79,9 +90,32 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
     refetch,
   } = useProjectTasks(projectId, {
     keyword: keyword.trim() || undefined,
-    status: statusFilter || undefined,
+    status: selectedStatuses.length > 0 ? selectedStatuses : undefined,
     projectPhaseId: phaseFilter || undefined,
   })
+
+  const toggleStatus = (value: string) => {
+    setSelectedStatuses((prev) => {
+      if (prev.includes(value)) return prev.filter((s) => s !== value)
+      return [...prev, value]
+    })
+  }
+
+  const statusFilterLabel = useMemo(() => {
+    if (selectedStatuses.length === 0) return 'No statuses'
+    if (
+      selectedStatuses.length === DEFAULT_STATUS_FILTERS.length &&
+      DEFAULT_STATUS_FILTERS.every((s) => selectedStatuses.includes(s)) &&
+      !selectedStatuses.includes(TaskStatus.Archived)
+    ) {
+      return 'All active'
+    }
+    if (selectedStatuses.length === STATUS_CHECKBOX_OPTIONS.length) return 'All statuses'
+    if (selectedStatuses.length === 1) {
+      return STATUS_CHECKBOX_OPTIONS.find((o) => o.value === selectedStatuses[0])?.label ?? 'Status'
+    }
+    return `${selectedStatuses.length} statuses`
+  }, [selectedStatuses])
 
   const assigneeIds = useMemo(() => tasks.map((t) => t.inChargeUserId), [tasks])
   const { peopleById } = useResolveUsers(assigneeIds)
@@ -206,12 +240,54 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
             onChange={(e) => setKeyword(e.target.value)}
           />
         </div>
-        <Select
-          value={statusFilter}
-          onValueChange={setStatusFilter}
-          options={STATUS_FILTER_OPTIONS}
-          className="min-w-[10rem] flex-1 basis-[10rem]"
-        />
+        <div className="relative min-w-[10rem] flex-1 basis-[10rem]">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full justify-between rounded-none"
+            onClick={() => setStatusMenuOpen((v) => !v)}
+            aria-expanded={statusMenuOpen}
+            aria-haspopup="listbox"
+          >
+            <span className="truncate">{statusFilterLabel}</span>
+          </Button>
+          {statusMenuOpen ? (
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-10 cursor-default"
+                aria-label="Close status filter"
+                onClick={() => setStatusMenuOpen(false)}
+              />
+              <div className="absolute left-0 top-full z-20 mt-1 w-56 border border-neutral-200 bg-white p-2 shadow-md">
+                <Typography variant="small" tone="muted" className="mb-2 px-1">
+                  Status
+                </Typography>
+                <ul className="space-y-1">
+                  {STATUS_CHECKBOX_OPTIONS.map((opt) => (
+                    <li key={opt.value}>
+                      <label
+                        className={cn(
+                          'flex cursor-pointer items-center gap-2 px-1 py-1 text-sm text-neutral-800 hover:bg-neutral-50',
+                          opt.value === TaskStatus.Archived && 'border-t border-neutral-100 pt-2'
+                        )}
+                      >
+                        <Checkbox
+                          size="sm"
+                          checked={selectedStatuses.includes(opt.value)}
+                          onChange={() => toggleStatus(opt.value)}
+                          aria-label={opt.label}
+                        />
+                        <span>{opt.label}</span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          ) : null}
+        </div>
         <Select
           value={phaseFilter}
           onValueChange={setPhaseFilter}

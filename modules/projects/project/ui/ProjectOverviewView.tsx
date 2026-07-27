@@ -97,7 +97,16 @@ export function ProjectOverviewView() {
     void refetch()
   })
   const { phases, loading: phasesLoading } = useProjectPhases(projectId)
-  const { tasks, loading: tasksLoading, forbidden } = useProjectTasks(projectId)
+  const { tasks, loading: tasksLoading, forbidden } = useProjectTasks(projectId, {
+    size: 500,
+    status: [
+      TaskStatus.Todo,
+      TaskStatus.InProgress,
+      TaskStatus.Blocked,
+      TaskStatus.Completed,
+      TaskStatus.Cancelled,
+    ],
+  })
 
   const taskCounts = useMemo(() => {
     const counts: Record<string, number> = {

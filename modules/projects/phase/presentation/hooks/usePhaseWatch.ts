@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ProjectStatus } from '../../../project/domain/enums/project.enum'
+import { ProjectStatus, TaskStatus } from '../../../project/domain/enums/project.enum'
 import * as phasesApi from '../../infrastructure/api/phases.api'
 import * as tasksApi from '../../../task/infrastructure/api/tasks.api'
 import { useProjects } from '../../../project/hooks/useProjects'
@@ -14,6 +14,15 @@ import { PhaseWatchFollowUpKind } from '../../domain/enums/phase-watch.enum'
 import type { PhaseWatchProjectRow } from '../../domain/model/phase-watch'
 
 const MAX_PROJECTS = 40
+
+/** Explicitly include COMPLETED so progress % is accurate (BE may omit it by default). */
+const PHASE_WATCH_TASK_STATUSES = [
+  TaskStatus.Todo,
+  TaskStatus.InProgress,
+  TaskStatus.Blocked,
+  TaskStatus.Completed,
+  TaskStatus.Cancelled,
+]
 
 function todayIsoDate() {
   const d = new Date()
@@ -59,7 +68,11 @@ export function usePhaseWatch(
         targetProjects.map(async (project) => {
           const [phasesRes, tasksRes] = await Promise.all([
             phasesApi.listPhases(project.id, { page: 0, size: 100 }),
-            tasksApi.listTasks(project.id, { page: 0, size: 200 }),
+            tasksApi.listTasks(project.id, {
+              page: 0,
+              size: 500,
+              status: PHASE_WATCH_TASK_STATUSES,
+            }),
           ])
           return buildProjectPhaseWatchRow({
             projectId: project.id,

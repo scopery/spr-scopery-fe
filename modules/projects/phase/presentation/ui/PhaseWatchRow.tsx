@@ -57,37 +57,24 @@ export function PhaseSignalBadge({ signal }: { signal: string }) {
 export function ActivePhaseBlock({
   phase,
   compact,
-  endingSoon,
   daysLeftLabel,
 }: {
   phase: PhaseWatchPhaseSummary
   compact?: boolean
-  endingSoon?: boolean
   daysLeftLabel?: string | null
 }) {
   const title = phaseDisplayTitle(phase)
   return (
-    <div
-      className={cn(
-        'min-w-0',
-        compact ? 'space-y-0.5' : 'space-y-1',
-        endingSoon && 'rounded-none border border-orange-200/70 bg-orange-50/80 px-2 py-1.5'
-      )}
-    >
+    <div className={cn('min-w-0', compact ? 'space-y-0.5' : 'space-y-1')}>
       <Typography as="p" size="sm" weight="medium" className="break-words text-neutral-900">
         {title}
       </Typography>
       <Typography variant="small" className="break-words text-neutral-600">
         {phase.progressPercent == null ? 'No tasks' : `${phase.progressPercent}%`}
-        {phase.plannedEndDate ? (
-          <>
-            {' · '}
-            <span className={endingSoon ? 'font-medium text-red-700' : undefined}>
-              Ends {formatPhaseWatchDate(phase.plannedEndDate)}
-              {daysLeftLabel ? ` · ${daysLeftLabel}` : ''}
-            </span>
-          </>
-        ) : null}
+        {phase.plannedEndDate
+          ? ` · Ends ${formatPhaseWatchDate(phase.plannedEndDate)}`
+          : ''}
+        {daysLeftLabel ? ` · ${daysLeftLabel}` : ''}
         {` · ${phase.statusLabel}`}
       </Typography>
       {phase.progressPercent != null && !compact ? (
@@ -224,7 +211,6 @@ export function PhaseWatchTableRow({
                   key={p.phaseId}
                   phase={p}
                   compact={compact}
-                  endingSoon={endingSoon}
                   daysLeftLabel={
                     endingSoon && p.plannedEndDate
                       ? formatDaysRemaining(p.plannedEndDate, todayIso)

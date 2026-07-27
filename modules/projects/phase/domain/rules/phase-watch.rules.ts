@@ -121,9 +121,16 @@ export function selectNextPhase(phases: ProjectPhase[], todayIso: string): Proje
   return undated[0] ?? null
 }
 
+function isTaskCompleted(status: string): boolean {
+  const s = (status || '').toUpperCase()
+  return s === TaskStatus.Completed || s === 'DONE' || s === 'COMPLETE'
+}
+
 function isTaskOpen(status: string): boolean {
   return (
     status !== TaskStatus.Completed &&
+    status !== 'DONE' &&
+    status !== 'COMPLETE' &&
     status !== TaskStatus.Cancelled &&
     status !== TaskStatus.Archived
   )
@@ -134,12 +141,19 @@ export function buildPhaseSummary(
   tasks: ProjectTask[]
 ): PhaseWatchPhaseSummary {
   const phaseTasks = tasks.filter((t) => t.projectPhaseId === phase.id)
-  const completedTaskCount = phaseTasks.filter((t) => t.status === TaskStatus.Completed).length
-  const blockedTaskCount = phaseTasks.filter((t) => t.status === TaskStatus.Blocked).length
+  const completedTaskCount = phaseTasks.filter((t) => isTaskCompleted(t.status)).length
+  const blockedTaskCount = phaseTasks.filter(
+    (t) => (t.status || '').toUpperCase() === TaskStatus.Blocked
+  ).length
   const unassignedTaskCount = phaseTasks.filter(
     (t) => isTaskOpen(t.status) && !t.inChargeUserId
   ).length
-  const taskCount = phaseTasks.length
+  // Progress = completed / (open + completed). Ignore cancelled/archived in denominator.
+  const progressRelevant = phaseTasks.filter((t) => {
+    const s = (t.status || '').toUpperCase()
+    return s !== TaskStatus.Cancelled && s !== TaskStatus.Archived
+  })
+  const taskCount = progressRelevant.length
   const progressPercent =
     taskCount === 0 ? null : Math.round((completedTaskCount / taskCount) * 100)
 

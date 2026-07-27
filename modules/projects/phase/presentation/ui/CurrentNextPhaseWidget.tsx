@@ -103,14 +103,7 @@ export function CurrentNextPhaseWidget({
                 const title = phaseDisplayTitle(phase)
                 const endingSoon = isPhaseEndingSoon(phase.plannedEndDate, todayIso)
                 return (
-                <li
-                  key={phase.phaseId}
-                  className={cn(
-                    'min-w-0 space-y-1.5',
-                    endingSoon &&
-                      'rounded-none border border-orange-200/70 bg-orange-50/80 px-2 py-1.5'
-                  )}
-                >
+                <li key={phase.phaseId} className="min-w-0 space-y-1.5">
                   <Typography as="p" size="sm" weight="semibold" className="break-words">
                     {title}
                   </Typography>
@@ -118,17 +111,12 @@ export function CurrentNextPhaseWidget({
                     {phase.progressPercent == null
                       ? 'No tasks yet'
                       : `${phase.progressPercent}% complete`}
-                    {phase.plannedEndDate ? (
-                      <>
-                        {' · '}
-                        <span className={endingSoon ? 'font-medium text-red-700' : undefined}>
-                          Planned finish {formatPhaseWatchDate(phase.plannedEndDate)}
-                          {endingSoon
-                            ? ` · ${formatDaysRemaining(phase.plannedEndDate, todayIso)}`
-                            : ''}
-                        </span>
-                      </>
-                    ) : null}
+                    {phase.plannedEndDate
+                      ? ` · Planned finish ${formatPhaseWatchDate(phase.plannedEndDate)}`
+                      : ''}
+                    {endingSoon && phase.plannedEndDate
+                      ? ` · ${formatDaysRemaining(phase.plannedEndDate, todayIso)}`
+                      : ''}
                   </Typography>
                   {phase.progressPercent != null ? (
                     <Progress value={phase.progressPercent} size="sm" />
