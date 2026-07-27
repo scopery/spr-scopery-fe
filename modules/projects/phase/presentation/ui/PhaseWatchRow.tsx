@@ -76,10 +76,14 @@ export function NextPhaseBlock({
   phase,
   followUpLabels,
   compact,
+  startingSoon,
+  noStartDate,
 }: {
   phase: PhaseWatchPhaseSummary | null
   followUpLabels?: string[]
   compact?: boolean
+  startingSoon?: boolean
+  noStartDate?: boolean
 }) {
   if (!phase) {
     return (
@@ -89,15 +93,26 @@ export function NextPhaseBlock({
     )
   }
   const title = phaseDisplayTitle(phase)
+  const alert = Boolean(startingSoon || noStartDate)
   return (
-    <div className={cn('min-w-0', compact ? 'space-y-0.5' : 'space-y-1')}>
+    <div
+      className={cn(
+        'min-w-0',
+        compact ? 'space-y-0.5' : 'space-y-1',
+        alert && 'rounded-none border border-orange-200/70 bg-orange-50/80 px-2 py-1.5'
+      )}
+    >
       <Typography as="p" size="sm" weight="medium" className="break-words text-neutral-900">
         {title}
       </Typography>
-      <Typography variant="small" tone="muted" className="break-words">
+      <Typography
+        variant="small"
+        className={cn('break-words', alert ? 'font-medium text-red-700' : 'text-neutral-600')}
+      >
         {phase.plannedStartDate
           ? `Starts ${formatPhaseWatchDate(phase.plannedStartDate)}`
           : 'Start date not scheduled'}
+        {startingSoon ? ' · Within 7 days' : ''}
       </Typography>
       {followUpLabels && followUpLabels.length > 0 ? (
         <Typography variant="small" className="break-words text-neutral-700">
@@ -191,6 +206,8 @@ export function PhaseWatchTableRow({
             phase={row.nextPhase}
             followUpLabels={row.followUpLabels.filter((l) => l !== 'Ready')}
             compact={compact}
+            startingSoon={row.signals.includes(PhaseWatchSignal.StartingSoon)}
+            noStartDate={row.signals.includes(PhaseWatchSignal.NoStartDate)}
           />
         </div>
       </td>

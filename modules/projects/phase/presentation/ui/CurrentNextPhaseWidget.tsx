@@ -11,7 +11,9 @@ import {
   formatPhaseWatchDate,
   phaseDisplayTitle,
 } from '../../domain/rules/phase-watch.rules'
+import { PhaseWatchSignal } from '../../domain/enums/phase-watch.enum'
 import { PhaseSignalBadge } from './PhaseWatchRow'
+import { cn } from '@/utils/cn'
 
 interface CurrentNextPhaseWidgetProps {
   workspaceId: string
@@ -129,14 +131,28 @@ export function CurrentNextPhaseWidget({
             Next
           </Typography>
           {row.nextPhase ? (
-            <div className="min-w-0 space-y-1.5">
+            (() => {
+              const startingSoon = row.signals.includes(PhaseWatchSignal.StartingSoon)
+              const noStartDate = row.signals.includes(PhaseWatchSignal.NoStartDate)
+              const alert = startingSoon || noStartDate
+              return (
+            <div
+              className={cn(
+                'min-w-0 space-y-1.5',
+                alert && 'rounded-none border border-orange-200/70 bg-orange-50/80 px-2 py-1.5'
+              )}
+            >
               <Typography as="p" size="sm" weight="semibold" className="break-words">
                 {phaseDisplayTitle(row.nextPhase)}
               </Typography>
-              <Typography variant="small" tone="muted">
+              <Typography
+                variant="small"
+                className={cn(alert ? 'font-medium text-red-700' : 'text-neutral-600')}
+              >
                 {row.nextPhase.plannedStartDate
                   ? `Planned start ${formatPhaseWatchDate(row.nextPhase.plannedStartDate)}`
                   : 'Start date not scheduled'}
+                {startingSoon ? ' · Within 7 days' : ''}
               </Typography>
               {row.followUpLabels.filter((l) => l !== 'Ready').length > 0 ? (
                 <Typography variant="small" className="text-neutral-700">
@@ -148,6 +164,8 @@ export function CurrentNextPhaseWidget({
                 </Typography>
               )}
             </div>
+              )
+            })()
           ) : (
             <Typography variant="small" tone="muted">
               No upcoming phase
