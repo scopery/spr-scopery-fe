@@ -8,7 +8,9 @@ import type { ProjectPhase } from '../../domain/model/phase'
 import type { ProjectTask } from '../../../task/domain/model/task'
 import { useCurrentNextPhase } from '../hooks/useCurrentNextPhase'
 import {
+  formatDaysRemaining,
   formatPhaseWatchDate,
+  isPhaseEndingSoon,
   phaseDisplayTitle,
 } from '../../domain/rules/phase-watch.rules'
 import { PhaseWatchSignal } from '../../domain/enums/phase-watch.enum'
@@ -41,6 +43,7 @@ export function CurrentNextPhaseWidget({
     phases,
     tasks,
   })
+  const todayIso = new Date().toISOString().slice(0, 10)
 
   if (loading) {
     return (
@@ -98,18 +101,34 @@ export function CurrentNextPhaseWidget({
             <ul className="space-y-3">
               {row.activePhases.map((phase) => {
                 const title = phaseDisplayTitle(phase)
+                const endingSoon = isPhaseEndingSoon(phase.plannedEndDate, todayIso)
                 return (
-                <li key={phase.phaseId} className="min-w-0 space-y-1.5">
+                <li
+                  key={phase.phaseId}
+                  className={cn(
+                    'min-w-0 space-y-1.5',
+                    endingSoon &&
+                      'rounded-none border border-orange-200/70 bg-orange-50/80 px-2 py-1.5'
+                  )}
+                >
                   <Typography as="p" size="sm" weight="semibold" className="break-words">
                     {title}
                   </Typography>
-                  <Typography variant="small" tone="muted" className="break-words">
+                  <Typography variant="small" className="break-words text-neutral-600">
                     {phase.progressPercent == null
                       ? 'No tasks yet'
                       : `${phase.progressPercent}% complete`}
-                    {phase.plannedEndDate
-                      ? ` · Planned finish ${formatPhaseWatchDate(phase.plannedEndDate)}`
-                      : ''}
+                    {phase.plannedEndDate ? (
+                      <>
+                        {' · '}
+                        <span className={endingSoon ? 'font-medium text-red-700' : undefined}>
+                          Planned finish {formatPhaseWatchDate(phase.plannedEndDate)}
+                          {endingSoon
+                            ? ` · ${formatDaysRemaining(phase.plannedEndDate, todayIso)}`
+                            : ''}
+                        </span>
+                      </>
+                    ) : null}
                   </Typography>
                   {phase.progressPercent != null ? (
                     <Progress value={phase.progressPercent} size="sm" />
@@ -152,7 +171,9 @@ export function CurrentNextPhaseWidget({
                 {row.nextPhase.plannedStartDate
                   ? `Planned start ${formatPhaseWatchDate(row.nextPhase.plannedStartDate)}`
                   : 'Start date not scheduled'}
-                {startingSoon ? ' · Within 7 days' : ''}
+                {startingSoon && row.nextPhase.plannedStartDate
+                  ? ` · ${formatDaysRemaining(row.nextPhase.plannedStartDate, todayIso)}`
+                  : ''}
               </Typography>
               {row.followUpLabels.filter((l) => l !== 'Ready').length > 0 ? (
                 <Typography variant="small" className="text-neutral-700">

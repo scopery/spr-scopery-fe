@@ -156,6 +156,7 @@ export function buildMockMyInsights(
         plannedStartDate: toIsoDate(addDays(today, -2)),
         estimateHours: 2,
         status: 'IN_PROGRESS',
+        priority: 'HIGH',
         chips: ['today', 'overdue'],
       },
       {
@@ -168,6 +169,7 @@ export function buildMockMyInsights(
         plannedStartDate: null,
         estimateHours: 4,
         status: 'TODO',
+        priority: 'MEDIUM',
         chips: ['upcoming'],
       },
       {
@@ -180,6 +182,7 @@ export function buildMockMyInsights(
         plannedStartDate: toIsoDate(addDays(today, 1)),
         estimateHours: 3,
         status: 'BLOCKED',
+        priority: 'CRITICAL',
         chips: ['blocked', 'upcoming'],
       },
       {
@@ -192,6 +195,7 @@ export function buildMockMyInsights(
         plannedStartDate: null,
         estimateHours: null,
         status: 'TODO',
+        priority: 'LOW',
         chips: ['unscheduled'],
       },
       {
@@ -204,6 +208,7 @@ export function buildMockMyInsights(
         plannedStartDate: toIsoDate(addDays(today, -3)),
         estimateHours: 2,
         status: 'TODO',
+        priority: 'HIGH',
         chips: ['overdue'],
       },
     ],

@@ -100,6 +100,7 @@ function toCurrentWorkRow(t: MyWorkTaskItem, todayIso: string): MyInsightsTaskRo
     plannedStartDate: t.plannedStartDate,
     estimateHours: t.estimateHours,
     status: t.status,
+    priority: t.priority || null,
     chips: taskChips(t, todayIso),
   }
 }

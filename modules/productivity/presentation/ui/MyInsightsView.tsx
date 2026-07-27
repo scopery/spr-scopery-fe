@@ -101,6 +101,30 @@ function statusBadgeClass(status: string) {
   return 'bg-neutral-600 text-white'
 }
 
+function priorityBadgeClass(priority: string) {
+  const p = priority.toUpperCase()
+  if (p === 'CRITICAL') return 'bg-red-700 text-white'
+  if (p === 'HIGH') return 'bg-orange-500 text-white'
+  if (p === 'MEDIUM') return 'bg-sky-600 text-white'
+  if (p === 'LOW') return 'bg-neutral-500 text-white'
+  return 'bg-neutral-600 text-white'
+}
+
+function priorityLabel(priority: string) {
+  switch (priority.toUpperCase()) {
+    case 'LOW':
+      return 'Low'
+    case 'MEDIUM':
+      return 'Medium'
+    case 'HIGH':
+      return 'High'
+    case 'CRITICAL':
+      return 'Critical'
+    default:
+      return priority
+  }
+}
+
 function chipBadgeClass(chip: 'overdue' | 'blocked') {
   if (chip === 'overdue') return 'bg-neutral-200 text-neutral-900'
   return 'bg-sky-600 text-white'
@@ -655,6 +679,16 @@ export function MyInsightsView() {
                         )}
                       >
                         Blocked
+                      </span>
+                    ) : null}
+                    {t.priority ? (
+                      <span
+                        className={cn(
+                          'rounded-none px-1.5 py-0.5 text-[11px] font-medium',
+                          priorityBadgeClass(t.priority)
+                        )}
+                      >
+                        {priorityLabel(t.priority)}
                       </span>
                     ) : null}
                     <span

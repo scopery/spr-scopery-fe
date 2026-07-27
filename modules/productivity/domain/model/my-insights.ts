@@ -86,6 +86,7 @@ export interface MyInsightsTaskRow {
   plannedStartDate: string | null
   estimateHours: number | null
   status: string
+  priority: string | null
   chips: Array<'overdue' | 'blocked' | 'unscheduled' | 'today' | 'upcoming'>
 }
 

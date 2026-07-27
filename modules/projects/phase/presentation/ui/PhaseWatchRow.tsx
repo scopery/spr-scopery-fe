@@ -7,7 +7,9 @@ import { cn } from '@/utils/cn'
 import { PhaseWatchSignal } from '../../domain/enums/phase-watch.enum'
 import type { PhaseWatchPhaseSummary, PhaseWatchProjectRow } from '../../domain/model/phase-watch'
 import {
+  formatDaysRemaining,
   formatPhaseWatchDate,
+  isPhaseEndingSoon,
   phaseDisplayTitle,
   phaseWatchSignalLabel,
 } from '../../domain/rules/phase-watch.rules'
@@ -22,10 +24,15 @@ export const PHASE_WATCH_COLGROUP = (
   </colgroup>
 )
 
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10)
+}
+
 function signalTone(signal: string): 'error' | 'warning' | 'info' | 'success' | 'neutral' {
   switch (signal) {
     case PhaseWatchSignal.HasBlockers:
       return 'error'
+    case PhaseWatchSignal.EndingSoon:
     case PhaseWatchSignal.StartingSoon:
     case PhaseWatchSignal.NoStartDate:
     case PhaseWatchSignal.UnassignedTasks:
@@ -50,19 +57,37 @@ export function PhaseSignalBadge({ signal }: { signal: string }) {
 export function ActivePhaseBlock({
   phase,
   compact,
+  endingSoon,
+  daysLeftLabel,
 }: {
   phase: PhaseWatchPhaseSummary
   compact?: boolean
+  endingSoon?: boolean
+  daysLeftLabel?: string | null
 }) {
   const title = phaseDisplayTitle(phase)
   return (
-    <div className={cn('min-w-0', compact ? 'space-y-0.5' : 'space-y-1')}>
+    <div
+      className={cn(
+        'min-w-0',
+        compact ? 'space-y-0.5' : 'space-y-1',
+        endingSoon && 'rounded-none border border-orange-200/70 bg-orange-50/80 px-2 py-1.5'
+      )}
+    >
       <Typography as="p" size="sm" weight="medium" className="break-words text-neutral-900">
         {title}
       </Typography>
-      <Typography variant="small" tone="muted" className="break-words">
+      <Typography variant="small" className="break-words text-neutral-600">
         {phase.progressPercent == null ? 'No tasks' : `${phase.progressPercent}%`}
-        {phase.plannedEndDate ? ` · Ends ${formatPhaseWatchDate(phase.plannedEndDate)}` : ''}
+        {phase.plannedEndDate ? (
+          <>
+            {' · '}
+            <span className={endingSoon ? 'font-medium text-red-700' : undefined}>
+              Ends {formatPhaseWatchDate(phase.plannedEndDate)}
+              {daysLeftLabel ? ` · ${daysLeftLabel}` : ''}
+            </span>
+          </>
+        ) : null}
         {` · ${phase.statusLabel}`}
       </Typography>
       {phase.progressPercent != null && !compact ? (
@@ -78,12 +103,14 @@ export function NextPhaseBlock({
   compact,
   startingSoon,
   noStartDate,
+  daysLeftLabel,
 }: {
   phase: PhaseWatchPhaseSummary | null
   followUpLabels?: string[]
   compact?: boolean
   startingSoon?: boolean
   noStartDate?: boolean
+  daysLeftLabel?: string | null
 }) {
   if (!phase) {
     return (
@@ -112,7 +139,7 @@ export function NextPhaseBlock({
         {phase.plannedStartDate
           ? `Starts ${formatPhaseWatchDate(phase.plannedStartDate)}`
           : 'Start date not scheduled'}
-        {startingSoon ? ' · Within 7 days' : ''}
+        {daysLeftLabel ? ` · ${daysLeftLabel}` : ''}
       </Typography>
       {followUpLabels && followUpLabels.length > 0 ? (
         <Typography variant="small" className="break-words text-neutral-700">
@@ -161,6 +188,8 @@ export function PhaseWatchTableRow({
   workspaceId: string
   compact?: boolean
 }) {
+  const todayIso = todayIsoDate()
+
   return (
     <tr className="border-b border-neutral-100 last:border-0">
       <td className="py-3 pr-3 align-top">
@@ -188,9 +217,22 @@ export function PhaseWatchTableRow({
               No current phase
             </Typography>
           ) : (
-            row.activePhases.map((p) => (
-              <ActivePhaseBlock key={p.phaseId} phase={p} compact={compact} />
-            ))
+            row.activePhases.map((p) => {
+              const endingSoon = isPhaseEndingSoon(p.plannedEndDate, todayIso)
+              return (
+                <ActivePhaseBlock
+                  key={p.phaseId}
+                  phase={p}
+                  compact={compact}
+                  endingSoon={endingSoon}
+                  daysLeftLabel={
+                    endingSoon && p.plannedEndDate
+                      ? formatDaysRemaining(p.plannedEndDate, todayIso)
+                      : null
+                  }
+                />
+              )
+            })
           )}
           {row.activePhases.length > 1 ? (
             <Typography variant="small" tone="muted">
@@ -208,6 +250,11 @@ export function PhaseWatchTableRow({
             compact={compact}
             startingSoon={row.signals.includes(PhaseWatchSignal.StartingSoon)}
             noStartDate={row.signals.includes(PhaseWatchSignal.NoStartDate)}
+            daysLeftLabel={
+              row.signals.includes(PhaseWatchSignal.StartingSoon) && row.nextPhase?.plannedStartDate
+                ? formatDaysRemaining(row.nextPhase.plannedStartDate, todayIso)
+                : null
+            }
           />
         </div>
       </td>

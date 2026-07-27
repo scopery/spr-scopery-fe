@@ -8,7 +8,8 @@ import { PhaseWatchTable } from './PhaseWatchRow'
 
 const FILTERS: { value: string; label: string }[] = [
   { value: PhaseWatchFollowUpKind.All, label: 'All' },
-  { value: PhaseWatchFollowUpKind.StartingSoon, label: 'Starting in 7 days' },
+  { value: PhaseWatchFollowUpKind.EndingSoon, label: 'Ending soon' },
+  { value: PhaseWatchFollowUpKind.StartingSoon, label: 'Starting soon' },
   { value: PhaseWatchFollowUpKind.HasBlockers, label: 'Has blockers' },
   { value: PhaseWatchFollowUpKind.NoStartDate, label: 'No start date' },
   { value: PhaseWatchFollowUpKind.NoTasks, label: 'No tasks' },

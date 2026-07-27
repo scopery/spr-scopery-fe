@@ -166,6 +166,30 @@ function addDaysIso(iso: string, days: number): string {
   return d.toISOString().slice(0, 10)
 }
 
+export function calendarDaysBetween(fromIso: string, toIso: string): number {
+  const from = new Date(`${fromIso}T12:00:00`)
+  const to = new Date(`${toIso}T12:00:00`)
+  return Math.round((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000))
+}
+
+/** Human label: Today / 1 day left / N days left */
+export function formatDaysRemaining(targetIso: string, todayIso: string): string {
+  const days = calendarDaysBetween(todayIso, targetIso)
+  if (days <= 0) return 'Today'
+  if (days === 1) return '1 day left'
+  return `${days} days left`
+}
+
+/** End date is today or within the next 7 days (inclusive). */
+export function isPhaseEndingSoon(
+  plannedEndDate: string | null | undefined,
+  todayIso: string
+): boolean {
+  if (!plannedEndDate) return false
+  const soonEnd = addDaysIso(todayIso, 7)
+  return plannedEndDate >= todayIso && plannedEndDate <= soonEnd
+}
+
 export function collectPhaseWatchSignals(
   activePhases: PhaseWatchPhaseSummary[],
   nextPhase: PhaseWatchPhaseSummary | null,
@@ -174,6 +198,10 @@ export function collectPhaseWatchSignals(
   const signals: Signal[] = []
   const blocked = activePhases.reduce((n, p) => n + p.blockedTaskCount, 0)
   if (blocked > 0) signals.push(PhaseWatchSignal.HasBlockers)
+
+  if (activePhases.some((p) => isPhaseEndingSoon(p.plannedEndDate, todayIso))) {
+    signals.push(PhaseWatchSignal.EndingSoon)
+  }
 
   if (nextPhase) {
     if (!nextPhase.plannedStartDate) {
@@ -198,6 +226,7 @@ export function collectPhaseWatchSignals(
 
 const SIGNAL_PRIORITY: Signal[] = [
   PhaseWatchSignal.HasBlockers,
+  PhaseWatchSignal.EndingSoon,
   PhaseWatchSignal.StartingSoon,
   PhaseWatchSignal.NoStartDate,
   PhaseWatchSignal.NoTasks,
@@ -216,6 +245,8 @@ export function phaseWatchSignalLabel(signal: Signal): string {
   switch (signal) {
     case PhaseWatchSignal.HasBlockers:
       return 'Has blockers'
+    case PhaseWatchSignal.EndingSoon:
+      return 'Ending soon'
     case PhaseWatchSignal.StartingSoon:
       return 'Starting soon'
     case PhaseWatchSignal.NoStartDate:
@@ -239,6 +270,9 @@ export function buildFollowUpLabels(
   const labels: string[] = []
   const blocked = activePhases.reduce((n, p) => n + p.blockedTaskCount, 0)
   if (blocked > 0) labels.push(`${blocked} blocked task${blocked === 1 ? '' : 's'}`)
+  if (signals.includes(PhaseWatchSignal.EndingSoon)) {
+    labels.push('Current phase ending soon')
+  }
   if (nextPhase?.unassignedTaskCount) {
     labels.push(
       `${nextPhase.unassignedTaskCount} task${nextPhase.unassignedTaskCount === 1 ? '' : 's'} unassigned`
@@ -251,7 +285,7 @@ export function buildFollowUpLabels(
     labels.push('Start date not scheduled')
   }
   if (signals.includes(PhaseWatchSignal.StartingSoon) && nextPhase?.plannedStartDate) {
-    labels.push('Starts within 7 days')
+    labels.push('Next phase starting soon')
   }
   if (labels.length === 0 && signals.includes(PhaseWatchSignal.OnTrack)) {
     labels.push('Ready')
@@ -297,6 +331,9 @@ export function filterPhaseWatchRows(
     }
     if (kind === PhaseWatchFollowUpKind.StartingSoon) {
       return row.signals.includes(PhaseWatchSignal.StartingSoon)
+    }
+    if (kind === PhaseWatchFollowUpKind.EndingSoon) {
+      return row.signals.includes(PhaseWatchSignal.EndingSoon)
     }
     if (kind === PhaseWatchFollowUpKind.NoStartDate) {
       return row.signals.includes(PhaseWatchSignal.NoStartDate)

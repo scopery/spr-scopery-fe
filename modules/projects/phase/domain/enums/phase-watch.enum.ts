@@ -1,6 +1,7 @@
 export const PhaseWatchFollowUpKind = {
   All: 'all',
   StartingSoon: 'starting_soon',
+  EndingSoon: 'ending_soon',
   HasBlockers: 'has_blockers',
   NoStartDate: 'no_start_date',
   NoTasks: 'no_tasks',
@@ -10,6 +11,7 @@ export type PhaseWatchFollowUpKind =
 
 export const PhaseWatchSignal = {
   HasBlockers: 'has_blockers',
+  EndingSoon: 'ending_soon',
   StartingSoon: 'starting_soon',
   NoStartDate: 'no_start_date',
   NoTasks: 'no_tasks',
