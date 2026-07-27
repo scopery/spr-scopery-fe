@@ -113,15 +113,15 @@ function priorityBadgeClass(priority: string) {
 function priorityLabel(priority: string) {
   switch (priority.toUpperCase()) {
     case 'LOW':
-      return 'Low'
+      return 'LOW'
     case 'MEDIUM':
-      return 'Medium'
+      return 'MEDIUM'
     case 'HIGH':
-      return 'High'
+      return 'HIGH'
     case 'CRITICAL':
-      return 'Critical'
+      return 'CRITICAL'
     default:
-      return priority
+      return priority.toUpperCase()
   }
 }
 
