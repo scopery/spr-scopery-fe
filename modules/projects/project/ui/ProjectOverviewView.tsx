@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { AlertTriangle, ArrowRight, ListTodo, Settings, Sparkles } from 'lucide-react'
+import { AlertTriangle, ListTodo, Settings, Sparkles } from 'lucide-react'
 import { Typography, Button, PageSkeleton, Stack, Badge } from '@/shared/ui'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import { UserIdentity } from '@/modules/platform/identity/presentation/ui/UserIdentity'
@@ -16,6 +16,7 @@ import { useProject } from '../hooks/useProject'
 import { useProjectLifecycle } from '../hooks/useProjectLifecycle'
 import { useProjectPhases } from '../../phase/presentation/hooks/useProjectPhases'
 import { useProjectTasks } from '../../task/presentation/hooks/useProjectTasks'
+import { CurrentNextPhaseWidget } from '../../phase/presentation/ui/CurrentNextPhaseWidget'
 import { ProjectStatusBadge } from '../presentation/ui/ProjectStatusBadge'
 import { ProjectLifecycleMenu } from '../presentation/ui/ProjectLifecycleMenu'
 import { ProjectSummaryModal } from '../presentation/ui/ProjectSummaryModal'
@@ -24,7 +25,6 @@ import {
   isTaskOverdue,
   taskStatusLabel,
 } from '../../task/domain/rules/task.rules'
-import { phaseStatusLabel } from '../../phase/domain/rules/phase.rules'
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return '—'
@@ -264,42 +264,15 @@ export function ProjectOverviewView() {
           )}
         </section>
 
-        <section className="border border-neutral-200 bg-white p-5">
-          <Typography as="h2" weight="semibold" className="mb-4">
-            Phases
-          </Typography>
-          {phases.length === 0 ? (
-            <Typography tone="muted" variant="small">
-              No phases yet. Add them in project settings.
-            </Typography>
-          ) : (
-            <ul className="space-y-2">
-              {phases
-                .slice()
-                .sort((a, b) => a.displayOrder - b.displayOrder)
-                .map((ph) => (
-                  <li
-                    key={ph.id}
-                    className="flex items-center justify-between gap-2 border-b border-neutral-100 py-2 last:border-0"
-                  >
-                    <div>
-                      <Typography weight="medium">{ph.name}</Typography>
-                      <Typography variant="small" tone="muted" className="font-mono">
-                        {ph.code}
-                      </Typography>
-                    </div>
-                    <Badge tone="neutral">{phaseStatusLabel(ph.status)}</Badge>
-                  </li>
-                ))}
-            </ul>
-          )}
-          <NextLink
-            href={ROUTES.workspace.projectSettings(workspaceId, projectId)}
-            className="mt-4 inline-flex items-center gap-1 text-sm text-primary hover:underline"
-          >
-            Manage phases <ArrowRight size={14} />
-          </NextLink>
-        </section>
+        <CurrentNextPhaseWidget
+          workspaceId={workspaceId}
+          projectId={projectId}
+          projectName={project.name}
+          projectCode={project.code}
+          phases={phases}
+          tasks={tasks}
+          loading={phasesLoading || tasksLoading}
+        />
       </div>
 
       <section className="border border-neutral-200 bg-white p-5">

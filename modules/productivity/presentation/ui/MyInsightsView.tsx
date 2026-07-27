@@ -9,7 +9,6 @@ import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
 import { MyInsightsWorkChip } from '../../domain/enums/my-insights.enum'
 import type {
-  MyInsightsAttentionGroup,
   MyInsightsDistributionSlice,
   MyInsightsHeatmapDay,
   MyInsightsResponse,
@@ -18,7 +17,7 @@ import type {
 } from '../../domain/model/my-insights'
 import { useMyInsights } from '../hooks/useMyInsights'
 import { InsightWidgetShell } from './my-insights/InsightWidgetShell'
-import { useProjects } from '@/modules/projects'
+import { PhaseWatchWidget, useProjects } from '@/modules/projects'
 
 const RANGE_OPTIONS = [
   { value: '7d', label: 'Last 7 days' },
@@ -470,11 +469,6 @@ export function MyInsightsView() {
     document.getElementById('my-insights-current-work')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  const onAttentionClick = (group: MyInsightsAttentionGroup) => {
-    setParams({ attention: group.kind, work: null })
-    scrollToCurrentWork()
-  }
-
   return (
     <div className="space-y-4 p-lg">
       <header className="flex flex-wrap items-start justify-between gap-4 border-b border-neutral-200 pb-4">
@@ -554,7 +548,7 @@ export function MyInsightsView() {
             ))}
           </div>
           <Typography variant="small" tone="muted" className="mt-3">
-            Summary, Needs attention, and Current work stay visible.
+            Summary, Current work, and Phase Watch stay visible.
           </Typography>
         </div>
       ) : null}
@@ -585,38 +579,16 @@ export function MyInsightsView() {
         }}
       />
 
-      <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-        <InsightWidgetShell title="Needs attention" loading={loading && !data}>
-          <ul className="divide-y divide-neutral-200">
-            {(data?.attention ?? []).map((g) => (
-              <li key={g.kind}>
-                <button
-                  type="button"
-                  onClick={() => onAttentionClick(g)}
-                  className={cn(
-                    'flex w-full items-center justify-between rounded-none px-1 py-2.5 text-left hover:bg-neutral-50',
-                    attention === g.kind && 'bg-blue-400/5'
-                  )}
-                >
-                  <Typography variant="small" className="text-neutral-800">
-                    {g.label}
-                  </Typography>
-                  <Typography
-                    as="span"
-                    weight="semibold"
-                    className="tabular-nums text-neutral-900"
-                  >
-                    {g.count}
-                  </Typography>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </InsightWidgetShell>
+      <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr] lg:items-start">
+        <PhaseWatchWidget
+          workspaceId={workspaceId}
+          projectId={projectId || null}
+          className="min-h-full"
+        />
 
         <InsightWidgetShell
           title="Current work"
-          className="scroll-mt-4"
+          className="scroll-mt-4 min-h-full"
           loading={loading && !data}
           empty={tasks.length === 0 ? 'No work found for this filter.' : null}
           action={
