@@ -23,7 +23,7 @@ import { useFunctionalAnchorCoverage } from '../hooks/useFunctionalAnchorCoverag
 import { FunctionalCatalogAddBar } from './FunctionalCatalogAddBar'
 import type { FunctionalCatalogBulkCreateInput } from './FunctionalCatalogBulkAddModal'
 import { FunctionalItemDetailPanel } from './FunctionalItemDetailPanel'
-import { FunctionalMappingPanel } from './FunctionalMappingPanel'
+import { RequirementFunctionalLinkPanel } from './RequirementFunctionalLinkPanel'
 import { SimpleExcelImportPanel } from './SimpleExcelImportPanel'
 import {
   FUNCTIONAL_ITEM_IMPORT_SPEC,
@@ -409,8 +409,8 @@ export function FunctionalCatalogView() {
           ) : null}
 
           {tab === 'map' ? (
-            <div className="h-full min-h-0 overflow-y-auto border border-neutral-200 bg-white p-3">
-              <FunctionalMappingPanel
+            <div className="h-full min-h-0 overflow-hidden bg-white">
+              <RequirementFunctionalLinkPanel
                 workspaceId={workspaceId}
                 projectId={projectId}
                 functionalItems={functionalItems}

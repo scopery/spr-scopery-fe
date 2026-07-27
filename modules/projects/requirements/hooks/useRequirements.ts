@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import * as requirementsApi from '../api/requirements.api'
-import type { CreateRequirementPayload, Requirement } from '../model/requirements'
+import type {
+  CreateRequirementPayload,
+  Requirement,
+  UpdateRequirementPayload,
+} from '../model/requirements'
 
 export function useRequirements(orgId: string | null, projectId: string | null) {
   const [requirements, setRequirements] = useState<Requirement[]>([])
@@ -41,5 +45,29 @@ export function useRequirements(orgId: string | null, projectId: string | null) 
     [orgId, projectId, load]
   )
 
-  return { requirements, loading, error, refetch: load, createRequirement }
+  const updateRequirement = useCallback(
+    async (requirementId: string, body: UpdateRequirementPayload) => {
+      if (!orgId || !projectId) return null
+      const updated = await requirementsApi.updateRequirement(
+        orgId,
+        projectId,
+        requirementId,
+        body
+      )
+      setRequirements((prev) =>
+        prev.map((r) => (r.id === requirementId ? { ...r, ...updated } : r))
+      )
+      return updated
+    },
+    [orgId, projectId]
+  )
+
+  return {
+    requirements,
+    loading,
+    error,
+    refetch: load,
+    createRequirement,
+    updateRequirement,
+  }
 }

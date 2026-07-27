@@ -231,7 +231,7 @@ export function FunctionalMappingPanel({
             <Typography variant="small" tone="muted" className="mt-1">
               FR ↔ architecture node. {edges.length} link{edges.length === 1 ? '' : 's'}
               {frWithoutAnchors.length
-                ? ` · ${frWithoutAnchors.length} FR chưa gắn`
+                ? ` · ${frWithoutAnchors.length} FR with no link`
                 : ''}
             </Typography>
           </div>
@@ -339,9 +339,9 @@ export function FunctionalMappingPanel({
       {view === 'links' ? (
         edges.length === 0 ? (
           <div className="py-10 text-center">
-            <Typography>Chưa có mối liên hệ</Typography>
+            <Typography>No links yet</Typography>
             <Typography variant="small" tone="muted" className="mt-1">
-              Chọn FR và architecture node ở trên, bấm Link.
+              Select an FR and architecture node above, then click Link.
             </Typography>
           </div>
         ) : (
@@ -392,7 +392,7 @@ export function FunctionalMappingPanel({
                           active ? 'text-neutral-300' : 'text-neutral-500'
                         )}
                       >
-                        {count === 0 ? 'Chưa gắn' : `${count} node`}
+                        {count === 0 ? 'Not linked' : `${count} node${count === 1 ? '' : 's'}`}
                       </div>
                     </button>
                   </li>
@@ -402,15 +402,15 @@ export function FunctionalMappingPanel({
           </aside>
           <main>
             {!selectedFrId ? (
-              <Typography tone="muted">Chọn một FR</Typography>
+              <Typography tone="muted">Select a functional item</Typography>
             ) : (
               <Stack direction="vertical" spacing="md">
                 <Typography variant="small" tone="muted">
-                  Nodes gắn với FR này
+                  Nodes linked to this FR
                 </Typography>
                 {edgesForFr.length === 0 ? (
                   <Typography tone="muted">
-                    Chưa gắn node nào. Dùng form Add link phía trên.
+                    No nodes linked yet. Use the Add link form above.
                   </Typography>
                 ) : (
                   <ul className="divide-y divide-neutral-100">
@@ -437,7 +437,7 @@ export function FunctionalMappingPanel({
                 {nodes.length > 0 ? (
                   <div>
                     <Typography variant="caption" tone="muted" className="mb-2 block">
-                      Nodes trong app (đã gắn được đánh dấu)
+                      Nodes in this app (linked ones are marked)
                     </Typography>
                     <ul className="max-h-56 overflow-auto text-sm">
                       {nodes.map((n) => {
@@ -488,7 +488,7 @@ export function FunctionalMappingPanel({
             </Typography>
             {!effectiveAppId ? (
               <Typography tone="muted" variant="small">
-                Chọn application trước
+                Select an application first
               </Typography>
             ) : (
               <ul className="max-h-[min(60vh,560px)] space-y-0.5 overflow-auto">
@@ -515,7 +515,7 @@ export function FunctionalMappingPanel({
                           )}
                         >
                           {ARCHITECTURE_NODE_TYPE_LABEL[n.type]}
-                          {count ? ` · ${count} FR` : ' · chưa có FR'}
+                          {count ? ` · ${count} FR` : ' · no FR yet'}
                         </div>
                       </button>
                     </li>
@@ -526,10 +526,10 @@ export function FunctionalMappingPanel({
           </aside>
           <main>
             {!selectedNodeId ? (
-              <Typography tone="muted">Chọn một architecture node</Typography>
+              <Typography tone="muted">Select an architecture node</Typography>
             ) : edgesForNode.length === 0 ? (
               <Typography tone="muted">
-                Node này chưa được FR nào gắn. Dùng form Add link phía trên.
+                No FR linked to this node yet. Use the Add link form above.
               </Typography>
             ) : (
               <div>

@@ -96,6 +96,10 @@ export const TRACEABILITY_ENDPOINTS = {
   },
   traceLinksBatch: (projectId: string) =>
     apiPath(`/projects/${projectId}/trace-links/batch`),
+  traceLink: (projectId: string, linkId: string) =>
+    apiPath(`/projects/${projectId}/trace-links/${linkId}`),
+  archiveTraceLink: (projectId: string, linkId: string) =>
+    apiPath(`/projects/${projectId}/trace-links/${linkId}/archive`),
   requirementTestCaseLinks: (projectId: string, requirementId: string) =>
     apiPath(`/projects/${projectId}/requirements/${requirementId}/test-case-links`),
   linkableTestCases: (
@@ -389,6 +393,17 @@ export async function createTraceLink(
   }
 ): Promise<TraceLink> {
   return apiClient.post(TRACEABILITY_ENDPOINTS.traceLinks(projectId), body)
+}
+
+export async function deleteTraceLink(
+  projectId: string,
+  linkId: string
+): Promise<void> {
+  await apiClient.patch<void>(
+    TRACEABILITY_ENDPOINTS.archiveTraceLink(projectId, linkId),
+    {},
+    { parseJson: false }
+  )
 }
 
 export async function batchCreateTraceLinks(

@@ -8,5 +8,6 @@ export type {
   RequirementType,
   RequirementsListResponse,
   CreateRequirementPayload,
+  UpdateRequirementPayload,
 } from './model/requirements'
 export * as requirementsApi from './api/requirements.api'
