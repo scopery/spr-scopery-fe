@@ -1,8 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import * as api from '../../infrastructure/api/support.api'
-import type { SupportCase, SupportDashboardSummary } from '../../domain/model/support'
+import type { SupportCase, SupportDashboardSummary, CreateSupportCasePayload } from '../../domain/model/support'
 import type { SupportComment } from '../../infrastructure/api/support.api'
 
 export function useSupportCases(workspaceId: string | null) {
@@ -10,6 +11,7 @@ export function useSupportCases(workspaceId: string | null) {
   const [dashboard, setDashboard] = useState<SupportDashboardSummary | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
 
   const load = useCallback(async () => {
     if (!workspaceId) return
@@ -33,7 +35,27 @@ export function useSupportCases(workspaceId: string | null) {
     void load()
   }, [load])
 
-  return { items, dashboard, loading, error, refetch: load }
+  const createCase = useCallback(
+    async (body: CreateSupportCasePayload) => {
+      if (!workspaceId) return null
+      setCreating(true)
+      try {
+        const created = await api.createSupportCase(workspaceId, {
+          ...body,
+          source: body.source ?? 'INTERNAL_CREATE',
+          portalVisible: body.portalVisible ?? false,
+        })
+        toast.success('Support case created')
+        await load()
+        return created
+      } finally {
+        setCreating(false)
+      }
+    },
+    [workspaceId, load]
+  )
+
+  return { items, dashboard, loading, error, creating, refetch: load, createCase }
 }
 
 export function useSupportCaseDetail(workspaceId: string | null, caseId: string | null) {

@@ -17,7 +17,23 @@ export async function createThread(
   projectId: string,
   body: CreateThreadPayload
 ): Promise<CommentThread> {
-  return apiClient.post<CommentThread>(COMMENT_ENDPOINTS.threads(projectId), body)
+  const thread = await apiClient.post<CommentThread>(COMMENT_ENDPOINTS.threads(projectId), {
+    targetType: body.targetType,
+    targetId: body.targetId,
+    title: body.title ?? null,
+    clientVisible: body.clientVisible ?? false,
+  })
+
+  const firstBody = body.body?.trim()
+  if (firstBody) {
+    await createComment(projectId, thread.id, {
+      body: firstBody,
+      mentionUserIds: body.mentionUserIds,
+      clientVisible: body.clientVisible ?? false,
+    })
+  }
+
+  return thread
 }
 
 export async function getThread(projectId: string, threadId: string): Promise<CommentThread> {
@@ -49,7 +65,7 @@ export async function updateComment(
   commentId: string,
   body: UpdateCommentPayload
 ): Promise<Comment> {
-  return apiClient.patch<Comment>(COMMENT_ENDPOINTS.comment(projectId, commentId), body)
+  return apiClient.put<Comment>(COMMENT_ENDPOINTS.comment(projectId, commentId), body)
 }
 
 export async function deleteComment(projectId: string, commentId: string): Promise<void> {

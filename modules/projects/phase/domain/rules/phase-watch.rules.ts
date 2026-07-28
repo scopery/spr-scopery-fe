@@ -322,6 +322,16 @@ export function buildProjectPhaseWatchRow(input: {
   const nextPhase = nextRaw ? buildPhaseSummary(nextRaw, input.tasks) : null
   const signals = collectPhaseWatchSignals(active, nextPhase, input.todayIso)
 
+  const phaseNameById = new Map(input.phases.map((p) => [p.id, p.name]))
+  const openUnassigned = input.tasks
+    .filter((t) => isTaskOpen(t.status) && !t.inChargeUserId)
+    .sort((a, b) => {
+      const ad = a.dueDate ?? '9999-12-31'
+      const bd = b.dueDate ?? '9999-12-31'
+      if (ad !== bd) return ad.localeCompare(bd)
+      return a.code.localeCompare(b.code)
+    })
+
   return {
     projectId: input.projectId,
     projectName: input.projectName,
@@ -331,6 +341,17 @@ export function buildProjectPhaseWatchRow(input: {
     signals,
     primarySignal: primaryPhaseWatchSignal(signals),
     followUpLabels: buildFollowUpLabels(active, nextPhase, signals),
+    unassignedTaskCount: openUnassigned.length,
+    topUnassignedTasks: openUnassigned.slice(0, 8).map((t) => ({
+      taskId: t.id,
+      code: t.code,
+      title: t.title,
+      dueDate: t.dueDate,
+      estimateHours: t.estimateHours,
+      priority: String(t.priority ?? ''),
+      phaseId: t.projectPhaseId,
+      phaseName: t.projectPhaseId ? phaseNameById.get(t.projectPhaseId) ?? null : null,
+    })),
   }
 }
 

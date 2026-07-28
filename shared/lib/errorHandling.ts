@@ -26,7 +26,12 @@ export function getProblemToastMessage(err: unknown): string {
   const code = getProblemCode(err)
   const status = err.status
 
+  // Never surface IAM raw detail (user/resource UUIDs, right codes).
   if (status === 403) return "You don't have permission to perform this action."
+  const rawDetail = err.problem.detail || ''
+  if (/access denied/i.test(rawDetail) || /\(right:\s*[A-Z0-9_.]+\)/i.test(rawDetail)) {
+    return "You don't have permission to perform this action."
+  }
   if (status === 404) {
     if (code === 'AI_PROVIDER_ERROR') {
       return 'AI workflow connection error (404). Ask an admin to check the workflow ID and OpenAI configuration (project, API key).'

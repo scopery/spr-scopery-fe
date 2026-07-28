@@ -184,6 +184,9 @@ describe('phase-watch.rules', () => {
       todayIso: '2026-08-01',
     })
     expect(row.activePhases[0].progressPercent).toBe(50)
+    expect(row.unassignedTaskCount).toBe(2)
+    expect(row.topUnassignedTasks.length).toBeGreaterThanOrEqual(1)
+    expect(row.topUnassignedTasks.some((t) => t.code === tasks[2].code)).toBe(true)
     expect(row.signals).toContain(PhaseWatchSignal.HasBlockers)
     expect(row.signals).toContain(PhaseWatchSignal.StartingSoon)
     expect(row.signals).toContain(PhaseWatchSignal.UnassignedTasks)

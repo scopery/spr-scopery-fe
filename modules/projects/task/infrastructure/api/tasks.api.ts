@@ -67,6 +67,27 @@ export async function updateTask(
   return apiClient.put<ProjectTask>(PROJECT_ENDPOINTS.tasks.update(projectId, taskId), body)
 }
 
+export async function assignTask(
+  projectId: string,
+  taskId: string,
+  inChargeUserId: string
+): Promise<ProjectTask> {
+  const task = await apiClient.get<ProjectTask>(PROJECT_ENDPOINTS.tasks.get(projectId, taskId))
+  return apiClient.put<ProjectTask>(PROJECT_ENDPOINTS.tasks.update(projectId, taskId), {
+    projectPhaseId: task.projectPhaseId,
+    wbsNodeId: task.wbsNodeId,
+    title: task.title,
+    description: task.description,
+    inChargeUserId,
+    plannedRoleCode: task.plannedRoleCode,
+    plannedRoleName: task.plannedRoleName,
+    estimateHours: task.estimateHours,
+    plannedStartDate: task.plannedStartDate,
+    dueDate: task.dueDate,
+    priority: task.priority,
+  })
+}
+
 export async function startTask(projectId: string, taskId: string): Promise<ProjectTask> {
   return apiClient.patch<ProjectTask>(PROJECT_ENDPOINTS.tasks.start(projectId, taskId))
 }

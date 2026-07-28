@@ -108,7 +108,7 @@ export const Select = React.forwardRef(
           <SelectPrimitive.Portal>
             <SelectPrimitive.Content
               className={cn(
-                'relative z-[100] overflow-hidden border border-neutral-200 bg-white shadow-lg',
+                'relative z-[200] overflow-hidden border border-neutral-200 bg-white shadow-lg',
                 'w-[var(--radix-select-trigger-width)] max-h-[min(24rem,var(--radix-select-content-available-height))]',
                 'data-[state=open]:animate-in data-[state=closed]:animate-out',
                 'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',

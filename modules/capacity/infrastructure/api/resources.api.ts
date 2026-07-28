@@ -9,7 +9,8 @@ import type {
 
 export async function listResourceProfiles(workspaceId: string): Promise<ResourceProfile[]> {
   const data = await apiClient.get<ResourceProfile[] | { items: ResourceProfile[] }>(
-    CAPACITY_ENDPOINTS.resources.list(workspaceId)
+    CAPACITY_ENDPOINTS.resources.list(workspaceId),
+    { skipErrorToast: true }
   )
   return Array.isArray(data) ? data : (data.items ?? [])
 }
@@ -18,7 +19,9 @@ export async function getResourceProfile(
   workspaceId: string,
   resourceId: string
 ): Promise<ResourceProfile> {
-  return apiClient.get<ResourceProfile>(CAPACITY_ENDPOINTS.resources.get(workspaceId, resourceId))
+  return apiClient.get<ResourceProfile>(CAPACITY_ENDPOINTS.resources.get(workspaceId, resourceId), {
+    skipErrorToast: true,
+  })
 }
 
 export async function createResourceProfile(

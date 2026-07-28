@@ -8,6 +8,7 @@ import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { cn } from '@/utils/cn'
 import { useEntityComments } from '../hooks/useEntityComments'
 import { CommentBubble } from './CommentBubble'
+import { isCommentDeleted } from '../../domain/model/comment'
 import { ThreadStatus } from '../../domain/enums/comment.enum'
 import type { CommentTargetType } from '../../domain/enums/comment.enum'
 
@@ -22,7 +23,7 @@ export function CommentThreadsPanel({ projectId, targetType, targetId }: Props) 
     threads,
     commentsByThread,
     loading,
-    loadComments,
+    error,
     postThread,
     postComment,
     resolveThread,
@@ -34,19 +35,19 @@ export function CommentThreadsPanel({ projectId, targetType, targetId }: Props) 
   const [replyBody, setReplyBody] = useState<Record<string, string>>({})
   const [posting, setPosting] = useState(false)
 
-  const toggleThread = async (threadId: string) => {
+  // Auto-expand all threads so comments are visible without an extra click
+  useEffect(() => {
+    if (threads.length === 0) return
+    setExpandedThreadIds(new Set(threads.map((t) => t.id)))
+  }, [threads])
+
+  const toggleThread = (threadId: string) => {
     setExpandedThreadIds((prev) => {
       const next = new Set(prev)
-      if (next.has(threadId)) {
-        next.delete(threadId)
-      } else {
-        next.add(threadId)
-      }
+      if (next.has(threadId)) next.delete(threadId)
+      else next.add(threadId)
       return next
     })
-    if (!commentsByThread[threadId]) {
-      await loadComments(threadId)
-    }
   }
 
   const handlePostThread = async () => {
@@ -91,14 +92,6 @@ export function CommentThreadsPanel({ projectId, targetType, targetId }: Props) 
     }
   }
 
-  // Load comments for all expanded threads on mount
-  useEffect(() => {
-    expandedThreadIds.forEach((tid) => {
-      if (!commentsByThread[tid]) void loadComments(tid)
-    })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threads])
-
   return (
     <div className="space-y-4">
       <div className="space-y-2 border border-neutral-200 bg-neutral-50 p-3">
@@ -125,6 +118,8 @@ export function CommentThreadsPanel({ projectId, targetType, targetId }: Props) 
 
       {loading && threads.length === 0 ? (
         <Typography variant="small" tone="muted">Loading…</Typography>
+      ) : error ? (
+        <Typography variant="small" tone="error">{error}</Typography>
       ) : threads.length === 0 ? (
         <Typography variant="small" tone="muted">No comments yet</Typography>
       ) : (
@@ -133,23 +128,24 @@ export function CommentThreadsPanel({ projectId, targetType, targetId }: Props) 
             const expanded = expandedThreadIds.has(thread.id)
             const comments = commentsByThread[thread.id] ?? []
             const isResolved = thread.status === ThreadStatus.Resolved
+            const count = comments.length
 
             return (
               <div
                 key={thread.id}
                 className={cn(
-                  'rounded border',
+                  'border',
                   isResolved ? 'border-neutral-100 opacity-60' : 'border-neutral-200'
                 )}
               >
                 <button
                   type="button"
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-neutral-50"
-                  onClick={() => void toggleThread(thread.id)}
+                  onClick={() => toggleThread(thread.id)}
                 >
                   {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                   <span className="flex-1 font-medium">
-                    Thread · {thread.commentCount} comment{thread.commentCount !== 1 ? 's' : ''}
+                    Thread · {count} comment{count !== 1 ? 's' : ''}
                   </span>
                   {isResolved && <Badge tone="success">Resolved</Badge>}
                   {!isResolved && (
@@ -169,13 +165,23 @@ export function CommentThreadsPanel({ projectId, targetType, targetId }: Props) 
 
                 {expanded && (
                   <div className="space-y-3 border-t border-neutral-100 px-3 py-3">
-                    {comments.map((c) => (
-                      <CommentBubble
-                        key={c.id}
-                        comment={c}
-                        onDelete={!c.deleted ? (id) => void handleDeleteComment(thread.id, id) : undefined}
-                      />
-                    ))}
+                    {comments.length === 0 ? (
+                      <Typography variant="small" tone="muted">
+                        No comments in this thread.
+                      </Typography>
+                    ) : (
+                      comments.map((c) => (
+                        <CommentBubble
+                          key={c.id}
+                          comment={c}
+                          onDelete={
+                            !isCommentDeleted(c)
+                              ? (id) => void handleDeleteComment(thread.id, id)
+                              : undefined
+                          }
+                        />
+                      ))
+                    )}
                     {!isResolved && (
                       <Stack direction="horizontal" spacing="sm" className="items-end pt-1">
                         <Textarea

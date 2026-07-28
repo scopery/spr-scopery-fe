@@ -15,28 +15,6 @@ export function useEntityComments(
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const loadThreads = useCallback(async () => {
-    if (!projectId || !targetType || !targetId) {
-      setThreads([])
-      return
-    }
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await commentsApi.listThreadsByTarget(projectId, targetType, targetId)
-      setThreads(res ?? [])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load comments')
-      setThreads([])
-    } finally {
-      setLoading(false)
-    }
-  }, [projectId, targetType, targetId])
-
-  useEffect(() => {
-    void loadThreads()
-  }, [loadThreads])
-
   const loadComments = useCallback(
     async (threadId: string) => {
       if (!projectId) return
@@ -45,6 +23,40 @@ export function useEntityComments(
     },
     [projectId]
   )
+
+  const loadThreads = useCallback(async () => {
+    if (!projectId || !targetType || !targetId) {
+      setThreads([])
+      setCommentsByThread({})
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await commentsApi.listThreadsByTarget(projectId, targetType, targetId)
+      const nextThreads = res ?? []
+      setThreads(nextThreads)
+      await Promise.all(nextThreads.map((t) => commentsApi.listComments(projectId, t.id))).then(
+        (lists) => {
+          const map: Record<string, Comment[]> = {}
+          nextThreads.forEach((t, i) => {
+            map[t.id] = lists[i] ?? []
+          })
+          setCommentsByThread(map)
+        }
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load comments')
+      setThreads([])
+      setCommentsByThread({})
+    } finally {
+      setLoading(false)
+    }
+  }, [projectId, targetType, targetId])
+
+  useEffect(() => {
+    void loadThreads()
+  }, [loadThreads])
 
   const postThread = useCallback(
     async (body: CreateThreadPayload) => {
@@ -57,11 +69,11 @@ export function useEntityComments(
   )
 
   const postComment = useCallback(
-    async (threadId: string, body: string, mentionedUserIds?: string[]) => {
+    async (threadId: string, body: string, mentionUserIds?: string[]) => {
       if (!projectId) return null
       const created = await commentsApi.createComment(projectId, threadId, {
         body,
-        mentionedUserIds,
+        mentionUserIds,
       })
       await loadComments(threadId)
       return created

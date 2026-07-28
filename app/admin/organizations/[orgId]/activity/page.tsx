@@ -1,7 +1,9 @@
 'use client'
 
-import { OrganizationActivityPanel } from '@/modules/org/organization/ui/OrganizationActivityPanel'
+import { useParams } from 'next/navigation'
+import { OrganizationActivityPanel } from '@/modules/org'
 
 export default function AdminOrganizationActivityPage() {
-  return <OrganizationActivityPanel scopeLabel="organization" />
+  const { orgId } = useParams<{ orgId: string }>()
+  return <OrganizationActivityPanel scopeLabel="organization" organizationId={orgId} />
 }

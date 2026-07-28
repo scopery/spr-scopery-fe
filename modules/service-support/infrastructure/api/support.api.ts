@@ -1,7 +1,7 @@
 import { apiClient } from '@/shared/lib/apiClient'
 import { normalizeItemList, type ListPayload } from '@/shared/lib/normalizeListResponse'
 import { SUPPORT_ENDPOINTS } from './endpoints'
-import type { SupportCase, SupportDashboardSummary } from '../../domain/model/support'
+import type { SupportCase, SupportDashboardSummary, CreateSupportCasePayload } from '../../domain/model/support'
 
 export interface SupportComment {
   id: string
@@ -29,6 +29,13 @@ export async function listSupportCases(
 ): Promise<{ items: SupportCase[] }> {
   const res = await apiClient.get<ListPayload<SupportCase>>(SUPPORT_ENDPOINTS.cases(workspaceId))
   return normalizeItemList(res)
+}
+
+export async function createSupportCase(
+  workspaceId: string,
+  body: CreateSupportCasePayload
+): Promise<SupportCase> {
+  return apiClient.post<SupportCase>(SUPPORT_ENDPOINTS.cases(workspaceId), body)
 }
 
 export async function getSupportCase(
@@ -193,8 +200,11 @@ export interface SupportQueue {
 export interface SupportRequestType {
   id: string
   code?: string
+  typeCode?: string
   name: string
   status?: string
+  enabled?: boolean
+  defaultPriority?: string | null
 }
 
 export async function listSlaPolicies(

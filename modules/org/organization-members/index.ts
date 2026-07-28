@@ -10,3 +10,4 @@ export {
 export { useOrganizationMembers } from './hooks/useOrganizationMembers'
 export { OrganizationMembersPanel } from './ui/OrganizationMembersPanel'
 export { WorkspaceOrganizationMembersView } from './ui/WorkspaceOrganizationMembersView'
+export { OrganizationMemberPermissionsView } from './ui/OrganizationMemberPermissionsView'

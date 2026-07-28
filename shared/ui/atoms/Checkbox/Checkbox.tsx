@@ -87,7 +87,7 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
       <>
         <style>{checkboxStyles}</style>
         <div className={cn('flex flex-col gap-xs', className)}>
-          <div className="flex items-start gap-sm">
+          <div className="flex items-center gap-sm">
             <input
               ref={inputRef}
               type="checkbox"

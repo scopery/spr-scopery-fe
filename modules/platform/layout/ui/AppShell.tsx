@@ -298,9 +298,6 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     pathActive(pathname, ROUTES.workspace.myWork(workspaceId))
   const clientsActive = pathActive(pathname, ROUTES.workspace.clients(workspaceId))
   const capacityActive = pathActive(pathname, ROUTES.workspace.capacity(workspaceId))
-  const formsActive =
-    pathActive(pathname, ROUTES.workspace.forms(workspaceId)) ||
-    pathActive(pathname, ROUTES.workspace.submissions(workspaceId))
   const notificationsActive = pathActive(pathname, ROUTES.workspace.notifications(workspaceId))
   const agentControlActive = pathActive(pathname, ROUTES.workspace.agentControl(workspaceId))
   const onWorkspaceDirectory =
@@ -324,7 +321,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
             active: overviewActive,
           }
         : null,
-      showCap(NavCapabilityKey.WorkspaceActivity, true)
+      showCap(NavCapabilityKey.WorkspaceActivity)
         ? {
             label: 'Activity',
             href: ROUTES.workspace.activity(workspaceId),
@@ -370,14 +367,6 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
             href: ROUTES.workspace.support(workspaceId),
             icon: <Headset size={16} />,
             active: pathActive(pathname, ROUTES.workspace.support(workspaceId)),
-          }
-        : null,
-      showCap(NavCapabilityKey.WorkspaceForms)
-        ? {
-            label: 'Forms',
-            href: ROUTES.workspace.forms(workspaceId),
-            icon: <ClipboardList size={16} />,
-            active: formsActive,
           }
         : null,
       showCap(NavCapabilityKey.WorkspaceDirectory, true) ||
@@ -433,7 +422,6 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     projectsActive,
     capacityActive,
     clientsActive,
-    formsActive,
     onWorkspaceDirectory,
     onOrgDirectory,
     showCap,
@@ -805,12 +793,32 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
       NavCapabilityKey.ProjectDirectoryMembers,
     ])
 
+    // Sensitive tabs: never flash while loading (Quality / Commercial / Resources / AI).
+    const neverFlash = new Set<string>([
+      NavCapabilityKey.ProjectResources,
+      NavCapabilityKey.ProjectQuality,
+      NavCapabilityKey.ProjectTestPlans,
+      NavCapabilityKey.ProjectDefects,
+      NavCapabilityKey.ProjectReleases,
+      NavCapabilityKey.ProjectEstimation,
+      NavCapabilityKey.ProjectFinancials,
+      NavCapabilityKey.ProjectProfitability,
+      NavCapabilityKey.ProjectQuotes,
+      NavCapabilityKey.ProjectBaselines,
+      NavCapabilityKey.ProjectChangeRequests,
+      NavCapabilityKey.ProjectGovernance,
+      NavCapabilityKey.ProjectAiPlanning,
+      NavCapabilityKey.ProjectRecommendations,
+      NavCapabilityKey.ProjectClientCollaboration,
+    ])
+
     const filtered = sections
       .map((section) => ({
         ...section,
         items: section.items.filter((item) => {
           const key = item.href ? hrefToCap[item.href] : undefined
           if (!key) return true
+          if (neverFlash.has(key)) return showCap(key, false)
           return showCap(key, memberDefaults.has(key))
         }),
       }))

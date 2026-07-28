@@ -38,10 +38,12 @@ function isSuppressedLegacyApi(url: string): boolean {
 /**
  * Validation / client errors — hooks & forms own the UX (field errors, inline banners).
  * Global toast for these becomes noisy 400 spam on every failed submit/probe.
+ * 403: skip global toast so unauthorized nav/preload does not spam or leak IAM detail;
+ * hooks/mutations that need feedback toast via getProblemToastMessage (generic copy).
  */
 function shouldSkipGlobalToast(error: ApiError): boolean {
   if (error.isAuthError) return true
-  if (error.status === 400 || error.status === 422) return true
+  if (error.status === 400 || error.status === 422 || error.status === 403) return true
   return false
 }
 

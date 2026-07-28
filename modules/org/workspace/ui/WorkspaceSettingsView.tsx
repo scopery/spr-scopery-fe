@@ -115,6 +115,12 @@ export function WorkspaceSettingsView() {
           <Typography as="p" variant="small" tone="muted" className="mt-1">
             Name, description, visibility, and join policy.
           </Typography>
+          <NextLink
+            href={ROUTES.workspace.settingsMemberPermissions(workspaceId)}
+            className="mt-2 inline-block text-sm text-primary hover:underline"
+          >
+            Manage member permissions
+          </NextLink>
         </div>
       </div>
 

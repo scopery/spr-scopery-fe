@@ -1,14 +1,17 @@
 'use client'
 
+import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { Plus } from 'lucide-react'
 import { Button, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useSupportCases } from '../hooks/useSupportCases'
 import { useSupportOps } from '../hooks/useSupportOps'
+import { CreateSupportCaseModal } from './CreateSupportCaseModal'
 
 export function SupportDashboardView() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
-  const { items, dashboard, loading, error } = useSupportCases(workspaceId)
+  const { items, dashboard, loading, error, creating, createCase } = useSupportCases(workspaceId)
   const {
     incidents,
     problems,
@@ -22,6 +25,7 @@ export function SupportDashboardView() {
     resolveProblem,
     closeProblem,
   } = useSupportOps(workspaceId)
+  const [createOpen, setCreateOpen] = useState(false)
 
   if (loading || opsLoading) return <PageSkeleton variant="cards" className="p-lg" />
   if (error) return <Typography tone="error">{error}</Typography>
@@ -29,7 +33,17 @@ export function SupportDashboardView() {
 
   return (
     <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Support Center</Typography>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <Typography variant="h2">Support Center</Typography>
+        <Button
+          variant="primary"
+          size="sm"
+          icon={<Plus size={16} />}
+          onClick={() => setCreateOpen(true)}
+        >
+          New case
+        </Button>
+      </div>
       <div className="grid grid-cols-3 gap-md">
         <div className="border border-neutral-200 p-md">
           <Typography variant="caption" tone="muted">
@@ -53,23 +67,40 @@ export function SupportDashboardView() {
       {actionError ? <Typography tone="error">{actionError}</Typography> : null}
 
       <Typography variant="h4">Cases</Typography>
-      <ul className="divide-y divide-neutral-200 border border-neutral-200">
-        {items.map((c) => (
-          <li key={c.id} className="p-md">
-            <Link
-              href={`/workspace/${workspaceId}/support/cases/${c.id}`}
-              className="hover:underline"
-            >
-              <Typography variant="small" weight="medium">
-                {c.title}
+      {items.length === 0 ? (
+        <div className="border border-dashed border-neutral-300 bg-white px-4 py-8 text-center">
+          <Typography variant="small" tone="muted">
+            No support cases yet.
+          </Typography>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={() => setCreateOpen(true)}
+          >
+            Create the first case
+          </Button>
+        </div>
+      ) : (
+        <ul className="divide-y divide-neutral-200 border border-neutral-200">
+          {items.map((c) => (
+            <li key={c.id} className="p-md">
+              <Link
+                href={`/workspace/${workspaceId}/support/cases/${c.id}`}
+                className="hover:underline"
+              >
+                <Typography variant="small" weight="medium">
+                  {c.caseNumber ? `${c.caseNumber} · ` : ''}
+                  {c.title}
+                </Typography>
+              </Link>
+              <Typography variant="caption" tone="muted">
+                {[c.status, c.priority, c.requestTypeCode].filter(Boolean).join(' · ')}
               </Typography>
-            </Link>
-            <Typography variant="caption" tone="muted">
-              {[c.status, c.priority].filter(Boolean).join(' · ')}
-            </Typography>
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <Typography variant="h4">Incidents</Typography>
       {incidents.length === 0 ? (
@@ -148,6 +179,14 @@ export function SupportDashboardView() {
           ))}
         </ul>
       )}
+
+      <CreateSupportCaseModal
+        workspaceId={workspaceId}
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        submitting={creating}
+        onSubmit={createCase}
+      />
     </Stack>
   )
 }

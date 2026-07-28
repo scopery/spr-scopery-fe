@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from 'react'
 import { useParams } from 'next/navigation'
+import NextLink from 'next/link'
 import { Pencil, Plus } from 'lucide-react'
 import {
   Typography,
@@ -22,6 +23,7 @@ import { UserIdentity } from '@/modules/platform/identity/presentation/ui/UserId
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
 import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import { useWorkspaceMembers } from '@/modules/org/workspace/hooks/useWorkspaceMembers'
+import { ROUTES } from '@/constants/routes'
 import { useProject } from '../hooks/useProject'
 import { useProjectLifecycle } from '../hooks/useProjectLifecycle'
 import * as projectsApi from '../api/projects.api'
@@ -241,6 +243,12 @@ export function ProjectSettingsView() {
           <Typography variant="small" tone="muted">
             {project.code}
           </Typography>
+          <NextLink
+            href={ROUTES.workspace.projectMemberPermissions(workspaceId, projectId)}
+            className="mt-2 inline-block text-sm text-primary hover:underline"
+          >
+            Manage member permissions
+          </NextLink>
         </div>
         <ProjectLifecycleMenu
           status={project.status}

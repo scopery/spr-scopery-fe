@@ -8,6 +8,8 @@ import type {
   OverAllocationItem,
 } from '../../domain/model/capacity-overview'
 import type { ResourceProfile } from '../../domain/model/resource-profile'
+import { ApiError } from '@/shared/lib/api-types'
+import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 
 function defaultRange() {
   const to = new Date()
@@ -26,12 +28,14 @@ export function useCapacityOverview(workspaceId: string | null) {
   const [resources, setResources] = useState<ResourceProfile[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [forbidden, setForbidden] = useState(false)
   const [syncing, setSyncing] = useState(false)
 
   const load = useCallback(async () => {
     if (!workspaceId) return
     setLoading(true)
     setError(null)
+    setForbidden(false)
     try {
       const [ov, over, profiles] = await Promise.all([
         calcApi.getWorkspaceCapacityOverview(workspaceId, { fromDate, toDate }),
@@ -42,7 +46,15 @@ export function useCapacityOverview(workspaceId: string | null) {
       setOverAllocations(over)
       setResources(profiles)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load capacity overview')
+      if (err instanceof ApiError && err.status === 403) {
+        setForbidden(true)
+        setError(getProblemToastMessage(err))
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load capacity overview')
+      }
+      setOverview(null)
+      setOverAllocations([])
+      setResources([])
     } finally {
       setLoading(false)
     }
@@ -76,6 +88,7 @@ export function useCapacityOverview(workspaceId: string | null) {
     setToDate,
     loading,
     error,
+    forbidden,
     syncing,
     refetch: load,
     syncFromMembers,

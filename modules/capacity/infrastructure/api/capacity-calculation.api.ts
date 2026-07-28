@@ -12,12 +12,15 @@ import type {
   UserAvailability,
 } from '../../domain/model/capacity-overview'
 
+const silent = { skipErrorToast: true } as const
+
 export async function getWorkspaceCapacityOverview(
   workspaceId: string,
   params: { fromDate: string; toDate: string }
 ): Promise<CapacityOverview> {
   const raw = await apiClient.get<Record<string, unknown>>(
-    CAPACITY_ENDPOINTS.calculation.overview(workspaceId, params)
+    CAPACITY_ENDPOINTS.calculation.overview(workspaceId, params),
+    silent
   )
   return mapCapacityOverview(raw, workspaceId, params.fromDate, params.toDate)
 }
@@ -29,7 +32,7 @@ export async function listOverAllocations(params: {
 }): Promise<OverAllocationItem[]> {
   const raw = await apiClient.get<
     OverAllocationItem[] | { items: Record<string, unknown>[] } | Record<string, unknown>[]
-  >(CAPACITY_ENDPOINTS.calculation.overAllocations(params))
+  >(CAPACITY_ENDPOINTS.calculation.overAllocations(params), silent)
 
   const list = Array.isArray(raw)
     ? raw
@@ -48,7 +51,8 @@ export async function calculateCapacity(
 ): Promise<CapacityCalculation> {
   return apiClient.post<CapacityCalculation>(
     CAPACITY_ENDPOINTS.calculation.calculate(workspaceId),
-    body
+    body,
+    silent
   )
 }
 
@@ -57,6 +61,7 @@ export async function getUserAvailability(
   params: { workspaceId: string; fromDate: string; toDate: string }
 ): Promise<UserAvailability> {
   return apiClient.get<UserAvailability>(
-    CAPACITY_ENDPOINTS.calculation.userAvailability(userId, params)
+    CAPACITY_ENDPOINTS.calculation.userAvailability(userId, params),
+    silent
   )
 }

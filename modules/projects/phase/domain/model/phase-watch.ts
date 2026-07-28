@@ -1,5 +1,16 @@
 import type { PhaseWatchFollowUpKind, PhaseWatchSignal } from '../enums/phase-watch.enum'
 
+export interface PhaseWatchUnassignedTask {
+  taskId: string
+  code: string
+  title: string
+  dueDate: string | null
+  estimateHours: number | null
+  priority: string
+  phaseId: string | null
+  phaseName: string | null
+}
+
 export interface PhaseWatchPhaseSummary {
   phaseId: string
   code: string
@@ -25,6 +36,8 @@ export interface PhaseWatchProjectRow {
   signals: PhaseWatchSignal[]
   primarySignal: PhaseWatchSignal
   followUpLabels: string[]
+  unassignedTaskCount: number
+  topUnassignedTasks: PhaseWatchUnassignedTask[]
 }
 
 export interface PhaseWatchFilterState {

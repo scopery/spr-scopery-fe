@@ -4,7 +4,7 @@ import { Trash2 } from 'lucide-react'
 import { Button, Stack, Typography } from '@/shared/ui'
 import { UserIdentity } from '@/modules/platform/identity/presentation/ui/UserIdentity'
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
-import type { Comment } from '../../domain/model/comment'
+import { isCommentDeleted, type Comment } from '../../domain/model/comment'
 
 interface Props {
   comment: Comment
@@ -14,7 +14,7 @@ interface Props {
 export function CommentBubble({ comment, onDelete }: Props) {
   const { peopleById } = useResolveUsers([comment.authorId])
 
-  if (comment.deleted) {
+  if (isCommentDeleted(comment)) {
     return (
       <div className="py-1 text-sm italic text-neutral-400">
         [Comment deleted]

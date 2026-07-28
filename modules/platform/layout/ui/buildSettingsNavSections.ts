@@ -70,6 +70,11 @@ export function buildSettingsNavSections(
           href: ROUTES.workspace.settingsGeneral(workspaceId),
           active: isActive(ROUTES.workspace.settingsGeneral(workspaceId)),
         },
+        {
+          label: 'Member permissions',
+          href: ROUTES.workspace.settingsMemberPermissions(workspaceId),
+          active: isActive(ROUTES.workspace.settingsMemberPermissions(workspaceId)),
+        },
       ],
     })
   }
@@ -85,6 +90,11 @@ export function buildSettingsNavSections(
             isActive(ROUTES.workspace.organizationDirectory(workspaceId)) ||
             isActive(`/workspace/${workspaceId}/organization/`),
         },
+        {
+          label: 'Member permissions',
+          href: ROUTES.workspace.organizationMemberPermissions(workspaceId),
+          active: isActive(ROUTES.workspace.organizationMemberPermissions(workspaceId)),
+        },
       ],
     })
   }
@@ -98,6 +108,11 @@ export function buildSettingsNavSections(
           label: 'Project settings',
           href: ROUTES.workspace.projectSettings(workspaceId, projectId),
           active: isActive(ROUTES.workspace.projectSettings(workspaceId, projectId)),
+        },
+        {
+          label: 'Member permissions',
+          href: ROUTES.workspace.projectMemberPermissions(workspaceId, projectId),
+          active: isActive(ROUTES.workspace.projectMemberPermissions(workspaceId, projectId)),
         },
       ],
     })

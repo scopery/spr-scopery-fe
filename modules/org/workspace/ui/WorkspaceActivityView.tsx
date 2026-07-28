@@ -10,7 +10,7 @@ export function WorkspaceActivityView() {
   return (
     <div>
       <WorkspaceHierarchyBreadcrumb workspaceId={workspaceId} current="Activity" className="mb-4" />
-      <OrganizationActivityPanel scopeLabel="workspace" />
+      <OrganizationActivityPanel scopeLabel="workspace" workspaceId={workspaceId} />
     </div>
   )
 }

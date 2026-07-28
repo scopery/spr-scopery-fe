@@ -55,6 +55,7 @@ export function CapacityOverviewView() {
     setToDate,
     loading,
     error,
+    forbidden,
     syncing,
     refetch,
     syncFromMembers,
@@ -62,11 +63,16 @@ export function CapacityOverviewView() {
 
   if (loading && !overview) return <PageSkeleton variant="cards" />
 
-  if (error) {
+  if (forbidden || error) {
     return (
-      <div className="border border-error/30 bg-error/5 p-4">
-        <Typography variant="small" tone="error">
-          {error}
+      <div className="border border-neutral-200 bg-neutral-50 p-6">
+        <Typography as="h1" size="lg" weight="semibold" className="mb-2">
+          Capacity
+        </Typography>
+        <Typography variant="small" tone="muted">
+          {forbidden
+            ? "You don't have access to capacity for this workspace."
+            : error}
         </Typography>
       </div>
     )

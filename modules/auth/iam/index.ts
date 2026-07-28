@@ -81,10 +81,18 @@ export { useWorkspaceAuthorization } from './hooks/useWorkspaceAuthorization'
 export { useAppShellAuthorization } from './hooks/useAppShellAuthorization'
 export { useNavCapabilities } from './hooks/useNavCapabilities'
 export { useNavCapabilityDeepLinkGuard } from './hooks/useNavCapabilityDeepLinkGuard'
+export { useMemberPermissionsCatalog, useMemberPermissionsEditor } from './hooks/useMemberPermissions'
+export { MemberPermissionsPanel } from './presentation/ui/MemberPermissionsPanel'
 export { resolveNavCapabilityForPath } from './lib/nav-route-capabilities'
 export { NavCapabilityKey } from './model/nav-capabilities'
 export type { NavCapabilityPack, CapabilitiesResponse } from './model/nav-capabilities'
+export type {
+  MemberPermissionCatalogItem,
+  MemberPermissionCatalogResponse,
+  MemberPermissionsSnapshotResponse,
+} from './model/member-permissions'
 export * as iamCapabilitiesApi from './api/capabilities.api'
+export * as iamMemberPermissionsApi from './api/member-permissions.api'
 export * as iamPermissionsApi from './api/permissions.api'
 export type {
   IamPermission,

@@ -123,6 +123,12 @@ export const WORKSPACE_ROUTES = {
     `/workspace/${workspaceId}/projects/${projectId}/meetings/${meetingId}`,
   /** Phase 03 workspace settings (name, visibility, join policy). */
   settingsGeneral: (workspaceId: string) => `/workspace/${workspaceId}/settings/general`,
+  settingsMemberPermissions: (workspaceId: string) =>
+    `/workspace/${workspaceId}/settings/member-permissions`,
+  organizationMemberPermissions: (workspaceId: string) =>
+    `/workspace/${workspaceId}/organization/member-permissions`,
+  projectMemberPermissions: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/settings/member-permissions`,
   /**
    * @deprecated Prefer settingsGeneral for workspace settings, or settingsControlledLists
    * for controlled lists. Kept pointing at general for AppShell “Workspace settings”.
