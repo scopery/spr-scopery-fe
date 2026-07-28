@@ -17,6 +17,12 @@ export const SCOPE_ENDPOINTS = {
       apiPath(`/projects/${projectId}/scope-packages/${packageId}/mark-current`),
     archive: (projectId: string, packageId: string) =>
       apiPath(`/projects/${projectId}/scope-packages/${packageId}/archive`),
+    requirements: (projectId: string, packageId: string) =>
+      apiPath(`/projects/${projectId}/scope-packages/${packageId}/requirements`),
+    linkRequirements: (projectId: string, packageId: string) =>
+      apiPath(`/projects/${projectId}/scope-packages/${packageId}/requirements:link`),
+    unlinkRequirements: (projectId: string, packageId: string) =>
+      apiPath(`/projects/${projectId}/scope-packages/${packageId}/requirements:unlink`),
   },
   items: {
     list: (projectId: string, packageId: string) =>

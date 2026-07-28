@@ -11,6 +11,31 @@ import * as workspaceInvitationsApi from '../api/workspace-invitations.api'
 import { useWorkspaceAuthorization } from '@/modules/auth/iam'
 import { FEATURES } from '@/config/features'
 import { toast } from 'sonner'
+import type { WorkspaceInvitation } from '../model'
+
+function invitationDisplayStatus(inv: WorkspaceInvitation): {
+  label: string
+  tone: 'warning' | 'success' | 'neutral'
+  isOpen: boolean
+} {
+  const exhausted =
+    inv.status === 'ACCEPTED' ||
+    (inv.maxUses != null && inv.usedCount >= inv.maxUses) ||
+    // Legacy creates omitted maxUses; email invites still look "used" after accept
+    (Boolean(inv.invitedEmail) && inv.usedCount > 0 && inv.status === 'PENDING')
+
+  if (exhausted) {
+    return { label: 'Accepted', tone: 'success', isOpen: false }
+  }
+  if (inv.status === 'PENDING') {
+    return { label: 'Pending', tone: 'warning', isOpen: true }
+  }
+  return {
+    label: inv.status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()),
+    tone: 'neutral',
+    isOpen: false,
+  }
+}
 
 export function WorkspaceInvitationsView({ embedded = false }: { embedded?: boolean } = {}) {
   const { workspaceId } = useParams<{ workspaceId: string }>()
@@ -92,9 +117,12 @@ export function WorkspaceInvitationsView({ embedded = false }: { embedded?: bool
             </Typography>
           </div>
         ) : null}
-        <Button variant="primary" onClick={() => setCreateOpen(true)}>
-          <Plus size={16} />
-          Create invitation
+        <Button
+          variant="primary"
+          icon={<Plus size={16} />}
+          onClick={() => setCreateOpen(true)}
+        >
+          Invite
         </Button>
       </div>
 
@@ -130,23 +158,17 @@ export function WorkspaceInvitationsView({ embedded = false }: { embedded?: bool
                 </td>
               </tr>
             ) : (
-              invitations.map((inv) => (
+              invitations.map((inv) => {
+                const display = invitationDisplayStatus(inv)
+                return (
                 <tr key={inv.id} className="border-b border-neutral-100 last:border-0">
                   <td className="px-4 py-3">{inv.invitedEmail ?? '—'}</td>
                   <td className="px-4 py-3 font-mono text-neutral-600">
                     {inv.invitationCodeHint ? `••••${inv.invitationCodeHint}` : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant="solid"
-                      tone={
-                        inv.status === 'PENDING'
-                          ? 'warning'
-                          : inv.status === 'ACCEPTED'
-                            ? 'success'
-                            : 'neutral'
-                      }
-                    >
-                      {inv.status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+                    <Badge variant="solid" tone={display.tone}>
+                      {display.label}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-neutral-600">
@@ -157,7 +179,7 @@ export function WorkspaceInvitationsView({ embedded = false }: { embedded?: bool
                     {inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString() : 'No expiry'}
                   </td>
                   <td className="px-4 py-3">
-                    {inv.status === 'PENDING' && (
+                    {display.isOpen && (
                       <Button
                         variant="ghost"
                         tone="error"
@@ -172,7 +194,8 @@ export function WorkspaceInvitationsView({ embedded = false }: { embedded?: bool
                     )}
                   </td>
                 </tr>
-              ))
+                )
+              })
             )}
           </tbody>
         </table>

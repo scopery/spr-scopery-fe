@@ -48,7 +48,7 @@ export function CreateWorkspaceInvitationModal(props: CreateWorkspaceInvitationM
       ) : (
         <Stack direction="vertical" spacing="md">
           <Input
-            label="Invitee email (optional)"
+            label="Invitee email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -58,11 +58,11 @@ export function CreateWorkspaceInvitationModal(props: CreateWorkspaceInvitationM
           <Checkbox
             checked={sendEmail}
             onChange={(e) => setSendEmail(e.target.checked)}
-            label="Send invitation email (requires email above)"
+            label="Also send invitation email"
           />
           <Typography variant="small" tone="muted">
-            Invitations expire in 7 days by default. Only workspace owners can create invitation
-            codes.
+            If the invitee already has a Scopery account with this email, they get an in-app
+            notification + Work Inbox item. Invitations expire in 7 days by default.
           </Typography>
         </Stack>
       )}

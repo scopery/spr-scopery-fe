@@ -44,9 +44,35 @@ export function OrganizationInvitationsPanel({
     setItems(listTrackedOrgInvitations(organizationId))
   }, [organizationId])
 
+  const syncPendingFromServer = useCallback(async () => {
+    const local = listTrackedOrgInvitations(organizationId)
+    const pending = local.filter((inv) => inv.status === OrgInvitationStatus.Pending)
+    if (!pending.length) {
+      setItems(local)
+      return
+    }
+    await Promise.all(
+      pending.map(async (inv) => {
+        try {
+          const fresh = await organizationInvitationsApi.getOrganizationInvitation(
+            organizationId,
+            inv.id
+          )
+          if (fresh.status !== OrgInvitationStatus.Pending) {
+            updateTrackedOrgInvitationStatus(inv.id, fresh.status)
+          }
+        } catch {
+          /* keep local row if get fails */
+        }
+      })
+    )
+    setItems(listTrackedOrgInvitations(organizationId))
+  }, [organizationId])
+
   useEffect(() => {
     refresh()
-  }, [refresh])
+    void syncPendingFromServer()
+  }, [refresh, syncPendingFromServer])
 
   const acceptUrl = (token: string) => {
     if (typeof window === 'undefined') return `${PLATFORM_ROUTES.orgInviteAccept(token)}`
@@ -122,8 +148,10 @@ export function OrganizationInvitationsPanel({
             onClick={() => {
               setCreatedToken(null)
               setCreateOpen(true)
-            }} icon={<Plus size={16} />}>
-            Create invitation
+            }}
+            icon={<Plus size={16} />}
+          >
+            Invite
           </Button>
         </div>
       )}
@@ -134,8 +162,10 @@ export function OrganizationInvitationsPanel({
             onClick={() => {
               setCreatedToken(null)
               setCreateOpen(true)
-            }} icon={<Plus size={16} />}>
-            Create invitation
+            }}
+            icon={<Plus size={16} />}
+          >
+            Invite
           </Button>
         </div>
       )}

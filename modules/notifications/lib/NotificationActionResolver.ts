@@ -9,6 +9,21 @@ export function resolveNotificationAction(
   const trimmed = actionUrl.trim()
   if (!trimmed) return null
 
+  // Absolute frontend URLs — keep path only
+  try {
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      const u = new URL(trimmed)
+      return resolveNotificationAction(workspaceId, u.pathname + u.search)
+    }
+  } catch {
+    /* fall through */
+  }
+
+  // Org / workspace invitation accept (raw token/code)
+  if (trimmed.startsWith('/org-invites/')) return trimmed
+  if (trimmed.startsWith('/invites/')) return trimmed
+  if (trimmed.startsWith('/workspace-invites/')) return trimmed
+
   // Already an app route
   if (trimmed.startsWith('/workspace/')) return trimmed
   if (trimmed.startsWith('/admin/')) return trimmed
@@ -33,4 +48,18 @@ export function resolveNotificationAction(
 
   // Fall back to notifications home — never open opaque external/BE URLs
   return `/workspace/${workspaceId}/notifications`
+}
+
+export function isOrgInviteNotification(n: {
+  actionType?: string | null
+  actionUrl?: string | null
+}): boolean {
+  if (n.actionType === 'ACCEPT_ORG_INVITATION') return true
+  if (n.actionType === 'ACCEPT_WORKSPACE_INVITATION') return true
+  const url = n.actionUrl ?? ''
+  return (
+    url.includes('/org-invites/') ||
+    url.includes('/invites/') ||
+    url.includes('/workspace-invites/')
+  )
 }

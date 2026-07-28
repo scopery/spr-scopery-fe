@@ -9,6 +9,11 @@ import { ROUTES } from '@/constants/routes'
 import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import { ApiError, getProblemCode } from '@/shared/lib/api-types'
 import * as organizationInvitationsApi from '../api/organization-invitations.api'
+import {
+  markTrackedOrgInvitationAcceptedByToken,
+  updateTrackedOrgInvitationStatus,
+} from '../lib/tracked-org-invitations'
+import { OrgInvitationStatus } from '../model/organization-invitation'
 import { toast } from 'sonner'
 
 /**
@@ -38,7 +43,9 @@ export function OrgInvitationAcceptView() {
     const accept = async () => {
       setStatus('accepting')
       try {
-        await organizationInvitationsApi.acceptOrganizationInvitation(token)
+        const accepted = await organizationInvitationsApi.acceptOrganizationInvitation(token)
+        updateTrackedOrgInvitationStatus(accepted.id, OrgInvitationStatus.Accepted)
+        markTrackedOrgInvitationAcceptedByToken(token)
         await refreshBootstrap()
         toast.success('Organization invitation accepted')
         setStatus('success')
@@ -50,6 +57,7 @@ export function OrgInvitationAcceptView() {
           if (code === 'INVITE_EXPIRED' || /expired/i.test(err.problem.detail || '')) {
             setErrorMessage('This invitation has expired.')
           } else if (/already|accepted/i.test(err.problem.detail || '')) {
+            markTrackedOrgInvitationAcceptedByToken(token)
             setErrorMessage('This invitation was already accepted.')
           } else {
             setErrorMessage(err.problem.detail || 'Failed to accept invitation.')

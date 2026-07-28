@@ -2,14 +2,13 @@
 
 import { useMemo, useState } from 'react'
 import NextLink from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { Settings } from 'lucide-react'
 import { Badge, Button, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { ROUTES } from '@/constants/routes'
 import { useNotifications } from '../hooks/useNotifications'
-import { resolveNotificationAction } from '../../../lib/NotificationActionResolver'
 import { NotificationStatus } from '../../domain/enums/notification.enum'
 import type { UserNotification } from '../../domain/model/notification'
 import { RemindersTab } from '@/modules/notifications/reminders'
@@ -23,7 +22,6 @@ function formatWhen(iso: string) {
 
 export function NotificationInboxView() {
   const params = useParams()
-  const router = useRouter()
   const workspaceId = params.workspaceId as string
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'unread' | 'reminders' | 'alerts'>('all')
@@ -204,18 +202,6 @@ export function NotificationInboxView() {
                 {formatWhen(selected.createdAt)} · {selected.sourceSystem ?? '—'}
               </Typography>
               <Stack direction="horizontal" spacing="sm" className="flex-wrap">
-                {selected.actionUrl ? (
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    onClick={() => {
-                      const href = resolveNotificationAction(workspaceId, selected.actionUrl)
-                      if (href) router.push(href)
-                    }}
-                  >
-                    Open
-                  </Button>
-                ) : null}
                 <Button
                   size="sm"
                   variant="ghost"

@@ -1,6 +1,6 @@
 'use client'
 
-import { Ban, Check, Plus, Trash2 } from 'lucide-react'
+import { Ban, Check, Eye, Plus, UserMinus } from 'lucide-react'
 
 import { useEffect, useMemo, useState } from 'react'
 import { Badge, Button, ConfirmDialog, Modal, Stack, Typography, Skeleton, Select } from '@/shared/ui'
@@ -11,7 +11,8 @@ import { toast } from 'sonner'
 import { useOrganizationMembers } from '../hooks/useOrganizationMembers'
 import * as organizationMembersApi from '../api/organization-members.api'
 import { OrgMemberStatus } from '../model/organization-member'
-import type { OrganizationMember } from '../model/organization-member'
+import type { OrganizationMember, OrgMemberAccessResponse } from '../model/organization-member'
+import { MemberProjectAccessEditor } from '@/modules/org/workspace'
 
 function statusTone(status: string): 'success' | 'warning' | 'error' | 'neutral' {
   switch (status) {
@@ -44,13 +45,33 @@ export function OrganizationMembersPanel({
   const [userId, setUserId] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
   const [confirm, setConfirm] = useState<{
-    type: 'suspend' | 'activate' | 'remove'
+    type: 'suspend' | 'activate' | 'kick'
     member: OrganizationMember
   } | null>(null)
+  const [accessFor, setAccessFor] = useState<OrganizationMember | null>(null)
+  const [access, setAccess] = useState<OrgMemberAccessResponse | null>(null)
+  const [accessLoading, setAccessLoading] = useState(false)
 
   useEffect(() => {
     void load()
   }, [load])
+
+  const openAccess = async (member: OrganizationMember) => {
+    setAccessFor(member)
+    setAccess(null)
+    setAccessLoading(true)
+    try {
+      const res = await organizationMembersApi.getOrganizationMemberAccess(
+        organizationId,
+        member.userId
+      )
+      setAccess(res)
+    } catch {
+      setAccessFor(null)
+    } finally {
+      setAccessLoading(false)
+    }
+  }
 
   const handleAdd = async () => {
     const id = userId.trim()
@@ -87,7 +108,7 @@ export function OrganizationMembersPanel({
         toast.success('Member activated')
       } else {
         await organizationMembersApi.removeOrganizationMember(organizationId, confirm.member.id)
-        toast.success('Member removed')
+        toast.success('Member kicked — they can be invited again later')
       }
       setConfirm(null)
       await load()
@@ -131,6 +152,7 @@ export function OrganizationMembersPanel({
             { value: '', label: 'All statuses' },
             { value: OrgMemberStatus.Active, label: 'Active' },
             { value: OrgMemberStatus.Suspended, label: 'Suspended' },
+            { value: OrgMemberStatus.Removed, label: 'Kicked' },
           ]}
           placeholder="All statuses"
         />
@@ -175,7 +197,12 @@ export function OrganizationMembersPanel({
                   <td className="px-4 py-3">{m.membershipType}</td>
                   <td className="px-4 py-3">
                     <Badge variant="solid" tone={statusTone(m.status)}>
-                      {String(m.status).replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+                      {m.status === OrgMemberStatus.Removed
+                        ? 'Kicked'
+                        : String(m.status)
+                            .replace(/_/g, ' ')
+                            .toLowerCase()
+                            .replace(/\b\w/g, (c) => c.toUpperCase())}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-neutral-600">
@@ -183,6 +210,13 @@ export function OrganizationMembersPanel({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-nowrap items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        onClick={() => void openAccess(m)}
+                        icon={<Eye size={16} />}
+                      >
+                        Access
+                      </Button>
                       {m.status === OrgMemberStatus.Active && m.membershipType !== 'OWNER' && (
                         <Button
                           variant="ghost"
@@ -197,12 +231,19 @@ export function OrganizationMembersPanel({
                           Activate
                         </Button>
                       )}
-                      {m.membershipType !== 'OWNER' && m.status !== OrgMemberStatus.Removed && (
+                      {m.status === OrgMemberStatus.Removed && (
+                        <Button
+                          variant="ghost"
+                          onClick={() => setConfirm({ type: 'activate', member: m })} icon={<Check size={16} />}>
+                          Reinstate
+                        </Button>
+                      )}
+                      {m.membershipType !== 'OWNER' && m.status === OrgMemberStatus.Active && (
                         <Button
                           variant="ghost"
                           tone="error"
-                          onClick={() => setConfirm({ type: 'remove', member: m })} icon={<Trash2 size={16} />}>
-                          Remove
+                          onClick={() => setConfirm({ type: 'kick', member: m })} icon={<UserMinus size={16} />}>
+                          Kick
                         </Button>
                       )}
                     </div>
@@ -253,30 +294,93 @@ export function OrganizationMembersPanel({
         open={!!confirm}
         onClose={() => setConfirm(null)}
         title={
-          confirm?.type === 'remove'
-            ? 'Remove member?'
+          confirm?.type === 'kick'
+            ? 'Kick member?'
             : confirm?.type === 'suspend'
               ? 'Suspend member?'
               : 'Activate member?'
         }
         message={
           confirm
-            ? `${
-                confirm.type === 'remove'
-                  ? 'Remove'
-                  : confirm.type === 'suspend'
-                    ? 'Suspend'
-                    : 'Activate'
-              } ${labelFor(confirm.member.userId)}?`
+            ? confirm.type === 'kick'
+              ? `Kick ${labelFor(confirm.member.userId)} from this organization? They lose access now but can be invited again later.`
+              : confirm.type === 'suspend'
+                ? `Suspend ${labelFor(confirm.member.userId)}?`
+                : `Activate ${labelFor(confirm.member.userId)}?`
             : ''
         }
         confirmLabel={
-          confirm?.type === 'remove' ? 'Remove' : confirm?.type === 'suspend' ? 'Suspend' : 'Activate'
+          confirm?.type === 'kick' ? 'Kick' : confirm?.type === 'suspend' ? 'Suspend' : 'Activate'
         }
         variant={confirm?.type === 'activate' ? 'default' : 'danger'}
         loading={actionLoading}
         onConfirm={handleConfirm}
       />
+
+      <Modal
+        open={!!accessFor}
+        onClose={() => {
+          setAccessFor(null)
+          setAccess(null)
+        }}
+        title={accessFor ? `Access · ${labelFor(accessFor.userId)}` : 'Access'}
+        size="md"
+      >
+        {accessLoading ? (
+          <Skeleton variant="rectangular" width="100%" height={120} />
+        ) : !access || access.workspaces.length === 0 ? (
+          <Typography variant="small" tone="muted">
+            No workspace memberships in this organization.
+          </Typography>
+        ) : (
+          <Stack direction="vertical" spacing="md">
+            {access.workspaces.map((ws) => (
+              <div key={ws.workspaceId} className="border border-neutral-200 p-3">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <Typography size="sm" weight="semibold">
+                    {ws.workspaceName}
+                  </Typography>
+                  <Badge variant="soft" tone={ws.membershipStatus === 'ACTIVE' ? 'success' : 'neutral'}>
+                    {ws.membershipStatus}
+                  </Badge>
+                </div>
+                {accessFor ? (
+                  <MemberProjectAccessEditor
+                    workspaceId={ws.workspaceId}
+                    userId={accessFor.userId}
+                    compact
+                    initial={{
+                      accessMode: ws.accessMode,
+                      totalProjects: ws.totalProjects,
+                      projects: ws.projects,
+                      availableProjects: ws.availableProjects ?? [],
+                    }}
+                    onSaved={(next) => {
+                      setAccess((prev) => {
+                        if (!prev) return prev
+                        return {
+                          ...prev,
+                          workspaces: prev.workspaces.map((row) =>
+                            row.workspaceId === next.workspaceId
+                              ? {
+                                  ...row,
+                                  accessMode: next.accessMode,
+                                  totalProjects: next.totalProjects,
+                                  projects: next.projects,
+                                  availableProjects: next.availableProjects,
+                                }
+                              : row
+                          ),
+                        }
+                      })
+                    }}
+                  />
+                ) : null}
+              </div>
+            ))}
+          </Stack>
+        )}
+      </Modal>
     </div>
   )
 }

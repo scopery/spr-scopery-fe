@@ -20,7 +20,7 @@ export function useCreateWorkspaceInvitationModal({
   onSuccess,
 }: CreateWorkspaceInvitationModalProps) {
   const [email, setEmail] = useState('')
-  const [sendEmail, setSendEmail] = useState(false)
+  const [sendEmail, setSendEmail] = useState(true)
   const [loading, setLoading] = useState(false)
   const [invitationCode, setInvitationCode] = useState<string | null>(null)
 
@@ -46,6 +46,8 @@ export function useCreateWorkspaceInvitationModal({
     try {
       const res = await workspaceInvitationsApi.createWorkspaceInvitation(workspaceId, {
         invitedEmail: trimmedEmail || undefined,
+        // Single-use so BE flips status to ACCEPTED after the invite is used
+        maxUses: 1,
         expiresAt: defaultExpiresAtIso(),
         sendEmail,
       })
@@ -61,7 +63,16 @@ export function useCreateWorkspaceInvitationModal({
       onSuccess()
     } catch (err) {
       if (err instanceof ApiError) {
-        toast.error(err.problem.detail || 'Failed to create invitation')
+        const code = err.problem.code
+        if (code === 'WORKSPACE_INVITATION_ALREADY_MEMBER') {
+          toast.error('This user is already a member of this workspace')
+        } else if (code === 'ORG_INVITATION_ALREADY_MEMBER') {
+          toast.error('This user is already a member of this organization')
+        } else if (code === 'RESOURCE_CONFLICT') {
+          toast.error('Could not create invitation — please retry')
+        } else {
+          toast.error(err.problem.detail || 'Failed to create invitation')
+        }
       } else {
         toast.error('Failed to create invitation')
       }

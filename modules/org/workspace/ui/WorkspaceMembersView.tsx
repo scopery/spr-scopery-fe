@@ -1,17 +1,20 @@
 'use client'
 
-import { Ban } from 'lucide-react'
+import { Ban, Eye, Plus } from 'lucide-react'
 
 import { useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import NextLink from 'next/link'
-import { Typography, Badge, Button, ConfirmDialog, PageSkeleton } from '@/shared/ui'
+import { Typography, Badge, Button, ConfirmDialog, Modal, PageSkeleton, Skeleton, Stack } from '@/shared/ui'
 import { UserIdentity } from '@/modules/platform/identity/presentation/ui/UserIdentity'
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import { ROUTES } from '@/constants/routes'
 import { useWorkspace } from '../hooks/useWorkspace'
 import { useWorkspaceMembers } from '../hooks/useWorkspaceMembers'
+import * as workspaceMembersApi from '../api/workspace-members.api'
+import type { WorkspaceMemberAccessResponse } from '../api/workspace-members.api'
+import { MemberProjectAccessEditor } from './MemberProjectAccessEditor'
 import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import { useWorkspaceAuthorization } from '@/modules/auth/iam'
 import { ApiError } from '@/shared/lib/api-types'
@@ -43,17 +46,37 @@ export function WorkspaceMembersView({ embedded = false }: { embedded?: boolean 
     displayName: string
   } | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [accessUserId, setAccessUserId] = useState<string | null>(null)
+  const [accessName, setAccessName] = useState('')
+  const [access, setAccess] = useState<WorkspaceMemberAccessResponse | null>(null)
+  const [accessLoading, setAccessLoading] = useState(false)
 
   const currentUserId = profile?.user_id ?? session?.user?.id
   const loading = workspaceLoading || membersLoading
   const loadError = workspaceError || membersError
+
+  const openAccess = async (userId: string, displayName: string) => {
+    setAccessUserId(userId)
+    setAccessName(displayName)
+    setAccess(null)
+    setAccessLoading(true)
+    try {
+      const res = await workspaceMembersApi.getWorkspaceMemberAccess(workspaceId, userId)
+      setAccess(res)
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.problem.detail : 'Failed to load access')
+      setAccessUserId(null)
+    } finally {
+      setAccessLoading(false)
+    }
+  }
 
   const handleDeactivateMember = async () => {
     if (!confirmDeactivate) return
     setActionLoading(true)
     try {
       await deactivateMember(confirmDeactivate.memberId)
-      toast.success('Member deactivated')
+      toast.success('Member kicked — they can be invited again later')
       setConfirmDeactivate(null)
     } catch (err) {
       toast.error(err instanceof ApiError ? err.problem.detail : 'Failed to deactivate member')
@@ -100,9 +123,10 @@ export function WorkspaceMembersView({ embedded = false }: { embedded?: boolean 
           {FEATURES.orgInvites && canInviteMembers && (
             <NextLink
               href={ROUTES.workspace.directory(workspaceId, 'invitations')}
-              className="inline-flex items-center bg-primary px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+              className="inline-flex items-center gap-1.5 bg-primary px-3 py-1.5 text-sm font-normal text-white hover:opacity-90"
             >
-              Invitations
+              <Plus size={16} aria-hidden />
+              Invite
             </NextLink>
           )}
         </div>
@@ -178,20 +202,29 @@ export function WorkspaceMembersView({ embedded = false }: { embedded?: boolean 
                     </td>
                     {canManageMembers && (
                       <td className="px-4 py-3">
-                        {m.userId !== currentUserId &&
-                          !isMemberOwner &&
-                          isActiveMemberStatus(m.status) && (
-                            <Button
-                              variant="ghost"
-                              tone="error"
-                              onClick={() =>
-                                setConfirmDeactivate({ memberId: m.id, displayName })
-                              }
-                              icon={<Ban size={16} />}
-                            >
-                              Deactivate
-                            </Button>
-                          )}
+                        <div className="flex flex-nowrap items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            onClick={() => void openAccess(m.userId, displayName)}
+                            icon={<Eye size={16} />}
+                          >
+                            Access
+                          </Button>
+                          {m.userId !== currentUserId &&
+                            !isMemberOwner &&
+                            isActiveMemberStatus(m.status) && (
+                              <Button
+                                variant="ghost"
+                                tone="error"
+                                onClick={() =>
+                                  setConfirmDeactivate({ memberId: m.id, displayName })
+                                }
+                                icon={<Ban size={16} />}
+                              >
+                                Kick
+                              </Button>
+                            )}
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -206,14 +239,39 @@ export function WorkspaceMembersView({ embedded = false }: { embedded?: boolean 
         <ConfirmDialog
           open={!!confirmDeactivate}
           onClose={() => setConfirmDeactivate(null)}
-          title="Deactivate member"
-          message={`Deactivate ${confirmDeactivate.displayName}? They will lose access to this workspace.`}
-          confirmLabel="Deactivate"
+          title="Kick member?"
+          message={`Kick ${confirmDeactivate.displayName} from this workspace? They lose access now but can be invited again later.`}
+          confirmLabel="Kick"
           variant="danger"
           onConfirm={handleDeactivateMember}
           loading={actionLoading}
         />
       )}
+
+      <Modal
+        open={!!accessUserId}
+        onClose={() => {
+          setAccessUserId(null)
+          setAccess(null)
+        }}
+        title={`Access · ${accessName}`}
+        size="md"
+      >
+        {accessLoading ? (
+          <Skeleton variant="rectangular" width="100%" height={100} />
+        ) : !access || !accessUserId ? (
+          <Typography variant="small" tone="muted">
+            Could not load project access for this member.
+          </Typography>
+        ) : (
+          <MemberProjectAccessEditor
+            workspaceId={workspaceId}
+            userId={accessUserId}
+            initial={access}
+            onSaved={setAccess}
+          />
+        )}
+      </Modal>
     </div>
   )
 }

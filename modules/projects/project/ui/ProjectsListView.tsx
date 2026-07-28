@@ -18,6 +18,7 @@ import { UserIdentity } from '@/modules/platform/identity/presentation/ui/UserId
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
 import { useProjects } from '../hooks/useProjects'
 import { useProjectLifecycle } from '../hooks/useProjectLifecycle'
+import { useAppShellAuthorization } from '@/modules/auth/iam'
 import { CreateProjectModal } from './CreateProjectModal'
 import { ProjectStatusBadge } from '../presentation/ui/ProjectStatusBadge'
 import { ProjectLifecycleMenu } from '../presentation/ui/ProjectLifecycleMenu'
@@ -70,6 +71,7 @@ function ProjectsContent() {
   const [createModalOpen, setCreateModalOpen] = useState(false)
 
   const { projects, loading, error, listProjects } = useProjects(workspaceId)
+  const { canCreateProjects } = useAppShellAuthorization(workspaceId)
   const ownerIds = useMemo(() => projects.map((p) => p.ownerUserId), [projects])
   const { peopleById } = useResolveUsers(ownerIds)
   const { actingId, runLifecycle } = useProjectLifecycle(() => {
@@ -77,8 +79,8 @@ function ProjectsContent() {
   })
 
   useEffect(() => {
-    if (searchParams.get('create') === '1') setCreateModalOpen(true)
-  }, [searchParams])
+    if (canCreateProjects && searchParams.get('create') === '1') setCreateModalOpen(true)
+  }, [searchParams, canCreateProjects])
 
   const filtered = useMemo(() => {
     const q = keyword.trim().toLowerCase()
@@ -107,14 +109,16 @@ function ProjectsContent() {
         <Typography as="h1" size="lg" weight="semibold">
           Projects
         </Typography>
-        <Button
-          variant="primary"
-          onClick={() => setCreateModalOpen(true)}
-          className="flex items-center gap-2 bg-neutral-900"
-          icon={<Plus size={18} />}
-        >
-          New project
-        </Button>
+        {canCreateProjects ? (
+          <Button
+            variant="primary"
+            onClick={() => setCreateModalOpen(true)}
+            className="flex items-center gap-2 bg-neutral-900"
+            icon={<Plus size={18} />}
+          >
+            New project
+          </Button>
+        ) : null}
       </div>
 
       <Stack direction="horizontal" spacing="sm" className="mb-4 flex-wrap items-center">
@@ -174,11 +178,15 @@ function ProjectsContent() {
             No projects yet
           </Typography>
           <Typography tone="muted" className="mb-6">
-            Create your first project to get started.
+            {canCreateProjects
+              ? 'Create your first project to get started.'
+              : 'No projects in this workspace yet.'}
           </Typography>
-          <Button variant="primary" onClick={() => setCreateModalOpen(true)} icon={<Plus size={16} />}>
-            Create project
-          </Button>
+          {canCreateProjects ? (
+            <Button variant="primary" onClick={() => setCreateModalOpen(true)} icon={<Plus size={16} />}>
+              Create project
+            </Button>
+          ) : null}
         </div>
       ) : viewMode === 'cards' ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -272,12 +280,14 @@ function ProjectsContent() {
         </div>
       )}
 
-      <CreateProjectModal
-        workspaceId={workspaceId}
-        open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        onSuccess={handleProjectCreated}
-      />
+      {canCreateProjects ? (
+        <CreateProjectModal
+          workspaceId={workspaceId}
+          open={createModalOpen}
+          onClose={() => setCreateModalOpen(false)}
+          onSuccess={handleProjectCreated}
+        />
+      ) : null}
     </div>
   )
 }

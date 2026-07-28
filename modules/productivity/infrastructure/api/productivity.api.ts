@@ -2,7 +2,11 @@ import { apiClient } from '@/shared/lib/apiClient'
 import { normalizeItemList, normalizeList } from '@/shared/lib/normalizeListResponse'
 import { PRODUCTIVITY_ENDPOINTS } from './endpoints'
 import type { SearchResponse, SearchResultItem } from '../../domain/model/search'
-import type { WorkInboxItem, WorkInboxListResponse } from '../../domain/model/work-inbox'
+import type {
+  MyOrgInvitation,
+  WorkInboxItem,
+  WorkInboxListResponse,
+} from '../../domain/model/work-inbox'
 import type { FavoriteItem, RecentItem, SavedView } from '../../domain/model/saved-items'
 import type { MyWorkParams, MyWorkResponse } from '../../domain/model/my-work'
 import type { MyInsightsParams, MyInsightsResponse } from '../../domain/model/my-insights'
@@ -63,6 +67,27 @@ export async function markWorkInboxRead(
   await apiClient.post<void>(PRODUCTIVITY_ENDPOINTS.markInboxRead(workspaceId, itemId), undefined, {
     parseJson: false,
   })
+}
+
+export async function listMyOrgInvitations(): Promise<MyOrgInvitation[]> {
+  const res = await apiClient.get<MyOrgInvitation[] | { items?: MyOrgInvitation[] }>(
+    PRODUCTIVITY_ENDPOINTS.myOrgInvitations()
+  )
+  return normalizeList(res)
+}
+
+export async function acceptMyOrgInvitation(invitationId: string): Promise<void> {
+  await apiClient.post<void>(PRODUCTIVITY_ENDPOINTS.acceptMyOrgInvitation(invitationId), undefined, {
+    parseJson: false,
+  })
+}
+
+export async function acceptMyWorkspaceInvitation(invitationId: string): Promise<void> {
+  await apiClient.post<void>(
+    PRODUCTIVITY_ENDPOINTS.acceptMyWorkspaceInvitation(invitationId),
+    undefined,
+    { parseJson: false }
+  )
 }
 
 export async function getMyWork(

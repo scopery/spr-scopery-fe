@@ -16,7 +16,9 @@ import { createPortal } from 'react-dom'
 import NextLink from 'next/link'
 import { Check, Plus, Search } from 'lucide-react'
 import { ROUTES } from '@/constants/routes'
+import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import type { WorkspaceListItem } from '@/modules/auth/workspace-context/model/interfaces/workspace-context'
+import { CreateWorkspaceModal } from '@/modules/org/workspace'
 import * as projectsApi from '@/modules/projects/project/api/projects.api'
 import { cn } from '@/utils/cn'
 
@@ -63,15 +65,46 @@ export function WorkspaceProjectSwitcher({
   className,
 }: WorkspaceProjectSwitcherProps) {
   const router = useRouter()
+  const { refreshBootstrap, switchWorkspace } = useAuth()
   const [query, setQuery] = useState('')
   const [projectsByWorkspace, setProjectsByWorkspace] = useState<Record<string, ProjectOption[]>>(
     {}
   )
   const [loadingWorkspaceId, setLoadingWorkspaceId] = useState<string | null>(null)
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
   const loadingRef = useRef(new Set<string>())
 
   const groups = useMemo(() => groupByOrg(workspaces), [workspaces])
+
+  const organizationOptions = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const workspace of workspaces) {
+      if (!map.has(workspace.organizationId)) {
+        map.set(
+          workspace.organizationId,
+          workspace.organizationName ?? workspace.organizationId
+        )
+      }
+    }
+    return [...map.entries()]
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [workspaces])
+
+  const defaultOrganizationId = useMemo(() => {
+    const current = workspaces.find((w) => w.id === currentWorkspaceId)
+    return current?.organizationId ?? organizationOptions[0]?.id ?? null
+  }, [workspaces, currentWorkspaceId, organizationOptions])
+
+  const handleCreated = useCallback(
+    async (workspaceId: string) => {
+      await switchWorkspace(workspaceId)
+      await refreshBootstrap()
+      router.push(ROUTES.workspace.projects(workspaceId))
+    },
+    [refreshBootstrap, switchWorkspace, router]
+  )
 
   const updatePosition = useCallback(() => {
     const el = anchorRef.current
@@ -165,9 +198,25 @@ export function WorkspaceProjectSwitcher({
       .filter((g) => g.items.length > 0)
   }, [groups, query, projectsByWorkspace])
 
-  if (!open || !position || typeof document === 'undefined') return null
+  const createModal = (
+    <CreateWorkspaceModal
+      open={createOpen}
+      onClose={() => setCreateOpen(false)}
+      organizations={organizationOptions}
+      defaultOrganizationId={defaultOrganizationId}
+      onSuccess={handleCreated}
+    />
+  )
+
+  if ((!open || !position) && !createOpen) return null
+  if (typeof document === 'undefined') return null
+
+  if (!open || !position) {
+    return createPortal(createModal, document.body)
+  }
 
   return createPortal(
+    <>
     <div
       role="menu"
       data-workspace-project-switcher
@@ -324,16 +373,21 @@ export function WorkspaceProjectSwitcher({
         </div>
 
         <div className="border-t border-neutral-100 p-2">
-          <DesignLink
-            as={NextLink}
-            href={ROUTES.onboarding}
-            onClick={onClose}
-            className="flex w-full items-center gap-2 px-2 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50"
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              onClose()
+              setCreateOpen(true)
+            }}
+            className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm text-neutral-700 hover:bg-neutral-50"
           >
             <Plus size={14} /> Create workspace
-          </DesignLink>
+          </button>
         </div>
-      </div>,
+      </div>
+      {createModal}
+    </>,
     document.body
   )
 }

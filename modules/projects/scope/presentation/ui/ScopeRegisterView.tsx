@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
@@ -9,15 +9,10 @@ import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import { useProject } from '../../../project/hooks/useProject'
 import { useScopeRegister } from '../hooks/useScopeRegister'
+import { useScopePackageRequirements } from '../hooks/useScopePackageRequirements'
 import { CreateScopePackageModal } from './CreateScopePackageModal'
-import { CreateScopeItemModal } from './CreateScopeItemModal'
-import { ScopeItemDetailDrawer } from './ScopeItemDetailDrawer'
-import type { ScopeItem } from '../../domain/model/scope'
-import {
-  scopeItemClassificationLabel,
-  scopeItemPriorityLabel,
-  scopePackageStatusLabel,
-} from '../../domain/rules/scope.rules'
+import { LinkRequirementsModal } from './LinkRequirementsModal'
+import { scopePackageStatusLabel } from '../../domain/rules/scope.rules'
 
 export function ScopeRegisterView() {
   const params = useParams()
@@ -30,48 +25,27 @@ export function ScopeRegisterView() {
     selectedPackage,
     selectedPackageId,
     setSelectedPackageId,
-    items,
     loading,
-    loadingItems,
     forbidden,
     createPackage,
-    createItem,
-    classifyItem,
-    archiveItem,
     approvePackage,
     markCurrentPackage,
     archivePackage,
   } = useScopeRegister(projectId)
 
+  const {
+    requirements,
+    loading: loadingReqs,
+    acting,
+    linkRequirements,
+    unlinkRequirements,
+  } = useScopePackageRequirements(projectId, selectedPackageId)
+
   const [createPackageOpen, setCreatePackageOpen] = useState(false)
-  const [createItemOpen, setCreateItemOpen] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<ScopeItem | null>(null)
-  const [acting, setActing] = useState(false)
+  const [linkOpen, setLinkOpen] = useState(false)
+  const [unlinkingId, setUnlinkingId] = useState<string | null>(null)
 
-  const handleClassify = async (item: ScopeItem, classification: 'in' | 'out' | 'unclassified') => {
-    setActing(true)
-    try {
-      const updated = await classifyItem(item, classification)
-      if (updated) setSelectedItem(updated)
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    } finally {
-      setActing(false)
-    }
-  }
-
-  const handleArchiveItem = async (item: ScopeItem) => {
-    setActing(true)
-    try {
-      await archiveItem(item.id)
-      toast.success('Scope item archived')
-      setSelectedItem(null)
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    } finally {
-      setActing(false)
-    }
-  }
+  const linkedIds = useMemo(() => new Set(requirements.map((r) => r.id)), [requirements])
 
   const handleApprove = async () => {
     if (!selectedPackage) return
@@ -103,6 +77,32 @@ export function ScopeRegisterView() {
     }
   }
 
+  const handleLink = async (requirementIds: string[]) => {
+    try {
+      await linkRequirements(requirementIds)
+      toast.success(
+        requirementIds.length === 1
+          ? 'Requirement linked'
+          : `${requirementIds.length} requirements linked`
+      )
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+      throw err
+    }
+  }
+
+  const handleUnlink = async (requirementId: string) => {
+    setUnlinkingId(requirementId)
+    try {
+      await unlinkRequirements([requirementId])
+      toast.success('Requirement unlinked')
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    } finally {
+      setUnlinkingId(null)
+    }
+  }
+
   if (loading && packages.length === 0) return <PageSkeleton variant="list" />
 
   if (forbidden) {
@@ -127,7 +127,7 @@ export function ScopeRegisterView() {
             Scope register
           </Typography>
           <Typography variant="small" tone="muted" className="mt-1">
-            Scope packages and their in/out-of-scope items
+            Scope packages linked to project requirements
           </Typography>
         </div>
         <Button
@@ -179,9 +179,9 @@ export function ScopeRegisterView() {
             size="sm"
             variant="primary"
             icon={<Plus size={16} />}
-            onClick={() => setCreateItemOpen(true)}
+            onClick={() => setLinkOpen(true)}
           >
-            Add item
+            Link requirements
           </Button>
         )}
       </Stack>
@@ -195,75 +195,52 @@ export function ScopeRegisterView() {
           <table className="min-w-full text-left text-sm">
             <thead className="bg-neutral-50 text-neutral-600">
               <tr>
-                <th className="px-4 py-3 font-medium">Code / Title</th>
+                <th className="px-4 py-3 font-medium">Code</th>
+                <th className="px-4 py-3 font-medium">Title</th>
                 <th className="px-4 py-3 font-medium">Type</th>
                 <th className="px-4 py-3 font-medium">Priority</th>
-                <th className="px-4 py-3 font-medium">Classification</th>
+                <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {loadingItems ? (
+              {loadingReqs ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center">
+                  <td colSpan={6} className="px-4 py-8 text-center">
                     <Typography variant="small" tone="muted">
-                      Loading items…
+                      Loading requirements…
                     </Typography>
                   </td>
                 </tr>
-              ) : items.length === 0 ? (
+              ) : requirements.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center">
+                  <td colSpan={6} className="px-4 py-8 text-center">
                     <Typography variant="small" tone="muted">
-                      No scope items in this package
+                      No requirements linked. Use “Link requirements” to add some.
                     </Typography>
                   </td>
                 </tr>
               ) : (
-                items.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="cursor-pointer border-t border-neutral-100 hover:bg-neutral-50"
-                    onClick={() => setSelectedItem(item)}
-                  >
+                requirements.map((r) => (
+                  <tr key={r.id} className="border-t border-neutral-100">
+                    <td className="px-4 py-3 font-mono text-xs text-neutral-600">{r.code}</td>
+                    <td className="px-4 py-3 font-medium text-neutral-900">{r.title}</td>
+                    <td className="px-4 py-3">{r.requirementType ?? '—'}</td>
+                    <td className="px-4 py-3">{r.priority ?? '—'}</td>
                     <td className="px-4 py-3">
-                      <Typography as="span" variant="small" tone="muted" className="font-mono">
-                        {item.code}
-                      </Typography>
-                      <Typography as="div" weight="medium">
-                        {item.title}
-                      </Typography>
-                    </td>
-                    <td className="px-4 py-3">{item.type}</td>
-                    <td className="px-4 py-3">{scopeItemPriorityLabel(item.priority)}</td>
-                    <td className="px-4 py-3">
-                      <Badge tone={item.outOfScope ? 'error' : item.inScope ? 'success' : 'neutral'}>
-                        {scopeItemClassificationLabel(item)}
-                      </Badge>
+                      <Badge tone="neutral">{r.status ?? '—'}</Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <Stack direction="horizontal" spacing="sm">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e: { stopPropagation: () => void }) => {
-                            e.stopPropagation()
-                            void handleClassify(item, 'in')
-                          }}
-                        >
-                          In scope
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e: { stopPropagation: () => void }) => {
-                            e.stopPropagation()
-                            void handleClassify(item, 'out')
-                          }}
-                        >
-                          Out of scope
-                        </Button>
-                      </Stack>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        tone="error"
+                        disabled={acting || unlinkingId === r.id}
+                        loading={unlinkingId === r.id}
+                        onClick={() => void handleUnlink(r.id)}
+                      >
+                        Unlink
+                      </Button>
                     </td>
                   </tr>
                 ))
@@ -277,38 +254,20 @@ export function ScopeRegisterView() {
         open={createPackageOpen}
         onClose={() => setCreatePackageOpen(false)}
         onSubmit={async (body) => {
-          try {
-            await createPackage(body)
-            toast.success('Scope package created')
-          } catch (err) {
-            toast.error(getProblemToastMessage(err))
-            throw err
-          }
+          await createPackage(body)
+          toast.success('Scope package created')
         }}
       />
 
-      <CreateScopeItemModal
-        open={createItemOpen}
-        onClose={() => setCreateItemOpen(false)}
-        onSubmit={async (body) => {
-          try {
-            await createItem(body)
-            toast.success('Scope item added')
-          } catch (err) {
-            toast.error(getProblemToastMessage(err))
-            throw err
-          }
-        }}
-      />
-
-      <ScopeItemDetailDrawer
-        item={selectedItem}
-        open={!!selectedItem}
-        acting={acting}
-        onClose={() => setSelectedItem(null)}
-        onClassify={handleClassify}
-        onArchive={handleArchiveItem}
-      />
+      {selectedPackageId ? (
+        <LinkRequirementsModal
+          open={linkOpen}
+          projectId={projectId}
+          linkedIds={linkedIds}
+          onClose={() => setLinkOpen(false)}
+          onSubmit={handleLink}
+        />
+      ) : null}
     </div>
   )
 }

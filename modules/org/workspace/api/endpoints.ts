@@ -1,6 +1,7 @@
 import { apiPath } from '@/shared/lib/api-paths'
 
 export const WORKSPACE_ENDPOINTS = {
+  create: () => apiPath('/workspaces'),
   get: (workspaceId: string) => apiPath(`/workspaces/${workspaceId}`),
   update: (workspaceId: string) => apiPath(`/workspaces/${workspaceId}`),
   members: (workspaceId: string, params?: { status?: string; page?: number; size?: number }) => {
@@ -13,4 +14,8 @@ export const WORKSPACE_ENDPOINTS = {
   },
   deactivateMember: (workspaceId: string, memberId: string) =>
     apiPath(`/workspaces/${workspaceId}/members/${memberId}/deactivate`),
+  accessByUser: (workspaceId: string, userId: string) =>
+    apiPath(`/workspaces/${workspaceId}/members/by-user/${userId}/access`),
+  projectAccessByUser: (workspaceId: string, userId: string) =>
+    apiPath(`/workspaces/${workspaceId}/members/by-user/${userId}/project-access`),
 } as const

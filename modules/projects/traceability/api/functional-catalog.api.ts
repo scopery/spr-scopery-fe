@@ -26,12 +26,22 @@ import type {
   LinkNfrScopeTargetBody,
   NfrScopeTarget,
 } from '../model/overall-structure'
+import type {
+  FunctionalItemImportExecuteRequest,
+  FunctionalItemImportExecuteResult,
+  FunctionalItemImportPreviewRequest,
+  FunctionalItemImportPreviewResponse,
+} from '../model/functional-item-import'
 
 export const FUNCTIONAL_CATALOG_ENDPOINTS = {
   functionalItems: (projectId: string) =>
     apiPath(`/projects/${projectId}/functional-items`),
   functionalItem: (projectId: string, id: string) =>
     apiPath(`/projects/${projectId}/functional-items/${id}`),
+  functionalItemsImportPreview: (projectId: string) =>
+    apiPath(`/projects/${projectId}/functional-items/import/preview`),
+  functionalItemsImportExecute: (projectId: string) =>
+    apiPath(`/projects/${projectId}/functional-items/import/execute`),
   businessRules: (projectId: string, functionalItemId: string) =>
     apiPath(`/projects/${projectId}/functional-items/${functionalItemId}/business-rules`),
   businessRule: (projectId: string, functionalItemId: string, id: string) =>
@@ -401,5 +411,25 @@ export async function unlinkNfrScopeTarget(
 ): Promise<void> {
   await apiClient.delete(
     FUNCTIONAL_CATALOG_ENDPOINTS.nfrScopeTarget(projectId, nfrId, targetId)
+  )
+}
+
+export async function previewFunctionalItemsImport(
+  projectId: string,
+  body: FunctionalItemImportPreviewRequest
+): Promise<FunctionalItemImportPreviewResponse> {
+  return apiClient.post<FunctionalItemImportPreviewResponse>(
+    FUNCTIONAL_CATALOG_ENDPOINTS.functionalItemsImportPreview(projectId),
+    body
+  )
+}
+
+export async function executeFunctionalItemsImport(
+  projectId: string,
+  body: FunctionalItemImportExecuteRequest
+): Promise<FunctionalItemImportExecuteResult> {
+  return apiClient.post<FunctionalItemImportExecuteResult>(
+    FUNCTIONAL_CATALOG_ENDPOINTS.functionalItemsImportExecute(projectId),
+    body
   )
 }

@@ -38,7 +38,11 @@ export const PRODUCTIVITY_ENDPOINTS = {
   workInbox: (workspaceId: string, params?: { limit?: number; offset?: number }) =>
     withQuery(apiPath(`/workspaces/${workspaceId}/work-inbox`), params),
   markInboxRead: (workspaceId: string, itemId: string) =>
-    apiPath(`/workspaces/${workspaceId}/work-inbox/${itemId}/read`),
+    apiPath(`/workspaces/${workspaceId}/work-inbox/${itemId}/mark-read`),
+  myOrgInvitations: () => apiPath('/me/org-invitations'),
+  acceptMyOrgInvitation: (id: string) => apiPath(`/me/org-invitations/${id}/accept`),
+  acceptMyWorkspaceInvitation: (id: string) =>
+    apiPath(`/me/workspace-invitations/${id}/accept`),
   myWork: (workspaceId: string, params?: MyWorkParams) =>
     apiPath(`/workspaces/${workspaceId}/my-work`) + myWorkQuery(params),
   myInsights: (workspaceId: string, params?: MyInsightsParams) =>

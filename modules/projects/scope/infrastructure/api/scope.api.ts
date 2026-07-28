@@ -5,6 +5,7 @@ import type {
   CreateScopePackagePayload,
   ScopeItem,
   ScopePackage,
+  ScopePackageRequirement,
   UpdateScopeItemPayload,
 } from '../../domain/model/scope'
 
@@ -45,6 +46,38 @@ export async function archiveScopePackage(
   packageId: string
 ): Promise<ScopePackage> {
   return apiClient.patch<ScopePackage>(SCOPE_ENDPOINTS.packages.archive(projectId, packageId))
+}
+
+export async function listPackageRequirements(
+  projectId: string,
+  packageId: string
+): Promise<ScopePackageRequirement[]> {
+  const res = await apiClient.get<ScopePackageRequirement[] | { items?: ScopePackageRequirement[] }>(
+    SCOPE_ENDPOINTS.packages.requirements(projectId, packageId)
+  )
+  return Array.isArray(res) ? res : (res.items ?? [])
+}
+
+export async function linkRequirementsToPackage(
+  projectId: string,
+  packageId: string,
+  requirementIds: string[]
+): Promise<ScopePackageRequirement[]> {
+  return apiClient.post<ScopePackageRequirement[]>(
+    SCOPE_ENDPOINTS.packages.linkRequirements(projectId, packageId),
+    { requirementIds }
+  )
+}
+
+export async function unlinkRequirementsFromPackage(
+  projectId: string,
+  packageId: string,
+  requirementIds: string[]
+): Promise<ScopePackageRequirement[]> {
+  return apiClient.post<ScopePackageRequirement[]>(
+    SCOPE_ENDPOINTS.packages.unlinkRequirements(projectId, packageId),
+    { requirementIds }
+  )
 }
 
 export async function listScopeItems(

@@ -40,3 +40,26 @@ export interface PageResponse<T> {
   first: boolean
   last: boolean
 }
+
+export interface OrgMemberProjectAccess {
+  projectId: string
+  projectName: string
+  projectCode: string
+}
+
+export interface OrgMemberWorkspaceAccess {
+  workspaceId: string
+  workspaceName: string
+  membershipStatus: string
+  accessMode: 'ALL' | 'CUSTOM' | string
+  totalProjects: number
+  projects: OrgMemberProjectAccess[]
+  availableProjects: OrgMemberProjectAccess[]
+}
+
+export interface OrgMemberAccessResponse {
+  organizationId: string
+  userId: string
+  orgMembershipStatus: string
+  workspaces: OrgMemberWorkspaceAccess[]
+}

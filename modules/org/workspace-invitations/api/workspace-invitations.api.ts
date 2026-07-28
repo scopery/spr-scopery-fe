@@ -29,3 +29,15 @@ export async function revokeWorkspaceInvitation(
     WORKSPACE_INVITATION_ENDPOINTS.revoke(workspaceId, invitationId)
   )
 }
+
+export async function acceptWorkspaceInvitationByCode(code: string): Promise<void> {
+  await apiClient.post<void>(WORKSPACE_INVITATION_ENDPOINTS.acceptByCode(code), undefined, {
+    parseJson: false,
+  })
+}
+
+export async function acceptWorkspaceInvitationById(invitationId: string): Promise<void> {
+  await apiClient.post<void>(WORKSPACE_INVITATION_ENDPOINTS.acceptById(invitationId), undefined, {
+    parseJson: false,
+  })
+}

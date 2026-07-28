@@ -28,4 +28,6 @@ export const ORGANIZATION_MEMBER_ENDPOINTS = {
     apiPath(`/organizations/${organizationId}/members/${memberId}/activate`),
   suspend: (organizationId: string, memberId: string) =>
     apiPath(`/organizations/${organizationId}/members/${memberId}/suspend`),
+  accessByUser: (organizationId: string, userId: string) =>
+    apiPath(`/organizations/${organizationId}/members/by-user/${userId}/access`),
 } as const

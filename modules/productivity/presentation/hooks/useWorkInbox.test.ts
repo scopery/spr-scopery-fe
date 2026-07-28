@@ -9,11 +9,16 @@ vi.mock('../../infrastructure/api/productivity.api', () => ({
         id: 'i1',
         title: 'Review SRS',
         status: 'UNREAD',
+        sourceType: 'TASK',
+        sourceId: 't1',
+        actionType: 'VIEW',
         createdAt: '2026-01-01T00:00:00Z',
       },
     ],
   })),
+  listMyOrgInvitations: vi.fn(async () => []),
   markWorkInboxRead: vi.fn(async () => undefined),
+  acceptMyOrgInvitation: vi.fn(async () => undefined),
 }))
 
 describe('useWorkInbox', () => {

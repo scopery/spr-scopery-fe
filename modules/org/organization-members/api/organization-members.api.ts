@@ -3,6 +3,7 @@ import { ORGANIZATION_MEMBER_ENDPOINTS } from './endpoints'
 import type {
   AddOrganizationMemberPayload,
   OrganizationMember,
+  OrgMemberAccessResponse,
   PageResponse,
 } from '../model/organization-member'
 
@@ -46,5 +47,14 @@ export async function suspendOrganizationMember(
 ): Promise<OrganizationMember> {
   return apiClient.patch<OrganizationMember>(
     ORGANIZATION_MEMBER_ENDPOINTS.suspend(organizationId, memberId)
+  )
+}
+
+export async function getOrganizationMemberAccess(
+  organizationId: string,
+  userId: string
+): Promise<OrgMemberAccessResponse> {
+  return apiClient.get<OrgMemberAccessResponse>(
+    ORGANIZATION_MEMBER_ENDPOINTS.accessByUser(organizationId, userId)
   )
 }

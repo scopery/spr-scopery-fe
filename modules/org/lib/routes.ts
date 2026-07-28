@@ -14,10 +14,20 @@ export const WORKSPACE_ROUTES = {
     return tab && tab !== 'members' ? `${base}?tab=${tab}` : base
   },
   activity: (workspaceId: string) => `/workspace/${workspaceId}/activity`,
+  /** Organization directory consolidates Org members / invitations / teams. */
+  organizationDirectory: (
+    workspaceId: string,
+    tab?: 'members' | 'invitations' | 'teams'
+  ) => {
+    const base = `/workspace/${workspaceId}/organization/directory`
+    return tab && tab !== 'members' ? `${base}?tab=${tab}` : base
+  },
+  /** @deprecated Prefer organizationDirectory(..., 'members'). */
   organizationMembers: (workspaceId: string) =>
-    `/workspace/${workspaceId}/organization/members`,
+    `/workspace/${workspaceId}/organization/directory?tab=members`,
+  /** @deprecated Prefer organizationDirectory(..., 'invitations'). */
   organizationInvitations: (workspaceId: string) =>
-    `/workspace/${workspaceId}/organization/invitations`,
+    `/workspace/${workspaceId}/organization/directory?tab=invitations`,
   /** Wave 2: project entry lands on Overview. */
   project: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/overview`,
@@ -75,6 +85,8 @@ export const WORKSPACE_ROUTES = {
     `/workspace/${workspaceId}/projects/${projectId}/change-requests`,
   projectChangeRequest: (workspaceId: string, projectId: string, changeRequestId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/change-requests/${changeRequestId}`,
+  projectMembers: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/members`,
   projectSettings: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/settings`,
   projectQuestions: (workspaceId: string, projectId: string) =>

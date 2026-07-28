@@ -47,6 +47,15 @@ export function updateTrackedOrgInvitationStatus(invitationId: string, status: s
   writeAll(readAll().map((r) => (r.id === invitationId ? { ...r, status, token: null } : r)))
 }
 
+/** Mark accepted/cancelled/expired without requiring the invite id in the accept page (match raw token). */
+export function markTrackedOrgInvitationAcceptedByToken(token: string) {
+  writeAll(
+    readAll().map((r) =>
+      r.token === token ? { ...r, status: 'ACCEPTED', token: null } : r
+    )
+  )
+}
+
 export function clearTrackedOrgInvitationToken(invitationId: string) {
   writeAll(readAll().map((r) => (r.id === invitationId ? { ...r, token: null } : r)))
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -39,7 +39,7 @@ import { ROUTES } from '@/constants/routes'
 import { FEATURES } from '@/config/features'
 import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import type { WorkspaceListItem } from '@/modules/auth/workspace-context/model/interfaces/workspace-context'
-import { useAppShellAuthorization } from '@/modules/auth/iam'
+import { useAppShellAuthorization, useNavCapabilities, useNavCapabilityDeepLinkGuard, NavCapabilityKey } from '@/modules/auth/iam'
 import { useProject } from '@/modules/projects/project'
 import { useUnreadNotificationCount } from '@/modules/notifications'
 import { setAiAssistantHeaderContext } from '@/shared/lib/aiAssistantHeaders'
@@ -105,9 +105,6 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
   const { profile, session, workspaces, switchWorkspace, logout } = useAuth()
   const [switcherOpen, setSwitcherOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
-  // Legacy org-scoped effective-permissions API is gone.
-  // Document hub visibility falls back to visible; IAM gates the APIs themselves.
-  const canViewDocumentHub = true
   const [switching, setSwitching] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [sidebarPinned, setSidebarPinned] = useState(false)
@@ -239,6 +236,41 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     canViewTeams,
   } = useAppShellAuthorization(workspaceId, currentWorkspace?.organizationId)
 
+  const orgId = currentWorkspace?.organizationId ?? null
+  const navPacks = useMemo(() => {
+    const packs: Array<'NAV_WORKSPACE' | 'NAV_PROJECT' | 'NAV_ORG' | 'NAV_SETTINGS'> = [
+      'NAV_WORKSPACE',
+      'NAV_SETTINGS',
+    ]
+    if (projectId) packs.push('NAV_PROJECT')
+    if (orgId) packs.push('NAV_ORG')
+    return packs
+  }, [projectId, orgId])
+
+  const { can: canCap, loading: navCapsLoading, ready: navCapsReady, caps: navCaps } = useNavCapabilities({
+    workspaceId,
+    organizationId: orgId,
+    projectId,
+    packs: navPacks,
+  })
+
+  useNavCapabilityDeepLinkGuard({
+    workspaceId,
+    loading: navCapsLoading,
+    ready: navCapsReady,
+    can: canCap,
+    caps: navCaps,
+  })
+
+  /** Hide-by-default while loading to avoid flash of unauthorized tabs. */
+  const showCap = useCallback(
+    (key: string, showWhileLoading = false) =>
+      navCapsLoading ? showWhileLoading : canCap(key),
+    [navCapsLoading, canCap]
+  )
+
+  const canViewDocumentHub = showCap(NavCapabilityKey.CommonDocumentHub, true)
+
   const currentRole = deriveWorkspaceRole(currentWorkspace, session?.user?.id)
   const canManageWorkspace = canUpdateWorkspace
   const organizationName =
@@ -271,95 +303,141 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     pathActive(pathname, ROUTES.workspace.submissions(workspaceId))
   const notificationsActive = pathActive(pathname, ROUTES.workspace.notifications(workspaceId))
   const agentControlActive = pathActive(pathname, ROUTES.workspace.agentControl(workspaceId))
-  const directoryActive =
-    pathActive(pathname, ROUTES.workspace.directory(workspaceId)) ||
+  const onWorkspaceDirectory =
+    pathActive(pathname, ROUTES.workspace.directory(workspaceId).split('?')[0]) ||
     pathActive(pathname, ROUTES.workspace.members(workspaceId)) ||
-    pathActive(pathname, ROUTES.workspace.teams(workspaceId)) ||
     pathActive(pathname, ROUTES.workspace.invitations(workspaceId)) ||
     pathActive(pathname, ROUTES.workspace.joinRequests(workspaceId))
+  const onOrgDirectory =
+    pathActive(pathname, `/workspace/${workspaceId}/organization/directory`) ||
+    pathActive(pathname, `/workspace/${workspaceId}/organization/members`) ||
+    pathActive(pathname, `/workspace/${workspaceId}/organization/invitations`) ||
+    pathActive(pathname, ROUTES.workspace.teams(workspaceId))
 
-  const workspaceSidebarSections = useMemo(
-    () => [
-      {
-        label: '',
-        items: [
-          {
+  const workspaceSidebarSections = useMemo(() => {
+    const workspaceItems = [
+      showCap(NavCapabilityKey.WorkspaceOverview, true)
+        ? {
             label: 'Overview',
             href: ROUTES.workspace.root(workspaceId),
             icon: <LayoutDashboard size={16} />,
             active: overviewActive,
-          },
-          {
+          }
+        : null,
+      showCap(NavCapabilityKey.WorkspaceActivity, true)
+        ? {
             label: 'Activity',
             href: ROUTES.workspace.activity(workspaceId),
             icon: <FileStack size={16} />,
             active: activityActive,
-          },
-          {
+          }
+        : null,
+      showCap(NavCapabilityKey.WorkspaceProjects, true)
+        ? {
             label: 'Projects',
             href: ROUTES.workspace.projects(workspaceId),
             icon: <FolderKanban size={16} />,
             active: projectsActive,
-          },
-          {
+          }
+        : null,
+      showCap(NavCapabilityKey.WorkspaceCapacity)
+        ? {
             label: 'Capacity',
             href: ROUTES.workspace.capacity(workspaceId),
             icon: <Gauge size={16} />,
             active: capacityActive,
-          },
-          {
+          }
+        : null,
+      showCap(NavCapabilityKey.WorkspaceClients)
+        ? {
             label: 'Clients & Contacts',
             href: ROUTES.workspace.clients(workspaceId),
             icon: <Briefcase size={16} />,
             active: clientsActive,
-          },
-          ...(FEATURES.requirementsTraceability
-            ? [
-                {
-                  label: 'Applications',
-                  href: ROUTES.workspace.applications(workspaceId),
-                  icon: <AppWindow size={16} />,
-                  active: pathActive(pathname, ROUTES.workspace.applications(workspaceId)),
-                },
-              ]
-            : []),
-          ...(FEATURES.serviceSupport
-            ? [
-                {
-                  label: 'Support',
-                  href: ROUTES.workspace.support(workspaceId),
-                  icon: <Headset size={16} />,
-                  active: pathActive(pathname, ROUTES.workspace.support(workspaceId)),
-                },
-              ]
-            : []),
-          {
+          }
+        : null,
+      FEATURES.requirementsTraceability && showCap(NavCapabilityKey.WorkspaceApplications)
+        ? {
+            label: 'Applications',
+            href: ROUTES.workspace.applications(workspaceId),
+            icon: <AppWindow size={16} />,
+            active: pathActive(pathname, ROUTES.workspace.applications(workspaceId)),
+          }
+        : null,
+      FEATURES.serviceSupport && showCap(NavCapabilityKey.WorkspaceSupport)
+        ? {
+            label: 'Support',
+            href: ROUTES.workspace.support(workspaceId),
+            icon: <Headset size={16} />,
+            active: pathActive(pathname, ROUTES.workspace.support(workspaceId)),
+          }
+        : null,
+      showCap(NavCapabilityKey.WorkspaceForms)
+        ? {
             label: 'Forms',
             href: ROUTES.workspace.forms(workspaceId),
             icon: <ClipboardList size={16} />,
             active: formsActive,
-          },
-          {
+          }
+        : null,
+      showCap(NavCapabilityKey.WorkspaceDirectory, true) ||
+      showCap(NavCapabilityKey.WorkspaceDirectoryMembers, true)
+        ? {
             label: 'Directory',
             href: ROUTES.workspace.directory(workspaceId),
             icon: <Users size={16} />,
-            active: directoryActive,
+            active: onWorkspaceDirectory,
+          }
+        : null,
+    ].filter(Boolean) as Array<{
+      label: string
+      href: string
+      icon: ReactNode
+      active: boolean
+    }>
+
+    const sections: Array<{
+      label: string
+      items: Array<{ label: string; href: string; icon: ReactNode; active: boolean }>
+    }> = []
+
+    if (workspaceItems.length) {
+      sections.push({ label: 'Workspace', items: workspaceItems })
+    }
+
+    if (
+      showCap(NavCapabilityKey.OrgDirectory) ||
+      showCap(NavCapabilityKey.OrgDirectoryMembers) ||
+      showCap(NavCapabilityKey.OrgDirectoryInvitations) ||
+      showCap(NavCapabilityKey.OrgDirectoryTeams)
+    ) {
+      sections.push({
+        label: 'Organization',
+        items: [
+          {
+            label: 'Directory',
+            href: ROUTES.workspace.organizationDirectory(workspaceId),
+            icon: <Users size={16} />,
+            active: onOrgDirectory,
           },
         ],
-      },
-    ],
-    [
-      workspaceId,
-      pathname,
-      overviewActive,
-      activityActive,
-      projectsActive,
-      capacityActive,
-      clientsActive,
-      formsActive,
-      directoryActive,
-    ]
-  )
+      })
+    }
+
+    return sections
+  }, [
+    workspaceId,
+    pathname,
+    overviewActive,
+    activityActive,
+    projectsActive,
+    capacityActive,
+    clientsActive,
+    formsActive,
+    onWorkspaceDirectory,
+    onOrgDirectory,
+    showCap,
+  ])
 
   const projectWorkbenchSections = useMemo(() => {
     if (!projectId) return []
@@ -401,9 +479,9 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     const clientCollabHref = ROUTES.workspace.projectClientCollaboration(workspaceId, projectId)
     const dashboardHref = ROUTES.workspace.projectDashboard(workspaceId, projectId)
 
-    return [
+    const sections = [
       {
-        label: '',
+        label: 'Project',
         items: [
           {
             label: 'Overview',
@@ -413,6 +491,19 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
               pathname === overviewHref ||
               pathname?.endsWith(`/projects/${projectId}/overview`) === true,
           },
+          ...(showCap(NavCapabilityKey.ProjectDirectoryMembers, true)
+            ? [
+                {
+                  label: 'Directory',
+                  href: ROUTES.workspace.projectMembers(workspaceId, projectId),
+                  icon: <Users size={16} />,
+                  active: pathActive(
+                    pathname,
+                    ROUTES.workspace.projectMembers(workspaceId, projectId)
+                  ),
+                },
+              ]
+            : []),
         ],
       },
       {
@@ -659,33 +750,98 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
         ],
       },
     ]
-  }, [pathname, projectId, workspaceId])
+
+    const hrefToCap: Record<string, string> = {
+      [overviewHref]: NavCapabilityKey.ProjectOverview,
+      [workHref]: NavCapabilityKey.ProjectWork,
+      [wbsHref]: NavCapabilityKey.ProjectWbs,
+      [timelineHref]: NavCapabilityKey.ProjectTimeline,
+      [scheduleHref]: NavCapabilityKey.ProjectSchedule,
+      [resourcesHref]: NavCapabilityKey.ProjectResources,
+      [scopeHref]: NavCapabilityKey.ProjectScope,
+      [deliverablesHref]: NavCapabilityKey.ProjectDeliverables,
+      [requirementsHref]: NavCapabilityKey.ProjectRequirements,
+      [functionalCatalogHref]: NavCapabilityKey.ProjectFunctionalCatalog,
+      [applicationStructureHref]: NavCapabilityKey.ProjectApplicationStructure,
+      [traceabilityHref]: NavCapabilityKey.ProjectTraceability,
+      [qualityHref]: NavCapabilityKey.ProjectQuality,
+      [testPlansHref]: NavCapabilityKey.ProjectTestPlans,
+      [defectsHref]: NavCapabilityKey.ProjectDefects,
+      [releasesHref]: NavCapabilityKey.ProjectReleases,
+      [estimationHref]: NavCapabilityKey.ProjectEstimation,
+      [financialsHref]: NavCapabilityKey.ProjectFinancials,
+      [profitabilityHref]: NavCapabilityKey.ProjectProfitability,
+      [quotesHref]: NavCapabilityKey.ProjectQuotes,
+      [raidHref]: NavCapabilityKey.ProjectRaid,
+      [decisionsHref]: NavCapabilityKey.ProjectDecisions,
+      [baselinesHref]: NavCapabilityKey.ProjectBaselines,
+      [changeRequestsHref]: NavCapabilityKey.ProjectChangeRequests,
+      [projectGovHref]: NavCapabilityKey.ProjectGovernance,
+      [meetingsHref]: NavCapabilityKey.ProjectMeetings,
+      [clientCollabHref]: NavCapabilityKey.ProjectClientCollaboration,
+      [aiPlanningHref]: NavCapabilityKey.ProjectAiPlanning,
+      [recommendationsHref]: NavCapabilityKey.ProjectRecommendations,
+      [reportsHref]: NavCapabilityKey.ProjectReports,
+      [dashboardHref]: NavCapabilityKey.ProjectDashboard,
+    }
+
+    const memberDefaults = new Set<string>([
+      NavCapabilityKey.ProjectOverview,
+      NavCapabilityKey.ProjectWork,
+      NavCapabilityKey.ProjectWbs,
+      NavCapabilityKey.ProjectTimeline,
+      NavCapabilityKey.ProjectSchedule,
+      NavCapabilityKey.ProjectScope,
+      NavCapabilityKey.ProjectDeliverables,
+      NavCapabilityKey.ProjectRequirements,
+      NavCapabilityKey.ProjectFunctionalCatalog,
+      NavCapabilityKey.ProjectApplicationStructure,
+      NavCapabilityKey.ProjectTraceability,
+      NavCapabilityKey.ProjectRaid,
+      NavCapabilityKey.ProjectDecisions,
+      NavCapabilityKey.ProjectMeetings,
+      NavCapabilityKey.ProjectReports,
+      NavCapabilityKey.ProjectDashboard,
+      NavCapabilityKey.ProjectDirectoryMembers,
+    ])
+
+    const filtered = sections
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => {
+          const key = item.href ? hrefToCap[item.href] : undefined
+          if (!key) return true
+          return showCap(key, memberDefaults.has(key))
+        }),
+      }))
+      .filter((s) => s.items.length > 0)
+
+    return filtered
+  }, [pathname, projectId, workspaceId, showCap])
 
   const settingsSections = useMemo(
     () =>
       buildSettingsNavSections(workspaceId, pathname, {
-        canManageWorkspace,
+        canManageWorkspace: showCap(NavCapabilityKey.SettingsWorkspaceEntry),
         canManageMembers,
         canInviteMembers,
         canManageJoinRequests,
         canViewTeams,
-        canAccessAdmin,
-        isOrgOwner: currentRole === 'owner',
+        canAccessAdmin: false, // Admin Console only — never dump admin into settings
+        isOrgOwner: showCap(NavCapabilityKey.SettingsOrganizationEntry),
         organizationId: currentWorkspace?.organizationId ?? null,
-        projectId,
+        projectId: showCap(NavCapabilityKey.SettingsProjectEntry) ? projectId : null,
       }),
     [
       workspaceId,
       pathname,
-      canManageWorkspace,
       canManageMembers,
       canInviteMembers,
       canManageJoinRequests,
       canViewTeams,
-      canAccessAdmin,
-      currentRole,
       currentWorkspace?.organizationId,
       projectId,
+      showCap,
     ]
   )
 
@@ -745,7 +901,17 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
 
   const handleExitSettings = () => {
     setSettingsModePersisted(false)
+    if (pathname?.startsWith('/account')) {
+      router.push(ROUTES.workspace.projects(workspaceId))
+    }
   }
+
+  // Personal account routes always show settings sidebar (Back → workspace).
+  useEffect(() => {
+    if (pathname?.startsWith('/account')) {
+      setSettingsModePersisted(true)
+    }
+  }, [pathname, setSettingsModePersisted])
 
   const displayName = profile?.display_name ?? session?.user?.email ?? 'User'
   const avatarFallback = displayName.charAt(0).toUpperCase()
@@ -794,6 +960,8 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
             notificationsActive={notificationsActive}
             agentControlActive={agentControlActive}
             canViewDocumentHub={canViewDocumentHub}
+            canViewMyInsights={showCap(NavCapabilityKey.CommonMyInsights, true)}
+            canViewWorkInbox={showCap(NavCapabilityKey.CommonWorkInbox, true)}
             unreadCount={unreadCount}
             badgePopKey={badgePopKey}
             onOpenSearch={() => {

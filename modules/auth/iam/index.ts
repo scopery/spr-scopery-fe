@@ -79,6 +79,12 @@ export { useAuthorizationBatch } from './hooks/useAuthorizationBatch'
 export { usePlatformAdminAccess } from './hooks/usePlatformAdminAccess'
 export { useWorkspaceAuthorization } from './hooks/useWorkspaceAuthorization'
 export { useAppShellAuthorization } from './hooks/useAppShellAuthorization'
+export { useNavCapabilities } from './hooks/useNavCapabilities'
+export { useNavCapabilityDeepLinkGuard } from './hooks/useNavCapabilityDeepLinkGuard'
+export { resolveNavCapabilityForPath } from './lib/nav-route-capabilities'
+export { NavCapabilityKey } from './model/nav-capabilities'
+export type { NavCapabilityPack, CapabilitiesResponse } from './model/nav-capabilities'
+export * as iamCapabilitiesApi from './api/capabilities.api'
 export * as iamPermissionsApi from './api/permissions.api'
 export type {
   IamPermission,

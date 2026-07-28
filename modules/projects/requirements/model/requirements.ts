@@ -16,6 +16,7 @@ export interface Requirement {
   nonFunctionalItemId?: string | null
   applicationId?: string | null
   scopeItemId?: string | null
+  scopePackageId?: string | null
 }
 
 export interface RequirementsListResponse {
@@ -33,6 +34,7 @@ export interface CreateRequirementPayload {
   functionalItemId?: string | null
   nonFunctionalItemId?: string | null
   scopeItemId?: string | null
+  scopePackageId?: string | null
 }
 
 export interface UpdateRequirementPayload {
@@ -44,4 +46,5 @@ export interface UpdateRequirementPayload {
   functionalItemId?: string | null
   nonFunctionalItemId?: string | null
   scopeItemId?: string | null
+  scopePackageId?: string | null
 }

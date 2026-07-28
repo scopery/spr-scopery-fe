@@ -6,7 +6,7 @@ import NextLink from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Typography, Link as DesignLink, Skeleton } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { useNotifications, resolveNotificationAction } from '@/modules/notifications'
+import { useNotifications } from '@/modules/notifications'
 import { cn } from '@/utils/cn'
 
 export interface NotificationsQuickPanelProps {
@@ -62,6 +62,7 @@ export function NotificationsQuickPanel({
   if (!open || !position || typeof document === 'undefined') return null
 
   const preview = items.slice(0, 8)
+  const inboxHref = ROUTES.workspace.notifications(workspaceId)
 
   return createPortal(
     <div
@@ -75,7 +76,7 @@ export function NotificationsQuickPanel({
         </Typography>
         <DesignLink
           as={NextLink}
-          href={ROUTES.workspace.notifications(workspaceId)}
+          href={inboxHref}
           className="text-sm text-neutral-600 hover:text-neutral-900"
           onClick={onClose}
         >
@@ -105,30 +106,29 @@ export function NotificationsQuickPanel({
                 <button
                   type="button"
                   className={cn(
-                    'flex w-full flex-col gap-0.5 border-b border-neutral-50 px-3 py-2.5 text-left motion-colors hover:bg-neutral-50',
+                    'flex w-full items-start gap-2 border-b border-neutral-50 px-3 py-2.5 text-left motion-colors hover:bg-neutral-50',
                     isUnread && 'bg-neutral-50/80'
                   )}
                   onClick={() => {
                     if (isUnread) void markRead(n.id)
-                    const href =
-                      resolveNotificationAction(workspaceId, n.actionUrl) ??
-                      ROUTES.workspace.notifications(workspaceId)
                     onClose()
-                    router.push(href)
+                    router.push(inboxHref)
                   }}
                 >
-                  <Typography
-                    as="span"
-                    weight={isUnread ? 'medium' : 'normal'}
-                    className="line-clamp-2 text-sm"
-                  >
-                    {n.title}
-                  </Typography>
-                  {n.bodyPreview ? (
-                    <Typography as="span" variant="small" tone="muted" className="line-clamp-2">
-                      {n.bodyPreview}
+                  <span className="min-w-0 flex-1 flex-col gap-0.5">
+                    <Typography
+                      as="span"
+                      weight={isUnread ? 'medium' : 'normal'}
+                      className="line-clamp-2 text-sm"
+                    >
+                      {n.title}
                     </Typography>
-                  ) : null}
+                    {n.bodyPreview ? (
+                      <Typography as="span" variant="small" tone="muted" className="line-clamp-2">
+                        {n.bodyPreview}
+                      </Typography>
+                    ) : null}
+                  </span>
                 </button>
               </li>
               )

@@ -6,6 +6,7 @@ export const MIDDLEWARE_PUBLIC_PREFIXES = [
   '/auth',
   '/invites',
   '/org-invites',
+  '/workspace-invites',
   PLATFORM_ROUTES.suspended,
 ] as const
 

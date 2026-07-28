@@ -49,9 +49,12 @@ export function useCreateInviteModal({ orgId, open, onClose, onSuccess }: Create
     } catch (err) {
       if (err instanceof ApiError) {
         const code = err.problem.code
-        if (code === 'ALREADY_MEMBER') toast.error('User is already a member')
+        if (code === 'ALREADY_MEMBER' || code === 'ORG_INVITATION_ALREADY_MEMBER')
+          toast.error('This user is already a member of this organization')
         else if (code === 'INVITE_ALREADY_PENDING')
           toast.error('Invite already pending for this email')
+        else if (code === 'RESOURCE_CONFLICT')
+          toast.error('Could not create invitation — please retry')
         else toast.error(err.problem.detail || 'Failed to create invite')
       } else {
         toast.error('Failed to create invite')

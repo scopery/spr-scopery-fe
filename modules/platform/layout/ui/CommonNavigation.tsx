@@ -18,6 +18,8 @@ export interface CommonNavigationProps {
   myWorkActive?: boolean
   agentControlActive?: boolean
   canViewDocumentHub: boolean
+  canViewMyInsights?: boolean
+  canViewWorkInbox?: boolean
   unreadCount: number
   badgePopKey: number
   onOpenSearch: () => void
@@ -39,6 +41,8 @@ export function CommonNavigation({
   myWorkActive,
   agentControlActive,
   canViewDocumentHub,
+  canViewMyInsights = true,
+  canViewWorkInbox = true,
   unreadCount,
   badgePopKey,
   onOpenSearch,
@@ -108,52 +112,6 @@ export function CommonNavigation({
         ) : null}
         <li>
           <button
-            ref={notificationsAnchorRef}
-            type="button"
-            title={
-              collapsed
-                ? unreadCount > 0
-                  ? `Notifications, ${unreadCount} unread`
-                  : 'Notifications'
-                : undefined
-            }
-            aria-expanded={notificationsOpen}
-            aria-label={
-              unreadCount > 0
-                ? `Notifications, ${unreadCount} unread`
-                : 'Notifications'
-            }
-            className={itemClass(notificationsActive || notificationsOpen)}
-            onClick={onOpenNotifications}
-          >
-            <span className="relative shrink-0">
-              <Bell
-                size={16}
-                className={cn(
-                  notificationsActive || notificationsOpen
-                    ? 'text-primary'
-                    : 'text-neutral-500'
-                )}
-                aria-hidden
-              />
-              {unreadCount > 0 ? (
-                <span
-                  key={badgePopKey}
-                  className="absolute -right-1.5 -top-1 flex h-3.5 min-w-3.5 items-center justify-center bg-red-600 px-0.5 text-[9px] font-medium text-white motion-badge-pop"
-                >
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              ) : null}
-            </span>
-            {!collapsed ? (
-              <Typography as="span" variant="small" className="truncate">
-                Notifications
-              </Typography>
-            ) : null}
-          </button>
-        </li>
-        <li>
-          <button
             ref={aiAssistantAnchorRef}
             type="button"
             title={collapsed ? 'AI Assistant' : undefined}
@@ -178,7 +136,7 @@ export function CommonNavigation({
             ) : null}
           </button>
         </li>
-        {FEATURES.myWork ? (
+        {FEATURES.myWork && canViewMyInsights ? (
           <li>
             <DesignLink
               as={NextLink}
@@ -203,7 +161,7 @@ export function CommonNavigation({
             </DesignLink>
           </li>
         ) : null}
-        {FEATURES.workInbox ? (
+        {FEATURES.workInbox && canViewWorkInbox ? (
           <li>
             <DesignLink
               as={NextLink}
@@ -228,6 +186,65 @@ export function CommonNavigation({
             </DesignLink>
           </li>
         ) : null}
+        <li>
+          <button
+            ref={notificationsAnchorRef}
+            type="button"
+            title={
+              collapsed
+                ? unreadCount > 0
+                  ? `Notifications, ${unreadCount} unread`
+                  : 'Notifications'
+                : undefined
+            }
+            aria-expanded={notificationsOpen}
+            aria-label={
+              unreadCount > 0
+                ? `Notifications, ${unreadCount} unread`
+                : 'Notifications'
+            }
+            className={cn(
+              itemClass(notificationsActive || notificationsOpen),
+              !collapsed && 'justify-between'
+            )}
+            onClick={onOpenNotifications}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="relative shrink-0">
+                <Bell
+                  size={16}
+                  className={cn(
+                    notificationsActive || notificationsOpen
+                      ? 'text-primary'
+                      : 'text-neutral-500'
+                  )}
+                  aria-hidden
+                />
+                {collapsed && unreadCount > 0 ? (
+                  <span
+                    key={badgePopKey}
+                    className="absolute -right-1.5 -top-1 flex h-3.5 min-w-3.5 items-center justify-center bg-red-600 px-0.5 text-[9px] font-medium text-white motion-badge-pop"
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                ) : null}
+              </span>
+              {!collapsed ? (
+                <Typography as="span" variant="small" className="truncate">
+                  Notifications
+                </Typography>
+              ) : null}
+            </span>
+            {!collapsed && unreadCount > 0 ? (
+              <span
+                key={badgePopKey}
+                className="ml-auto flex h-4 min-w-4 shrink-0 items-center justify-center bg-red-600 px-1 text-[10px] font-medium text-white motion-badge-pop"
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            ) : null}
+          </button>
+        </li>
       </ul>
     </nav>
   )

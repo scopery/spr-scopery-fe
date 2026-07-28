@@ -13,6 +13,15 @@ export interface WorkspaceDetail {
   ownerMembershipCreated: boolean
 }
 
+export interface CreateWorkspacePayload {
+  organizationId: string
+  name: string
+  code: string
+  description?: string
+  defaultVisibility?: string
+  joinPolicy?: string
+}
+
 export interface UpdateWorkspacePayload {
   name: string
   description?: string

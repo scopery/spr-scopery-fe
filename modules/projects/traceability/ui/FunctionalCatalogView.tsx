@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import {
+  Button,
   PageSkeleton,
   Select,
   Stack,
@@ -24,12 +25,9 @@ import { FunctionalCatalogAddBar } from './FunctionalCatalogAddBar'
 import type { FunctionalCatalogBulkCreateInput } from './FunctionalCatalogBulkAddModal'
 import { FunctionalItemDetailPanel } from './FunctionalItemDetailPanel'
 import { RequirementFunctionalLinkPanel } from './RequirementFunctionalLinkPanel'
+import { ImportFunctionalItemsModal } from './ImportFunctionalItemsModal'
 import { SimpleExcelImportPanel } from './SimpleExcelImportPanel'
-import {
-  FUNCTIONAL_ITEM_IMPORT_SPEC,
-  NON_FUNCTIONAL_ITEM_IMPORT_SPEC,
-  splitAcceptanceCriteria,
-} from '../lib/excelImportSpecs'
+import { NON_FUNCTIONAL_ITEM_IMPORT_SPEC } from '../lib/excelImportSpecs'
 
 type MainTab = 'fr' | 'nfr' | 'map' | 'import'
 
@@ -66,6 +64,7 @@ export function FunctionalCatalogView() {
   const [selectedFrId, setSelectedFrId] = useState<string | null>(null)
   const [selectedNfrId, setSelectedNfrId] = useState<string | null>(null)
   const [importKind, setImportKind] = useState<'fr' | 'nfr'>('fr')
+  const [frImportOpen, setFrImportOpen] = useState(false)
 
   const selectedFr = functionalItems.find((i) => i.id === selectedFrId) ?? null
   const selectedNfr = nonFunctionalItems.find((i) => i.id === selectedNfrId) ?? null
@@ -216,16 +215,21 @@ export function FunctionalCatalogView() {
               {/* Left: list — independent scroll */}
               <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-neutral-200">
                 <div className="shrink-0 border-b border-neutral-100 px-3 py-2">
-                  <FunctionalCatalogAddBar
-                    defaultKind="FR"
-                    onCreate={handleBulkCreate}
-                    onBatchComplete={handleBatchComplete}
-                  />
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => setFrImportOpen(true)}>
+                      Import
+                    </Button>
+                    <FunctionalCatalogAddBar
+                      defaultKind="FR"
+                      onCreate={handleBulkCreate}
+                      onBatchComplete={handleBatchComplete}
+                    />
+                  </div>
                 </div>
                 <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
                   {functionalItems.length === 0 ? (
                     <Typography tone="muted" className="py-8 text-center" variant="small">
-                      No functional items yet. Use Add FR above — choose Single or Bulk.
+                      No functional items yet. Use Add FR or Import above.
                     </Typography>
                   ) : (
                     <table className="w-full table-fixed text-left text-sm">
@@ -432,63 +436,63 @@ export function FunctionalCatalogView() {
                     placeholder="What to import"
                   />
                 </div>
-                <Typography variant="small" tone="muted">
-                  One file, one type. Duplicate codes are skipped (409). For quick multi-row add,
-                  prefer Add FR / Add NFR (paste from Excel).
-                </Typography>
                 {importKind === 'fr' ? (
-                  <SimpleExcelImportPanel
-                    title="Import functional items"
-                    spec={FUNCTIONAL_ITEM_IMPORT_SPEC}
-                    onImportRow={async (row) => {
-                      await createFr(
-                        {
-                          code: row.code,
-                          title: row.title,
-                          description: row.description || null,
-                          priority: row.priority,
-                          type: row.type,
-                          acceptanceCriteria: splitAcceptanceCriteria(row.acceptanceCriteria),
-                          workspaceId,
-                        },
-                        { refresh: false }
-                      )
-                    }}
-                    onComplete={async () => {
-                      await refetch({ silent: true })
-                      void refetchCoverage()
-                      setTab('fr')
-                    }}
-                  />
+                  <div className="max-w-xl space-y-3">
+                    <Typography variant="small" tone="muted">
+                      Preview matches by code (exact) or title (fuzzy), resolve conflicts, then
+                      create/update in one step. Defaults: priority MEDIUM, type FUNCTIONAL.
+                    </Typography>
+                    <Button variant="primary" onClick={() => setFrImportOpen(true)}>
+                      Import functional items
+                    </Button>
+                  </div>
                 ) : (
-                  <SimpleExcelImportPanel
-                    title="Import NFRs"
-                    spec={NON_FUNCTIONAL_ITEM_IMPORT_SPEC}
-                    onImportRow={async (row) => {
-                      await createNfr(
-                        {
-                          code: row.code,
-                          title: row.title,
-                          description: row.description || null,
-                          category: row.category,
-                          priority: row.priority,
-                          scopeType: row.scopeType,
-                          targetMetric: row.targetMetric || null,
-                        },
-                        { refresh: false }
-                      )
-                    }}
-                    onComplete={async () => {
-                      await refetch({ silent: true })
-                      setTab('nfr')
-                    }}
-                  />
+                  <>
+                    <Typography variant="small" tone="muted">
+                      One file. Duplicate codes are skipped (409). For quick multi-row add,
+                      prefer Add NFR (paste from Excel).
+                    </Typography>
+                    <SimpleExcelImportPanel
+                      title="Import NFRs"
+                      spec={NON_FUNCTIONAL_ITEM_IMPORT_SPEC}
+                      onImportRow={async (row) => {
+                        await createNfr(
+                          {
+                            code: row.code,
+                            title: row.title,
+                            description: row.description || null,
+                            category: row.category,
+                            priority: row.priority,
+                            scopeType: row.scopeType,
+                            targetMetric: row.targetMetric || null,
+                          },
+                          { refresh: false }
+                        )
+                      }}
+                      onComplete={async () => {
+                        await refetch({ silent: true })
+                        setTab('nfr')
+                      }}
+                    />
+                  </>
                 )}
               </Stack>
             </div>
           ) : null}
         </div>
       </div>
+
+      <ImportFunctionalItemsModal
+        open={frImportOpen}
+        projectId={projectId}
+        workspaceId={workspaceId}
+        onClose={() => setFrImportOpen(false)}
+        onImported={async () => {
+          await refetch({ silent: true })
+          void refetchCoverage()
+          setTab('fr')
+        }}
+      />
     </div>
   )
 }

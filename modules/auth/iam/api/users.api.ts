@@ -16,7 +16,8 @@ export async function searchUsers(params?: {
 }
 
 export async function getUser(userId: string): Promise<IamUser> {
-  return apiClient.get<IamUser>(IAM_ENDPOINTS.users.get(userId))
+  // Display resolve (owners/assignees) — 403 must not toast-spam projects list.
+  return apiClient.get<IamUser>(IAM_ENDPOINTS.users.get(userId), { skipErrorToast: true })
 }
 
 export async function updateUser(userId: string, body: UpdateIamUserPayload): Promise<IamUser> {

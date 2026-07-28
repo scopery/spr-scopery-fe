@@ -1,6 +1,11 @@
-import { notFound } from 'next/navigation'
+'use client'
 
-// Project members page is disabled in the simplified MVP
+import { WorkspaceMembersView } from '@/modules/org/workspace'
+
+/**
+ * Project directory — members roster (interim: workspace members list).
+ * Per-project ACL is Phase C; until then roster is workspace-scoped.
+ */
 export default function ProjectMembersPage() {
-  notFound()
+  return <WorkspaceMembersView />
 }

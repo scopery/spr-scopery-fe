@@ -60,3 +60,19 @@ export interface UpdateScopeItemPayload {
   acceptanceRequired?: boolean
   sortOrder?: number
 }
+
+/** Requirement linked to a scope package (BE RequirementResponse). */
+export interface ScopePackageRequirement {
+  id: string
+  projectId: string
+  code: string
+  title: string
+  description?: string | null
+  requirementType?: string
+  priority?: string
+  status?: string
+  scopePackageId?: string | null
+  scopeItemId?: string | null
+  createdAt?: string
+  updatedAt?: string
+}

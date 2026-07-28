@@ -1,12 +1,15 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { Flame } from 'lucide-react'
+import { Flame, RefreshCw, Settings } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button, Checkbox, Select, Typography } from '@/shared/ui'
+import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
+import { useAuth, type WorkspaceListItem } from '@/modules/auth'
 import { MyInsightsWorkChip } from '../../domain/enums/my-insights.enum'
 import type {
   MyInsightsDistributionSlice,
@@ -17,21 +20,40 @@ import type {
 } from '../../domain/model/my-insights'
 import { useMyInsights } from '../hooks/useMyInsights'
 import { InsightWidgetShell } from './my-insights/InsightWidgetShell'
-import { PhaseWatchWidget, useProjects } from '@/modules/projects'
+import { PhaseWatchWidget, TaskStatus, tasksApi, useProjects } from '@/modules/projects'
+import {
+  canRunTaskLifecycle,
+  type TaskLifecycleAction,
+} from '@/modules/projects/task/domain/rules/task.rules'
 
-const RANGE_OPTIONS = [
-  { value: '7d', label: 'Last 7 days' },
-  { value: '30d', label: 'Last 30 days' },
-  { value: '90d', label: 'Last 90 days' },
-  { value: 'this_year', label: 'This year' },
-]
+function uniqueOrgOptions(workspaces: WorkspaceListItem[]) {
+  const seen = new Map<string, string>()
+  for (const w of workspaces) {
+    if (!seen.has(w.organizationId)) {
+      seen.set(w.organizationId, w.organizationName?.trim() || 'Organization')
+    }
+  }
+  return [...seen.entries()].map(([value, label]) => ({ value, label }))
+}
+
+function workspacesInOrg(workspaces: WorkspaceListItem[], organizationId: string) {
+  return workspaces.filter((w) => w.organizationId === organizationId)
+}
+
+function insightsQueryPreserving(searchParams: URLSearchParams) {
+  const next = new URLSearchParams()
+  const work = searchParams.get('work')
+  const attention = searchParams.get('attention')
+  if (work) next.set('work', work)
+  if (attention) next.set('attention', attention)
+  // projectId is workspace-scoped — always drop when switching workspace/org
+  const q = next.toString()
+  return q ? `?${q}` : ''
+}
 
 const WORK_CHIPS: { value: string; label: string }[] = [
   { value: MyInsightsWorkChip.AllOpen, label: 'All open' },
-  { value: MyInsightsWorkChip.NotStarted, label: 'Not started' },
   { value: MyInsightsWorkChip.DueThisWeek, label: 'Due this week' },
-  { value: MyInsightsWorkChip.Unscheduled, label: 'Unscheduled' },
-  { value: MyInsightsWorkChip.Blocked, label: 'Blocked' },
   { value: MyInsightsWorkChip.Overdue, label: 'Overdue' },
 ]
 
@@ -449,14 +471,46 @@ export function MyInsightsView() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { workspaces } = useAuth()
 
-  const range = searchParams.get('range') ?? '30d'
   const projectId = searchParams.get('projectId') ?? ''
   const attention = searchParams.get('attention')
   const workChip = searchParams.get('work') ?? MyInsightsWorkChip.AllOpen
   const [selectedDay, setSelectedDay] = useState<MyInsightsHeatmapDay | null>(null)
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [hidden, setHidden] = useState<Record<string, boolean>>({})
+
+  const currentWorkspace = useMemo(
+    () => workspaces.find((w) => w.id === workspaceId) ?? null,
+    [workspaces, workspaceId]
+  )
+  const selectedOrgId = currentWorkspace?.organizationId ?? workspaces[0]?.organizationId ?? ''
+
+  const orgOptions = useMemo(() => uniqueOrgOptions(workspaces), [workspaces])
+  const workspaceOptions = useMemo(() => {
+    const list = selectedOrgId ? workspacesInOrg(workspaces, selectedOrgId) : workspaces
+    return list.map((w) => ({ value: w.id, label: w.name }))
+  }, [workspaces, selectedOrgId])
+
+  const navigateToWorkspaceInsights = useCallback(
+    (nextWorkspaceId: string) => {
+      if (!nextWorkspaceId || nextWorkspaceId === workspaceId) return
+      const q = insightsQueryPreserving(searchParams)
+      router.push(`${ROUTES.workspace.myInsights(nextWorkspaceId)}${q}`)
+    },
+    [workspaceId, searchParams, router]
+  )
+
+  const handleOrgChange = useCallback(
+    (organizationId: string) => {
+      if (!organizationId || organizationId === selectedOrgId) return
+      const inOrg = workspacesInOrg(workspaces, organizationId)
+      if (!inOrg.length) return
+      const keepCurrent = inOrg.some((w) => w.id === workspaceId)
+      navigateToWorkspaceInsights(keepCurrent ? workspaceId : inOrg[0].id)
+    },
+    [selectedOrgId, workspaces, workspaceId, navigateToWorkspaceInsights]
+  )
 
   const setParams = (updates: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams.toString())
@@ -469,16 +523,46 @@ export function MyInsightsView() {
   }
 
   const { data, loading, error, refetch } = useMyInsights(workspaceId, {
-    range,
+    range: '30d',
     projectId: projectId || undefined,
   })
   // Project filter options must NOT come from filtered insights data — selecting one
   // project would shrink the dropdown to that single project.
   const { projects: workspaceProjects } = useProjects(workspaceId)
+  const [actingKey, setActingKey] = useState<string | null>(null)
+  /** IN_PROGRESS rows where user hid Complete/Block via uncheck (until they check again). */
+  const [collapsedActionKeys, setCollapsedActionKeys] = useState<Set<string>>(() => new Set())
 
   const tasks = useMemo(
     () => filterTasks(data?.currentWork ?? [], workChip, attention),
     [data?.currentWork, workChip, attention]
+  )
+
+  const runLifecycle = useCallback(
+    async (row: MyInsightsTaskRow, action: TaskLifecycleAction) => {
+      if (!row.projectId || !row.taskId) return
+      if (!canRunTaskLifecycle(row.status, action)) return
+      const key = `${row.projectId}:${row.taskId}`
+      setActingKey(key)
+      try {
+        if (action === 'start') {
+          await tasksApi.startTask(row.projectId, row.taskId)
+          setCollapsedActionKeys((prev) => {
+            if (!prev.has(key)) return prev
+            const next = new Set(prev)
+            next.delete(key)
+            return next
+          })
+        } else if (action === 'block') await tasksApi.blockTask(row.projectId, row.taskId)
+        else if (action === 'complete') await tasksApi.completeTask(row.projectId, row.taskId)
+        await refetch()
+      } catch (err) {
+        toast.error(getProblemToastMessage(err))
+      } finally {
+        setActingKey(null)
+      }
+    },
+    [refetch]
   )
 
   const projectOptions = useMemo(
@@ -506,15 +590,28 @@ export function MyInsightsView() {
           </Typography>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="w-[10rem]">
-            <Select
-              size="md"
-              value={range}
-              onValueChange={(v: string) => setParams({ range: v })}
-              options={RANGE_OPTIONS}
-              aria-label="Date range"
-            />
-          </div>
+          {orgOptions.length > 0 ? (
+            <div className="w-[12rem]">
+              <Select
+                size="md"
+                value={selectedOrgId}
+                onValueChange={handleOrgChange}
+                options={orgOptions}
+                aria-label="Organization"
+              />
+            </div>
+          ) : null}
+          {workspaceOptions.length > 0 ? (
+            <div className="w-[12rem]">
+              <Select
+                size="md"
+                value={workspaceId}
+                onValueChange={navigateToWorkspaceInsights}
+                options={workspaceOptions}
+                aria-label="Workspace"
+              />
+            </div>
+          ) : null}
           <div className="w-[11rem]">
             <Select
               size="md"
@@ -524,17 +621,25 @@ export function MyInsightsView() {
               aria-label="Project filter"
             />
           </div>
-          <Button variant="ghost" size="sm" className="rounded-none" onClick={() => void refetch()}>
-            Refresh
-          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-none"
+            iconOnly
+            icon={<RefreshCw size={16} />}
+            aria-label="Refresh"
+            onClick={() => void refetch()}
+          />
           <Button
             variant="outline"
             size="sm"
             className="rounded-none"
+            iconOnly
+            icon={<Settings size={16} />}
+            aria-label="Customize"
+            aria-pressed={customizeOpen}
             onClick={() => setCustomizeOpen((v) => !v)}
-          >
-            Customize
-          </Button>
+          />
         </div>
       </header>
 
@@ -639,70 +744,136 @@ export function MyInsightsView() {
         >
           <div id="my-insights-current-work" />
           <ul className="divide-y divide-neutral-200">
-            {tasks.map((t, index) => (
-              <li
-                key={t.taskId ? `${t.projectId}:${t.taskId}` : `current-work-${index}`}
-                className="flex items-start gap-3 py-3"
-              >
-                <Checkbox className="mt-0.5 rounded-none" aria-label={`Complete ${t.title}`} />
-                <div className="min-w-0 flex-1">
-                  <Link
-                    href={ROUTES.workspace.projectWorkTask(workspaceId, t.projectId, t.taskId)}
-                    className="block"
-                  >
-                    <Typography size="sm" className="text-neutral-900 hover:underline">
-                      {t.title}
-                    </Typography>
-                  </Link>
-                  <Typography variant="small" tone="muted" className="mt-0.5">
-                    {t.projectName}
-                    {t.phaseName ? ` · ${t.phaseName}` : ''}
-                    {t.dueDate ? ` · Due ${formatDateLabel(t.dueDate)}` : ' · No due date'}
-                    {t.estimateHours != null ? ` · ${t.estimateHours}h` : ''}
-                  </Typography>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {t.chips.includes('overdue') ? (
-                      <span
-                        className={cn(
-                          'rounded-none px-1.5 py-0.5 text-[11px] font-medium',
-                          chipBadgeClass('overdue')
-                        )}
-                      >
-                        Overdue
-                      </span>
-                    ) : null}
-                    {t.chips.includes('blocked') ? (
-                      <span
-                        className={cn(
-                          'rounded-none px-1.5 py-0.5 text-[11px] font-medium',
-                          chipBadgeClass('blocked')
-                        )}
-                      >
-                        Blocked
-                      </span>
-                    ) : null}
-                    {t.priority ? (
-                      <span
-                        className={cn(
-                          'rounded-none px-1.5 py-0.5 text-[11px] font-medium',
-                          priorityBadgeClass(t.priority)
-                        )}
-                      >
-                        {priorityLabel(t.priority)}
-                      </span>
-                    ) : null}
-                    <span
-                      className={cn(
-                        'rounded-none px-1.5 py-0.5 text-[11px] font-medium',
-                        statusBadgeClass(t.status)
-                      )}
+            {tasks.map((t, index) => {
+              const rowKey = t.taskId ? `${t.projectId}:${t.taskId}` : `current-work-${index}`
+              const acting = actingKey === rowKey
+              const canStart = canRunTaskLifecycle(t.status, 'start')
+              const canComplete = canRunTaskLifecycle(t.status, 'complete')
+              const canBlock = canRunTaskLifecycle(t.status, 'block')
+              const isInProgress = t.status === TaskStatus.InProgress
+              const actionsOpen = isInProgress && !collapsedActionKeys.has(rowKey)
+              const checkboxChecked = actionsOpen
+              const checkboxDisabled = acting || (!canStart && !isInProgress)
+
+              return (
+                <li key={rowKey} className="flex items-start gap-3 py-3">
+                  <Checkbox
+                    className="mt-0.5 rounded-none"
+                    size="sm"
+                    checked={checkboxChecked}
+                    disabled={checkboxDisabled}
+                    aria-label={
+                      actionsOpen
+                        ? `Hide actions for ${t.title}`
+                        : canStart
+                          ? `Start ${t.title}`
+                          : `Cannot start ${t.title}`
+                    }
+                    onChange={() => {
+                      if (acting) return
+                      if (actionsOpen) {
+                        setCollapsedActionKeys((prev) => new Set(prev).add(rowKey))
+                        return
+                      }
+                      if (isInProgress) {
+                        setCollapsedActionKeys((prev) => {
+                          const next = new Set(prev)
+                          next.delete(rowKey)
+                          return next
+                        })
+                        return
+                      }
+                      if (canStart) void runLifecycle(t, 'start')
+                    }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={ROUTES.workspace.projectWorkTask(workspaceId, t.projectId, t.taskId)}
+                      className="block"
                     >
-                      {t.status.replace(/_/g, ' ')}
-                    </span>
+                      <Typography size="sm" weight="medium" className="text-neutral-900 hover:underline">
+                        {t.title}
+                      </Typography>
+                    </Link>
+                    <Typography variant="small" tone="muted" className="mt-0.5">
+                      {t.projectName}
+                      {t.phaseName ? ` · ${t.phaseName}` : ''}
+                      {t.dueDate ? ` · Due ${formatDateLabel(t.dueDate)}` : ' · No due date'}
+                      {t.estimateHours != null ? ` · ${t.estimateHours}h` : ''}
+                    </Typography>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      {t.chips.includes('overdue') ? (
+                        <span
+                          className={cn(
+                            'rounded-none px-1.5 py-0.5 text-[11px] font-medium',
+                            chipBadgeClass('overdue')
+                          )}
+                        >
+                          Overdue
+                        </span>
+                      ) : null}
+                      {t.chips.includes('blocked') ? (
+                        <span
+                          className={cn(
+                            'rounded-none px-1.5 py-0.5 text-[11px] font-medium',
+                            chipBadgeClass('blocked')
+                          )}
+                        >
+                          Blocked
+                        </span>
+                      ) : null}
+                      {t.priority ? (
+                        <span
+                          className={cn(
+                            'rounded-none px-1.5 py-0.5 text-[11px] font-medium',
+                            priorityBadgeClass(t.priority)
+                          )}
+                        >
+                          {priorityLabel(t.priority)}
+                        </span>
+                      ) : null}
+                      {/* Checkbox already means “in progress + actions”; skip redundant status chip when open. */}
+                      {!actionsOpen ? (
+                        <span
+                          className={cn(
+                            'rounded-none px-1.5 py-0.5 text-[11px] font-medium',
+                            statusBadgeClass(t.status)
+                          )}
+                        >
+                          {t.status.replace(/_/g, ' ')}
+                        </span>
+                      ) : null}
+                    </div>
+                    {actionsOpen ? (
+                      <div className="mt-2.5 flex items-center gap-3 border-t border-neutral-100 pt-2">
+                        <button
+                          type="button"
+                          disabled={acting || !canComplete}
+                          onClick={() => void runLifecycle(t, 'complete')}
+                          className={cn(
+                            'text-sm font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50',
+                            acting && 'opacity-60'
+                          )}
+                        >
+                          {acting ? 'Working…' : 'Mark complete'}
+                        </button>
+                        <span className="text-neutral-300" aria-hidden>
+                          ·
+                        </span>
+                        <button
+                          type="button"
+                          disabled={acting || !canBlock}
+                          onClick={() => void runLifecycle(t, 'block')}
+                          className="text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Block
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              )
+            })}
           </ul>
         </InsightWidgetShell>
       </div>
