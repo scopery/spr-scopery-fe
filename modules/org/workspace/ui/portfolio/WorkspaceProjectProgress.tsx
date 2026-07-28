@@ -262,7 +262,7 @@ function ProjectProgressDrawer({
           size="sm"
           className="w-32"
           value={healthFilter}
-          onValueChange={(v) => setHealthFilter(v as 'all' | PortfolioHealth)}
+          onValueChange={(v: string) => setHealthFilter(v as 'all' | PortfolioHealth)}
           placeholder="Health"
           options={[
             { value: 'all', label: 'Health' },
