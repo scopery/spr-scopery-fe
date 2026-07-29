@@ -330,14 +330,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
             active: activityActive,
           }
         : null,
-      canManageWorkspace
-        ? {
-            label: 'Team Pulse',
-            href: ROUTES.workspace.teamPulse(workspaceId),
-            icon: <CalendarDays size={16} />,
-            active: pathActive(pathname, ROUTES.workspace.teamPulse(workspaceId)),
-          }
-        : null,
+      null, // Team Pulse hidden temporarily
       showCap(NavCapabilityKey.WorkspaceProjects, true)
         ? {
             label: 'Projects',

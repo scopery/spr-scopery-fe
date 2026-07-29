@@ -15,15 +15,6 @@ import type { PhaseWatchProjectRow } from '../../domain/model/phase-watch'
 
 const MAX_PROJECTS = 40
 
-/** Explicitly include COMPLETED so progress % is accurate (BE may omit it by default). */
-const PHASE_WATCH_TASK_STATUSES = [
-  TaskStatus.Todo,
-  TaskStatus.InProgress,
-  TaskStatus.Blocked,
-  TaskStatus.Completed,
-  TaskStatus.Cancelled,
-]
-
 function todayIsoDate() {
   const d = new Date()
   d.setHours(12, 0, 0, 0)
@@ -68,18 +59,17 @@ export function usePhaseWatch(
         targetProjects.map(async (project) => {
           const [phasesRes, tasksRes] = await Promise.all([
             phasesApi.listPhases(project.id, { page: 0, size: 100 }),
-            tasksApi.listTasks(project.id, {
-              page: 0,
-              size: 500,
-              status: PHASE_WATCH_TASK_STATUSES,
-            }),
+            tasksApi.listTasks(project.id, { page: 0, size: 500 }),
           ])
+          const tasks = (tasksRes.items ?? []).filter(
+            (t) => t.status !== TaskStatus.Archived
+          )
           return buildProjectPhaseWatchRow({
             projectId: project.id,
             projectName: project.name,
             projectCode: project.code,
             phases: phasesRes.items ?? [],
-            tasks: tasksRes.items ?? [],
+            tasks,
             todayIso,
           })
         })

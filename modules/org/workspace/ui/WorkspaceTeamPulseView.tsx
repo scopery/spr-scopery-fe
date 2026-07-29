@@ -20,6 +20,7 @@ function todayIso(): string {
 function formatDisplayDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number)
   return new Date(y, m - 1, d).toLocaleDateString('en-GB', {
+    weekday: 'short',
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -33,7 +34,59 @@ function shiftDate(iso: string, days: number): string {
   return dt.toISOString().slice(0, 10)
 }
 
+function nameInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((n) => n[0] ?? '')
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
+
 type StatusFilter = 'all' | 'working' | 'available'
+
+// ─── Status chip ──────────────────────────────────────────────────────────────
+
+function StatusChip({ status }: { status: MemberPulseStatus }) {
+  if (status === 'working') {
+    return (
+      <span className="inline-flex items-center gap-1 bg-info/10 px-2 py-0.5 text-xs font-medium text-info">
+        <span className="h-1.5 w-1.5 rounded-full bg-info" />
+        Working
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-500">
+      <span className="h-1.5 w-1.5 rounded-full bg-neutral-400" />
+      Available
+    </span>
+  )
+}
+
+// ─── Capacity bar ─────────────────────────────────────────────────────────────
+
+function CapacityBar({
+  estimateHours,
+  capacityHours = 8,
+}: {
+  estimateHours: number
+  capacityHours?: number
+}) {
+  const pct = capacityHours > 0 ? Math.min((estimateHours / capacityHours) * 100, 100) : 0
+  const barColor = pct > 90 ? 'bg-error' : pct > 65 ? 'bg-warning' : 'bg-primary'
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-neutral-200">
+        <div className={cn('h-full rounded-full transition-all', barColor)} style={{ width: `${pct}%` }} />
+      </div>
+      <Typography variant="small" tone="muted" className="whitespace-nowrap text-xs">
+        {estimateHours}h / {capacityHours}h
+      </Typography>
+    </div>
+  )
+}
 
 // ─── Main view ────────────────────────────────────────────────────────────────
 
@@ -66,7 +119,6 @@ export function WorkspaceTeamPulseView() {
 
   const filteredRows = useMemo(() => {
     let rows = [...memberRows]
-
     if (search.trim()) {
       const q = search.toLowerCase()
       rows = rows.filter((r) => labelFor(r.userId).toLowerCase().includes(q))
@@ -76,7 +128,6 @@ export function WorkspaceTeamPulseView() {
     } else if (statusFilter !== 'all') {
       rows = rows.filter((r) => r.status === statusFilter)
     }
-
     return rows.sort((a, b) => {
       if (a.status !== b.status) return a.status === 'working' ? -1 : 1
       return labelFor(a.userId).localeCompare(labelFor(b.userId))
@@ -87,109 +138,57 @@ export function WorkspaceTeamPulseView() {
     ? (memberRows.find((r) => r.userId === viewMemberId) ?? null)
     : null
 
-  const summaryItems: Array<{ label: string; value: number; filter: StatusFilter | null }> = [
-    { label: 'Members', value: pulseSummary.totalMembers, filter: 'all' },
-    { label: 'Working', value: pulseSummary.working, filter: 'working' },
-    { label: 'Available', value: pulseSummary.available, filter: 'available' },
-    { label: 'Done today', value: pulseSummary.doneToday, filter: null },
-  ]
-
   return (
     <div>
       {/* Header */}
       <div className="mb-4 border-b border-neutral-200 pb-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <Typography as="h1" size="lg" weight="semibold">
               Team Pulse
             </Typography>
             <Typography variant="small" tone="muted" className="mt-0.5">
-              Review daily work, workload and assignments across the Workspace.
+              Daily work, workload and assignments across the Workspace.
             </Typography>
           </div>
           {/* Date navigator */}
           <div className="flex items-center gap-1">
             <button
               type="button"
-              className="flex h-8 w-8 items-center justify-center border border-neutral-200 bg-white hover:bg-neutral-50"
+              className="flex h-7 w-7 items-center justify-center border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
               onClick={() => setDate((d) => shiftDate(d, -1))}
               aria-label="Previous day"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={14} />
             </button>
-            <div className="flex h-8 min-w-[130px] items-center justify-center border border-neutral-200 bg-white px-3">
+            <div className="flex h-7 min-w-[168px] items-center justify-center border border-neutral-200 bg-white px-3">
               <Typography variant="small" weight="medium">
-                {isToday ? 'Today' : formatDisplayDate(date)}
+                {isToday ? `Today · ${formatDisplayDate(date)}` : formatDisplayDate(date)}
               </Typography>
             </div>
             <button
               type="button"
               disabled={isToday}
-              className="flex h-8 w-8 items-center justify-center border border-neutral-200 bg-white hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-7 w-7 items-center justify-center border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
               onClick={() => setDate((d) => shiftDate(d, 1))}
               aria-label="Next day"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={14} />
             </button>
             {!isToday && (
-              <Button variant="ghost" size="sm" onClick={() => setDate(today)}>
+              <button
+                type="button"
+                className="h-7 border border-neutral-200 bg-white px-3 text-sm text-neutral-700 hover:bg-neutral-50"
+                onClick={() => setDate(today)}
+              >
                 Today
-              </Button>
+              </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Summary strip */}
-      <div className="mb-4 flex flex-wrap gap-px border border-neutral-200 bg-neutral-200">
-        {summaryItems.map(({ label, value, filter }) => (
-          <button
-            key={label}
-            type="button"
-            disabled={!filter}
-            onClick={() => {
-              if (!filter) return
-              setNeedsAttention(false)
-              setStatusFilter((prev) => (prev === filter ? 'all' : filter))
-            }}
-            className={cn(
-              'flex flex-1 flex-col items-center bg-white px-4 py-3 transition-colors',
-              filter && !needsAttention && statusFilter === filter
-                ? 'bg-primary/5'
-                : filter
-                ? 'hover:bg-neutral-50 cursor-pointer'
-                : 'cursor-default'
-            )}
-          >
-            <Typography size="lg" weight="semibold" className="tabular-nums">
-              {loading ? '—' : value}
-            </Typography>
-            <Typography variant="small" tone="muted">
-              {label}
-            </Typography>
-          </button>
-        ))}
-        {/* Unassigned — opens drawer */}
-        <button
-          type="button"
-          className="flex flex-1 flex-col items-center bg-white px-4 py-3 transition-colors hover:bg-neutral-50"
-          onClick={() => setUnassignedOpen(true)}
-        >
-          <Typography
-            size="lg"
-            weight="semibold"
-            className={cn(
-              'tabular-nums',
-              !phaseWatchLoading && pulseSummary.unassignedCount > 0 && 'text-error'
-            )}
-          >
-            {phaseWatchLoading ? '—' : pulseSummary.unassignedCount}
-          </Typography>
-          <Typography variant="small" tone="muted">
-            Unassigned
-          </Typography>
-        </button>
-      </div>
+      
 
       {error ? (
         <Typography tone="error" variant="small">
@@ -209,6 +208,25 @@ export function WorkspaceTeamPulseView() {
                 className="h-8 border border-neutral-300 bg-white px-3 text-sm focus:border-primary focus:outline-none"
                 disabled={loading}
               />
+              {(['all', 'working', 'available'] as StatusFilter[]).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => {
+                    setNeedsAttention(false)
+                    setStatusFilter(s)
+                  }}
+                  className={cn(
+                    'h-8 border px-3 text-sm transition-colors disabled:opacity-40',
+                    statusFilter === s && !needsAttention
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
+                  )}
+                >
+                  {s === 'all' ? 'All' : s === 'working' ? 'Working' : 'Available'}
+                </button>
+              ))}
               <button
                 type="button"
                 disabled={loading}
@@ -242,14 +260,14 @@ export function WorkspaceTeamPulseView() {
               </div>
             ) : (
               <div className="border border-neutral-200 bg-white">
-                <div className="grid grid-cols-[1fr_72px] border-b border-neutral-100 bg-neutral-50 px-4 py-2">
+                <div className="grid grid-cols-[1fr_auto] border-b border-neutral-100 bg-neutral-50 px-4 py-2">
                   <Typography
                     variant="small"
                     tone="muted"
                     weight="medium"
                     className="text-xs uppercase tracking-wide"
                   >
-                    Member
+                    Member · Status · Active work · Capacity
                   </Typography>
                   <Typography
                     variant="small"
@@ -274,8 +292,8 @@ export function WorkspaceTeamPulseView() {
             )}
           </div>
 
-          {/* Right: unassigned panel (desktop only) */}
-          <div className="hidden w-72 shrink-0 xl:block">
+          {/* Right: unassigned panel (wider, desktop only) */}
+          <div className="hidden w-80 shrink-0 xl:block">
             <UnassignedPanel
               tasks={unassignedTasks}
               loading={phaseWatchLoading}
@@ -308,7 +326,7 @@ export function WorkspaceTeamPulseView() {
         }}
       />
 
-      {/* Quick assign from panel */}
+      {/* Quick assign from right panel */}
       {assigningTask ? (
         <QuickAssignDrawer
           open
@@ -331,18 +349,20 @@ export function WorkspaceTeamPulseView() {
 function MemberTableSkeleton() {
   return (
     <div className="border border-neutral-200 bg-white">
-      <div className="grid grid-cols-[1fr_72px] border-b border-neutral-100 bg-neutral-50 px-4 py-2">
-        <div className="h-3 w-16 animate-pulse rounded bg-neutral-200" />
+      <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-2">
+        <div className="h-3 w-40 animate-pulse rounded bg-neutral-200" />
       </div>
       <ul className="divide-y divide-neutral-100">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <li key={i} className="flex items-start justify-between gap-3 px-4 py-3">
-            <div className="flex-1 space-y-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <li key={i} className="flex items-start gap-3 px-4 py-3">
+            <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-neutral-200" />
+            <div className="flex-1 space-y-2 pt-0.5">
               <div className="flex items-center gap-2">
                 <div className="h-4 w-28 animate-pulse rounded bg-neutral-200" />
-                <div className="h-4 w-14 animate-pulse rounded bg-neutral-100" />
+                <div className="h-4 w-16 animate-pulse rounded bg-neutral-100" />
               </div>
-              <div className="h-3 w-48 animate-pulse rounded bg-neutral-100" />
+              <div className="h-3 w-36 animate-pulse rounded bg-neutral-100" />
+              <div className="h-3 w-52 animate-pulse rounded bg-neutral-100" />
             </div>
             <div className="h-7 w-12 animate-pulse rounded bg-neutral-100" />
           </li>
@@ -355,12 +375,13 @@ function MemberTableSkeleton() {
 function UnassignedPanelSkeleton() {
   return (
     <ul className="divide-y divide-neutral-100">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <li key={i} className="space-y-2 px-4 py-3">
-          <div className="h-3 w-16 animate-pulse rounded bg-neutral-200" />
-          <div className="h-4 w-full animate-pulse rounded bg-neutral-200" />
-          <div className="h-3 w-3/4 animate-pulse rounded bg-neutral-100" />
-          <div className="h-7 w-14 animate-pulse rounded bg-neutral-100" />
+      {Array.from({ length: 4 }).map((_, i) => (
+        <li key={i} className="flex items-start gap-3 px-4 py-2.5">
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3 w-full animate-pulse rounded bg-neutral-200" />
+            <div className="h-3 w-3/4 animate-pulse rounded bg-neutral-100" />
+          </div>
+          <div className="h-4 w-10 animate-pulse rounded bg-neutral-100" />
         </li>
       ))}
     </ul>
@@ -368,10 +389,6 @@ function UnassignedPanelSkeleton() {
 }
 
 // ─── MemberWorkRow ────────────────────────────────────────────────────────────
-
-function statusLabel(status: MemberPulseStatus): string {
-  return status === 'working' ? 'Working' : 'Available'
-}
 
 function MemberWorkRow({
   row,
@@ -384,29 +401,35 @@ function MemberWorkRow({
 }) {
   const preview = row.inProgress.slice(0, 2)
   const extra = row.inProgress.length - 2
+  const totalActiveHours = row.inProgress.reduce((s, t) => s + (t.estimateHours ?? 0), 0)
 
   return (
-    <li className="px-4 py-3">
-      <div className="flex items-start justify-between gap-3">
+    <li className="flex items-start justify-between gap-3 px-4 py-3">
+      <div className="flex min-w-0 flex-1 items-start gap-3">
+        {/* Avatar */}
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-xs font-semibold text-neutral-700">
+          {nameInitials(name)}
+        </div>
         <div className="min-w-0 flex-1">
+          {/* Name + status + done badge */}
           <div className="flex flex-wrap items-center gap-2">
-            <Typography weight="semibold" className="truncate text-neutral-900">
+            <Typography weight="semibold" className="text-neutral-900">
               {name}
             </Typography>
-            <Badge
-              variant="soft"
-              tone={row.status === 'working' ? 'info' : 'secondary'}
-              size="sm"
-            >
-              {statusLabel(row.status)}
-            </Badge>
+            <StatusChip status={row.status} />
             {row.done.length > 0 && (
               <Badge variant="soft" tone="success" size="sm">
                 {row.done.length} done
               </Badge>
             )}
           </div>
-
+          {/* Capacity bar — only when working */}
+          {row.status === 'working' && (
+            <div className="mt-1">
+              <CapacityBar estimateHours={totalActiveHours} />
+            </div>
+          )}
+          {/* Active task preview */}
           {preview.length > 0 ? (
             <ul className="mt-1.5 space-y-0.5">
               {preview.map((task) => (
@@ -436,11 +459,10 @@ function MemberWorkRow({
             </Typography>
           )}
         </div>
-
-        <Button variant="ghost" size="sm" onClick={onView}>
-          View
-        </Button>
       </div>
+      <Button variant="ghost" size="sm" onClick={onView}>
+        View
+      </Button>
     </li>
   )
 }
@@ -458,7 +480,7 @@ function UnassignedPanel({
   onViewAll: () => void
   onAssign: (task: UnassignedTaskItem) => void
 }) {
-  const preview = tasks.slice(0, 5)
+  const preview = tasks.slice(0, 6)
 
   return (
     <div className="border border-neutral-200 bg-white">
@@ -468,12 +490,12 @@ function UnassignedPanel({
             Unassigned Work
           </Typography>
           {tasks.length > 0 && (
-            <Badge variant="solid" tone="error" size="sm">
+            <Badge variant="soft" tone="warning" size="sm">
               {tasks.length}
             </Badge>
           )}
         </div>
-        {tasks.length > 5 && (
+        {tasks.length > 6 && (
           <button
             type="button"
             className="text-sm text-neutral-500 hover:text-neutral-700"
@@ -495,40 +517,46 @@ function UnassignedPanel({
       ) : (
         <ul className="divide-y divide-neutral-100">
           {preview.map((task) => (
-            <li key={task.taskId} className="px-4 py-3">
-              <Typography
-                variant="small"
-                weight="medium"
-                className="font-mono text-neutral-600"
-              >
-                {task.code}
-              </Typography>
-              <Typography weight="medium" className="leading-snug text-neutral-900">
-                {task.title}
-              </Typography>
-              <Typography variant="small" tone="muted" className="mt-0.5">
-                {task.projectName}
-                {task.dueDate ? ` · Due ${formatShortDate(task.dueDate)}` : ''}
-                {task.estimateHours != null ? ` · ${task.estimateHours}h` : ''}
-              </Typography>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2"
+            <li key={task.taskId} className="flex items-start gap-3 px-4 py-2.5">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-1.5">
+                  <Typography
+                    variant="small"
+                    className="shrink-0 font-mono text-xs text-neutral-500"
+                  >
+                    {task.code}
+                  </Typography>
+                  <Typography
+                    variant="small"
+                    weight="medium"
+                    className="truncate text-neutral-900"
+                  >
+                    {task.title}
+                  </Typography>
+                </div>
+                <Typography variant="small" tone="muted" className="truncate text-xs">
+                  {task.projectName}
+                  {task.dueDate ? ` · Due ${formatShortDate(task.dueDate)}` : ''}
+                  {task.estimateHours != null ? ` · ${task.estimateHours}h` : ''}
+                </Typography>
+              </div>
+              <button
+                type="button"
+                className="shrink-0 text-sm text-primary hover:underline"
                 onClick={() => onAssign(task)}
               >
                 Assign
-              </Button>
+              </button>
             </li>
           ))}
-          {tasks.length > 5 && (
-            <li className="px-4 py-2">
+          {tasks.length > 6 && (
+            <li className="px-4 py-2.5">
               <button
                 type="button"
                 className="text-sm text-neutral-500 hover:text-neutral-700"
                 onClick={onViewAll}
               >
-                +{tasks.length - 5} more — view all
+                +{tasks.length - 6} more — view all
               </button>
             </li>
           )}
@@ -579,6 +607,16 @@ function MemberDetailDrawer({
                 Completed
               </Typography>
             </div>
+            {row.status === 'working' && (
+              <div>
+                <Typography size="lg" weight="semibold">
+                  {row.inProgress.reduce((s, t) => s + (t.estimateHours ?? 0), 0)}h
+                </Typography>
+                <Typography variant="small" tone="muted">
+                  Estimated
+                </Typography>
+              </div>
+            )}
           </div>
 
           {row.inProgress.length > 0 && (
@@ -605,7 +643,7 @@ function MemberDetailDrawer({
                 tone="muted"
                 className="mb-2 text-xs uppercase tracking-wide"
               >
-                Completed today
+                Completed
               </Typography>
               <ul className="space-y-3">
                 {row.done.map((task) => (
@@ -628,13 +666,7 @@ function MemberDetailDrawer({
   )
 }
 
-function TaskDetailItem({
-  task,
-  tone,
-}: {
-  task: DailySummaryTask
-  tone: 'info' | 'success'
-}) {
+function TaskDetailItem({ task, tone }: { task: DailySummaryTask; tone: 'info' | 'success' }) {
   return (
     <li className="flex gap-2">
       <span
@@ -711,7 +743,7 @@ function UnassignedFullDrawer({
                   <Typography
                     variant="small"
                     weight="medium"
-                    className="font-mono text-neutral-700"
+                    className="font-mono text-neutral-500"
                   >
                     {task.code}
                   </Typography>
@@ -853,7 +885,12 @@ function QuickAssignDrawer({
                   : 'border-neutral-200 hover:bg-neutral-50'
               )}
             >
-              <Typography weight="medium">{labelFor(member.userId)}</Typography>
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-200 text-xs font-semibold text-neutral-700">
+                  {nameInitials(labelFor(member.userId))}
+                </div>
+                <Typography weight="medium">{labelFor(member.userId)}</Typography>
+              </div>
             </button>
           </li>
         ))}
