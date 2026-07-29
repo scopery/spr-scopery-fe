@@ -69,3 +69,4 @@ export interface FunctionalItemImportExecuteResult {
 export type FunctionalItemConflictResolution =
   | { kind: 'create' }
   | { kind: 'match'; existingItemId: string }
+  | { kind: 'skip' }

@@ -14,6 +14,8 @@ export const WORKSPACE_ROUTES = {
     return tab && tab !== 'members' ? `${base}?tab=${tab}` : base
   },
   activity: (workspaceId: string) => `/workspace/${workspaceId}/activity`,
+  dailyRecord: (workspaceId: string) => `/workspace/${workspaceId}/daily-record`,
+  teamPulse: (workspaceId: string) => `/workspace/${workspaceId}/team-pulse`,
   /** Organization directory consolidates Org members / invitations / teams. */
   organizationDirectory: (
     workspaceId: string,

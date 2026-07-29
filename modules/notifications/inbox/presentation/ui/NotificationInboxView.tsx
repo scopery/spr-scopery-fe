@@ -11,6 +11,7 @@ import { ROUTES } from '@/constants/routes'
 import { useNotifications } from '../hooks/useNotifications'
 import { NotificationStatus } from '../../domain/enums/notification.enum'
 import type { UserNotification } from '../../domain/model/notification'
+import { getTypeBadge } from '@/modules/notifications/lib/notificationBadge'
 import { RemindersTab } from '@/modules/notifications/reminders'
 import { AlertsTab } from '@/modules/notifications/alerts'
 
@@ -165,14 +166,23 @@ export function NotificationInboxView() {
                       }
                     }}
                   >
-                    <Stack direction="horizontal" spacing="sm" className="mb-1 items-center">
-                      {n.status === NotificationStatus.Unread ? (
-                        <Badge variant="solid" tone="info">
-                          Unread
-                        </Badge>
-                      ) : null}
-                      <Badge tone="neutral">{n.severity}</Badge>
-                    </Stack>
+                    {(() => {
+                      const badge = getTypeBadge(n.title)
+                      return (
+                        <Stack direction="horizontal" spacing="sm" className="mb-1 items-center flex-wrap">
+                          {n.status === NotificationStatus.Unread ? (
+                            <Badge variant="solid" tone="info">
+                              Unread
+                            </Badge>
+                          ) : null}
+                          {badge ? (
+                            <Badge variant="solid" tone={badge.tone} size="sm">
+                              {badge.label}
+                            </Badge>
+                          ) : null}
+                        </Stack>
+                      )
+                    })()}
                     <Typography weight="medium" className="line-clamp-1">
                       {n.title}
                     </Typography>

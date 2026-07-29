@@ -25,4 +25,8 @@ export const WORKSPACE_ENDPOINTS = {
     const q = p.toString()
     return apiPath(`/workspaces/${workspaceId}/activity-feed`) + (q ? `?${q}` : '')
   },
+  dailySummary: (workspaceId: string, date?: string) => {
+    const base = apiPath(`/workspaces/${workspaceId}/tasks/daily-summary`)
+    return date ? `${base}?date=${date}` : base
+  },
 } as const

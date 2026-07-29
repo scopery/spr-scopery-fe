@@ -33,6 +33,7 @@ import {
   Network,
   Headset,
   AppWindow,
+  CalendarDays,
 } from 'lucide-react'
 import { Box, Button } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
@@ -329,6 +330,14 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
             active: activityActive,
           }
         : null,
+      canManageWorkspace
+        ? {
+            label: 'Team Pulse',
+            href: ROUTES.workspace.teamPulse(workspaceId),
+            icon: <CalendarDays size={16} />,
+            active: pathActive(pathname, ROUTES.workspace.teamPulse(workspaceId)),
+          }
+        : null,
       showCap(NavCapabilityKey.WorkspaceProjects, true)
         ? {
             label: 'Projects',
@@ -425,6 +434,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     onWorkspaceDirectory,
     onOrgDirectory,
     showCap,
+    canManageWorkspace,
   ])
 
   const projectWorkbenchSections = useMemo(() => {

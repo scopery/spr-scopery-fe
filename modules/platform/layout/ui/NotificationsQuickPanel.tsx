@@ -4,9 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import NextLink from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Typography, Link as DesignLink, Skeleton } from '@/shared/ui'
+import { Badge, Typography, Link as DesignLink, Skeleton } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { useNotifications } from '@/modules/notifications'
+import { getTypeBadge } from '@/modules/notifications/lib/notificationBadge'
 import { cn } from '@/utils/cn'
 
 export interface NotificationsQuickPanelProps {
@@ -101,6 +102,7 @@ export function NotificationsQuickPanel({
           <ul>
             {preview.map((n) => {
               const isUnread = n.status === 'UNREAD'
+              const badge = getTypeBadge(n.title)
               return (
               <li key={n.id}>
                 <button
@@ -116,6 +118,13 @@ export function NotificationsQuickPanel({
                   }}
                 >
                   <span className="min-w-0 flex-1 flex-col gap-0.5">
+                    {badge ? (
+                      <span className="mb-1 block">
+                        <Badge variant="solid" tone={badge.tone} size="sm">
+                          {badge.label}
+                        </Badge>
+                      </span>
+                    ) : null}
                     <Typography
                       as="span"
                       weight={isUnread ? 'medium' : 'normal'}

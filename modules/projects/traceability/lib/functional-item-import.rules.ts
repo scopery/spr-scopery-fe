@@ -133,6 +133,7 @@ export function buildFunctionalItemImportExecutePayload(
 
   preview.conflicts.forEach((conflict, index) => {
     const resolution = conflictResolutions[index]
+    if (resolution.kind === 'skip') return
     if (resolution.kind === 'create') {
       toCreate.push(conflict.incoming)
       return

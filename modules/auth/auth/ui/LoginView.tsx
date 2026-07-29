@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Lock, LogIn } from 'lucide-react'
 import { FaApple } from 'react-icons/fa'
-import { Button, Input, Typography, Stack, Link as DesignLink, Divider, Box } from '@/shared/ui'
+import { Button, ContentLoader, Input, Typography, Stack, Link as DesignLink, Divider, Box } from '@/shared/ui'
 import { toast } from 'sonner'
 import { useAuth } from '../context/AuthContext'
 import { useAuthActions } from '../hooks/useAuthActions'
@@ -38,6 +38,7 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
+  const [redirecting, setRedirecting] = useState(false)
 
   useEffect(() => {
     const errorDesc = searchParams.get('error_description')
@@ -86,6 +87,7 @@ function LoginContent() {
     try {
       await login({ username: username.trim(), password })
       toast.success('Signed in successfully')
+      setRedirecting(true)
       // Navigation is handled by the bootstrapStatus useEffect below — no hard reload needed.
     } catch (err) {
       const message =
@@ -96,9 +98,21 @@ function LoginContent() {
             : 'Login failed'
       setErrors({ form: message })
       toast.error(message)
-    } finally {
       setLoading(false)
     }
+  }
+
+  if (redirecting) {
+    return (
+      <div
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-white"
+        role="status"
+        aria-label="Loading"
+        aria-live="polite"
+      >
+        <ContentLoader variant="easeOut" className="w-20" />
+      </div>
+    )
   }
 
   return (

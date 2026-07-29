@@ -82,7 +82,7 @@ export function ImportFunctionalItemsModal({
     return (
       resolutions.length === preview.conflicts.length &&
       resolutions.every((r) => {
-        if (r.kind === 'create') return true
+        if (r.kind === 'create' || r.kind === 'skip') return true
         return Boolean(r.existingItemId)
       })
     )
@@ -127,6 +127,7 @@ export function ImportFunctionalItemsModal({
     setResolutions((prev) => {
       const next = [...prev]
       if (value === '__create__') next[index] = { kind: 'create' }
+      else if (value === '__skip__') next[index] = { kind: 'skip' }
       else next[index] = { kind: 'match', existingItemId: value }
       return next
     })
@@ -304,7 +305,11 @@ export function ImportFunctionalItemsModal({
                 {preview.conflicts.map((conflict, index) => {
                   const resolution = resolutions[index]
                   const selectValue =
-                    resolution?.kind === 'match' ? resolution.existingItemId : '__create__'
+                    resolution?.kind === 'match'
+                      ? resolution.existingItemId
+                      : resolution?.kind === 'skip'
+                        ? '__skip__'
+                        : '__create__'
                   return (
                     <li
                       key={`conflict-${index}`}
@@ -322,6 +327,7 @@ export function ImportFunctionalItemsModal({
                           onValueChange={(v: string) => setConflictResolution(index, v)}
                           options={[
                             { value: '__create__', label: 'Create as new item' },
+                            { value: '__skip__', label: 'Skip (ignore this item)' },
                             ...conflict.candidates.map((c) => ({
                               value: c.existingId,
                               label: `${c.existingCode ?? '—'} · ${c.existingTitle} (${Math.round(c.similarity * 100)}%)`,

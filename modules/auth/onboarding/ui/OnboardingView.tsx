@@ -294,14 +294,19 @@ const BACK_STEPS = new Set<WorkspaceOnboardingStep>(['CREATE_WORKSPACE', 'ENTER_
 
 function OnboardingFullPageLoader({ message }: { message?: string }) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4">
-      <ContentLoader />
+    <div
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-4 bg-white"
+      role="status"
+      aria-label="Loading"
+      aria-live="polite"
+    >
+      <ContentLoader variant="easeOut" className="w-20" />
       {message ? (
         <Typography tone="muted" variant="small">
           {message}
         </Typography>
       ) : null}
-    </main>
+    </div>
   )
 }
 

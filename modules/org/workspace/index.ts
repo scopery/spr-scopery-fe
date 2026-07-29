@@ -31,6 +31,8 @@ export { WorkspaceMembersView } from './ui/WorkspaceMembersView'
 export { WorkspaceMemberPermissionsView } from './ui/WorkspaceMemberPermissionsView'
 export { WorkspaceDirectoryView } from './ui/WorkspaceDirectoryView'
 export { WorkspaceActivityView } from './ui/WorkspaceActivityView'
+export { WorkspaceDailyRecordView } from './ui/WorkspaceDailyRecordView'
+export { WorkspaceTeamPulseView } from './ui/WorkspaceTeamPulseView'
 export { CreateWorkspaceModal } from './ui/CreateWorkspaceModal'
 export type {
   CreateWorkspaceModalProps,
