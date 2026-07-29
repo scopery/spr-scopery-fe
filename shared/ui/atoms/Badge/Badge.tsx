@@ -80,6 +80,8 @@ export const Badge = React.forwardRef(
           'transition-[color,background-color,border-color,width,padding] duration-[180ms] ease-[cubic-bezier(0.4,0,0.2,1)]',
           // Variant + Tone
           badgeVariants[variant][tone],
+          // Solid badges use calsans to match the brand typeface
+          variant === 'solid' && 'font-calsans',
           // Size
           badgeSizes[size],
           className
