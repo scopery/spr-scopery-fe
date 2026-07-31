@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Input, Typography } from '@/shared/ui'
 import { iamUsersApi } from '@/modules/auth/iam'
 import { useDebounce } from '@/utils/useDebounce'
@@ -17,6 +17,8 @@ interface UserSearchSelectProps {
   label?: string
   /** Seed people (e.g. already-loaded workspace members). */
   seedPeople?: PersonIdentity[]
+  /** Set false to restrict selection to seedPeople (e.g. project/workspace members). */
+  allowRemoteSearch?: boolean
 }
 
 /**
@@ -29,12 +31,24 @@ export function UserSearchSelect({
   disabled,
   label,
   seedPeople = [],
+  allowRemoteSearch = true,
 }: UserSearchSelectProps) {
   const [query, setQuery] = useState('')
   const debounced = useDebounce(query, 300)
   const [results, setResults] = useState<PersonIdentity[]>(seedPeople)
   const [selected, setSelected] = useState<PersonIdentity | null>(null)
   const [searching, setSearching] = useState(false)
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [open])
 
   useEffect(() => {
     if (!seedPeople.length) return
@@ -88,21 +102,46 @@ export function UserSearchSelect({
   }, [])
 
   useEffect(() => {
-    if (debounced.trim().length < 2) return
+    if (!allowRemoteSearch || debounced.trim().length < 2) return
     void runSearch(debounced)
-  }, [debounced, runSearch])
+  }, [allowRemoteSearch, debounced, runSearch])
+
+  const visibleResults = useMemo(() => {
+    const people = new Map<string, PersonIdentity>()
+    seedPeople.forEach((person) => people.set(person.id, person))
+    results.forEach((person) => people.set(person.id, person))
+    const normalized = query.trim().toLowerCase()
+    if (!normalized) return [...people.values()]
+    return [...people.values()].filter((person) =>
+      [person.fullName, person.email, person.username]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized))
+    )
+  }, [query, results, seedPeople])
 
   return (
-    <div className="space-y-2">
+    <div ref={rootRef} className="relative space-y-2">
       {label ? (
-        <Typography variant="small" weight="medium">
+        <Typography variant="small">
           {label}
         </Typography>
       ) : null}
 
       {value && selected ? (
-        <div className="flex items-center justify-between gap-2 border border-neutral-200 bg-neutral-50 px-3 py-2">
-          <UserIdentity userId={value} person={selected} showEmail size="sm" />
+        <div className="flex h-9 items-center justify-between gap-2 border border-neutral-300 bg-white px-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <UserIdentity userId={value} person={selected} size="xs" compact />
+            {selected.email ? (
+              <Typography
+                variant="caption"
+                tone="muted"
+                className="min-w-0 truncate"
+                title={selected.email}
+              >
+                ({selected.email})
+              </Typography>
+            ) : null}
+          </div>
           <button
             type="button"
             className="text-xs text-neutral-500 hover:text-neutral-800"
@@ -111,6 +150,7 @@ export function UserSearchSelect({
               onChange('')
               setSelected(null)
               setQuery('')
+              setOpen(false)
             }}
           >
             Clear
@@ -121,17 +161,26 @@ export function UserSearchSelect({
           <Input
             fullWidth
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setOpen(true)
+            }}
+            onFocus={() => setOpen(true)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setOpen(false)
+            }}
             placeholder={placeholder}
             disabled={disabled}
             aria-label={label ?? 'Search users'}
           />
-          <Typography variant="caption" tone="muted">
-            {searching ? 'Searching…' : 'Type at least 2 characters to search.'}
-          </Typography>
-          {results.length > 0 ? (
-            <ul className="max-h-48 overflow-auto border border-neutral-200 bg-white">
-              {results.map((person) => (
+          {open && searching ? (
+            <Typography variant="caption" tone="muted">
+              Searching…
+            </Typography>
+          ) : null}
+          {open && visibleResults.length > 0 ? (
+            <ul className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-auto border border-neutral-200 bg-white shadow-md">
+              {visibleResults.map((person) => (
                 <li key={person.id}>
                   <button
                     type="button"
@@ -144,6 +193,7 @@ export function UserSearchSelect({
                       onChange(person.id, person)
                       setSelected(person)
                       setQuery('')
+                      setOpen(false)
                     }}
                   >
                     <UserIdentity userId={person.id} person={person} showEmail size="sm" />
@@ -152,8 +202,12 @@ export function UserSearchSelect({
               ))}
             </ul>
           ) : null}
-          {query.trim().length >= 2 && !searching && results.length === 0 ? (
-            <Typography variant="small" tone="muted">
+          {open && query.trim().length >= 2 && !searching && visibleResults.length === 0 ? (
+            <Typography
+              variant="small"
+              tone="muted"
+              className="absolute left-0 right-0 top-full z-50 mt-1 border border-neutral-200 bg-white px-3 py-2 shadow-md"
+            >
               No users found.
             </Typography>
           ) : null}

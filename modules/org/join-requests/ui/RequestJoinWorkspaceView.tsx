@@ -14,28 +14,25 @@ export function RequestJoinWorkspaceView() {
   const router = useRouter()
   const { submit } = useMyJoinRequests()
   const [workspaceCode, setWorkspaceCode] = useState('')
-  const [workspaceId, setWorkspaceId] = useState('')
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async () => {
     const code = workspaceCode.trim()
-    const id = workspaceId.trim()
-    if (!code && !id) {
-      toast.error('Enter a workspace code or workspace ID')
+    if (!code) {
+      toast.error('Enter a workspace code')
       return
     }
     setSubmitting(true)
     try {
       await submit({
         workspaceCode: code || undefined,
-        workspaceId: id || undefined,
         message: message.trim() || undefined,
       })
       toast.success('Join request submitted')
       router.push(ACCOUNT_ROUTES.joinRequests)
     } catch {
-      /* global interceptor */
+      /* Error toast is handled centrally. */
     } finally {
       setSubmitting(false)
     }
@@ -43,11 +40,11 @@ export function RequestJoinWorkspaceView() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
-      <Typography as="h1" size="lg" weight="semibold" className="mb-1">
+      <Typography as="h1" size="md" weight="medium" className="mb-1">
         Request to join a workspace
       </Typography>
       <Typography as="p" variant="small" tone="muted" className="mb-8">
-        Enter a workspace code (or ID) to request access. An admin will review your request.
+        Enter the workspace code shared by its administrator. An admin will review your request.
       </Typography>
 
       <Stack direction="vertical" spacing="md">
@@ -59,20 +56,18 @@ export function RequestJoinWorkspaceView() {
           placeholder="e.g. SCOPERY"
         />
         <Input
-          label="Workspace ID (optional)"
-          value={workspaceId}
-          onChange={(e) => setWorkspaceId(e.target.value)}
-          fullWidth
-          placeholder="UUID if you have it"
-        />
-        <Input
           label="Message (optional)"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           fullWidth
           placeholder="Why you want to join"
         />
-        <Button variant="primary" loading={submitting} onClick={() => void handleSubmit()} icon={<Send size={16} />}>
+        <Button
+          variant="primary"
+          loading={submitting}
+          onClick={() => void handleSubmit()}
+          icon={<Send size={16} />}
+        >
           Submit request
         </Button>
         <Typography variant="small" tone="muted">

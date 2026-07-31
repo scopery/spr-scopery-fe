@@ -8,7 +8,7 @@ import {
   LifecycleTimeline,
   PageSkeleton,
   Stack,
-  Typography
+  Typography,
 } from '@/shared/ui'
 import { useProjectGovernance } from '../hooks/useProjectGovernance'
 
@@ -33,7 +33,7 @@ export function ProjectGovernanceCenterView() {
     runBaselineGuard,
   } = useProjectGovernance(projectId)
 
-  if (loading) return <PageSkeleton variant="list" className="p-lg" />
+  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   const selectedLock = selected
@@ -46,11 +46,15 @@ export function ProjectGovernanceCenterView() {
         (o) => o.objectTypeCode === selected.objectTypeCode && o.targetId === selected.targetId
       )
     : undefined
+  const objectTypeLabel = (code: string) =>
+    objectTypes.find((objectType) => objectType.code === code)?.name ?? code
 
   return (
     <div className="grid min-h-[420px] grid-cols-1 gap-md p-lg lg:grid-cols-[1fr_340px]">
       <Stack direction="vertical" spacing="md">
-        <Typography variant="h2">Project Governance Center</Typography>
+        <Typography as="h1" size="md" weight="medium">
+          Project Governance Center
+        </Typography>
         <div className="flex flex-wrap items-center gap-sm">
           <Button size="sm" variant="outline" onClick={() => void runBaselineGuard()}>
             Baseline guard check
@@ -93,9 +97,7 @@ export function ProjectGovernanceCenterView() {
               id: 'snap',
               label: 'Snapshots',
               state:
-                versions.length > 0
-                  ? LifecycleStepState.Completed
-                  : LifecycleStepState.Upcoming,
+                versions.length > 0 ? LifecycleStepState.Completed : LifecycleStepState.Upcoming,
             },
           ]}
         />
@@ -115,10 +117,10 @@ export function ProjectGovernanceCenterView() {
                   onClick={() => void selectObject(o.objectTypeCode, o.targetId)}
                 >
                   <Typography variant="small" weight="medium">
-                    {o.objectTypeCode}
+                    {objectTypeLabel(o.objectTypeCode)}
                   </Typography>
                   <Typography variant="caption" tone="muted">
-                    {o.ownerDisplayName ?? o.ownerTargetId ?? o.targetId}
+                    {o.ownerDisplayName ?? 'Owner unavailable'}
                   </Typography>
                 </button>
               </li>
@@ -134,16 +136,13 @@ export function ProjectGovernanceCenterView() {
         ) : (
           <ul className="divide-y divide-neutral-200 border border-neutral-200">
             {locks.map((l) => (
-              <li
-                key={l.id}
-                className="flex items-center justify-between gap-md p-md"
-              >
+              <li key={l.id} className="flex items-center justify-between gap-md p-md">
                 <button
                   type="button"
                   className="text-left text-sm hover:underline"
                   onClick={() => void selectObject(l.objectTypeCode, l.targetId)}
                 >
-                  {l.objectTypeCode} · {l.targetId.slice(0, 8)}
+                  {objectTypeLabel(l.objectTypeCode)} · Locked object
                 </button>
                 <Button size="sm" variant="ghost" onClick={() => void releaseSelectedLock(l.id)}>
                   Release
@@ -163,10 +162,10 @@ export function ProjectGovernanceCenterView() {
             <GovernedObjectBadge
               locked={Boolean(selectedLock)}
               finalized={false}
-              ownerLabel={selectedOwner?.ownerDisplayName ?? selectedOwner?.ownerTargetId}
+              ownerLabel={selectedOwner?.ownerDisplayName ?? undefined}
             />
             <Typography variant="caption" tone="muted">
-              {selected.objectTypeCode} · {selected.targetId}
+              {objectTypeLabel(selected.objectTypeCode)} · Selected object
             </Typography>
             {actionError ? <Typography tone="error">{actionError}</Typography> : null}
             <Button
@@ -188,7 +187,7 @@ export function ProjectGovernanceCenterView() {
               <ul className="text-sm">
                 {grants.map((g) => (
                   <li key={g.id} className="flex justify-between gap-sm py-xs">
-                    <span>{g.grantRole ?? g.granteeId ?? g.id}</span>
+                    <span>{g.grantRole ?? 'Access grant'}</span>
                     <Button size="sm" variant="ghost" onClick={() => void revokeGrant(g.id)}>
                       Revoke
                     </Button>
@@ -208,7 +207,7 @@ export function ProjectGovernanceCenterView() {
               <ul className="text-sm">
                 {versions.map((v) => (
                   <li key={v.id} className="py-xs">
-                    {v.label ?? `v${v.versionNumber ?? v.id.slice(0, 6)}`}
+                    {v.label ?? (v.versionNumber != null ? `v${v.versionNumber}` : 'Snapshot')}
                     {v.createdAt ? ` · ${v.createdAt}` : ''}
                   </li>
                 ))}

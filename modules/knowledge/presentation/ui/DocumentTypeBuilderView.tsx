@@ -20,9 +20,11 @@ export function DocumentTypeBuilderView() {
   } = useDocumentTypeBuilder(refetch)
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Document Type Builder</Typography>
-      <Typography tone="muted">
+    <Stack direction="vertical" spacing="sm" className="px-3 py-3 lg:px-4">
+      <Typography as="h1" size="md" weight="medium">
+        Document Type Builder
+      </Typography>
+      <Typography variant="small" tone="muted">
         Create a workspace document type. Advanced field schema expands when contract is ready.
       </Typography>
       {error ? <Typography tone="error">{error}</Typography> : null}

@@ -19,15 +19,9 @@ export function useWorkspacePortfolio(workspaceId: string | null) {
   const activity = useWorkspaceActivityFeed(workspaceId, 0, 12)
   const members = useWorkspaceMembers(workspaceId)
 
-  const summary = useMemo(
-    () => buildPortfolioSummary(phaseWatch.allRows),
-    [phaseWatch.allRows]
-  )
+  const summary = useMemo(() => buildPortfolioSummary(phaseWatch.allRows), [phaseWatch.allRows])
 
-  const sortedRows = useMemo(
-    () => sortPortfolioRows(phaseWatch.allRows),
-    [phaseWatch.allRows]
-  )
+  const sortedRows = useMemo(() => sortPortfolioRows(phaseWatch.allRows), [phaseWatch.allRows])
 
   const attentionItems = useMemo(
     () =>

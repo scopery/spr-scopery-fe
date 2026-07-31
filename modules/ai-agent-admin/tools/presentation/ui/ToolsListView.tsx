@@ -12,12 +12,10 @@ import {
   Select,
   Stack,
   Typography,
+  DataTable,
 } from '@/shared/ui'
 import { AiLifecycleStatusBadge } from '../../../presentation/ui/AiLifecycleStatusBadge'
-import {
-  TOOL_STATUS_OPTIONS,
-  ToolStatus,
-} from '../../domain/enums/tool.enum'
+import { TOOL_STATUS_OPTIONS, ToolStatus } from '../../domain/enums/tool.enum'
 import { isWriteLikeMutation } from '../../domain/rules/tool.rules'
 import type { AiTool } from '../../domain/model/tool'
 import { useCanManageTools, useCanViewTools } from '../hooks/useToolPermissions'
@@ -131,25 +129,24 @@ export function ToolsListView() {
       ) : null}
 
       <div className="overflow-x-auto border border-neutral-200">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-md py-sm font-medium">Code</th>
-              <th className="px-md py-sm font-medium">Name</th>
-              <th className="px-md py-sm font-medium">Category</th>
-              <th className="px-md py-sm font-medium">Mutation</th>
-              <th className="px-md py-sm font-medium">Approval</th>
-              <th className="px-md py-sm font-medium">Status</th>
-              <th className="px-md py-sm font-medium">Perms</th>
-              <th className="px-md py-sm font-medium">Agents</th>
-              <th className="px-md py-sm font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((tool) => (
-              <tr key={tool.id} className="border-t border-neutral-100">
-                <td className="px-md py-sm font-mono text-xs">{tool.code}</td>
-                <td className="px-md py-sm">
+        <DataTable
+          ariaLabel="Tools List"
+          rows={items}
+          rowKey={(tool) => String(tool.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'code',
+              header: 'Code',
+              accessor: 'code',
+              kind: 'code',
+              cellClassName: 'text-xs',
+            },
+            {
+              id: 'name',
+              header: 'Name',
+              cell: (tool) => (
+                <>
                   <Button
                     as={NextLink}
                     href={ADMIN_ROUTES.aiControlTool(tool.id)}
@@ -159,30 +156,50 @@ export function ToolsListView() {
                   >
                     {tool.name}
                   </Button>
-                </td>
-                <td className="px-md py-sm">{tool.category || '—'}</td>
-                <td className="px-md py-sm">
+                </>
+              ),
+            },
+            { id: 'category', header: 'Category', cell: (tool) => <>{tool.category || '—'}</> },
+            {
+              id: 'mutation',
+              header: 'Mutation',
+              cell: (tool) => (
+                <>
                   {tool.mutationType ? (
-                    <Badge
-                      tone={
-                        isWriteLikeMutation(tool.mutationType) ? 'warning' : 'neutral'
-                      }
-                    >
+                    <Badge tone={isWriteLikeMutation(tool.mutationType) ? 'warning' : 'neutral'}>
                       {tool.mutationType}
                     </Badge>
                   ) : (
                     '—'
                   )}
-                </td>
-                <td className="px-md py-sm">
-                  {tool.requiresHumanApproval ? 'Yes' : 'No'}
-                </td>
-                <td className="px-md py-sm">
+                </>
+              ),
+            },
+            {
+              id: 'approval',
+              header: 'Approval',
+              cell: (tool) => <>{tool.requiresHumanApproval ? 'Yes' : 'No'}</>,
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (tool) => (
+                <>
                   <AiLifecycleStatusBadge status={tool.status} />
-                </td>
-                <td className="px-md py-sm">{tool.permissionCount ?? '—'}</td>
-                <td className="px-md py-sm">{tool.agentBindingCount ?? '—'}</td>
-                <td className="px-md py-sm">
+                </>
+              ),
+            },
+            { id: 'perms', header: 'Perms', cell: (tool) => <>{tool.permissionCount ?? '—'}</> },
+            {
+              id: 'agents',
+              header: 'Agents',
+              cell: (tool) => <>{tool.agentBindingCount ?? '—'}</>,
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (tool) => (
+                <>
                   <div className="flex flex-wrap gap-xs">
                     {canManage ? (
                       <>
@@ -214,28 +231,17 @@ export function ToolsListView() {
                             Deactivate
                           </Button>
                         )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setDebugTarget(tool)}
-                        >
+                        <Button size="sm" variant="ghost" onClick={() => setDebugTarget(tool)}>
                           Debug
                         </Button>
                       </>
                     ) : null}
                   </div>
-                </td>
-              </tr>
-            ))}
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="px-md py-lg text-center text-neutral-500">
-                  No tools found
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
 
       <div className="flex items-center justify-between gap-sm">
@@ -294,14 +300,10 @@ export function ToolsListView() {
         }
         confirmLabel="Run debug"
         variant={
-          debugTarget && isWriteLikeMutation(debugTarget.mutationType)
-            ? 'danger'
-            : 'default'
+          debugTarget && isWriteLikeMutation(debugTarget.mutationType) ? 'danger' : 'default'
         }
         onConfirm={() =>
-          debugTarget
-            ? void execute(debugTarget.id).then(() => setDebugTarget(null))
-            : undefined
+          debugTarget ? void execute(debugTarget.id).then(() => setDebugTarget(null)) : undefined
         }
       />
     </Stack>

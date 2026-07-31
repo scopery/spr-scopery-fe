@@ -31,11 +31,7 @@ export function ProjectApplicationStructureView() {
   useEffect(() => {
     if (!applicationId || !workspaceId || !projectId) return
     if (paramAppId === applicationId) return
-    const href = ROUTES.workspace.projectApplicationStructure(
-      workspaceId,
-      projectId,
-      applicationId
-    )
+    const href = ROUTES.workspace.projectApplicationStructure(workspaceId, projectId, applicationId)
     router.replace(href)
   }, [applicationId, workspaceId, projectId, paramAppId, router])
 
@@ -44,21 +40,21 @@ export function ProjectApplicationStructureView() {
       { value: '', label: loading ? 'Loading applications…' : 'Select application…' },
       ...applications.map((a) => ({
         value: a.id,
-        label: a.name || a.code || a.id,
+        label: a.name || a.code || 'Unnamed application',
       })),
     ],
     [applications, loading]
   )
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] min-h-[480px] flex-col">
-      <div className="shrink-0 border-b border-neutral-100 px-4 py-3">
+    <div className="flex h-[calc(100vh-4rem)] min-h-[480px] flex-col px-3 py-3 lg:px-4 lg:py-3">
+      <div className="shrink-0 border-b border-neutral-100 pb-2">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <Typography weight="medium" variant="h2">
+            <Typography as="h1" size="md" weight="medium">
               Application Structure
             </Typography>
-            <Typography variant="small" tone="muted" className="mt-0.5">
+            <Typography variant="caption" tone="muted" className="mt-0.5">
               Map Project Functions and NFRs onto Application architecture.
             </Typography>
           </div>

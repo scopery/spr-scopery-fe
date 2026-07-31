@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useRef, useState } from 'react'
+import { Search } from 'lucide-react'
 import { Button, Checkbox, Input, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import {
@@ -161,6 +162,7 @@ export function ArchitectureNodePalette({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search code, name, route, path…"
             aria-label="Search architecture nodes"
+            prefix={<Search size={14} />}
           />
         </div>
         <div className="flex flex-wrap gap-1" role="tablist" aria-label="Node type">

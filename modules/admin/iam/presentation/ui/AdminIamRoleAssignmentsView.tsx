@@ -2,13 +2,19 @@
 
 import { Ban, Check, Search, UserPlus } from 'lucide-react'
 
-import React from 'react'
-import { Typography, Button, Stack, Input, PageSkeleton } from '@/shared/ui'
+import { Typography, Button, Stack, PageSkeleton, Select, DataTable } from '@/shared/ui'
+import { UserSearchSelect } from '@/modules/platform'
+import { AdminWorkspaceSearchSelect } from '@/modules/admin/workspaces'
 import { IamStatusBadge } from './IamStatusBadge'
-import { IamSearchField } from './IamSearchField'
 import { useIamRoleAssignments } from '../hooks/useIamRoleAssignments'
 import { useIamIdentityDirectory } from '../hooks/useIamIdentityDirectory'
 import { IamEntityIdentityCard } from './IamEntityIdentityCard'
+import { IamRoleSearchSelect } from './IamRoleSearchSelect'
+
+const ASSIGNEE_TYPE_OPTIONS = [
+  { value: 'USER', label: 'User' },
+  { value: 'ROLE', label: 'Role' },
+]
 
 export function AdminIamRoleAssignmentsView() {
   const {
@@ -31,7 +37,10 @@ export function AdminIamRoleAssignmentsView() {
   } = useIamRoleAssignments()
   const { usersById, rolesById, workspacesById } = useIamIdentityDirectory({
     userIds: items.filter((item) => item.assigneeType === 'USER').map((item) => item.assigneeId),
-    roleIds: [...items.map((item) => item.roleId), ...items.filter((item) => item.assigneeType === 'ROLE').map((item) => item.assigneeId)],
+    roleIds: [
+      ...items.map((item) => item.roleId),
+      ...items.filter((item) => item.assigneeType === 'ROLE').map((item) => item.assigneeId),
+    ],
     workspaceIds: items.map((item) => item.workspaceId),
   })
 
@@ -47,20 +56,25 @@ export function AdminIamRoleAssignmentsView() {
       </div>
 
       <Stack direction="horizontal" spacing="sm" className="mb-6 flex-wrap items-center">
-        <IamSearchField
-          placeholder="Assignee ID"
-          value={assigneeId}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAssigneeId(e.target.value)}
-        />
-        <IamSearchField
-          placeholder="Role ID"
-          value={roleId}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRoleId(e.target.value)}
-        />
+        <div className="min-w-56">
+          <UserSearchSelect label="Filter by user" value={assigneeId} onChange={setAssigneeId} />
+        </div>
+        <div className="min-w-56">
+          <IamRoleSearchSelect
+            label="Filter by role"
+            optional
+            value={roleId}
+            onChange={setRoleId}
+          />
+        </div>
         <Button variant="primary" onClick={() => void refetch()} icon={<Search size={16} />}>
           Search
         </Button>
-        <Button variant="neutral-flat" onClick={() => setShowCreate((v) => !v)} icon={!showCreate ? <UserPlus size={16} /> : undefined}>
+        <Button
+          variant="neutral-flat"
+          onClick={() => setShowCreate((v) => !v)}
+          icon={!showCreate ? <UserPlus size={16} /> : undefined}
+        >
           {showCreate ? 'Cancel' : 'Assign role'}
         </Button>
       </Stack>
@@ -71,27 +85,41 @@ export function AdminIamRoleAssignmentsView() {
             Assign role
           </Typography>
           <Stack direction="vertical" spacing="sm" className="max-w-lg">
-            <Input
-              label="Assignee type"
+            <Select
               value={form.assigneeType}
-              onChange={(e) => setForm((f) => ({ ...f, assigneeType: e.target.value }))}
+              onValueChange={(assigneeType: string) =>
+                setForm((current) => ({ ...current, assigneeType, assigneeId: '' }))
+              }
+              options={ASSIGNEE_TYPE_OPTIONS}
             />
-            <Input
-              label="Assignee ID"
-              value={form.assigneeId}
-              onChange={(e) => setForm((f) => ({ ...f, assigneeId: e.target.value }))}
-            />
-            <Input
-              label="Role ID"
+            {form.assigneeType === 'USER' ? (
+              <UserSearchSelect
+                label="User"
+                value={form.assigneeId}
+                onChange={(assigneeId) => setForm((current) => ({ ...current, assigneeId }))}
+              />
+            ) : (
+              <IamRoleSearchSelect
+                label="Assignee role"
+                value={form.assigneeId}
+                onChange={(assigneeId) => setForm((current) => ({ ...current, assigneeId }))}
+              />
+            )}
+            <IamRoleSearchSelect
               value={form.roleId}
-              onChange={(e) => setForm((f) => ({ ...f, roleId: e.target.value }))}
+              onChange={(roleId) => setForm((current) => ({ ...current, roleId }))}
             />
-            <Input
-              label="Workspace ID (optional)"
+            <AdminWorkspaceSearchSelect
+              optional
               value={form.workspaceId}
-              onChange={(e) => setForm((f) => ({ ...f, workspaceId: e.target.value }))}
+              onChange={(workspaceId) => setForm((current) => ({ ...current, workspaceId }))}
             />
-            <Button variant="primary" disabled={creating} onClick={() => void create()} icon={<UserPlus size={16} />}>
+            <Button
+              variant="primary"
+              disabled={creating}
+              onClick={() => void create()}
+              icon={<UserPlus size={16} />}
+            >
               {creating ? 'Assigning…' : 'Assign'}
             </Button>
           </Stack>
@@ -108,27 +136,28 @@ export function AdminIamRoleAssignmentsView() {
         </div>
       ) : (
         <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Assignee</th>
-                <th className="px-4 py-3 font-medium">Role</th>
-                <th className="px-4 py-3 font-medium">Workspace</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="min-w-[12rem] whitespace-nowrap px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-4 py-3">
+          <DataTable
+            ariaLabel="Admin Iam Role Assignments"
+            rows={items}
+            rowKey={(item) => String(item.id)}
+            emptyMessage="No items."
+            columns={[
+              {
+                id: 'assignee',
+                header: 'Assignee',
+                cell: (item) => (
+                  <>
                     {item.assigneeType === 'USER' && usersById[item.assigneeId] ? (
                       <IamEntityIdentityCard
-                        title={usersById[item.assigneeId].fullName || usersById[item.assigneeId].username}
+                        title={
+                          usersById[item.assigneeId].fullName || usersById[item.assigneeId].username
+                        }
                         subtitle={`@${usersById[item.assigneeId].username}`}
                         meta={usersById[item.assigneeId].email}
                         id={item.assigneeId}
-                        avatarFallback={usersById[item.assigneeId].fullName || usersById[item.assigneeId].username}
+                        avatarFallback={
+                          usersById[item.assigneeId].fullName || usersById[item.assigneeId].username
+                        }
                         badge={item.assigneeType}
                       />
                     ) : item.assigneeType === 'ROLE' && rolesById[item.assigneeId] ? (
@@ -140,10 +169,20 @@ export function AdminIamRoleAssignmentsView() {
                         badge={item.assigneeType}
                       />
                     ) : (
-                      <IamEntityIdentityCard title={item.assigneeId} subtitle={item.assigneeType} id={item.assigneeId} />
+                      <IamEntityIdentityCard
+                        title="—"
+                        subtitle={item.assigneeType}
+                        id={item.assigneeId}
+                      />
                     )}
-                  </td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              {
+                id: 'role',
+                header: 'Role',
+                cell: (item) => (
+                  <>
                     {rolesById[item.roleId] ? (
                       <IamEntityIdentityCard
                         title={rolesById[item.roleId].name}
@@ -152,10 +191,16 @@ export function AdminIamRoleAssignmentsView() {
                         id={item.roleId}
                       />
                     ) : (
-                      <IamEntityIdentityCard title={item.roleId} id={item.roleId} />
+                      <IamEntityIdentityCard title="—" id={item.roleId} />
                     )}
-                  </td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              {
+                id: 'workspace',
+                header: 'Workspace',
+                cell: (item) => (
+                  <>
                     {item.workspaceId ? (
                       workspacesById[item.workspaceId] ? (
                         <IamEntityIdentityCard
@@ -165,42 +210,51 @@ export function AdminIamRoleAssignmentsView() {
                           id={item.workspaceId}
                         />
                       ) : (
-                        <IamEntityIdentityCard title={item.workspaceId} id={item.workspaceId} />
+                        <IamEntityIdentityCard title="—" id={item.workspaceId} />
                       )
                     ) : (
                       '—'
                     )}
-                  </td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (item) => (
+                  <>
                     <IamStatusBadge status={item.status} />
-                  </td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (item) => (
+                  <>
                     <Stack direction="horizontal" spacing="xs">
                       <Button
                         variant="ghost"
                         disabled={actingId === item.id}
-                        onClick={() => void runAction(item.id, 'activate')} icon={<Check size={16} />}>
+                        onClick={() => void runAction(item.id, 'activate')}
+                        icon={<Check size={16} />}
+                      >
                         Activate
                       </Button>
                       <Button
                         variant="ghost"
                         disabled={actingId === item.id}
-                        onClick={() => void runAction(item.id, 'deactivate')} icon={<Ban size={16} />}>
+                        onClick={() => void runAction(item.id, 'deactivate')}
+                        icon={<Ban size={16} />}
+                      >
                         Deactivate
                       </Button>
                     </Stack>
-                  </td>
-                </tr>
-              ))}
-              {!items.length && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-neutral-400">
-                    No assignments found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
     </div>

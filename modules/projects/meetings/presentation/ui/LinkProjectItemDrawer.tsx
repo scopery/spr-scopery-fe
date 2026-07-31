@@ -63,7 +63,7 @@ export function LinkProjectItemDrawer({
         next = (res.items ?? []).map((d) => ({
           artifactType: 'DOCUMENT' as const,
           artifactId: d.id,
-          title: d.title ?? d.id,
+          title: d.title ?? 'Untitled document',
           subtitle: d.code,
         }))
       } else if (tab === 'DECISION') {

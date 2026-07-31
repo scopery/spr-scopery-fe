@@ -13,6 +13,7 @@ import {
   Select,
   Stack,
   Typography,
+  DataTable, Card,
 } from '@/shared/ui'
 import { useCanManageAiConfig } from '../../../presentation/hooks/useCanManageAiConfig'
 import { AiLifecycleStatusBadge } from '../../../presentation/ui/AiLifecycleStatusBadge'
@@ -28,6 +29,7 @@ import type { AiEventConfig } from '../../domain/model/event-config'
 import { useEventConfigs, useResolveEventConfig } from '../hooks/useEventConfigs'
 import { useEventConfigMutations } from '../hooks/useEventConfigMutations'
 import { EventConfigFormModal } from './EventConfigFormModal'
+import { EventDefinitionSearchSelect } from '@/modules/admin/event-definitions'
 
 const PAGE_SIZE = 20
 
@@ -147,12 +149,12 @@ export function EventConfigsListView() {
         ) : null}
       </div>
 
-      <div className="border border-neutral-200 bg-neutral-50 p-md">
+      <Card className="bg-neutral-50 p-md">
         <Typography variant="h3" className="mb-sm">
           Resolve tester
         </Typography>
         <Typography variant="caption" tone="muted" className="mb-md block">
-          Use eventDefinitionId <strong>or</strong> sourceSystem + eventKey (not both).
+          Select an event definition <strong>or</strong> use source system + event key (not both).
         </Typography>
         <div className="mb-md flex flex-wrap gap-sm">
           <Button
@@ -164,7 +166,7 @@ export function EventConfigsListView() {
               setResolveFieldError(null)
             }}
           >
-            By definition ID
+            By definition
           </Button>
           <Button
             size="sm"
@@ -181,11 +183,7 @@ export function EventConfigsListView() {
         <div className="flex flex-wrap gap-sm">
           {resolveMode === 'definition' ? (
             <div className="min-w-[220px] flex-1">
-              <Input
-                placeholder="Event definition ID"
-                value={resolveDefId}
-                onChange={(e) => setResolveDefId(e.target.value)}
-              />
+              <EventDefinitionSearchSelect value={resolveDefId} onChange={setResolveDefId} />
             </div>
           ) : (
             <>
@@ -233,9 +231,9 @@ export function EventConfigsListView() {
           </Typography>
         ) : null}
         {resolveResult ? (
-          <div className="mt-md border border-neutral-200 bg-white p-md">
+          <Card className="mt-md p-md">
             <Typography weight="medium">{resolveResult.name}</Typography>
-            <Typography variant="caption" tone="muted" className="block font-mono">
+            <Typography variant="caption" tone="muted" className="block font-normal">
               {resolveResult.code} · {resolveResult.environment} · {resolveResult.status}
             </Typography>
             <Button
@@ -247,9 +245,9 @@ export function EventConfigsListView() {
             >
               Open resolved config
             </Button>
-          </div>
+          </Card>
         ) : null}
-      </div>
+      </Card>
 
       <div className="flex flex-wrap gap-sm">
         <div className="min-w-[140px] flex-1">
@@ -263,11 +261,11 @@ export function EventConfigsListView() {
           />
         </div>
         <div className="min-w-[160px] flex-1">
-          <Input
-            placeholder="Event definition ID"
+          <EventDefinitionSearchSelect
+            optional
             value={eventDefinitionId}
-            onChange={(e) => {
-              setEventDefinitionId(e.target.value)
+            onChange={(value) => {
+              setEventDefinitionId(value)
               setPage(0)
             }}
           />
@@ -328,107 +326,107 @@ export function EventConfigsListView() {
       {error ? <Typography tone="error">{error}</Typography> : null}
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-neutral-200 bg-neutral-50 text-left">
-            <tr>
-              <th className="px-4 py-3 font-medium">Code</th>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Event def</th>
-              <th className="px-4 py-3 font-medium">Env</th>
-              <th className="px-4 py-3 font-medium">Trigger</th>
-              <th className="px-4 py-3 font-medium">Agent</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-neutral-500">
-                  No event configs found.
-                </td>
-              </tr>
-            ) : (
-              items.map((c) => (
-                <tr key={c.id} className="border-b border-neutral-100">
-                  <td className="px-4 py-3 font-mono text-xs">{c.code}</td>
-                  <td className="px-4 py-3">{c.name}</td>
-                  <td className="px-4 py-3 font-mono text-xs">
-                    {c.eventDefinitionId.slice(0, 8)}…
-                  </td>
-                  <td className="px-4 py-3">{c.environment}</td>
-                  <td className="px-4 py-3">{c.triggerType}</td>
-                  <td className="px-4 py-3 text-xs">
-                    {c.agentId ? agentNameById.get(c.agentId) ?? c.agentId.slice(0, 8) : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <AiLifecycleStatusBadge status={c.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      <Button
-                        as={NextLink}
-                        href={ADMIN_ROUTES.aiControlEventConfig(c.id)}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Open
-                      </Button>
-                      {canManage ? (
-                        <>
+        <DataTable
+          ariaLabel="Event Configs List"
+          rows={items}
+          rowKey={(c) => String(c.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'code',
+              header: 'Code',
+              accessor: 'code',
+              kind: 'code',
+              cellClassName: 'text-xs',
+            },
+            { id: 'name', header: 'Name', accessor: 'name' },
+            {
+              id: 'event-def',
+              header: 'Event def',
+              cell: (c) => <>—</>,
+              cellClassName: 'text-xs',
+            },
+            { id: 'env', header: 'Env', accessor: 'environment' },
+            { id: 'trigger', header: 'Trigger', accessor: 'triggerType' },
+            {
+              id: 'agent',
+              header: 'Agent',
+              cell: (c) => <>{c.agentId ? (agentNameById.get(c.agentId) ?? '—') : '—'}</>,
+              cellClassName: 'text-xs',
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (c) => (
+                <>
+                  <AiLifecycleStatusBadge status={c.status} />
+                </>
+              ),
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (c) => (
+                <>
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      as={NextLink}
+                      href={ADMIN_ROUTES.aiControlEventConfig(c.id)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Open
+                    </Button>
+                    {canManage ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditing(c)
+                            setFormOpen(true)
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        {c.status !== EventConfigStatus.Active ? (
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => {
-                              setEditing(c)
-                              setFormOpen(true)
-                            }}
+                            disabled={saving}
+                            onClick={() => void activate(c.id)}
                           >
-                            Edit
+                            Activate
                           </Button>
-                          {c.status !== EventConfigStatus.Active ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={saving}
-                              onClick={() => void activate(c.id)}
-                            >
-                              Activate
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setDeactivateTarget(c)}
-                            >
-                              Deactivate
-                            </Button>
-                          )}
-                        </>
-                      ) : null}
-                      <Button
-                        as={NextLink}
-                        href={ADMIN_ROUTES.aiControlPlayground}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Playground
-                      </Button>
-                      <Button
-                        as={NextLink}
-                        href={ADMIN_ROUTES.aiControlExecutions}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Executions
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                        ) : (
+                          <Button size="sm" variant="ghost" onClick={() => setDeactivateTarget(c)}>
+                            Deactivate
+                          </Button>
+                        )}
+                      </>
+                    ) : null}
+                    <Button
+                      as={NextLink}
+                      href={ADMIN_ROUTES.aiControlPlayground}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Playground
+                    </Button>
+                    <Button
+                      as={NextLink}
+                      href={ADMIN_ROUTES.aiControlExecutions}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Executions
+                    </Button>
+                  </div>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
 
       {totalElements > PAGE_SIZE ? (

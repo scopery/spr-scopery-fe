@@ -45,7 +45,7 @@ function groupByOrg(workspaces: WorkspaceListItem[]) {
   const groups = new Map<string, { label: string; items: WorkspaceListItem[] }>()
   for (const workspace of workspaces) {
     const key = workspace.organizationId
-    const label = workspace.organizationName ?? workspace.organizationId
+    const label = workspace.organizationName ?? '—'
     const existing = groups.get(key)
     if (existing) existing.items.push(workspace)
     else groups.set(key, { label, items: [workspace] })
@@ -81,10 +81,7 @@ export function WorkspaceProjectSwitcher({
     const map = new Map<string, string>()
     for (const workspace of workspaces) {
       if (!map.has(workspace.organizationId)) {
-        map.set(
-          workspace.organizationId,
-          workspace.organizationName ?? workspace.organizationId
-        )
+        map.set(workspace.organizationId, workspace.organizationName ?? '—')
       }
     }
     return [...map.entries()]
@@ -189,9 +186,7 @@ export function WorkspaceProjectSwitcher({
         items: group.items.filter((w) => {
           const projects = projectsByWorkspace[w.id] ?? []
           const hitWorkspace = `${w.name} ${w.code} ${group.label}`.toLowerCase().includes(q)
-          const hitProject = projects.some((p) =>
-            `${p.name} ${p.code}`.toLowerCase().includes(q)
-          )
+          const hitProject = projects.some((p) => `${p.name} ${p.code}`.toLowerCase().includes(q))
           return hitWorkspace || hitProject
         }),
       }))
@@ -217,15 +212,15 @@ export function WorkspaceProjectSwitcher({
 
   return createPortal(
     <>
-    <div
-      role="menu"
-      data-workspace-project-switcher
-      className={cn(
-        'fixed z-[100] w-[min(20rem,calc(100vw-2rem))] border border-neutral-200 bg-white shadow-xl motion-switcher-pop',
-        className
-      )}
-      style={{ top: position.top, left: position.left }}
-    >
+      <div
+        role="menu"
+        data-workspace-project-switcher
+        className={cn(
+          'motion-switcher-pop fixed z-[100] w-[min(20rem,calc(100vw-2rem))] border border-neutral-200 bg-white shadow-xl',
+          className
+        )}
+        style={{ top: position.top, left: position.left }}
+      >
         <div className="border-b border-neutral-100 p-2">
           <label className="relative block">
             <Search
@@ -267,9 +262,7 @@ export function WorkspaceProjectSwitcher({
                   const projects = projectsByWorkspace[workspace.id] ?? []
                   const q = query.trim().toLowerCase()
                   const visibleProjects = q
-                    ? projects.filter((p) =>
-                        `${p.name} ${p.code}`.toLowerCase().includes(q)
-                      )
+                    ? projects.filter((p) => `${p.name} ${p.code}`.toLowerCase().includes(q))
                     : projects
 
                   return (
@@ -289,16 +282,14 @@ export function WorkspaceProjectSwitcher({
                         onMouseEnter={() => void loadProjects(workspace.id)}
                         onFocus={() => void loadProjects(workspace.id)}
                         className={cn(
-                          'flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm motion-colors hover:bg-neutral-50',
+                          'motion-colors flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm hover:bg-neutral-50',
                           isCurrentWs && 'bg-neutral-50'
                         )}
                       >
                         <Typography as="span" weight="medium" className="min-w-0 flex-1 truncate">
                           {workspace.name}
                         </Typography>
-                        {isCurrentWs ? (
-                          <Check size={14} className="shrink-0 text-primary" />
-                        ) : null}
+                        {isCurrentWs ? <Check size={14} className="shrink-0 text-primary" /> : null}
                       </button>
 
                       <div className="ml-3 border-l border-neutral-100 pl-2">
@@ -308,8 +299,7 @@ export function WorkspaceProjectSwitcher({
                           </Typography>
                         ) : null}
                         {visibleProjects.map((project) => {
-                          const selected =
-                            isCurrentWs && currentProjectId === project.id
+                          const selected = isCurrentWs && currentProjectId === project.id
                           return (
                             <button
                               key={project.id}
@@ -330,7 +320,7 @@ export function WorkspaceProjectSwitcher({
                                 }
                               }}
                               className={cn(
-                                'flex w-full items-center gap-2 px-2 py-1 text-left text-sm motion-colors hover:bg-neutral-50',
+                                'motion-colors flex w-full items-center gap-2 px-2 py-1 text-left text-sm hover:bg-neutral-50',
                                 selected && 'bg-neutral-50 text-neutral-900'
                               )}
                             >

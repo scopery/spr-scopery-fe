@@ -1,6 +1,6 @@
 'use client'
 
-import { Typography } from '@/shared/ui'
+import { Card, Typography } from '@/shared/ui'
 
 export function PlatformApiUnavailablePanel({
   title,
@@ -12,7 +12,7 @@ export function PlatformApiUnavailablePanel({
   description?: string
 }) {
   return (
-    <div className="border border-neutral-200 bg-neutral-50 p-6">
+    <Card className="bg-neutral-50 p-6">
       <Typography as="h2" size="lg" weight="bold" className="mb-2">
         {title}
       </Typography>
@@ -23,6 +23,6 @@ export function PlatformApiUnavailablePanel({
       <Typography as="p" variant="small" className="font-mono text-xs text-neutral-600">
         Expected: {expectedApi}
       </Typography>
-    </div>
+    </Card>
   )
 }

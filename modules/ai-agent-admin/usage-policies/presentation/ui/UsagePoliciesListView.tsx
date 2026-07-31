@@ -11,6 +11,7 @@ import {
   Select,
   Stack,
   Typography,
+  DataTable,
 } from '@/shared/ui'
 import { useCanManageAiConfig } from '../../../presentation/hooks/useCanManageAiConfig'
 import { AiLifecycleStatusBadge } from '../../../presentation/ui/AiLifecycleStatusBadge'
@@ -122,98 +123,93 @@ export function UsagePoliciesListView() {
       {error ? <Typography tone="error">{error}</Typography> : null}
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-neutral-200 bg-neutral-50 text-left">
-            <tr>
-              <th className="px-4 py-3 font-medium">Code</th>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Target</th>
-              <th className="px-4 py-3 font-medium">Period</th>
-              <th className="px-4 py-3 font-medium">Requests</th>
-              <th className="px-4 py-3 font-medium">Tokens</th>
-              <th className="px-4 py-3 font-medium">Cost</th>
-              <th className="px-4 py-3 font-medium">Action</th>
-              <th className="px-4 py-3 font-medium">Priority</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={11} className="px-4 py-8 text-center text-neutral-500">
-                  No usage policies found.
-                </td>
-              </tr>
-            ) : (
-              items.map((p) => (
-                <tr key={p.id} className="border-b border-neutral-100">
-                  <td className="px-4 py-3 font-mono text-xs">{p.code}</td>
-                  <td className="px-4 py-3">{p.name}</td>
-                  <td className="px-4 py-3 text-xs">
-                    {p.targetType}
-                    {p.targetType !== UsagePolicyTargetType.Global && p.targetId
-                      ? ` · ${p.targetId.slice(0, 8)}…`
-                      : ''}
-                  </td>
-                  <td className="px-4 py-3">{p.period || '—'}</td>
-                  <td className="px-4 py-3">{p.maxRequestsPerPeriod ?? '—'}</td>
-                  <td className="px-4 py-3">{p.maxTokensPerPeriod ?? '—'}</td>
-                  <td className="px-4 py-3">{p.maxCostPerPeriod ?? '—'}</td>
-                  <td className="px-4 py-3">{p.action || '—'}</td>
-                  <td className="px-4 py-3">{p.priority ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    <AiLifecycleStatusBadge status={p.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      <Button
-                        as={NextLink}
-                        href={ADMIN_ROUTES.aiControlUsagePolicy(p.id)}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Open
-                      </Button>
-                      {canManage ? (
-                        <>
+        <DataTable
+          ariaLabel="Usage Policies List"
+          rows={items}
+          rowKey={(p) => String(p.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'code',
+              header: 'Code',
+              accessor: 'code',
+              kind: 'code',
+              cellClassName: 'text-xs',
+            },
+            { id: 'name', header: 'Name', accessor: 'name' },
+            {
+              id: 'target',
+              header: 'Target',
+              cell: (p) => <>{p.targetType}</>,
+              cellClassName: 'text-xs',
+            },
+            { id: 'period', header: 'Period', cell: (p) => <>{p.period || '—'}</> },
+            {
+              id: 'requests',
+              header: 'Requests',
+              cell: (p) => <>{p.maxRequestsPerPeriod ?? '—'}</>,
+            },
+            { id: 'tokens', header: 'Tokens', cell: (p) => <>{p.maxTokensPerPeriod ?? '—'}</> },
+            { id: 'cost', header: 'Cost', cell: (p) => <>{p.maxCostPerPeriod ?? '—'}</> },
+            { id: 'action', header: 'Action', cell: (p) => <>{p.action || '—'}</> },
+            { id: 'priority', header: 'Priority', cell: (p) => <>{p.priority ?? '—'}</> },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (p) => (
+                <>
+                  <AiLifecycleStatusBadge status={p.status} />
+                </>
+              ),
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (p) => (
+                <>
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      as={NextLink}
+                      href={ADMIN_ROUTES.aiControlUsagePolicy(p.id)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Open
+                    </Button>
+                    {canManage ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditing(p)
+                            setFormOpen(true)
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        {p.status !== UsagePolicyStatus.Active ? (
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => {
-                              setEditing(p)
-                              setFormOpen(true)
-                            }}
+                            disabled={saving}
+                            onClick={() => void activate(p.id)}
                           >
-                            Edit
+                            Activate
                           </Button>
-                          {p.status !== UsagePolicyStatus.Active ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={saving}
-                              onClick={() => void activate(p.id)}
-                            >
-                              Activate
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setDeactivateTarget(p)}
-                            >
-                              Deactivate
-                            </Button>
-                          )}
-                        </>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                        ) : (
+                          <Button size="sm" variant="ghost" onClick={() => setDeactivateTarget(p)}>
+                            Deactivate
+                          </Button>
+                        )}
+                      </>
+                    ) : null}
+                  </div>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
 
       {totalElements > PAGE_SIZE ? (

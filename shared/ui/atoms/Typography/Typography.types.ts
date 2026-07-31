@@ -15,7 +15,7 @@ export type TypographyVariant =
   | 'caption'
   | 'overline'
 
-export type TypographySize = 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl'
+export type TypographySize = 'xs' | 'sm' | 'base' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl'
 export type TypographyWeight = 'normal' | 'medium' | 'semibold' | 'bold'
 export type TypographyAlign = 'left' | 'center' | 'right' | 'justify'
 export type TypographyTone =

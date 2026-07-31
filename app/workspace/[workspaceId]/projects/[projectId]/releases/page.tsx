@@ -1,7 +1,11 @@
 'use client'
 
-import { ReleaseCenterView } from '@/modules/quality/presentation/ui/ReleaseCenterView'
+import { LegacyQualityRedirect, ReleaseCenterView } from '@/modules/quality'
 
 export default function Page() {
-  return <ReleaseCenterView />
+  return (
+    <LegacyQualityRedirect target="releases">
+      <ReleaseCenterView />
+    </LegacyQualityRedirect>
+  )
 }

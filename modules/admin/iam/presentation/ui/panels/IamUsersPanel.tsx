@@ -3,7 +3,7 @@
 import { Ban, Check, Search } from 'lucide-react'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Stack, Skeleton, Typography } from '@/shared/ui'
+import { Button, Stack, Skeleton, Typography, DataTable } from '@/shared/ui'
 import { IamStatusBadge } from '../IamStatusBadge'
 import { IamSearchField } from '../IamSearchField'
 import { iamUsersApi } from '@/modules/auth/iam'
@@ -68,60 +68,60 @@ export function IamUsersPanel() {
         <Skeleton variant="rectangular" width="100%" height={80} />
       ) : (
         <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-3 py-2 font-medium">Username</th>
-                <th className="px-3 py-2 font-medium">Email</th>
-                <th className="px-3 py-2 font-medium">Full name</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-                <th className="min-w-[12rem] whitespace-nowrap px-3 py-2 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((user) => (
-                <tr key={user.id} className="border-t border-neutral-100">
-                  <td className="px-3 py-2">{user.username}</td>
-                  <td className="px-3 py-2">{user.email}</td>
-                  <td className="px-3 py-2">{user.fullName}</td>
-                  <td className="px-3 py-2">
+          <DataTable
+            ariaLabel="Iam Users Panel"
+            rows={items}
+            rowKey={(user) => String(user.id)}
+            emptyMessage="No items."
+            columns={[
+              { id: 'username', header: 'Username', accessor: 'username' },
+              { id: 'email', header: 'Email', accessor: 'email' },
+              { id: 'full-name', header: 'Full name', accessor: 'fullName' },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (user) => (
+                  <>
                     <IamStatusBadge status={user.status} />
-                  </td>
-                  <td className="px-3 py-2">
+                  </>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (user) => (
+                  <>
                     <Stack direction="horizontal" spacing="xs" className="flex-wrap">
                       <Button
                         variant="ghost"
                         disabled={actingId === user.id}
-                        onClick={() => void runAction(user.id, 'activate')} icon={<Check size={16} />}>
+                        onClick={() => void runAction(user.id, 'activate')}
+                        icon={<Check size={16} />}
+                      >
                         Activate
                       </Button>
                       <Button
                         variant="ghost"
                         disabled={actingId === user.id}
-                        onClick={() => void runAction(user.id, 'deactivate')} icon={<Ban size={16} />}>
+                        onClick={() => void runAction(user.id, 'deactivate')}
+                        icon={<Ban size={16} />}
+                      >
                         Deactivate
                       </Button>
                       <Button
                         variant="ghost"
                         disabled={actingId === user.id}
-                        onClick={() => void runAction(user.id, 'suspend')} icon={<Ban size={16} />}>
+                        onClick={() => void runAction(user.id, 'suspend')}
+                        icon={<Ban size={16} />}
+                      >
                         Suspend
                       </Button>
                     </Stack>
-                  </td>
-                </tr>
-              ))}
-              {!items.length && (
-                <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center">
-                    <Typography variant="small" tone="muted">
-                      No users found
-                    </Typography>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
     </Stack>

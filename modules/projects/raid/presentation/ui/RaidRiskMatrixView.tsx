@@ -1,6 +1,6 @@
 'use client'
 
-import { Badge, Typography } from '@/shared/ui'
+import { Badge, DataTable, Typography, type DataTableColumn } from '@/shared/ui'
 import {
   RISK_MATRIX_IMPACT_LEVELS,
   RISK_MATRIX_PROBABILITY_LEVELS,
@@ -33,58 +33,49 @@ export function RaidRiskMatrixView({ items }: RaidRiskMatrixViewProps) {
           </Typography>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] border-collapse text-left text-sm">
-            <thead>
-              <tr>
-                <th className="w-32 border border-neutral-200 bg-neutral-50 p-2" />
-                {RISK_MATRIX_IMPACT_LEVELS.map((impact) => (
-                  <th
-                    key={impact}
-                    className="border border-neutral-200 bg-neutral-50 p-2 text-center font-medium text-neutral-600"
-                  >
-                    Impact: {raidRiskImpactLabel(impact)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {RISK_MATRIX_PROBABILITY_LEVELS.map((probability) => (
-                <tr key={probability}>
-                  <th className="border border-neutral-200 bg-neutral-50 p-2 text-left font-medium text-neutral-600">
-                    Probability: {raidRiskProbabilityLabel(probability)}
-                  </th>
-                  {RISK_MATRIX_IMPACT_LEVELS.map((impact) => {
-                    const cellItems = getRiskMatrixCellItems(riskItems, probability, impact)
-                    const tone = riskMatrixCellTone(probability, impact)
-                    return (
-                      <td key={impact} className="border border-neutral-200 p-2 align-top">
-                        <div className="min-h-16 space-y-1.5">
-                          {cellItems.length === 0 ? (
-                            <Typography as="span" variant="small" tone="muted">
-                              —
-                            </Typography>
-                          ) : (
-                            cellItems.map((item) => (
-                              <div key={item.id} className="flex items-start gap-1.5">
-                                <Badge tone={tone} size="sm">
-                                  {item.code}
-                                </Badge>
-                                <Typography variant="small" className="leading-5">
-                                  {item.title}
-                                </Typography>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          ariaLabel="RAID risk matrix"
+          rows={[...RISK_MATRIX_PROBABILITY_LEVELS]}
+          rowKey={(probability) => probability}
+          tableClassName="min-w-[560px]"
+          columns={[
+            {
+              id: 'probability',
+              header: 'Probability',
+              width: '8rem',
+              accessor: (probability) => raidRiskProbabilityLabel(probability),
+              cellClassName: 'font-medium text-neutral-600',
+            },
+            ...RISK_MATRIX_IMPACT_LEVELS.map(
+              (impact): DataTableColumn<(typeof RISK_MATRIX_PROBABILITY_LEVELS)[number]> => ({
+                id: impact,
+                header: `Impact: ${raidRiskImpactLabel(impact)}`,
+                align: 'center',
+                cellClassName: 'align-top',
+                cell: (probability) => {
+                  const cellItems = getRiskMatrixCellItems(riskItems, probability, impact)
+                  const tone = riskMatrixCellTone(probability, impact)
+                  return (
+                    <div className="min-h-16 space-y-1.5 text-left">
+                      {cellItems.length === 0
+                        ? '—'
+                        : cellItems.map((item) => (
+                            <div key={item.id} className="flex items-start gap-1.5">
+                              <Badge tone={tone} size="sm">
+                                {item.code}
+                              </Badge>
+                              <Typography variant="small" className="leading-5">
+                                {item.title}
+                              </Typography>
+                            </div>
+                          ))}
+                    </div>
+                  )
+                },
+              })
+            ),
+          ]}
+        />
       )}
     </div>
   )

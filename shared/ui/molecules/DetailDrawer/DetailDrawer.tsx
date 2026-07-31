@@ -17,6 +17,7 @@ export interface DetailDrawerProps {
   /** Accessible name when title is not a string. */
   ariaLabel?: string
   className?: string
+  backdropClassName?: string
   panelClassName?: string
   /** Desktop max width — default 560px (spec 560–640). */
   size?: 'md' | 'lg'
@@ -37,6 +38,7 @@ export function DetailDrawer({
   footer,
   ariaLabel,
   className,
+  backdropClassName,
   panelClassName,
   size = 'md',
 }: DetailDrawerProps) {
@@ -60,13 +62,16 @@ export function DetailDrawer({
   return createPortal(
     <div className={cn('drawer', className)}>
       <div
-        className="fixed inset-0 z-[100] bg-neutral-900/50 backdrop-blur-sm motion-drawer-backdrop"
+        className={cn(
+          'bg-neutral-900/50 motion-drawer-backdrop fixed inset-0 z-[100] backdrop-blur-sm',
+          backdropClassName
+        )}
         aria-hidden
         onClick={onClose}
       />
       <aside
         className={cn(
-          'fixed inset-y-0 right-0 z-[101] flex w-full flex-col border-l border-neutral-200 bg-white shadow-xl motion-drawer-panel',
+          'motion-drawer-panel fixed inset-y-0 right-0 z-[101] flex w-full flex-col border-l border-neutral-200 bg-white shadow-xl',
           'max-sm:inset-0 max-sm:border-l-0',
           size === 'lg' ? 'sm:max-w-[640px]' : 'sm:max-w-[560px]',
           panelClassName

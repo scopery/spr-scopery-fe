@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Button, Input, PageSkeleton, Stack, Typography } from '@/shared/ui'
+import { Button, Input, PageSkeleton, Stack, Typography, Card } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { useNotificationSettings } from '../hooks/useNotificationSettings'
+import { ProjectSearchSelect } from '@/modules/projects'
 
 export function NotificationSettingsView() {
   const params = useParams()
@@ -55,15 +56,15 @@ export function NotificationSettingsView() {
   if (loading && !preferences) return <PageSkeleton variant="detail" />
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="p-8 text-center">
         <Typography weight="medium">You don’t have access to notification settings</Typography>
-      </div>
+      </Card>
     )
   }
 
   return (
-    <div>
-      <Typography as="h1" size="lg" weight="semibold" className="mb-6">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <Typography as="h1" size="md" weight="medium" className="mb-2">
         Notification settings
       </Typography>
 
@@ -75,7 +76,7 @@ export function NotificationSettingsView() {
         </div>
       ) : null}
 
-      <section className="mb-8 max-w-lg space-y-4 border border-neutral-200 bg-white p-5">
+      <Card as="section" className="mb-8 max-w-lg space-y-4 p-5">
         <Typography as="h2" weight="semibold">
           Delivery preferences
         </Typography>
@@ -139,9 +140,9 @@ export function NotificationSettingsView() {
         >
           Save preferences
         </Button>
-      </section>
+      </Card>
 
-      <section className="mb-8 max-w-lg space-y-4 border border-neutral-200 bg-white p-5">
+      <Card as="section" className="mb-8 max-w-lg space-y-4 p-5">
         <Typography as="h2" weight="semibold">
           Channel preferences
         </Typography>
@@ -174,7 +175,12 @@ export function NotificationSettingsView() {
           loading={savingChannel}
           onClick={() => {
             setSavingChannel(true)
-            void saveChannelPreferences({ emailEnabled, inAppEnabled, pushEnabled, smsEnabled: false })
+            void saveChannelPreferences({
+              emailEnabled,
+              inAppEnabled,
+              pushEnabled,
+              smsEnabled: false,
+            })
               .then(() => toast.success('Channel preferences saved'))
               .catch((err) => toast.error(getProblemToastMessage(err)))
               .finally(() => setSavingChannel(false))
@@ -182,24 +188,23 @@ export function NotificationSettingsView() {
         >
           Save channel preferences
         </Button>
-      </section>
+      </Card>
 
       {suppressions.length > 0 && (
-        <section className="mb-8 max-w-lg space-y-3 border border-neutral-200 bg-white p-5">
+        <Card as="section" className="mb-8 max-w-lg space-y-3 p-5">
           <Typography as="h2" weight="semibold">
             Active suppressions
           </Typography>
           <Typography variant="small" tone="muted">
-            These channels/categories are currently suppressed. Suppressions are managed by your administrator.
+            These channels/categories are currently suppressed. Suppressions are managed by your
+            administrator.
           </Typography>
           <ul className="divide-y divide-neutral-100 border border-neutral-100">
             {suppressions.map((s) => (
               <li key={s.id} className="px-3 py-2 text-sm">
                 <span className="font-medium">{s.channel}</span>
                 {s.category ? <span className="text-neutral-500"> · {s.category}</span> : null}
-                {s.reason ? (
-                  <span className="ml-2 text-neutral-400 italic">{s.reason}</span>
-                ) : null}
+                {s.reason ? <span className="ml-2 italic text-neutral-400">{s.reason}</span> : null}
                 {s.expiresAt ? (
                   <span className="ml-2 text-neutral-400">
                     Expires {new Date(s.expiresAt).toLocaleDateString()}
@@ -210,21 +215,19 @@ export function NotificationSettingsView() {
               </li>
             ))}
           </ul>
-        </section>
+        </Card>
       )}
 
-      <section className="max-w-lg space-y-4 border border-neutral-200 bg-white p-5">
+      <Card as="section" className="max-w-lg space-y-4 p-5">
         <Typography as="h2" weight="semibold">
           Project subscriptions
         </Typography>
         <Stack direction="horizontal" spacing="sm" className="items-end">
           <div className="flex-1">
-            <Input
-              label="Project ID"
-              fullWidth
+            <ProjectSearchSelect
+              workspaceId={workspaceId}
               value={targetId}
-              onChange={(e) => setTargetId(e.target.value)}
-              placeholder="UUID"
+              onChange={setTargetId}
             />
           </div>
           <Button
@@ -257,11 +260,8 @@ export function NotificationSettingsView() {
             subscriptions.map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-2 px-3 py-2">
                 <Typography as="span" variant="small">
-                  {s.targetType} ·{' '}
-                  <Typography as="span" variant="small" className="font-mono" size="xs">
-                    {s.targetId.slice(0, 8)}…
-                  </Typography>{' '}
-                  · {s.subscriptionLevel}
+                  {s.targetType === 'PROJECT' ? 'Project subscription' : s.targetType} ·{' '}
+                  {s.subscriptionLevel}
                 </Typography>
                 <Button
                   size="sm"
@@ -278,7 +278,7 @@ export function NotificationSettingsView() {
             ))
           )}
         </ul>
-      </section>
+      </Card>
     </div>
   )
 }

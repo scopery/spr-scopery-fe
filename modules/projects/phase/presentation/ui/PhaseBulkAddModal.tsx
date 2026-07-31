@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Calendar, Plus, Trash2 } from 'lucide-react'
-import { Button, Input, Modal, Stack, Typography } from '@/shared/ui'
+import {
+  Button,
+  DataTable,
+  Input,
+  Modal,
+  Stack,
+  Typography,
+  type DataTableColumn,
+} from '@/shared/ui'
 import { toast } from 'sonner'
 import { ApiError } from '@/shared/lib/api-types'
 import { cn } from '@/utils/cn'
@@ -258,10 +266,7 @@ export function PhaseBulkAddModal({
     setPasteHint(false)
   }, [open])
 
-  const validRows = useMemo(
-    () => rows.filter((r) => r.code.trim() && r.name.trim()),
-    [rows]
-  )
+  const validRows = useMemo(() => rows.filter((r) => r.code.trim() && r.name.trim()), [rows])
 
   const updateRow = (id: string, patch: Partial<DraftRow>) => {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch, error: null } : r)))
@@ -413,9 +418,9 @@ export function PhaseBulkAddModal({
     >
       <div className="space-y-4">
         <Typography variant="small" tone="muted">
-          Add one or more phases. Paste from Excel (Ctrl/Cmd+V) — columns: Code · Name ·
-          Description · Order · Start · End. Dates accept paste or the calendar icon. Empty order
-          auto-fills from {nextDisplayOrder}.
+          Add one or more phases. Paste from Excel (Ctrl/Cmd+V) — columns: Code · Name · Description
+          · Order · Start · End. Dates accept paste or the calendar icon. Empty order auto-fills
+          from {nextDisplayOrder}.
         </Typography>
 
         {pasteHint ? (
@@ -424,71 +429,66 @@ export function PhaseBulkAddModal({
           </Typography>
         ) : null}
 
-        <div className="overflow-x-auto border border-neutral-200">
-          <table className="w-full min-w-[760px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-neutral-200 bg-neutral-50 text-xs text-neutral-500">
-                <th className="w-8 px-2 py-2">#</th>
-                {COLUMNS.map((col) => (
-                  <th key={col.key} className="px-2 py-2">
-                    {col.label}
-                    {col.required ? ' *' : ''}
-                  </th>
-                ))}
-                <th className="w-10 px-2 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, index) => (
-                <tr
-                  key={row.id}
-                  className={cn('border-b border-neutral-100', row.error && 'bg-red-50/60')}
-                >
-                  <td className="px-2 py-1.5 align-middle text-xs text-neutral-400">
-                    {index + 1}
-                  </td>
-                  {COLUMNS.map((col) => (
-                    <td key={col.key} className="px-2 py-1.5 align-middle">
-                      {col.inputType === 'date' ? (
-                        <DatePasteableInput
-                          value={row[col.key]}
-                          onChange={(next) => updateRow(row.id, { [col.key]: next })}
-                          ariaLabel={`${col.label} row ${index + 1}`}
-                          placeholder={col.placeholder}
-                        />
-                      ) : (
-                        <Input
-                          type={col.inputType === 'number' ? 'number' : 'text'}
-                          value={row[col.key]}
-                          onChange={(e) => {
-                            const next =
-                              col.key === 'code'
-                                ? e.target.value.toUpperCase()
-                                : e.target.value
-                            updateRow(row.id, { [col.key]: next })
-                          }}
-                          placeholder={col.placeholder}
-                          aria-label={`${col.label} row ${index + 1}`}
-                          fullWidth
-                          size="sm"
-                        />
-                      )}
-                    </td>
-                  ))}
-                  <td className="px-1 py-1.5 align-middle">
-                    <button
-                      type="button"
-                      className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
-                      onClick={() => removeRow(row.id)}
-                      aria-label={`Remove row ${index + 1}`}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="border border-neutral-200">
+          <DataTable
+            ariaLabel="Phases to create"
+            rows={rows}
+            rowKey={(row) => row.id}
+            tableClassName="min-w-[760px]"
+            compact
+            rowClassName={(row) => cn(row.error && 'bg-red-50/60')}
+            columns={[
+              { id: 'index', header: '#', width: '2rem', cell: (_row, index) => index + 1 },
+              ...COLUMNS.map(
+                (column): DataTableColumn<DraftRow> => ({
+                  id: column.key,
+                  header: `${column.label}${column.required ? ' *' : ''}`,
+                  kind: column.key === 'code' ? 'code' : 'text',
+                  cell: (row, index) =>
+                    column.inputType === 'date' ? (
+                      <DatePasteableInput
+                        value={row[column.key]}
+                        onChange={(next) => updateRow(row.id, { [column.key]: next })}
+                        ariaLabel={`${column.label} row ${index + 1}`}
+                        placeholder={column.placeholder}
+                      />
+                    ) : (
+                      <Input
+                        type={column.inputType === 'number' ? 'number' : 'text'}
+                        value={row[column.key]}
+                        onChange={(event) =>
+                          updateRow(row.id, {
+                            [column.key]:
+                              column.key === 'code'
+                                ? event.target.value.toUpperCase()
+                                : event.target.value,
+                          })
+                        }
+                        placeholder={column.placeholder}
+                        aria-label={`${column.label} row ${index + 1}`}
+                        fullWidth
+                        size="sm"
+                      />
+                    ),
+                })
+              ),
+              {
+                id: 'remove',
+                header: '',
+                width: '2.5rem',
+                cell: (row, index) => (
+                  <button
+                    type="button"
+                    className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
+                    onClick={() => removeRow(row.id)}
+                    aria-label={`Remove row ${index + 1}`}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                ),
+              },
+            ]}
+          />
         </div>
 
         {rows.some((r) => r.error) ? (

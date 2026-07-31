@@ -4,16 +4,9 @@ import { Suspense, useEffect, useMemo, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { LayoutGrid, List, Plus } from 'lucide-react'
-import {
-  Typography,
-  Button,
-  Input,
-  Select,
-  PageSkeleton,
-  Stack,
-} from '@/shared/ui'
+import { Typography, Button, DataTable, Input, Select, PageSkeleton, Stack } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { UserIdentity } from '@/modules/platform/identity/presentation/ui/UserIdentity'
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
 import { useProjects } from '../hooks/useProjects'
@@ -103,10 +96,10 @@ function ProjectsContent() {
   }
 
   return (
-    <div>
-      <WorkspaceHierarchyBreadcrumb workspaceId={workspaceId} className="mb-4" />
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
-        <Typography as="h1" size="lg" weight="semibold">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <WorkspaceHierarchyBreadcrumb workspaceId={workspaceId} className="mb-1" />
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
+        <Typography as="h1" size="md" weight="medium">
           Projects
         </Typography>
         {canCreateProjects ? (
@@ -183,7 +176,11 @@ function ProjectsContent() {
               : 'No projects in this workspace yet.'}
           </Typography>
           {canCreateProjects ? (
-            <Button variant="primary" onClick={() => setCreateModalOpen(true)} icon={<Plus size={16} />}>
+            <Button
+              variant="primary"
+              onClick={() => setCreateModalOpen(true)}
+              icon={<Plus size={16} />}
+            >
               Create project
             </Button>
           ) : null}
@@ -212,71 +209,92 @@ function ProjectsContent() {
           ))}
         </div>
       ) : (
-        <div className="overflow-x-auto border border-neutral-200 bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Code</th>
-                <th className="px-4 py-3 font-medium">Owner</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Planned start</th>
-                <th className="px-4 py-3 font-medium">Planned end</th>
-                <th className="px-4 py-3 font-medium">Currency</th>
-                <th className="px-4 py-3 font-medium">Updated</th>
-                <th className="min-w-[14rem] whitespace-nowrap px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p) => (
-                <tr key={p.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-4 py-3">
-                    <NextLink
-                      href={ROUTES.workspace.projectOverview(workspaceId, p.id)}
-                      className="font-medium text-neutral-900 hover:underline"
-                    >
-                      {p.name}
-                    </NextLink>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-neutral-600">{p.code}</td>
-                  <td className="px-4 py-3">
+        <div className="border border-neutral-200 bg-white">
+          <DataTable
+            ariaLabel="Workspace projects"
+            rows={filtered}
+            rowKey={(project) => project.id}
+            columns={[
+              {
+                id: 'name',
+                header: 'Name',
+                cell: (project) => (
+                  <NextLink
+                    href={ROUTES.workspace.projectOverview(workspaceId, project.id)}
+                    className="font-medium text-neutral-900 hover:underline"
+                  >
+                    {project.name}
+                  </NextLink>
+                ),
+              },
+              { id: 'code', header: 'Code', accessor: 'code', kind: 'code' },
+              {
+                id: 'owner',
+                header: 'Owner',
+                kind: 'reference',
+                cell: (project) =>
+                  project.ownerUserId && peopleById[project.ownerUserId] ? (
                     <UserIdentity
-                      userId={p.ownerUserId}
-                      person={p.ownerUserId ? peopleById[p.ownerUserId] : null}
+                      userId={project.ownerUserId}
+                      person={peopleById[project.ownerUserId]}
                       size="xs"
                       compact
                     />
-                  </td>
-                  <td className="px-4 py-3">
-                    <ProjectStatusBadge status={p.status} />
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600">{formatDate(p.plannedStartDate)}</td>
-                  <td className="px-4 py-3 text-neutral-600">{formatDate(p.plannedEndDate)}</td>
-                  <td className="px-4 py-3 text-neutral-600">{p.defaultCurrency ?? '—'}</td>
-                  <td className="px-4 py-3 text-neutral-600">{formatDate(p.updatedAt)}</td>
-                  <td className="px-4 py-3">
-                    <Stack direction="horizontal" spacing="sm" className="items-center">
-                      <NextLink
-                        href={ROUTES.workspace.projectOverview(workspaceId, p.id)}
-                        className="text-sm text-primary hover:underline"
-                      >
-                        Open
-                      </NextLink>
-                      {allowedProjectLifecycleActions(p.status).length > 0 && (
-                        <ProjectLifecycleMenu
-                          status={p.status}
-                          loading={actingId === p.id}
-                          onAction={async (action) => {
-                            await runLifecycle(p.id, action)
-                          }}
-                        />
-                      )}
-                    </Stack>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  ) : (
+                    '—'
+                  ),
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (project) => <ProjectStatusBadge status={project.status} />,
+              },
+              {
+                id: 'start',
+                header: 'Planned start',
+                accessor: (project) => formatDate(project.plannedStartDate),
+              },
+              {
+                id: 'end',
+                header: 'Planned end',
+                accessor: (project) => formatDate(project.plannedEndDate),
+              },
+              {
+                id: 'currency',
+                header: 'Currency',
+                accessor: (project) => project.defaultCurrency ?? '—',
+              },
+              {
+                id: 'updated',
+                header: 'Updated',
+                accessor: (project) => formatDate(project.updatedAt),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                width: '14rem',
+                cell: (project) => (
+                  <Stack direction="horizontal" spacing="sm" className="items-center">
+                    <NextLink
+                      href={ROUTES.workspace.projectOverview(workspaceId, project.id)}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Open
+                    </NextLink>
+                    {allowedProjectLifecycleActions(project.status).length > 0 ? (
+                      <ProjectLifecycleMenu
+                        status={project.status}
+                        loading={actingId === project.id}
+                        onAction={async (action) => {
+                          await runLifecycle(project.id, action)
+                        }}
+                      />
+                    ) : null}
+                  </Stack>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
 

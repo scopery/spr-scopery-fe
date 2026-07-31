@@ -2,9 +2,19 @@
 
 import { useState } from 'react'
 import NextLink from 'next/link'
-import { Badge, Button, Input, Modal, PageSkeleton, Stack, Typography } from '@/shared/ui'
+import {
+  Badge,
+  Button,
+  Input,
+  Modal,
+  PageSkeleton,
+  Stack,
+  Typography,
+  DataTable,
+} from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
+import { AdminWorkspaceSearchSelect } from '@/modules/admin/workspaces'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 import { useProjectTemplates } from '../hooks/useProjectTemplates'
 import type { ProjectTemplate, ProjectTemplateVersion } from '../../domain/model/project-template'
@@ -68,82 +78,85 @@ export function ProjectTemplatesLibraryView() {
       ) : null}
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">Code</th>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Scope</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="min-w-[14rem] px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center">
-                  <Typography variant="small" tone="muted">
-                    No templates
+        <DataTable
+          ariaLabel="Project Templates Library"
+          rows={items}
+          rowKey={(t) => String(t.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'code',
+              header: 'Code',
+              cell: (t) => (
+                <>
+                  <Typography as="span" variant="small" className="font-normal">
+                    {t.code}
                   </Typography>
-                </td>
-              </tr>
-            ) : (
-              items.map((t) => (
-                <tr key={t.id} className="border-t border-neutral-100">
-                  <td className="px-4 py-3">
-                    <Typography as="span" variant="small" className="font-mono">
-                      {t.code}
-                    </Typography>
-                  </td>
-                  <td className="px-4 py-3">{t.name}</td>
-                  <td className="px-4 py-3">{t.scope}</td>
-                  <td className="px-4 py-3">
-                    <Badge tone="neutral">{t.status}</Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Stack direction="horizontal" spacing="sm" className="flex-wrap">
-                      <Button size="sm" variant="secondary" as={NextLink} href={ADMIN_ROUTES.projectTemplateBuilder(t.id)}>
-                        Builder
-                      </Button>
-                      <Button size="sm" variant="secondary" onClick={() => void openApply(t)}>
-                        Apply
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          void activate(t.id).catch((e) => toast.error(getProblemToastMessage(e)))
-                        }
-                      >
-                        Activate
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          void deactivate(t.id).catch((e) =>
-                            toast.error(getProblemToastMessage(e))
-                          )
-                        }
-                      >
-                        Deactivate
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          void archive(t.id).catch((e) => toast.error(getProblemToastMessage(e)))
-                        }
-                      >
-                        Archive
-                      </Button>
-                    </Stack>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                </>
+              ),
+              kind: 'code',
+            },
+            { id: 'name', header: 'Name', accessor: 'name' },
+            { id: 'scope', header: 'Scope', accessor: 'scope' },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (t) => (
+                <>
+                  <Badge tone="neutral">{t.status}</Badge>
+                </>
+              ),
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (t) => (
+                <>
+                  <Stack direction="horizontal" spacing="sm" className="flex-wrap">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      as={NextLink}
+                      href={ADMIN_ROUTES.projectTemplateBuilder(t.id)}
+                    >
+                      Builder
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => void openApply(t)}>
+                      Apply
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        void activate(t.id).catch((e) => toast.error(getProblemToastMessage(e)))
+                      }
+                    >
+                      Activate
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        void deactivate(t.id).catch((e) => toast.error(getProblemToastMessage(e)))
+                      }
+                    >
+                      Deactivate
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        void archive(t.id).catch((e) => toast.error(getProblemToastMessage(e)))
+                      }
+                    >
+                      Archive
+                    </Button>
+                  </Stack>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
 
       <Modal
@@ -158,7 +171,13 @@ export function ProjectTemplatesLibraryView() {
             variant: 'primary',
             loading: applying,
             onClick: () => {
-              if (!applyTarget || !versionId || !workspaceId.trim() || !projectCode.trim() || !projectName.trim())
+              if (
+                !applyTarget ||
+                !versionId ||
+                !workspaceId.trim() ||
+                !projectCode.trim() ||
+                !projectName.trim()
+              )
                 return
               setApplying(true)
               void apply(applyTarget.id, versionId, {
@@ -180,12 +199,7 @@ export function ProjectTemplatesLibraryView() {
         ]}
       >
         <div className="space-y-3">
-          <Input
-            label="Workspace ID"
-            fullWidth
-            value={workspaceId}
-            onChange={(e) => setWorkspaceId(e.target.value)}
-          />
+          <AdminWorkspaceSearchSelect value={workspaceId} onChange={setWorkspaceId} />
           <Input
             label="Project code"
             fullWidth

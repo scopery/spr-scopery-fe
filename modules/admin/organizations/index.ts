@@ -9,6 +9,7 @@ export { AdminOrganizationCreateView } from './presentation/ui/AdminOrganization
 export { AdminOrganizationDetailView } from './presentation/ui/AdminOrganizationDetailView'
 export { AdminOrganizationDetailShell } from './presentation/ui/AdminOrganizationDetailShell'
 export { AdminOrganizationStatusBadge } from './presentation/ui/AdminOrganizationStatusBadge'
+export { AdminOrganizationSearchSelect } from './presentation/ui/AdminOrganizationSearchSelect'
 export { AdminOrganizationTeamsPanel } from './presentation/ui/AdminOrganizationTeamsPanel'
 export { AdminOrganizationWorkspacesPanel } from './presentation/ui/AdminOrganizationWorkspacesPanel'
 export * as organizationsApi from './infrastructure/api/organizations.api'

@@ -4,7 +4,16 @@ import { Archive, Eye, Plus, Trash2 } from 'lucide-react'
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Badge, Button, Checkbox, Input, Select, Typography, PageSkeleton, Skeleton } from '@/shared/ui'
+import {
+  Badge,
+  Button,
+  Checkbox,
+  Input,
+  Select,
+  Typography,
+  PageSkeleton,
+  Skeleton, Card,
+} from '@/shared/ui'
 import { useCustomFieldsStudio } from '../hooks/useCustomFieldsStudio'
 import { CustomFieldType, ValidationRuleType } from '../../domain/enums/configuration.enum'
 import { isSelectFieldType } from '../../domain/rules/configuration.rules'
@@ -55,31 +64,36 @@ export function CustomFieldsStudioView() {
   })
 
   if (loading) {
-    return (
-      <PageSkeleton variant="split" />
-    )
+    return <PageSkeleton variant="split" />
   }
 
-  const objectTypeOptions = objectTypes.map((t) => ({ value: t.code, label: `${t.name} (${t.code})` }))
+  const objectTypeOptions = objectTypes.map((t) => ({
+    value: t.code,
+    label: `${t.name} (${t.code})`,
+  }))
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Custom Fields
           </Typography>
           <Typography as="p" variant="small" tone="muted" className="mt-1">
             Define custom fields available on objects in this workspace.
           </Typography>
         </div>
-        <Button variant="primary" onClick={() => setShowCreateField(true)} icon={<Plus size={16} />}>
+        <Button
+          variant="primary"
+          onClick={() => setShowCreateField(true)}
+          icon={<Plus size={16} />}
+        >
           New field
         </Button>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
-        <div className="border border-neutral-200 bg-white">
+        <Card>
           <div className="border-b border-neutral-100 px-4 py-3">
             <Typography weight="semibold" variant="small">
               Fields ({fields.length})
@@ -107,9 +121,7 @@ export function CustomFieldsStudioView() {
                       <Typography weight="medium" variant="small">
                         {field.label}
                       </Typography>
-                      <Badge tone="neutral">
-                        {field.fieldType}
-                      </Badge>
+                      <Badge tone="neutral">{field.fieldType}</Badge>
                     </div>
                     <Typography variant="small" tone="muted" className="font-mono text-xs">
                       {field.objectTypeCode} · {field.fieldKey}
@@ -119,9 +131,9 @@ export function CustomFieldsStudioView() {
               ))}
             </ul>
           )}
-        </div>
+        </Card>
 
-        <div className="border border-neutral-200 bg-white">
+        <Card>
           {!selectedField ? (
             <div className="px-4 py-16 text-center">
               <Typography tone="muted" variant="small">
@@ -132,11 +144,12 @@ export function CustomFieldsStudioView() {
             <div className="p-4">
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <Typography as="h2" size="lg" weight="semibold">
+                  <Typography as="h2" size="md" weight="medium">
                     {selectedField.label}
                   </Typography>
                   <Typography variant="small" tone="muted" className="mt-1 font-mono text-xs">
-                    {selectedField.objectTypeCode} · {selectedField.fieldKey} · {selectedField.status}
+                    {selectedField.objectTypeCode} · {selectedField.fieldKey} ·{' '}
+                    {selectedField.status}
                   </Typography>
                 </div>
                 <div className="flex gap-2">
@@ -172,13 +185,22 @@ export function CustomFieldsStudioView() {
                               </span>
                             </span>
                             <div className="flex items-center gap-2">
-                              <Badge variant="solid" tone={opt.status === 'ACTIVE' ? 'success' : 'neutral'}>
-                                {opt.status === 'ACTIVE' ? 'Active' : opt.status === 'ARCHIVED' ? 'Archived' : opt.status}
+                              <Badge
+                                variant="solid"
+                                tone={opt.status === 'ACTIVE' ? 'success' : 'neutral'}
+                              >
+                                {opt.status === 'ACTIVE'
+                                  ? 'Active'
+                                  : opt.status === 'ARCHIVED'
+                                    ? 'Archived'
+                                    : opt.status}
                               </Badge>
                               {opt.status === 'ACTIVE' ? (
                                 <Button
                                   variant="ghost"
-                                  onClick={() => void archiveOption(selectedField.id, opt.id)} icon={<Archive size={16} />}>
+                                  onClick={() => void archiveOption(selectedField.id, opt.id)}
+                                  icon={<Archive size={16} />}
+                                >
                                   Archive
                                 </Button>
                               ) : null}
@@ -214,7 +236,9 @@ export function CustomFieldsStudioView() {
                               optionCode: optionForm.optionCode.trim(),
                               label: optionForm.label.trim(),
                             }).then(() => setOptionForm({ optionCode: '', label: '' }))
-                          } icon={<Plus size={16} />}>
+                          }
+                          icon={<Plus size={16} />}
+                        >
                           Add option
                         </Button>
                       </div>
@@ -253,7 +277,9 @@ export function CustomFieldsStudioView() {
                             audienceType: 'INTERNAL',
                             visible: true,
                           })
-                        } icon={<Eye size={16} />}>
+                        }
+                        icon={<Eye size={16} />}
+                      >
                         Show to internal
                       </Button>
                       <Button
@@ -263,7 +289,9 @@ export function CustomFieldsStudioView() {
                             audienceType: 'CLIENT',
                             visible: true,
                           })
-                        } icon={<Eye size={16} />}>
+                        }
+                        icon={<Eye size={16} />}
+                      >
                         Show to client
                       </Button>
                       <Button
@@ -273,7 +301,9 @@ export function CustomFieldsStudioView() {
                             audienceType: 'CLIENT',
                             visible: false,
                           })
-                        } icon={<Eye size={16} />}>
+                        }
+                        icon={<Eye size={16} />}
+                      >
                         Hide from client
                       </Button>
                     </div>
@@ -299,7 +329,9 @@ export function CustomFieldsStudioView() {
                           </span>
                           <Button
                             variant="ghost"
-                            onClick={() => void deleteValidationRule(selectedField.id, rule.id)} icon={<Trash2 size={16} />}>
+                            onClick={() => void deleteValidationRule(selectedField.id, rule.id)}
+                            icon={<Trash2 size={16} />}
+                          >
                             Remove
                           </Button>
                         </li>
@@ -316,9 +348,7 @@ export function CustomFieldsStudioView() {
                       <div className="w-44">
                         <Select
                           value={ruleForm.ruleType}
-                          onValueChange={(v: string) =>
-                            setRuleForm((f) => ({ ...f, ruleType: v }))
-                          }
+                          onValueChange={(v: string) => setRuleForm((f) => ({ ...f, ruleType: v }))}
                           options={VALIDATION_RULE_OPTIONS}
                         />
                       </div>
@@ -336,7 +366,9 @@ export function CustomFieldsStudioView() {
                             ruleType: ruleForm.ruleType,
                             ruleConfigJson: ruleForm.ruleConfigJson.trim() || undefined,
                           }).then(() => setRuleForm((f) => ({ ...f, ruleConfigJson: '' })))
-                        } icon={<Plus size={16} />}>
+                        }
+                        icon={<Plus size={16} />}
+                      >
                         Add rule
                       </Button>
                     </div>
@@ -345,13 +377,13 @@ export function CustomFieldsStudioView() {
               )}
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {showCreateField ? (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/30">
           <div className="h-full w-full max-w-md overflow-y-auto bg-white p-6 shadow-lg">
-            <Typography as="h2" size="lg" weight="semibold" className="mb-4">
+            <Typography as="h2" size="md" weight="medium" className="mb-2">
               New custom field
             </Typography>
             <div className="flex flex-col gap-4">
@@ -361,9 +393,7 @@ export function CustomFieldsStudioView() {
                 </Typography>
                 <Select
                   value={fieldForm.objectTypeCode}
-                  onValueChange={(v: string) =>
-                    setFieldForm((f) => ({ ...f, objectTypeCode: v }))
-                  }
+                  onValueChange={(v: string) => setFieldForm((f) => ({ ...f, objectTypeCode: v }))}
                   options={objectTypeOptions}
                   placeholder="Select object type"
                 />
@@ -401,9 +431,7 @@ export function CustomFieldsStudioView() {
               <Checkbox
                 label="Client visible"
                 checked={fieldForm.clientVisible}
-                onChange={(e) =>
-                  setFieldForm((f) => ({ ...f, clientVisible: e.target.checked }))
-                }
+                onChange={(e) => setFieldForm((f) => ({ ...f, clientVisible: e.target.checked }))}
               />
               <div className="flex gap-2">
                 <Button

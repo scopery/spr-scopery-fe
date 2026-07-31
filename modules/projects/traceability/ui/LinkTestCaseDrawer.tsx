@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { Search } from 'lucide-react'
 import {
   Button,
   Checkbox,
@@ -144,6 +145,7 @@ export function LinkTestCaseDrawer({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by code or title…"
+          prefix={<Search size={14} />}
         />
 
         {loadingOptions ? (

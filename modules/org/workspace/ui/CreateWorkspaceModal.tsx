@@ -93,7 +93,10 @@ export function CreateWorkspaceModal({
             : 'Failed to create workspace'
       setError(msg)
       // Generic failures also toast via interceptor; keep inline for validation/authz detail
-      if (err instanceof ApiError && (err.status === 403 || err.status === 400 || err.status === 422)) {
+      if (
+        err instanceof ApiError &&
+        (err.status === 403 || err.status === 400 || err.status === 422)
+      ) {
         toast.error(msg)
       }
     } finally {

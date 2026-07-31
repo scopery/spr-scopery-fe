@@ -3,9 +3,15 @@
 import { Shield } from 'lucide-react'
 
 import React from 'react'
-import { Typography, Button, Stack, Badge } from '@/shared/ui'
+import { Typography, Button, Stack, Badge, Select } from '@/shared/ui'
 import { IamSearchField } from './IamSearchField'
 import { useIamAuthorizationExplain } from '../hooks/useIamAuthorizationExplain'
+import { IamScopeReferenceSelect } from './IamScopeReferenceSelect'
+
+const RESOURCE_TYPE_OPTIONS = ['GLOBAL', 'ORGANIZATION', 'WORKSPACE', 'PROJECT'].map((value) => ({
+  value,
+  label: value,
+}))
 
 export function AdminIamAuthorizationExplainView() {
   const {
@@ -46,19 +52,26 @@ export function AdminIamAuthorizationExplainView() {
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setActionCode(e.target.value)}
           className="w-full max-w-md"
         />
-        <IamSearchField
-          placeholder="resourceType (GLOBAL | WORKSPACE | ORGANIZATION)"
+        <Select
           value={resourceType}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setResourceType(e.target.value)}
-          className="w-full max-w-md"
+          options={RESOURCE_TYPE_OPTIONS}
+          onValueChange={(next: string) => {
+            setResourceType(next)
+            setResourceRefId('')
+          }}
         />
-        <IamSearchField
-          placeholder="resourceRefId (omit for GLOBAL)"
+        <IamScopeReferenceSelect
+          resourceType={resourceType}
           value={resourceRefId}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setResourceRefId(e.target.value)}
-          className="w-full max-w-md"
+          optional
+          onChange={setResourceRefId}
         />
-        <Button variant="primary" disabled={explaining} onClick={() => void explain()} icon={<Shield size={16} />}>
+        <Button
+          variant="primary"
+          disabled={explaining}
+          onClick={() => void explain()}
+          icon={<Shield size={16} />}
+        >
           {explaining ? 'Explaining…' : 'Explain authorization'}
         </Button>
       </Stack>
@@ -80,7 +93,11 @@ export function AdminIamAuthorizationExplainView() {
               </Typography>
             )}
             {result.contributingGrantIds?.length ? (
-              <Typography as="p" variant="small" className="mt-2 font-mono text-xs text-neutral-500">
+              <Typography
+                as="p"
+                variant="small"
+                className="mt-2 font-mono text-xs text-neutral-500"
+              >
                 grants: {result.contributingGrantIds.join(', ')}
               </Typography>
             ) : null}

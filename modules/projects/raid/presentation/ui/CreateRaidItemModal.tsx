@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { UserSearchSelect } from '@/modules/platform'
+import { useWorkspaceMemberPeople } from '@/modules/org/workspace'
 import { Input, Modal, Select, Stepper, Textarea, Typography } from '@/shared/ui'
 import {
   RaidDependencyType,
@@ -39,7 +42,10 @@ const TYPE_OPTIONS = [
 
 const PROBABILITY_OPTIONS = [
   { value: RaidRiskProbability.Low, label: raidRiskProbabilityLabel(RaidRiskProbability.Low) },
-  { value: RaidRiskProbability.Medium, label: raidRiskProbabilityLabel(RaidRiskProbability.Medium) },
+  {
+    value: RaidRiskProbability.Medium,
+    label: raidRiskProbabilityLabel(RaidRiskProbability.Medium),
+  },
   { value: RaidRiskProbability.High, label: raidRiskProbabilityLabel(RaidRiskProbability.High) },
 ]
 
@@ -50,10 +56,22 @@ const IMPACT_OPTIONS = [
 ]
 
 const STRATEGY_OPTIONS = [
-  { value: RaidRiskResponseStrategy.Mitigate, label: raidRiskResponseStrategyLabel(RaidRiskResponseStrategy.Mitigate) },
-  { value: RaidRiskResponseStrategy.Avoid, label: raidRiskResponseStrategyLabel(RaidRiskResponseStrategy.Avoid) },
-  { value: RaidRiskResponseStrategy.Transfer, label: raidRiskResponseStrategyLabel(RaidRiskResponseStrategy.Transfer) },
-  { value: RaidRiskResponseStrategy.Accept, label: raidRiskResponseStrategyLabel(RaidRiskResponseStrategy.Accept) },
+  {
+    value: RaidRiskResponseStrategy.Mitigate,
+    label: raidRiskResponseStrategyLabel(RaidRiskResponseStrategy.Mitigate),
+  },
+  {
+    value: RaidRiskResponseStrategy.Avoid,
+    label: raidRiskResponseStrategyLabel(RaidRiskResponseStrategy.Avoid),
+  },
+  {
+    value: RaidRiskResponseStrategy.Transfer,
+    label: raidRiskResponseStrategyLabel(RaidRiskResponseStrategy.Transfer),
+  },
+  {
+    value: RaidRiskResponseStrategy.Accept,
+    label: raidRiskResponseStrategyLabel(RaidRiskResponseStrategy.Accept),
+  },
 ]
 
 const SEVERITY_OPTIONS = [
@@ -64,14 +82,29 @@ const SEVERITY_OPTIONS = [
 ]
 
 const VALIDATION_STATUS_OPTIONS = [
-  { value: RaidValidationStatus.Unvalidated, label: raidValidationStatusLabel(RaidValidationStatus.Unvalidated) },
-  { value: RaidValidationStatus.Validated, label: raidValidationStatusLabel(RaidValidationStatus.Validated) },
-  { value: RaidValidationStatus.Invalidated, label: raidValidationStatusLabel(RaidValidationStatus.Invalidated) },
+  {
+    value: RaidValidationStatus.Unvalidated,
+    label: raidValidationStatusLabel(RaidValidationStatus.Unvalidated),
+  },
+  {
+    value: RaidValidationStatus.Validated,
+    label: raidValidationStatusLabel(RaidValidationStatus.Validated),
+  },
+  {
+    value: RaidValidationStatus.Invalidated,
+    label: raidValidationStatusLabel(RaidValidationStatus.Invalidated),
+  },
 ]
 
 const DEPENDENCY_TYPE_OPTIONS = [
-  { value: RaidDependencyType.Internal, label: raidDependencyTypeLabel(RaidDependencyType.Internal) },
-  { value: RaidDependencyType.External, label: raidDependencyTypeLabel(RaidDependencyType.External) },
+  {
+    value: RaidDependencyType.Internal,
+    label: raidDependencyTypeLabel(RaidDependencyType.Internal),
+  },
+  {
+    value: RaidDependencyType.External,
+    label: raidDependencyTypeLabel(RaidDependencyType.External),
+  },
 ]
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
@@ -88,12 +121,15 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 }
 
 export function CreateRaidItemModal({ open, onClose, onSubmit }: CreateRaidItemModalProps) {
+  const { workspaceId } = useParams<{ workspaceId: string }>()
+  const { people: ownerPeople } = useWorkspaceMemberPeople(open ? workspaceId : null)
   const [step, setStep] = useState(0)
   const [type, setType] = useState<string>(RaidItemType.Risk)
   const [title, setTitle] = useState('')
   const [code, setCode] = useState('')
   const [description, setDescription] = useState('')
   const [ownerUserId, setOwnerUserId] = useState('')
+  const [ownerName, setOwnerName] = useState('')
 
   const [probability, setProbability] = useState<string>(RaidRiskProbability.Medium)
   const [impact, setImpact] = useState<string>(RaidRiskImpact.Medium)
@@ -121,6 +157,7 @@ export function CreateRaidItemModal({ open, onClose, onSubmit }: CreateRaidItemM
     setCode('')
     setDescription('')
     setOwnerUserId('')
+    setOwnerName('')
     setProbability(RaidRiskProbability.Medium)
     setImpact(RaidRiskImpact.Medium)
     setRiskResponseStrategy(RaidRiskResponseStrategy.Mitigate)
@@ -278,12 +315,15 @@ export function CreateRaidItemModal({ open, onClose, onSubmit }: CreateRaidItemM
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
             />
-            <Input
-              label="Owner user ID (optional)"
-              fullWidth
+            <UserSearchSelect
+              label="Owner (optional)"
               value={ownerUserId}
-              onChange={(e) => setOwnerUserId(e.target.value)}
-              placeholder="UUID of the owner"
+              seedPeople={ownerPeople}
+              allowRemoteSearch={false}
+              onChange={(userId, person) => {
+                setOwnerUserId(userId)
+                setOwnerName(person?.fullName ?? '')
+              }}
             />
           </div>
         )}
@@ -336,11 +376,7 @@ export function CreateRaidItemModal({ open, onClose, onSubmit }: CreateRaidItemM
                   <Typography variant="small" className="mb-1.5">
                     Severity
                   </Typography>
-                  <Select
-                    value={severity}
-                    onValueChange={setSeverity}
-                    options={SEVERITY_OPTIONS}
-                  />
+                  <Select value={severity} onValueChange={setSeverity} options={SEVERITY_OPTIONS} />
                 </div>
                 <Input
                   label="Category (optional)"
@@ -405,7 +441,7 @@ export function CreateRaidItemModal({ open, onClose, onSubmit }: CreateRaidItemM
               <ReviewRow label="Code" value={effectiveCode} />
               <ReviewRow label="Title" value={trimmedTitle} />
               <ReviewRow label="Description" value={description.trim()} />
-              <ReviewRow label="Owner user ID" value={ownerUserId.trim()} />
+              <ReviewRow label="Owner" value={ownerName || 'Unassigned'} />
               {isRisk && (
                 <>
                   <ReviewRow label="Probability" value={raidRiskProbabilityLabel(probability)} />
@@ -434,7 +470,10 @@ export function CreateRaidItemModal({ open, onClose, onSubmit }: CreateRaidItemM
                 </>
               )}
               {isDependency && (
-                <ReviewRow label="Dependency type" value={raidDependencyTypeLabel(dependencyType)} />
+                <ReviewRow
+                  label="Dependency type"
+                  value={raidDependencyTypeLabel(dependencyType)}
+                />
               )}
             </div>
           </div>
@@ -444,7 +483,8 @@ export function CreateRaidItemModal({ open, onClose, onSubmit }: CreateRaidItemM
           <div className="space-y-3 py-2 text-center">
             <Typography weight="semibold">Ready to create this RAID item?</Typography>
             <Typography variant="small" tone="muted">
-              “{trimmedTitle}” will be added to the RAID register as an open {raidTypeLabel(type).toLowerCase()}.
+              “{trimmedTitle}” will be added to the RAID register as an open{' '}
+              {raidTypeLabel(type).toLowerCase()}.
             </Typography>
           </div>
         )}

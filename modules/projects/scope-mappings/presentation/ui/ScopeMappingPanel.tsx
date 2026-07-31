@@ -1,18 +1,34 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, Stack, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { useScopeMappings } from '../hooks/useScopeMappings'
+import {
+  WbsNodeSearchSelect,
+  useProjectWbs,
+  type WbsTreeNode,
+} from '@/modules/projects/wbs'
 
 interface ScopeMappingPanelProps {
   scopeItemId: string
+  projectId: string
 }
 
-export function ScopeMappingPanel({ scopeItemId }: ScopeMappingPanelProps) {
+function collectWbsLabels(nodes: WbsTreeNode[], labels = new Map<string, string>()) {
+  for (const node of nodes) {
+    labels.set(node.id, `${node.code} · ${node.title}`)
+    collectWbsLabels(node.children, labels)
+  }
+  return labels
+}
+
+export function ScopeMappingPanel({ scopeItemId, projectId }: ScopeMappingPanelProps) {
   const { wbsMappings, loading, mapToWbs, unmapFromWbs } = useScopeMappings(scopeItemId)
+  const { tree } = useProjectWbs(projectId || null)
+  const wbsLabels = useMemo(() => collectWbsLabels(tree), [tree])
   const [showInput, setShowInput] = useState(false)
   const [wbsNodeId, setWbsNodeId] = useState('')
   const [acting, setActing] = useState(false)
@@ -62,23 +78,16 @@ export function ScopeMappingPanel({ scopeItemId }: ScopeMappingPanelProps) {
       </Stack>
 
       {showInput ? (
-        <Stack direction="horizontal" spacing="sm" className="items-center">
-          <input
-            type="text"
-            value={wbsNodeId}
-            onChange={(e) => setWbsNodeId(e.target.value)}
-            placeholder="WBS node ID"
-            className="flex-1 rounded border border-neutral-200 px-3 py-1.5 text-sm outline-none focus:border-primary"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void handleAdd()
-              if (e.key === 'Escape') {
-                setShowInput(false)
-                setWbsNodeId('')
-              }
-            }}
-            autoFocus
-          />
-          <Button size="sm" variant="primary" disabled={acting || !wbsNodeId.trim()} onClick={() => void handleAdd()}>
+        <div className="flex items-center gap-sm">
+          <div className="flex-1">
+            <WbsNodeSearchSelect projectId={projectId} value={wbsNodeId} onChange={setWbsNodeId} />
+          </div>
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={acting || !wbsNodeId.trim()}
+            onClick={() => void handleAdd()}
+          >
             Add
           </Button>
           <Button
@@ -91,7 +100,7 @@ export function ScopeMappingPanel({ scopeItemId }: ScopeMappingPanelProps) {
           >
             Cancel
           </Button>
-        </Stack>
+        </div>
       ) : null}
 
       {loading ? (
@@ -109,8 +118,8 @@ export function ScopeMappingPanel({ scopeItemId }: ScopeMappingPanelProps) {
               key={m.id}
               className="flex items-center justify-between gap-2 rounded border border-neutral-200 px-3 py-2"
             >
-              <Typography variant="small" className="font-mono">
-                {m.wbsNodeId}
+              <Typography variant="small">
+                {wbsLabels.get(m.wbsNodeId) ?? 'Unavailable WBS node'}
               </Typography>
               <Button
                 size="sm"

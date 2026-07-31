@@ -1,7 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { Button, Typography } from '@/shared/ui'
+import { Button, Card, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 
 interface InsightWidgetShellProps {
@@ -30,7 +30,7 @@ export function InsightWidgetShell({
   children,
 }: InsightWidgetShellProps) {
   return (
-    <section className={cn('rounded-none border border-neutral-200 bg-white', className)}>
+    <Card as="section" className={className}>
       <header className="flex items-start justify-between gap-3 border-b border-neutral-200 px-4 py-3">
         <div className="min-w-0">
           <Typography as="h2" size="sm" weight="semibold" className="text-neutral-900">
@@ -70,6 +70,6 @@ export function InsightWidgetShell({
           children
         )}
       </div>
-    </section>
+    </Card>
   )
 }

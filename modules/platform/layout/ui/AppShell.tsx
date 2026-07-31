@@ -39,8 +39,12 @@ import { Box, Button } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { FEATURES } from '@/config/features'
 import { useAuth } from '@/modules/auth/auth/context/AuthContext'
-import type { WorkspaceListItem } from '@/modules/auth/workspace-context/model/interfaces/workspace-context'
-import { useAppShellAuthorization, useNavCapabilities, useNavCapabilityDeepLinkGuard, NavCapabilityKey } from '@/modules/auth/iam'
+import {
+  useAppShellAuthorization,
+  useNavCapabilities,
+  useNavCapabilityDeepLinkGuard,
+  NavCapabilityKey,
+} from '@/modules/auth/iam'
 import { useProject } from '@/modules/projects/project'
 import { useUnreadNotificationCount } from '@/modules/notifications'
 import { setAiAssistantHeaderContext } from '@/shared/lib/aiAssistantHeaders'
@@ -55,10 +59,9 @@ import { SettingsNavigation } from './SettingsNavigation'
 import { buildSettingsNavSections } from './buildSettingsNavSections'
 import { isWorkbenchPath } from '../lib/isWorkbenchPath'
 
-const HelpGuideModal = dynamic(
-  () => import('./HelpGuideModal').then((m) => m.HelpGuideModal),
-  { ssr: false }
-)
+const HelpGuideModal = dynamic(() => import('./HelpGuideModal').then((m) => m.HelpGuideModal), {
+  ssr: false,
+})
 const GlobalSearchPalette = dynamic(
   () => import('./GlobalSearchPalette').then((m) => m.GlobalSearchPalette),
   { ssr: false }
@@ -87,14 +90,6 @@ interface AppShellProps {
 const SETTINGS_MODE_KEY = 'scopery.sidebar.settingsMode'
 const SIDEBAR_COLLAPSED_KEY = 'scopery.sidebar.collapsed'
 const SIDEBAR_PINNED_KEY = 'scopery.sidebar.pinned'
-
-function deriveWorkspaceRole(
-  workspace: WorkspaceListItem | null,
-  userId: string | undefined
-): 'owner' | 'member' {
-  if (!workspace || !userId) return 'member'
-  return workspace.ownerUserId === userId ? 'owner' : 'member'
-}
 
 function pathActive(pathname: string | null, href: string) {
   return pathname === href || (pathname?.startsWith(href + '/') ?? false)
@@ -208,7 +203,6 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
   )
   const { unreadCount } = useUnreadNotificationCount(45000)
 
-
   useEffect(() => {
     const actorId = session?.user?.id ?? null
     setKnowledgeHeaderContext({
@@ -248,7 +242,12 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     return packs
   }, [projectId, orgId])
 
-  const { can: canCap, loading: navCapsLoading, ready: navCapsReady, caps: navCaps } = useNavCapabilities({
+  const {
+    can: canCap,
+    loading: navCapsLoading,
+    ready: navCapsReady,
+    caps: navCaps,
+  } = useNavCapabilities({
     workspaceId,
     organizationId: orgId,
     projectId,
@@ -265,14 +264,12 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
 
   /** Hide-by-default while loading to avoid flash of unauthorized tabs. */
   const showCap = useCallback(
-    (key: string, showWhileLoading = false) =>
-      navCapsLoading ? showWhileLoading : canCap(key),
+    (key: string, showWhileLoading = false) => (navCapsLoading ? showWhileLoading : canCap(key)),
     [navCapsLoading, canCap]
   )
 
   const canViewDocumentHub = showCap(NavCapabilityKey.CommonDocumentHub, true)
 
-  const currentRole = deriveWorkspaceRole(currentWorkspace, session?.user?.id)
   const canManageWorkspace = canUpdateWorkspace
   const organizationName =
     currentWorkspace?.organizationName ?? currentWorkspace?.organizationId ?? 'Organization'
@@ -427,7 +424,6 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     onWorkspaceDirectory,
     onOrgDirectory,
     showCap,
-    canManageWorkspace,
   ])
 
   const projectWorkbenchSections = useMemo(() => {
@@ -451,18 +447,26 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     const reportsHref = ROUTES.workspace.projectReports(workspaceId, projectId)
     const meetingsHref = ROUTES.workspace.projectMeetings(workspaceId, projectId)
     const qualityHref = ROUTES.workspace.projectQuality(workspaceId, projectId)
+    const qualityCasesHref = ROUTES.workspace.projectQualityCases(workspaceId, projectId)
+    const qualityRunsHref = ROUTES.workspace.projectQualityRuns(workspaceId, projectId)
+    const qualityDefectsHref = ROUTES.workspace.projectQualityDefects(workspaceId, projectId)
+    const qualityReleasesHref = ROUTES.workspace.projectQualityReleases(workspaceId, projectId)
     const testPlansHref = ROUTES.workspace.projectTestPlans(workspaceId, projectId)
-    const defectsHref = ROUTES.workspace.projectDefects(workspaceId, projectId)
-    const releasesHref = ROUTES.workspace.projectReleases(workspaceId, projectId)
-    const requirementsHref = ROUTES.workspace.projectRequirements(workspaceId, projectId)
-    const functionalCatalogHref = ROUTES.workspace.projectFunctionalCatalog(
+    const testCasesHref = ROUTES.workspace.projectTestCases(workspaceId, projectId)
+    const verificationCasesHref = ROUTES.workspace.projectVerificationCases(
       workspaceId,
       projectId
     )
+    const testRunsHref = ROUTES.workspace.projectTestRuns(workspaceId, projectId)
+    const defectsHref = ROUTES.workspace.projectDefects(workspaceId, projectId)
+    const releasesHref = ROUTES.workspace.projectReleases(workspaceId, projectId)
+    const requirementsHref = ROUTES.workspace.projectRequirements(workspaceId, projectId)
+    const functionalCatalogHref = ROUTES.workspace.projectFunctionalCatalog(workspaceId, projectId)
     const applicationStructureHref = ROUTES.workspace.projectApplicationStructure(
       workspaceId,
       projectId
     )
+    const useCasesHref = ROUTES.workspace.projectUseCases(workspaceId, projectId)
     const traceabilityHref = ROUTES.workspace.projectTraceability(workspaceId, projectId)
     const projectGovHref = ROUTES.workspace.projectGovernance(workspaceId, projectId)
     const aiPlanningHref = ROUTES.workspace.projectAiPlanning(workspaceId, projectId)
@@ -550,16 +554,22 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
           ...(FEATURES.requirementsTraceability
             ? [
                 {
-                  label: 'Requirement Evidence',
+                  label: 'Requirements',
                   href: requirementsHref,
                   icon: <ClipboardList size={16} />,
                   active: pathActive(pathname, requirementsHref),
                 },
                 {
-                  label: 'Functional Catalog',
+                  label: 'Functions',
                   href: functionalCatalogHref,
                   icon: <ListTree size={16} />,
                   active: pathActive(pathname, functionalCatalogHref),
+                },
+                {
+                  label: 'Use Cases',
+                  href: useCasesHref,
+                  icon: <ClipboardList size={16} />,
+                  active: pathActive(pathname, useCasesHref),
                 },
                 {
                   label: 'Application Structure',
@@ -581,32 +591,93 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
         ? [
             {
               label: 'Quality',
-              items: [
-                {
-                  label: 'Quality',
-                  href: qualityHref,
-                  icon: <Gauge size={16} />,
-                  active: pathActive(pathname, qualityHref) && !pathActive(pathname, testPlansHref),
-                },
-                {
-                  label: 'Test plans',
-                  href: testPlansHref,
-                  icon: <ClipboardList size={16} />,
-                  active: pathActive(pathname, testPlansHref),
-                },
-                {
-                  label: 'Defects',
-                  href: defectsHref,
-                  icon: <Bug size={16} />,
-                  active: pathActive(pathname, defectsHref),
-                },
-                {
-                  label: 'Releases',
-                  href: releasesHref,
-                  icon: <Rocket size={16} />,
-                  active: pathActive(pathname, releasesHref),
-                },
-              ],
+              items: FEATURES.qualitySimplifiedWorkflow
+                ? [
+                    {
+                      label: 'Overview',
+                      href: qualityHref,
+                      icon: <Gauge size={16} />,
+                      active:
+                        pathActive(pathname, qualityHref) &&
+                        !pathActive(pathname, qualityCasesHref) &&
+                        !pathActive(pathname, qualityRunsHref) &&
+                        !pathActive(pathname, qualityDefectsHref) &&
+                        !pathActive(pathname, qualityReleasesHref),
+                    },
+                    {
+                      label: 'Cases',
+                      href: qualityCasesHref,
+                      icon: <ClipboardList size={16} />,
+                      active: pathActive(pathname, qualityCasesHref),
+                    },
+                    {
+                      label: 'Runs',
+                      href: qualityRunsHref,
+                      icon: <CalendarDays size={16} />,
+                      active: pathActive(pathname, qualityRunsHref),
+                    },
+                    {
+                      label: 'Defects',
+                      href: qualityDefectsHref,
+                      icon: <Bug size={16} />,
+                      active: pathActive(pathname, qualityDefectsHref),
+                    },
+                    {
+                      label: 'Releases',
+                      href: qualityReleasesHref,
+                      icon: <Rocket size={16} />,
+                      active: pathActive(pathname, qualityReleasesHref),
+                    },
+                  ]
+                : [
+                    {
+                      label: 'Quality',
+                      href: qualityHref,
+                      icon: <Gauge size={16} />,
+                      active:
+                        pathActive(pathname, qualityHref) &&
+                        !pathActive(pathname, testPlansHref) &&
+                        !pathActive(pathname, testCasesHref) &&
+                        !pathActive(pathname, verificationCasesHref) &&
+                        !pathActive(pathname, testRunsHref),
+                    },
+                    {
+                      label: 'Test plans',
+                      href: testPlansHref,
+                      icon: <ClipboardList size={16} />,
+                      active: pathActive(pathname, testPlansHref),
+                    },
+                    {
+                      label: 'Test Cases',
+                      href: testCasesHref,
+                      icon: <ClipboardList size={16} />,
+                      active: pathActive(pathname, testCasesHref),
+                    },
+                    {
+                      label: 'Verification Cases',
+                      href: verificationCasesHref,
+                      icon: <Gauge size={16} />,
+                      active: pathActive(pathname, verificationCasesHref),
+                    },
+                    {
+                      label: 'Test Runs',
+                      href: testRunsHref,
+                      icon: <CalendarDays size={16} />,
+                      active: pathActive(pathname, testRunsHref),
+                    },
+                    {
+                      label: 'Defects',
+                      href: defectsHref,
+                      icon: <Bug size={16} />,
+                      active: pathActive(pathname, defectsHref),
+                    },
+                    {
+                      label: 'Releases',
+                      href: releasesHref,
+                      icon: <Rocket size={16} />,
+                      active: pathActive(pathname, releasesHref),
+                    },
+                  ],
             },
           ]
         : []),
@@ -712,16 +783,6 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
                 },
               ]
             : []),
-          ...(FEATURES.aiRecommendations
-            ? [
-                {
-                  label: 'Recommendations',
-                  href: recommendationsHref,
-                  icon: <Sparkles size={16} />,
-                  active: pathActive(pathname, recommendationsHref),
-                },
-              ]
-            : []),
           {
             label: 'Reports',
             href: reportsHref,
@@ -742,7 +803,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
       },
     ]
 
-    const hrefToCap: Record<string, string> = {
+    const hrefToCap: Record<string, string | string[]> = {
       [overviewHref]: NavCapabilityKey.ProjectOverview,
       [workHref]: NavCapabilityKey.ProjectWork,
       [wbsHref]: NavCapabilityKey.ProjectWbs,
@@ -753,10 +814,62 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
       [deliverablesHref]: NavCapabilityKey.ProjectDeliverables,
       [requirementsHref]: NavCapabilityKey.ProjectRequirements,
       [functionalCatalogHref]: NavCapabilityKey.ProjectFunctionalCatalog,
+      [useCasesHref]: NavCapabilityKey.ProjectFunctionalCatalog,
       [applicationStructureHref]: NavCapabilityKey.ProjectApplicationStructure,
       [traceabilityHref]: NavCapabilityKey.ProjectTraceability,
       [qualityHref]: NavCapabilityKey.ProjectQuality,
-      [testPlansHref]: NavCapabilityKey.ProjectTestPlans,
+      [qualityCasesHref]: [
+        NavCapabilityKey.ProjectTestPlans,
+        NavCapabilityKey.ProjectQuality,
+        NavCapabilityKey.ProjectScope,
+        NavCapabilityKey.ProjectRequirements,
+        NavCapabilityKey.ProjectRaid,
+      ],
+      [qualityRunsHref]: [
+        NavCapabilityKey.ProjectTestPlans,
+        NavCapabilityKey.ProjectQuality,
+        NavCapabilityKey.ProjectScope,
+        NavCapabilityKey.ProjectRequirements,
+        NavCapabilityKey.ProjectRaid,
+      ],
+      [qualityDefectsHref]: [
+        NavCapabilityKey.ProjectDefects,
+        NavCapabilityKey.ProjectQuality,
+        NavCapabilityKey.ProjectTestPlans,
+      ],
+      [qualityReleasesHref]: [
+        NavCapabilityKey.ProjectReleases,
+        NavCapabilityKey.ProjectQuality,
+        NavCapabilityKey.ProjectTestPlans,
+      ],
+      [testPlansHref]: [
+        NavCapabilityKey.ProjectTestPlans,
+        NavCapabilityKey.ProjectQuality,
+        NavCapabilityKey.ProjectScope,
+        NavCapabilityKey.ProjectRequirements,
+        NavCapabilityKey.ProjectRaid,
+      ],
+      [testCasesHref]: [
+        NavCapabilityKey.ProjectTestPlans,
+        NavCapabilityKey.ProjectQuality,
+        NavCapabilityKey.ProjectScope,
+        NavCapabilityKey.ProjectRequirements,
+        NavCapabilityKey.ProjectRaid,
+      ],
+      [verificationCasesHref]: [
+        NavCapabilityKey.ProjectTestPlans,
+        NavCapabilityKey.ProjectQuality,
+        NavCapabilityKey.ProjectScope,
+        NavCapabilityKey.ProjectRequirements,
+        NavCapabilityKey.ProjectRaid,
+      ],
+      [testRunsHref]: [
+        NavCapabilityKey.ProjectTestPlans,
+        NavCapabilityKey.ProjectQuality,
+        NavCapabilityKey.ProjectScope,
+        NavCapabilityKey.ProjectRequirements,
+        NavCapabilityKey.ProjectRaid,
+      ],
       [defectsHref]: NavCapabilityKey.ProjectDefects,
       [releasesHref]: NavCapabilityKey.ProjectReleases,
       [estimationHref]: NavCapabilityKey.ProjectEstimation,
@@ -792,7 +905,6 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
       NavCapabilityKey.ProjectDecisions,
       NavCapabilityKey.ProjectMeetings,
       NavCapabilityKey.ProjectReports,
-      NavCapabilityKey.ProjectDashboard,
       NavCapabilityKey.ProjectDirectoryMembers,
     ])
 
@@ -813,16 +925,20 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
       NavCapabilityKey.ProjectAiPlanning,
       NavCapabilityKey.ProjectRecommendations,
       NavCapabilityKey.ProjectClientCollaboration,
+      NavCapabilityKey.ProjectDashboard,
     ])
 
     const filtered = sections
       .map((section) => ({
         ...section,
         items: section.items.filter((item) => {
-          const key = item.href ? hrefToCap[item.href] : undefined
-          if (!key) return true
-          if (neverFlash.has(key)) return showCap(key, false)
-          return showCap(key, memberDefaults.has(key))
+          const requirement = item.href ? hrefToCap[item.href] : undefined
+          if (!requirement) return true
+          const keys = Array.isArray(requirement) ? requirement : [requirement]
+          if (keys.some((key) => neverFlash.has(key))) {
+            return keys.some((key) => showCap(key, false))
+          }
+          return keys.some((key) => showCap(key, memberDefaults.has(key)))
         }),
       }))
       .filter((s) => s.items.length > 0)
@@ -856,12 +972,11 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     ]
   )
 
-  const contextBackHref = isProjectWorkbench && projectId
-    ? ROUTES.workspace.projectOverview(workspaceId, projectId)
-    : ROUTES.workspace.projects(workspaceId)
-  const contextBackLabel = isProjectWorkbench
-    ? 'Back to project'
-    : 'Back to workspace'
+  const contextBackHref =
+    isProjectWorkbench && projectId
+      ? ROUTES.workspace.projectOverview(workspaceId, projectId)
+      : ROUTES.workspace.projects(workspaceId)
+  const contextBackLabel = isProjectWorkbench ? 'Back to project' : 'Back to workspace'
 
   useEffect(() => {
     setSwitcherOpen(false)
@@ -1007,20 +1122,10 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
 
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-1 py-2">
             <ShellSidebar
-              ariaLabel={
-                isProjectWorkbench ? 'Project navigation' : 'Workspace navigation'
-              }
+              ariaLabel={isProjectWorkbench ? 'Project navigation' : 'Workspace navigation'}
               collapsed={opts.collapsed}
-              contextKey={
-                isProjectWorkbench
-                  ? `project:${projectId}`
-                  : `workspace:${workspaceId}`
-              }
-              sections={
-                isProjectWorkbench
-                  ? projectWorkbenchSections
-                  : workspaceSidebarSections
-              }
+              contextKey={isProjectWorkbench ? `project:${projectId}` : `workspace:${workspaceId}`}
+              sections={isProjectWorkbench ? projectWorkbenchSections : workspaceSidebarSections}
             />
           </div>
         </>
@@ -1043,21 +1148,19 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     </>
   )
 
-  const immersiveDocumentEditor = Boolean(
-    pathname?.match(/\/documents\/[^/]+\/edit\/?$/)
-  )
+  const immersiveDocumentEditor = Boolean(pathname?.match(/\/documents\/[^/]+\/edit\/?$/))
   const immersiveAiWorkspace = Boolean(pathname?.match(/\/workspace\/[^/]+\/ai(\/|$)/))
-  const immersiveApplications = Boolean(
-    pathname?.match(/\/workspace\/[^/]+\/applications(\/|$)/)
-  )
+  const immersiveApplications = Boolean(pathname?.match(/\/workspace\/[^/]+\/applications(\/|$)/))
   const immersiveFunctionalCatalog = Boolean(
     pathname?.match(/\/projects\/[^/]+\/functional-catalog(?:\/|$)/)
   )
+  const immersiveUseCases = Boolean(pathname?.match(/\/projects\/[^/]+\/use-cases(?:\/|$)/))
   const immersiveMain =
     immersiveDocumentEditor ||
     immersiveAiWorkspace ||
     immersiveApplications ||
-    immersiveFunctionalCatalog
+    immersiveFunctionalCatalog ||
+    immersiveUseCases
   // Immersive pages used to hide the AI sidebar (!immersiveMain). Keep full-bleed
   // content, but still allow the project chat beside it — except on the dedicated AI workspace.
   const showAiProjectSidebar = Boolean(
@@ -1065,13 +1168,13 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
   )
 
   return (
-    <Box as="div" className="flex h-screen flex-row overflow-hidden bg-neutral-50">
+    <Box as="div" className="flex h-screen flex-row overflow-hidden">
       {currentWorkspace ? (
         <>
           <Box
             as="aside"
             className={cn(
-              'sidebar relative z-20 hidden h-full min-h-0 shrink-0 flex-col overflow-hidden border-r border-neutral-200 bg-white lg:flex motion-sidebar-width',
+              'sidebar motion-sidebar-width relative z-20 hidden h-full min-h-0 shrink-0 flex-col overflow-hidden border-r border-neutral-200 bg-white lg:flex',
               effectiveCollapsed ? 'w-16' : 'w-64'
             )}
           >
@@ -1081,13 +1184,13 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
           {mobileNavOpen ? (
             <>
               <div
-                className="fixed inset-0 z-40 bg-neutral-900/20 motion-drawer-backdrop lg:hidden"
+                className="bg-neutral-900/20 motion-drawer-backdrop fixed inset-0 z-40 lg:hidden"
                 aria-hidden
                 onClick={() => setMobileNavOpen(false)}
               />
               <Box
                 as="aside"
-                className="sidebar fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-neutral-200 bg-white motion-sheet-in lg:hidden"
+                className="sidebar motion-sheet-in fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-neutral-200 bg-white lg:hidden"
               >
                 {renderSidebarContent({
                   collapsed: false,
@@ -1102,7 +1205,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
       <Box
         as="main"
         className={cn(
-          'relative min-h-0 min-w-0 flex-1 flex overflow-hidden motion-main-resize',
+          'motion-main-resize relative flex min-h-0 min-w-0 flex-1 overflow-hidden',
           // AI sidebar needs a row layout even on immersive pages
           showAiProjectSidebar || !immersiveMain ? 'flex-row' : 'flex-col',
           immersiveMain && 'p-0'
@@ -1111,7 +1214,9 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
         <div
           className={cn(
             'min-h-0 flex-1',
-            immersiveMain ? 'flex flex-col overflow-hidden' : 'overflow-y-auto p-4 lg:p-8'
+            immersiveMain
+              ? 'flex flex-col overflow-hidden'
+              : 'overflow-y-auto px-3 py-3 lg:px-4 lg:py-3'
           )}
         >
           {currentWorkspace && !immersiveMain ? (
@@ -1140,9 +1245,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
               </Button>
             </div>
           ) : null}
-          <PageContentEnter
-            className={immersiveMain ? 'flex min-h-0 flex-1 flex-col' : undefined}
-          >
+          <PageContentEnter className={immersiveMain ? 'flex min-h-0 flex-1 flex-col' : undefined}>
             {children}
           </PageContentEnter>
         </div>

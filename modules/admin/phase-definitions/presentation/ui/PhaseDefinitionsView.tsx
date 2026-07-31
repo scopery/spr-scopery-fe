@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Badge, Button, PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
+import { Badge, Button, PageSkeleton, Select, Stack, Typography, DataTable } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { cn } from '@/utils/cn'
@@ -36,11 +36,20 @@ export function PhaseDefinitionsView() {
   const [statusFilter, setStatusFilter] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
 
-  const { definitions, loading, error, forbidden, actingId, createDefinition, activate, deactivate, archive } =
-    usePhaseDefinitions({
-      scope: scopeFilter || undefined,
-      status: statusFilter || undefined,
-    })
+  const {
+    definitions,
+    loading,
+    error,
+    forbidden,
+    actingId,
+    createDefinition,
+    activate,
+    deactivate,
+    archive,
+  } = usePhaseDefinitions({
+    scope: scopeFilter || undefined,
+    status: statusFilter || undefined,
+  })
 
   async function handleCreate(
     scope: string,
@@ -99,101 +108,117 @@ export function PhaseDefinitionsView() {
       ) : null}
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">Code</th>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Scope</th>
-              <th className="px-4 py-3 font-medium">Order</th>
-              <th className="px-4 py-3 font-medium">Default</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {definitions.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center">
-                  <Typography variant="small" tone="muted">
-                    No phase definitions found.
-                  </Typography>
-                </td>
-              </tr>
-            ) : (
-              definitions.map((def) => {
+        <DataTable
+          ariaLabel="Phase Definitions"
+          rows={definitions}
+          rowKey={(def) => String(def.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'code',
+              header: 'Code',
+              cell: (def) => {
                 const isActing = actingId === def.id
                 return (
-                  <tr
-                    key={def.id}
-                    className={cn('border-t border-neutral-100', isActing && 'opacity-60')}
-                  >
-                    <td className="px-4 py-3">
-                      <Typography as="span" variant="small" className="font-mono">
-                        {def.code}
-                      </Typography>
-                    </td>
-                    <td className="px-4 py-3">{def.name}</td>
-                    <td className="px-4 py-3 capitalize">{def.scope.toLowerCase()}</td>
-                    <td className="px-4 py-3">{def.displayOrder}</td>
-                    <td className="px-4 py-3">{def.isSystemDefault ? 'Yes' : '—'}</td>
-                    <td className="px-4 py-3">
-                      <Badge tone={phaseDefinitionStatusTone(def.status)}>
-                        {phaseDefinitionStatusLabel(def.status)}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Stack direction="horizontal" spacing="sm">
-                        {canActivatePhaseDefinition(def) && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={isActing}
-                            onClick={() =>
-                              void activate(def.id).catch((e) =>
-                                toast.error(getProblemToastMessage(e))
-                              )
-                            }
-                          >
-                            Activate
-                          </Button>
-                        )}
-                        {canDeactivatePhaseDefinition(def) && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={isActing}
-                            onClick={() =>
-                              void deactivate(def.id).catch((e) =>
-                                toast.error(getProblemToastMessage(e))
-                              )
-                            }
-                          >
-                            Deactivate
-                          </Button>
-                        )}
-                        {canArchivePhaseDefinition(def) && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={isActing}
-                            onClick={() =>
-                              void archive(def.id).catch((e) =>
-                                toast.error(getProblemToastMessage(e))
-                              )
-                            }
-                          >
-                            Archive
-                          </Button>
-                        )}
-                      </Stack>
-                    </td>
-                  </tr>
+                  <>
+                    <Typography as="span" variant="small" className="font-normal">
+                      {def.code}
+                    </Typography>
+                  </>
                 )
-              })
-            )}
-          </tbody>
-        </table>
+              },
+              kind: 'code',
+            },
+            { id: 'name', header: 'Name', accessor: 'name' },
+            {
+              id: 'scope',
+              header: 'Scope',
+              cell: (def) => {
+                const isActing = actingId === def.id
+                return <>{def.scope.toLowerCase()}</>
+              },
+              cellClassName: 'capitalize',
+            },
+            { id: 'order', header: 'Order', accessor: 'displayOrder' },
+            {
+              id: 'default',
+              header: 'Default',
+              cell: (def) => {
+                const isActing = actingId === def.id
+                return <>{def.isSystemDefault ? 'Yes' : '—'}</>
+              },
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (def) => {
+                const isActing = actingId === def.id
+                return (
+                  <>
+                    <Badge tone={phaseDefinitionStatusTone(def.status)}>
+                      {phaseDefinitionStatusLabel(def.status)}
+                    </Badge>
+                  </>
+                )
+              },
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (def) => {
+                const isActing = actingId === def.id
+                return (
+                  <>
+                    <Stack direction="horizontal" spacing="sm">
+                      {canActivatePhaseDefinition(def) && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={isActing}
+                          onClick={() =>
+                            void activate(def.id).catch((e) =>
+                              toast.error(getProblemToastMessage(e))
+                            )
+                          }
+                        >
+                          Activate
+                        </Button>
+                      )}
+                      {canDeactivatePhaseDefinition(def) && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={isActing}
+                          onClick={() =>
+                            void deactivate(def.id).catch((e) =>
+                              toast.error(getProblemToastMessage(e))
+                            )
+                          }
+                        >
+                          Deactivate
+                        </Button>
+                      )}
+                      {canArchivePhaseDefinition(def) && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={isActing}
+                          onClick={() =>
+                            void archive(def.id).catch((e) =>
+                              toast.error(getProblemToastMessage(e))
+                            )
+                          }
+                        >
+                          Archive
+                        </Button>
+                      )}
+                    </Stack>
+                  </>
+                )
+              },
+            },
+          ]}
+        />
       </div>
 
       <CreatePhaseDefinitionModal

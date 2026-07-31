@@ -4,15 +4,11 @@ import { useMemo, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { ADMIN_ROUTES } from '@/modules/admin'
+import { useEventDefinitions } from '@/modules/admin/event-definitions'
 import { useAgents } from '@/modules/ai-agent-admin/agents'
 import { useDeployments } from '@/modules/ai-agent-admin/deployments'
-import {
-  Button,
-  ConfirmDialog,
-  PageSkeleton,
-  Stack,
-  Typography,
-} from '@/shared/ui'
+import { usePromptVersionDetail } from '@/modules/ai-agent-admin/prompt-templates'
+import { Button, ConfirmDialog, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useCanManageAiConfig } from '../../../presentation/hooks/useCanManageAiConfig'
 import { AiLifecycleStatusBadge } from '../../../presentation/ui/AiLifecycleStatusBadge'
 import { EventConfigStatus } from '../../domain/enums/event-config.enum'
@@ -27,6 +23,8 @@ export function EventConfigDetailView() {
   const { saving, activate, deactivate } = useEventConfigMutations(refetch)
   const { items: agents } = useAgents({ page: 0, size: 100 })
   const { items: deployments } = useDeployments({ page: 0, size: 100, status: 'ACTIVE' })
+  const { items: eventDefinitions } = useEventDefinitions({ page: 0, size: 200 })
+  const { version: promptVersion } = usePromptVersionDetail(config?.promptVersionId ?? null)
   const agentOptions = useMemo(
     () => agents.map((a) => ({ value: a.id, label: `${a.name} (${a.code})` })),
     [agents]
@@ -41,18 +39,16 @@ export function EventConfigDetailView() {
   )
   const [editOpen, setEditOpen] = useState(false)
   const [deactivateOpen, setDeactivateOpen] = useState(false)
+  const eventDefinition = eventDefinitions.find((item) => item.id === config?.eventDefinitionId)
+  const selectedAgent = agents.find((item) => item.id === config?.agentId)
+  const selectedDeployment = deployments.find((item) => item.id === config?.modelDeploymentId)
 
   if (loading && !config) return <PageSkeleton variant="detail" className="p-lg" />
   if (error || !config) {
     return (
       <Stack direction="vertical" spacing="md" className="p-lg">
         <Typography tone="error">{error ?? 'Event config not found'}</Typography>
-        <Button
-          as={NextLink}
-          href={ADMIN_ROUTES.aiControlEventConfigs}
-          size="sm"
-          variant="outline"
-        >
+        <Button as={NextLink} href={ADMIN_ROUTES.aiControlEventConfigs} size="sm" variant="outline">
           Back to event configs
         </Button>
       </Stack>
@@ -63,12 +59,7 @@ export function EventConfigDetailView() {
     <Stack direction="vertical" spacing="lg" className="p-lg">
       <div className="flex flex-wrap items-start justify-between gap-md">
         <div>
-          <Button
-            as={NextLink}
-            href={ADMIN_ROUTES.aiControlEventConfigs}
-            size="sm"
-            variant="ghost"
-          >
+          <Button as={NextLink} href={ADMIN_ROUTES.aiControlEventConfigs} size="sm" variant="ghost">
             ← Event configs
           </Button>
           <Typography variant="h2" className="mt-sm">
@@ -95,12 +86,7 @@ export function EventConfigDetailView() {
               )}
             </>
           ) : null}
-          <Button
-            as={NextLink}
-            href={ADMIN_ROUTES.aiControlPlayground}
-            size="sm"
-            variant="outline"
-          >
+          <Button as={NextLink} href={ADMIN_ROUTES.aiControlPlayground} size="sm" variant="outline">
             Playground
           </Button>
         </div>
@@ -125,17 +111,20 @@ export function EventConfigDetailView() {
         </div>
         <div>
           <Typography variant="caption" tone="muted">
-            Event definition ID
+            Event definition
           </Typography>
-          <Typography className="mt-1 font-mono text-xs">{config.eventDefinitionId}</Typography>
+          <Typography className="mt-1">
+            {eventDefinition ? `${eventDefinition.name} (${eventDefinition.code})` : '—'}
+          </Typography>
         </div>
         <div>
           <Typography variant="caption" tone="muted">
             Agent / prompt / deployment
           </Typography>
-          <Typography className="mt-1 font-mono text-xs">
-            {config.agentId ?? '—'} / {config.promptVersionId ?? '—'} /{' '}
-            {config.modelDeploymentId ?? '—'}
+          <Typography className="mt-1">
+            {selectedAgent ? `${selectedAgent.name} (${selectedAgent.code})` : '—'} /{' '}
+            {promptVersion?.title ?? '—'} /{' '}
+            {selectedDeployment ? `${selectedDeployment.name} (${selectedDeployment.code})` : '—'}
           </Typography>
         </div>
         <div className="sm:col-span-2">

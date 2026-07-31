@@ -4,10 +4,10 @@ import Image from 'next/image'
 import { Typography, Badge } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { FEATURES } from '@/config/features'
-import { ClarityPanel } from '@/modules/sessions/clarity/ui/ClarityPanel'
+import { ClarityPanel } from '@/modules/sessions/clarity'
 import { EntityEvidenceDocumentsPanel } from '@/modules/documents'
 import type { ClaritySummary } from '@/modules/sessions/clarity'
-import type { ProjectQuestion } from '@/modules/projects/questions/model/questions'
+import type { ProjectQuestion } from '@/modules/projects/questions'
 import type { SessionProgress } from '../model/session'
 
 export type SessionRightPanelTab = 'progress' | 'outline' | 'clarity' | 'evidence'
@@ -80,7 +80,7 @@ export function SessionDetailRightPanel({
         <div className="relative z-10 flex flex-1 flex-col overflow-auto p-6">
           {rightPanelTab === 'progress' && progress && (
             <>
-              <div className="mb-6 flex flex-col items-center">
+              <div className="mb-2 flex flex-col items-center">
                 <div className="relative h-28 w-28">
                   <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
                     <path
@@ -102,8 +102,8 @@ export function SessionDetailRightPanel({
                   </svg>
                   <Typography
                     as="span"
-                    size="2xl"
-                    weight="semibold"
+                    size="md"
+                    weight="medium"
                     className="absolute inset-0 flex items-center justify-center"
                   >
                     {progress.coverage_percent}%
@@ -188,11 +188,7 @@ export function SessionDetailRightPanel({
           )}
           {rightPanelTab === 'outline' && (
             <div className="space-y-0">
-              <Typography
-                variant="small"
-                weight="medium"
-                className="mb-3 block text-neutral-500"
-              >
+              <Typography variant="small" weight="medium" className="mb-3 block text-neutral-500">
                 Jump to section
               </Typography>
               {orderedSectionEntries.map(([section]) => (
@@ -200,7 +196,9 @@ export function SessionDetailRightPanel({
                   key={section}
                   type="button"
                   onClick={() =>
-                    document.getElementById(`section-${section}`)?.scrollIntoView({ behavior: 'smooth' })
+                    document
+                      .getElementById(`section-${section}`)
+                      ?.scrollIntoView({ behavior: 'smooth' })
                   }
                   className="w-full px-0 py-2.5 text-left text-sm capitalize text-neutral-900 hover:bg-neutral-100"
                 >

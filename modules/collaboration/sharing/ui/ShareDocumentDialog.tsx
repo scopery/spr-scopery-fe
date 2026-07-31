@@ -57,7 +57,7 @@ export function ShareDocumentDialog({
             { value: '__none__', label: 'Select member…' },
             ...users.map((u) => ({
               value: u.user_id,
-              label: u.display_name || u.email || u.user_id,
+              label: u.display_name || u.email || 'Unnamed member',
             })),
           ]}
         />
@@ -83,7 +83,7 @@ export function ShareDocumentDialog({
             {collaborators.map((c) => (
               <div key={c.id} className="flex items-center justify-between gap-2">
                 <Typography variant="small">
-                  {c.display_name || c.email || c.user_id} — {c.role}
+                  {c.display_name || c.email || 'Unnamed member'} — {c.role}
                 </Typography>
                 {canManageCollaborators && (
                   <Button variant="ghost" onClick={() => void removeCollaborator(c.user_id)} icon={<Trash2 size={16} />}>

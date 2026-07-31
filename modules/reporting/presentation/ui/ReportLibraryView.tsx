@@ -1,12 +1,6 @@
 'use client'
 
-import {
-  Button,
-  LongRunningJobPanel,
-  PageSkeleton,
-  Stack,
-  Typography
-} from '@/shared/ui'
+import { Button, LongRunningJobPanel, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useReportLibrary } from '../hooks/useReportLibrary'
 
 export function ReportLibraryView() {
@@ -25,12 +19,14 @@ export function ReportLibraryView() {
     refreshExports,
   } = useReportLibrary()
 
-  if (loading) return <PageSkeleton variant="list" className="p-lg" />
+  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Report Library</Typography>
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <Typography as="h1" size="md" weight="medium">
+        Report Library
+      </Typography>
       {actionError ? <Typography tone="error">{actionError}</Typography> : null}
 
       {activeRun ? (
@@ -92,7 +88,7 @@ export function ReportLibraryView() {
             <li key={job.id} className="flex items-center justify-between gap-md p-md">
               <div>
                 <Typography variant="small" weight="medium">
-                  {job.fileName ?? job.reportCode ?? job.id}
+                  {job.fileName ?? job.reportCode ?? '—'}
                 </Typography>
                 <Typography variant="caption" tone="muted">
                   {[job.format, job.status].filter(Boolean).join(' · ')}

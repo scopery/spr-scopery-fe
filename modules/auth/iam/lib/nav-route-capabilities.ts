@@ -4,6 +4,8 @@ import { ROUTES } from '@/constants/routes'
 export interface NavRouteRequirement {
   /** Capability that must be true to stay on this path. */
   key: string
+  /** Temporary/legacy capabilities that may also grant access. */
+  alternativeKeys?: string[]
   /** Where to send the user when denied. */
   fallbackHref: string
 }
@@ -28,13 +30,95 @@ export function resolveNavCapabilityForPath(
     const projectHome = ROUTES.workspace.projectOverview(workspaceId, projectId)
     const wsHome = ROUTES.workspace.projects(workspaceId)
 
-    const projectRules: Array<{ prefix: string; key: string }> = [
+    const projectRules: Array<{
+      prefix: string
+      key: string
+      alternativeKeys?: string[]
+    }> = [
       { prefix: '/financials', key: NavCapabilityKey.ProjectFinancials },
       { prefix: '/estimation', key: NavCapabilityKey.ProjectEstimation },
       { prefix: '/profitability', key: NavCapabilityKey.ProjectProfitability },
       { prefix: '/quotes', key: NavCapabilityKey.ProjectQuotes },
       { prefix: '/baselines', key: NavCapabilityKey.ProjectBaselines },
       { prefix: '/change-requests', key: NavCapabilityKey.ProjectChangeRequests },
+      // Specific Quality child routes must precede `/quality` so their own
+      // capability is not shadowed by the parent prefix.
+      {
+        prefix: '/quality/cases',
+        key: NavCapabilityKey.ProjectTestPlans,
+        alternativeKeys: [
+          NavCapabilityKey.ProjectQuality,
+          NavCapabilityKey.ProjectScope,
+          NavCapabilityKey.ProjectRequirements,
+          NavCapabilityKey.ProjectRaid,
+        ],
+      },
+      {
+        prefix: '/quality/runs',
+        key: NavCapabilityKey.ProjectTestPlans,
+        alternativeKeys: [
+          NavCapabilityKey.ProjectQuality,
+          NavCapabilityKey.ProjectScope,
+          NavCapabilityKey.ProjectRequirements,
+          NavCapabilityKey.ProjectRaid,
+        ],
+      },
+      {
+        prefix: '/quality/defects',
+        key: NavCapabilityKey.ProjectDefects,
+        alternativeKeys: [
+          NavCapabilityKey.ProjectQuality,
+          NavCapabilityKey.ProjectTestPlans,
+        ],
+      },
+      {
+        prefix: '/quality/releases',
+        key: NavCapabilityKey.ProjectReleases,
+        alternativeKeys: [
+          NavCapabilityKey.ProjectQuality,
+          NavCapabilityKey.ProjectTestPlans,
+        ],
+      },
+      {
+        prefix: '/quality/test-plans',
+        key: NavCapabilityKey.ProjectTestPlans,
+        alternativeKeys: [
+          NavCapabilityKey.ProjectQuality,
+          NavCapabilityKey.ProjectScope,
+          NavCapabilityKey.ProjectRequirements,
+          NavCapabilityKey.ProjectRaid,
+        ],
+      },
+      {
+        prefix: '/quality/test-cases',
+        key: NavCapabilityKey.ProjectTestPlans,
+        alternativeKeys: [
+          NavCapabilityKey.ProjectQuality,
+          NavCapabilityKey.ProjectScope,
+          NavCapabilityKey.ProjectRequirements,
+          NavCapabilityKey.ProjectRaid,
+        ],
+      },
+      {
+        prefix: '/quality/verification-cases',
+        key: NavCapabilityKey.ProjectTestPlans,
+        alternativeKeys: [
+          NavCapabilityKey.ProjectQuality,
+          NavCapabilityKey.ProjectScope,
+          NavCapabilityKey.ProjectRequirements,
+          NavCapabilityKey.ProjectRaid,
+        ],
+      },
+      {
+        prefix: '/quality/test-runs',
+        key: NavCapabilityKey.ProjectTestPlans,
+        alternativeKeys: [
+          NavCapabilityKey.ProjectQuality,
+          NavCapabilityKey.ProjectScope,
+          NavCapabilityKey.ProjectRequirements,
+          NavCapabilityKey.ProjectRaid,
+        ],
+      },
       { prefix: '/quality', key: NavCapabilityKey.ProjectQuality },
       { prefix: '/test-plans', key: NavCapabilityKey.ProjectTestPlans },
       { prefix: '/defects', key: NavCapabilityKey.ProjectDefects },
@@ -60,7 +144,6 @@ export function resolveNavCapabilityForPath(
       { prefix: '/timeline', key: NavCapabilityKey.ProjectTimeline },
       { prefix: '/schedule', key: NavCapabilityKey.ProjectSchedule },
       { prefix: '/members', key: NavCapabilityKey.ProjectDirectoryMembers },
-      { prefix: '/settings', key: NavCapabilityKey.SettingsProjectEntry },
       { prefix: '/overview', key: NavCapabilityKey.ProjectOverview },
     ]
 
@@ -68,8 +151,8 @@ export function resolveNavCapabilityForPath(
       if (projectRest === rule.prefix || projectRest.startsWith(rule.prefix + '/')) {
         return {
           key: rule.key,
-          fallbackHref:
-            rule.key === NavCapabilityKey.ProjectOverview ? wsHome : projectHome,
+          alternativeKeys: rule.alternativeKeys,
+          fallbackHref: rule.key === NavCapabilityKey.ProjectOverview ? wsHome : projectHome,
         }
       }
     }

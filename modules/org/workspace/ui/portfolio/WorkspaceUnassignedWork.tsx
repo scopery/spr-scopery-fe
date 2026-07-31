@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowUpRight } from 'lucide-react'
-import { Badge, Button, Checkbox, DetailDrawer, Typography } from '@/shared/ui'
+import { Badge, Button, Card, Checkbox, DetailDrawer, Typography } from '@/shared/ui'
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
 import type { OverAllocationItem } from '@/modules/capacity/domain/model/capacity-overview'
 import type { ResourceProfile } from '@/modules/capacity/domain/model/resource-profile'
@@ -48,7 +48,7 @@ export function WorkspaceUnassignedWork({
   const preview = sorted.slice(0, 5)
 
   return (
-    <section id="unassigned-work" className="border border-neutral-200 bg-white">
+    <Card as="section" id="unassigned-work">
       <header className="flex items-center justify-between gap-2 border-b border-neutral-200 px-4 py-3">
         <div className="flex items-center gap-2">
           <Typography as="h2" size="sm" weight="semibold">
@@ -98,11 +98,7 @@ export function WorkspaceUnassignedWork({
                   {task.estimateHours != null ? ` · ${task.estimateHours}h` : ''}
                 </Typography>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setAssignTarget([task])}
-              >
+              <Button variant="outline" size="sm" onClick={() => setAssignTarget([task])}>
                 Assign
               </Button>
             </li>
@@ -146,7 +142,7 @@ export function WorkspaceUnassignedWork({
           onAssigned()
         }}
       />
-    </section>
+    </Card>
   )
 }
 
@@ -410,13 +406,17 @@ function QuickAssignDrawer({
         <div className="mb-4 space-y-1 border-b border-neutral-100 pb-4">
           {!multi ? (
             <>
-              <Typography variant="small" tone="muted">Task</Typography>
+              <Typography variant="small" tone="muted">
+                Task
+              </Typography>
               <Typography weight="medium">{primary.title}</Typography>
               <Typography variant="small" tone="muted" className="mt-2">
                 Project · {primary.projectName}
               </Typography>
               {primary.phaseName ? (
-                <Typography variant="small" tone="muted">Phase · {primary.phaseName}</Typography>
+                <Typography variant="small" tone="muted">
+                  Phase · {primary.phaseName}
+                </Typography>
               ) : null}
               {primary.estimateHours != null ? (
                 <Typography variant="small" tone="muted">
@@ -428,11 +428,15 @@ function QuickAssignDrawer({
             <ul className="space-y-1">
               {tasks.slice(0, 5).map((t) => (
                 <li key={t.taskId}>
-                  <Typography variant="small">{t.code} · {t.title}</Typography>
+                  <Typography variant="small">
+                    {t.code} · {t.title}
+                  </Typography>
                 </li>
               ))}
               {tasks.length > 5 ? (
-                <Typography variant="small" tone="muted">+{tasks.length - 5} more</Typography>
+                <Typography variant="small" tone="muted">
+                  +{tasks.length - 5} more
+                </Typography>
               ) : null}
             </ul>
           )}
@@ -456,7 +460,7 @@ function QuickAssignDrawer({
                 className={cn(
                   'w-full border px-3 py-2 text-left',
                   selectedUserId === c.userId
-                    ? 'border-primary bg-primary/5'
+                    ? 'bg-primary/5 border-primary'
                     : 'border-neutral-200 hover:bg-neutral-50'
                 )}
               >

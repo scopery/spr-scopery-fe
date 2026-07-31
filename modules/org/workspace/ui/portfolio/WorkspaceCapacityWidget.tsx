@@ -1,9 +1,12 @@
 'use client'
 
 import NextLink from 'next/link'
-import { Badge, Button, Typography } from '@/shared/ui'
+import { Badge, Button, Card, Typography } from '@/shared/ui'
 import { WORKSPACE_ROUTES } from '@/modules/org/lib/routes'
-import type { CapacityOverview, OverAllocationItem } from '@/modules/capacity/domain/model/capacity-overview'
+import type {
+  CapacityOverview,
+  OverAllocationItem,
+} from '@/modules/capacity/domain/model/capacity-overview'
 import { cn } from '@/utils/cn'
 
 interface WorkspaceCapacityWidgetProps {
@@ -32,7 +35,7 @@ export function WorkspaceCapacityWidget({
   const overCount = overview?.overAllocatedResourceCount ?? overAllocations.length
 
   return (
-    <section id="team-capacity" className="border border-neutral-200 bg-white">
+    <Card as="section" id="team-capacity">
       <header className="flex items-start justify-between gap-3 border-b border-neutral-200 px-4 py-3">
         <div>
           <Typography as="h2" size="sm" weight="semibold">
@@ -42,7 +45,12 @@ export function WorkspaceCapacityWidget({
             Next periods · utilization vs demand
           </Typography>
         </div>
-        <Button as={NextLink} href={WORKSPACE_ROUTES.capacity(workspaceId)} variant="ghost" size="sm">
+        <Button
+          as={NextLink}
+          href={WORKSPACE_ROUTES.capacity(workspaceId)}
+          variant="ghost"
+          size="sm"
+        >
           Open Workload
         </Button>
       </header>
@@ -89,9 +97,10 @@ export function WorkspaceCapacityWidget({
                     ? Math.round((p.allocatedHours / p.availableHours) * 100)
                     : null
                 return (
-                  <div
+                  <Card
                     key={p.period}
-                    className={cn('min-w-[72px] border border-neutral-200 px-2 py-2', utilizationTone(pct))}
+                    hasShadow={false}
+                    className={cn('min-w-[72px] px-2 py-2', utilizationTone(pct))}
                   >
                     <Typography variant="small" className="block text-xs opacity-80">
                       {p.period}
@@ -99,7 +108,7 @@ export function WorkspaceCapacityWidget({
                     <Typography weight="semibold" className="tabular-nums">
                       {pct != null ? `${pct}%` : '—'}
                     </Typography>
-                  </div>
+                  </Card>
                 )
               })}
             </div>
@@ -140,6 +149,6 @@ export function WorkspaceCapacityWidget({
           ) : null}
         </div>
       )}
-    </section>
+    </Card>
   )
 }

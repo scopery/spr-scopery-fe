@@ -2,7 +2,7 @@
 
 import { Play, RotateCcw } from 'lucide-react'
 
-import { Button, Input, Select, Typography } from '@/shared/ui'
+import { Button, Card, Input, Select, Typography } from '@/shared/ui'
 import type { GovernanceSimulatorViewProps } from '../model/governance-simulator'
 
 export function GovernanceSimulatorView({
@@ -19,7 +19,7 @@ export function GovernanceSimulatorView({
   onReset,
 }: GovernanceSimulatorViewProps) {
   return (
-    <div className="border-border space-y-4 rounded-md border border-dashed p-4">
+    <Card className="border-border space-y-4 border-dashed bg-transparent p-4">
       <Typography variant="small" weight="medium">
         Policy simulator (dry-run)
       </Typography>
@@ -161,7 +161,12 @@ export function GovernanceSimulatorView({
       </div>
 
       <div className="flex gap-2">
-        <Button variant="primary" loading={loading} onClick={() => void onEvaluate()} icon={<Play size={16} />}>
+        <Button
+          variant="primary"
+          loading={loading}
+          onClick={() => void onEvaluate()}
+          icon={<Play size={16} />}
+        >
           Evaluate
         </Button>
         <Button variant="ghost" onClick={onReset} icon={<RotateCcw size={16} />}>
@@ -176,7 +181,7 @@ export function GovernanceSimulatorView({
       ) : null}
 
       {result ? (
-        <div className="border-border bg-muted/20 space-y-2 rounded border p-3">
+        <Card className="border-border bg-muted/20 space-y-2 p-3">
           <Typography variant="small">
             <strong>Decision:</strong>{' '}
             {result.allowed ? (result.effect === 'warn' ? 'ALLOW (warn)' : 'ALLOW') : 'DENIED'} ·
@@ -212,8 +217,8 @@ export function GovernanceSimulatorView({
               ))}
             </ul>
           ) : null}
-        </div>
+        </Card>
       ) : null}
-    </div>
+    </Card>
   )
 }

@@ -1,7 +1,11 @@
 'use client'
 
-import { QualityCenterView } from '@/modules/quality/presentation/ui/QualityCenterView'
+import { FEATURES } from '@/config/features'
+import { QualityOverviewView, QualityCenterView } from '@/modules/quality'
 
-export default function Page() {
+export default function QualityPage() {
+  if (FEATURES.qualitySimplifiedWorkflow) {
+    return <QualityOverviewView />
+  }
   return <QualityCenterView />
 }

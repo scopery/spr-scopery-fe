@@ -41,5 +41,6 @@ export { useIamAuthorizationCheck } from './presentation/hooks/useIamAuthorizati
 export { useIamAuthorizationExplain } from './presentation/hooks/useIamAuthorizationExplain'
 export { useIamAuditEvents } from './presentation/hooks/useIamAuditEvents'
 export { useIamResourceDetail } from './presentation/hooks/useIamResourceDetail'
+export { useIamIdentityDirectory } from './presentation/hooks/useIamIdentityDirectory'
 export { useGrantAccessWizard } from './presentation/hooks/useGrantAccessWizard'
 export { useWorkspaceAccess } from './presentation/hooks/useWorkspaceAccess'

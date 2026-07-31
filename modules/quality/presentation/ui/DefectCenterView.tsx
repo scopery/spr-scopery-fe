@@ -21,10 +21,12 @@ export function DefectCenterView() {
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-neutral-200 pb-2">
         <div>
-          <Typography variant="h2">Defect Center</Typography>
+          <Typography as="h1" size="md" weight="medium">
+            Defect Center
+          </Typography>
           <Typography tone="muted" variant="caption">
             Create defects one-by-one or bulk paste from Excel.
           </Typography>
@@ -47,7 +49,7 @@ export function DefectCenterView() {
             <li key={item.id} className="flex items-center justify-between gap-md p-md">
               <div>
                 <Typography variant="small" weight="medium">
-                  {item.title ?? item.code ?? item.id}
+                  {item.title ?? item.code ?? 'Untitled defect'}
                 </Typography>
                 <Typography variant="caption" tone="muted">
                   {[item.code, item.category, item.severity, item.priority, item.status]

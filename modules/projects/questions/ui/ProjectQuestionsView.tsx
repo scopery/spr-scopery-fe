@@ -3,7 +3,16 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import { ChevronDown, ChevronUp, Pencil, Plus, Save, Sparkles, Trash2 } from 'lucide-react'
-import { Typography, Button, Badge, Input, Textarea, Select, ConfirmDialog, PageSkeleton } from '@/shared/ui'
+import {
+  Typography,
+  Button,
+  Badge,
+  Input,
+  Textarea,
+  Select,
+  ConfirmDialog,
+  PageSkeleton,
+} from '@/shared/ui'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import * as questionsApi from '@/modules/projects/questions/api/questions.api'
 import { useProject } from '@/modules/projects/project/hooks/useProject'
@@ -111,9 +120,7 @@ export function ProjectQuestionsView() {
   }
 
   if (loading) {
-    return (
-      <PageSkeleton variant="list" />
-    )
+    return <PageSkeleton variant="list" />
   }
 
   if (!project) {
@@ -125,18 +132,18 @@ export function ProjectQuestionsView() {
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={orgId}
         project={{ id: projectId, name: project.name }}
         current="Questions"
       />
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+      <div className="mb-2 mt-1 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Questions
           </Typography>
-          <Typography variant="small" tone="muted" className="mt-0.5">
+          <Typography variant="caption" tone="muted" className="mt-0.5">
             Manage elicitation questions for this project
           </Typography>
         </div>
@@ -194,14 +201,8 @@ export function ProjectQuestionsView() {
                   <div className="min-w-0 flex-1">
                     <Typography weight="medium">{q.prompt}</Typography>
                     <div className="mt-1 flex gap-2">
-                      <Badge variant="soft">
-                        {q.q_type}
-                      </Badge>
-                      {q.required && (
-                        <Badge tone="warning">
-                          Required
-                        </Badge>
-                      )}
+                      <Badge variant="soft">{q.q_type}</Badge>
+                      {q.required && <Badge tone="warning">Required</Badge>}
                       {q.source !== 'manual' && (
                         <Badge variant="soft" tone="default">
                           {q.source}
@@ -212,15 +213,15 @@ export function ProjectQuestionsView() {
                   {canEdit && (
                     <div className="flex shrink-0 gap-2">
                       {q.source === 'manual' && (
-                        <Button variant="ghost" onClick={() => setEditQuestion(q)} icon={<Pencil size={16} />}>
+                        <Button
+                          variant="ghost"
+                          onClick={() => setEditQuestion(q)}
+                          icon={<Pencil size={16} />}
+                        >
                           Edit
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        tone="error"
-                        onClick={() => setConfirmArchive(q)}
-                      >
+                      <Button variant="ghost" tone="error" onClick={() => setConfirmArchive(q)}>
                         <Trash2 size={16} />
                       </Button>
                     </div>
@@ -236,7 +237,12 @@ export function ProjectQuestionsView() {
         <div className="rounded-lg border border-neutral-200 bg-white p-12 text-center">
           <Typography tone="muted">No active questions. Add one to get started.</Typography>
           {canEdit && (
-            <Button variant="primary" className="mt-4" onClick={() => setCreateModalOpen(true)} icon={<Plus size={16} />}>
+            <Button
+              variant="primary"
+              className="mt-4"
+              onClick={() => setCreateModalOpen(true)}
+              icon={<Plus size={16} />}
+            >
               Add question
             </Button>
           )}
@@ -437,7 +443,12 @@ function QuestionFormModal({
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleSubmit} loading={loading} icon={<Save size={16} />}>
+          <Button
+            variant="primary"
+            onClick={handleSubmit}
+            loading={loading}
+            icon={<Save size={16} />}
+          >
             Save
           </Button>
         </div>

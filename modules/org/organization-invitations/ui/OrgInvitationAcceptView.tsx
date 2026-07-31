@@ -88,13 +88,17 @@ export function OrgInvitationAcceptView() {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="max-w-md text-center">
-          <Typography as="h1" size="lg" weight="bold" className="mb-2">
+          <Typography as="h1" size="md" weight="medium" className="mb-1">
             Could not accept invitation
           </Typography>
           <Typography tone="muted" className="mb-6">
             {errorMessage}
           </Typography>
-          <Button variant="primary" onClick={() => router.push(ROUTES.auth.login)} icon={<ArrowRight size={16} />}>
+          <Button
+            variant="primary"
+            onClick={() => router.push(ROUTES.auth.login)}
+            icon={<ArrowRight size={16} />}
+          >
             Go to login
           </Button>
         </div>

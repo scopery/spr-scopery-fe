@@ -1,7 +1,7 @@
 'use client'
 
 import { Save } from 'lucide-react'
-import { Button, Skeleton, Typography } from '@/shared/ui'
+import { Button, Skeleton, Typography, Card } from '@/shared/ui'
 import { FormFieldSource } from '../../domain/enums/configuration.enum'
 import type { CustomFormField } from '../../domain/model/form-field'
 import { useObjectFieldValues } from '../hooks/useObjectFieldValues'
@@ -65,7 +65,7 @@ export function ObjectCustomFieldsPanel({
   }
 
   return (
-    <div className="border border-neutral-200 bg-white p-4">
+    <Card className="p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <Typography weight="semibold" variant="small">
@@ -99,6 +99,6 @@ export function ObjectCustomFieldsPanel({
           />
         ))}
       </div>
-    </div>
+    </Card>
   )
 }

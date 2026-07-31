@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Badge, Progress, Typography } from '@/shared/ui'
+import { Badge, DataTable, Progress, Typography } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
 import { PhaseWatchSignal } from '../../domain/enums/phase-watch.enum'
@@ -48,7 +48,7 @@ function signalTone(signal: string): 'error' | 'warning' | 'info' | 'success' | 
 
 export function PhaseSignalBadge({ signal }: { signal: string }) {
   return (
-    <Badge variant="solid" tone={signalTone(signal)} className="rounded-none whitespace-nowrap">
+    <Badge variant="solid" tone={signalTone(signal)} className="whitespace-nowrap rounded-none">
       {phaseWatchSignalLabel(signal as never)}
     </Badge>
   )
@@ -64,18 +64,27 @@ export function ActivePhaseBlock({
   daysLeftLabel?: string | null
 }) {
   const title = phaseDisplayTitle(phase)
+  const detail = [
+    phase.progressPercent == null ? 'No tasks' : `${phase.progressPercent}%`,
+    phase.plannedEndDate ? `Ends ${formatPhaseWatchDate(phase.plannedEndDate)}` : null,
+    daysLeftLabel,
+    phase.statusLabel,
+  ]
+    .filter(Boolean)
+    .join(' · ')
   return (
     <div className={cn('min-w-0', compact ? 'space-y-0.5' : 'space-y-1')}>
-      <Typography as="p" size="sm" weight="medium" className="break-words text-neutral-900">
+      <Typography
+        as="p"
+        size="sm"
+        weight="medium"
+        className="truncate text-neutral-900"
+        title={title}
+      >
         {title}
       </Typography>
-      <Typography variant="small" className="break-words text-neutral-600">
-        {phase.progressPercent == null ? 'No tasks' : `${phase.progressPercent}%`}
-        {phase.plannedEndDate
-          ? ` · Ends ${formatPhaseWatchDate(phase.plannedEndDate)}`
-          : ''}
-        {daysLeftLabel ? ` · ${daysLeftLabel}` : ''}
-        {` · ${phase.statusLabel}`}
+      <Typography variant="small" className="truncate text-neutral-600" title={detail}>
+        {detail}
       </Typography>
       {phase.progressPercent != null && !compact ? (
         <Progress
@@ -112,6 +121,15 @@ export function NextPhaseBlock({
   }
   const title = phaseDisplayTitle(phase)
   const alert = Boolean(startingSoon || noStartDate)
+  const schedule = [
+    phase.plannedStartDate
+      ? `Starts ${formatPhaseWatchDate(phase.plannedStartDate)}`
+      : 'Start date not scheduled',
+    daysLeftLabel,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+  const followUp = followUpLabels?.join(' · ') ?? ''
   return (
     <div
       className={cn(
@@ -120,21 +138,25 @@ export function NextPhaseBlock({
         alert && 'rounded-none border border-orange-200/70 bg-orange-50/80 px-2 py-1.5'
       )}
     >
-      <Typography as="p" size="sm" weight="medium" className="break-words text-neutral-900">
+      <Typography
+        as="p"
+        size="sm"
+        weight="medium"
+        className="truncate text-neutral-900"
+        title={title}
+      >
         {title}
       </Typography>
       <Typography
         variant="small"
-        className={cn('break-words', alert ? 'font-medium text-red-700' : 'text-neutral-600')}
+        className={cn('truncate', alert ? 'font-medium text-red-700' : 'text-neutral-600')}
+        title={schedule}
       >
-        {phase.plannedStartDate
-          ? `Starts ${formatPhaseWatchDate(phase.plannedStartDate)}`
-          : 'Start date not scheduled'}
-        {daysLeftLabel ? ` · ${daysLeftLabel}` : ''}
+        {schedule}
       </Typography>
-      {followUpLabels && followUpLabels.length > 0 ? (
-        <Typography variant="small" className="break-words text-neutral-700">
-          {followUpLabels.join(' · ')}
+      {followUp ? (
+        <Typography variant="small" className="truncate text-neutral-700" title={followUp}>
+          {followUp}
         </Typography>
       ) : null}
     </div>
@@ -160,7 +182,7 @@ export function PhaseWatchTableHeader({ followUpLabel = 'Follow-up' }: { followU
             Next phase
           </Typography>
         </th>
-        <th className="pb-2 align-bottom text-right">
+        <th className="pb-2 text-right align-bottom">
           <Typography variant="small" tone="muted" weight="medium">
             {followUpLabel}
           </Typography>
@@ -189,12 +211,24 @@ export function PhaseWatchTableRow({
             href={ROUTES.workspace.projectOverview(workspaceId, row.projectId)}
             className="block hover:underline"
           >
-            <Typography as="p" size="sm" weight="semibold" className="break-words text-neutral-900">
+            <Typography
+              as="p"
+              size="sm"
+              weight="semibold"
+              className="truncate text-neutral-900"
+              title={row.projectName}
+            >
               {row.projectName}
             </Typography>
           </Link>
           {row.projectCode ? (
-            <Typography as="p" variant="small" tone="muted" className="break-all font-mono">
+            <Typography
+              as="p"
+              variant="small"
+              tone="muted"
+              className="truncate font-normal"
+              title={row.projectCode}
+            >
               {row.projectCode}
             </Typography>
           ) : null}
@@ -249,7 +283,7 @@ export function PhaseWatchTableRow({
         </div>
       </td>
 
-      <td className="py-3 align-top text-right">
+      <td className="py-3 text-right align-top">
         <div className="inline-flex justify-end">
           <PhaseSignalBadge signal={row.primarySignal} />
         </div>
@@ -269,23 +303,116 @@ export function PhaseWatchTable({
   followUpLabel?: string
   compact?: boolean
 }) {
+  const todayIso = todayIsoDate()
   return (
-    <div className="w-full overflow-x-auto">
-      <table className="w-full table-fixed border-collapse">
-        {PHASE_WATCH_COLGROUP}
-        <PhaseWatchTableHeader followUpLabel={followUpLabel} />
-        <tbody>
-          {rows.map((row) => (
-            <PhaseWatchTableRow
-              key={row.projectId}
-              row={row}
-              workspaceId={workspaceId}
+    <DataTable
+      ariaLabel="Project phase watch"
+      rows={rows}
+      rowKey={(row) => row.projectId}
+      columns={[
+        {
+          id: 'project',
+          header: 'Project',
+          width: '22%',
+          kind: 'code',
+          cell: (row) => (
+            <div className="min-w-0">
+              <Link
+                href={ROUTES.workspace.projectOverview(workspaceId, row.projectId)}
+                className="block hover:underline"
+              >
+                <Typography
+                  as="p"
+                  size="sm"
+                  weight="semibold"
+                  className="truncate text-neutral-900"
+                  title={row.projectName}
+                >
+                  {row.projectName}
+                </Typography>
+              </Link>
+              {row.projectCode ? (
+                <Typography
+                  as="p"
+                  variant="small"
+                  tone="muted"
+                  className="truncate font-normal"
+                  title={row.projectCode}
+                >
+                  {row.projectCode}
+                </Typography>
+              ) : null}
+            </div>
+          ),
+        },
+        {
+          id: 'current',
+          header: 'Current phase',
+          width: '32%',
+          cell: (row) => (
+            <div className="min-w-0 space-y-2">
+              {row.activePhases.length === 0 ? (
+                <Typography variant="small" tone="muted">
+                  No current phase
+                </Typography>
+              ) : (
+                row.activePhases.map((phase) => {
+                  const endingSoon = isPhaseEndingSoon(phase.plannedEndDate, todayIso)
+                  return (
+                    <ActivePhaseBlock
+                      key={phase.phaseId}
+                      phase={phase}
+                      compact={compact}
+                      daysLeftLabel={
+                        endingSoon && phase.plannedEndDate
+                          ? formatDaysRemaining(phase.plannedEndDate, todayIso)
+                          : null
+                      }
+                    />
+                  )
+                })
+              )}
+              {row.activePhases.length > 1 ? (
+                <Typography variant="small" tone="muted">
+                  Current phases · {row.activePhases.length}
+                </Typography>
+              ) : null}
+            </div>
+          ),
+        },
+        {
+          id: 'next',
+          header: 'Next phase',
+          width: '30%',
+          cell: (row) => (
+            <NextPhaseBlock
+              phase={row.nextPhase}
+              followUpLabels={row.followUpLabels.filter((label) => label !== 'Ready')}
               compact={compact}
+              startingSoon={row.signals.includes(PhaseWatchSignal.StartingSoon)}
+              noStartDate={row.signals.includes(PhaseWatchSignal.NoStartDate)}
+              daysLeftLabel={
+                row.signals.includes(PhaseWatchSignal.StartingSoon) &&
+                row.nextPhase?.plannedStartDate
+                  ? formatDaysRemaining(row.nextPhase.plannedStartDate, todayIso)
+                  : null
+              }
             />
-          ))}
-        </tbody>
-      </table>
-    </div>
+          ),
+        },
+        {
+          id: 'followUp',
+          header: followUpLabel ?? 'Follow-up',
+          width: '16%',
+          align: 'right',
+          cell: (row) => (
+            <div className="inline-flex justify-end">
+              <PhaseSignalBadge signal={row.primarySignal} />
+            </div>
+          ),
+        },
+      ]}
+    />
   )
 }
 
@@ -296,11 +423,6 @@ export function PhaseWatchProjectRowView(props: {
   compact?: boolean
 }) {
   return (
-    <table className="w-full table-fixed border-collapse">
-      {PHASE_WATCH_COLGROUP}
-      <tbody>
-        <PhaseWatchTableRow {...props} />
-      </tbody>
-    </table>
+    <PhaseWatchTable rows={[props.row]} workspaceId={props.workspaceId} compact={props.compact} />
   )
 }

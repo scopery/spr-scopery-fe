@@ -5,8 +5,8 @@ import { Save } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import NextLink from 'next/link'
-import { Typography, Button, Stack, Input, Select, Badge, PageSkeleton } from '@/shared/ui'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import { Typography, Button, Card, Stack, Input, Select, Badge, PageSkeleton } from '@/shared/ui'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { ROUTES } from '@/constants/routes'
 import { useWorkspaceAuthorization } from '@/modules/auth/iam'
 import { useWorkspaceSettings } from '../hooks/useWorkspaceSettings'
@@ -49,9 +49,7 @@ export function WorkspaceSettingsView() {
   }, [workspace])
 
   if (loading || authzLoading) {
-    return (
-      <PageSkeleton variant="list" />
-    )
+    return <PageSkeleton variant="list" />
   }
 
   if (error || !workspace) {
@@ -75,7 +73,7 @@ export function WorkspaceSettingsView() {
           current="Settings"
           className="mb-4"
         />
-        <div className="border border-neutral-200 bg-neutral-50 p-4">
+        <Card className="bg-neutral-50 p-4">
           <Typography variant="small" tone="muted">
             You do not have permission to update workspace settings.
           </Typography>
@@ -85,7 +83,7 @@ export function WorkspaceSettingsView() {
           >
             Back to projects
           </NextLink>
-        </div>
+        </Card>
       </div>
     )
   }
@@ -99,17 +97,20 @@ export function WorkspaceSettingsView() {
   return (
     <div>
       <WorkspaceHierarchyBreadcrumb workspaceId={workspaceId} current="Settings" className="mb-4" />
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-2 flex items-start justify-between gap-2">
         <div>
           <div className="flex items-center gap-3">
-            <Typography as="h1" size="lg" weight="semibold">
+            <Typography as="h1" size="md" weight="medium">
               Workspace settings
             </Typography>
             <Badge
               variant="solid"
               tone={String(workspace.status).toUpperCase() === 'ACTIVE' ? 'success' : 'neutral'}
             >
-              {String(workspace.status).replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+              {String(workspace.status)
+                .replace(/_/g, ' ')
+                .toLowerCase()
+                .replace(/\b\w/g, (c) => c.toUpperCase())}
             </Badge>
           </div>
           <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -124,7 +125,7 @@ export function WorkspaceSettingsView() {
         </div>
       </div>
 
-      <div className="max-w-lg border border-neutral-200 bg-white p-6">
+      <Card className="max-w-lg p-6">
         <Stack direction="vertical" spacing="md">
           <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
           <Input
@@ -175,11 +176,13 @@ export function WorkspaceSettingsView() {
                 defaultVisibility,
                 joinPolicy,
               })
-            } icon={<Save size={16} />}>
+            }
+            icon={<Save size={16} />}
+          >
             {saving ? 'Saving…' : 'Save changes'}
           </Button>
         </Stack>
-      </div>
+      </Card>
     </div>
   )
 }

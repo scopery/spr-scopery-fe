@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as effortApi from '../../infrastructure/api/effort.api'
-import * as workspaceMembersApi from '@/modules/org/workspace/api/workspace-members.api'
-import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
+import { listWorkspaceMembers } from '@/modules/org/workspace'
+import { useResolveUsers } from '@/modules/platform'
 import { ActualEffortStatus } from '../../domain/model/effort'
 import type {
   ActualEffortRecord,
@@ -26,7 +26,15 @@ export function useProjectEffort(projectId: string | null, workspaceId: string |
   const [saving, setSaving] = useState(false)
 
   const memberUserIds = useMemo(() => members.map((m) => m.userId), [members])
-  const { labelFor } = useResolveUsers(memberUserIds)
+  const { labelFor, personFor } = useResolveUsers(memberUserIds)
+  const memberOptions = useMemo(
+    () =>
+      members.flatMap((member) => {
+        const person = personFor(member.userId)
+        return person ? [{ value: member.id, person }] : []
+      }),
+    [members, personFor]
+  )
 
   const load = useCallback(async () => {
     if (!projectId) return
@@ -54,9 +62,9 @@ export function useProjectEffort(projectId: string | null, workspaceId: string |
 
   useEffect(() => {
     if (!workspaceId) return
-    void workspaceMembersApi
-      .listWorkspaceMembers(workspaceId, { page: 0, size: 100 })
-      .then((res) => setMembers(res.items.map((m) => ({ id: m.id, userId: m.userId }))))
+    void listWorkspaceMembers(workspaceId, { page: 0, size: 100 }).then((res) =>
+      setMembers(res.items.map((m) => ({ id: m.id, userId: m.userId })))
+    )
   }, [workspaceId])
 
   const createEstimate = useCallback(
@@ -127,6 +135,7 @@ export function useProjectEffort(projectId: string | null, workspaceId: string |
     activeActuals,
     snapshots,
     members,
+    memberOptions,
     loading,
     error,
     saving,

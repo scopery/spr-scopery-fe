@@ -3,6 +3,7 @@ import {
   DefectPriority,
   DefectSeverity,
   ReleaseType,
+  RunScope,
   TestCasePriority,
   TestCaseType,
   TestLevel,
@@ -65,6 +66,7 @@ export const QUALITY_BULK_COLUMNS: Record<QualityBulkKind, QualityColumnDef[]> =
   TEST_RUN: [
     { key: 'name', label: 'Name', required: true, placeholder: 'Sprint 12 run' },
     { key: 'runType', label: 'Run type', required: true, placeholder: 'MANUAL' },
+    { key: 'runScope', label: 'Run scope', placeholder: 'FUNCTIONAL' },
   ],
   DEFECT: [
     { key: 'code', label: 'Code', placeholder: 'DEF-001' },
@@ -140,7 +142,10 @@ export function emptyDraftValues(kind: QualityBulkKind): QualityDraftValues {
     values.type = TestCaseType.Functional
     values.priority = TestCasePriority.Medium
   }
-  if (kind === 'TEST_RUN') values.runType = TestRunType.Manual
+  if (kind === 'TEST_RUN') {
+    values.runType = TestRunType.Manual
+    values.runScope = RunScope.Functional
+  }
   if (kind === 'DEFECT') {
     values.category = DefectCategory.Functional
     values.severity = DefectSeverity.Major
@@ -226,11 +231,8 @@ export function mapDraftToCreateInput(
           title: g('title'),
           code: g('code') || null,
           type: enumOr(g('type'), Object.values(TestCaseType), TestCaseType.Functional),
-          priority: enumOr(
-            g('priority'),
-            Object.values(TestCasePriority),
-            TestCasePriority.Medium
-          ),
+          priority: enumOr(g('priority'), Object.values(TestCasePriority), TestCasePriority.Medium),
+          useCaseId: g('useCaseId') || null,
           preconditions: g('preconditions') || null,
           expectedResult: g('expectedResult') || null,
         },
@@ -241,6 +243,9 @@ export function mapDraftToCreateInput(
         payload: {
           name: g('name'),
           runType: enumOr(g('runType'), Object.values(TestRunType), TestRunType.Manual),
+          runScope: enumOr(g('runScope'), Object.values(RunScope), RunScope.Functional),
+          testPlanId: g('testPlanId') || null,
+          testSuiteId: g('testSuiteId') || null,
         },
       }
     case 'DEFECT':

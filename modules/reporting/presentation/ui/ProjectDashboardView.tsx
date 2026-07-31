@@ -39,9 +39,13 @@ export function ProjectDashboardView() {
   const setupMode = pulse.setup.show
 
   return (
-    <div className="-m-lg min-h-full bg-neutral-50 p-lg">
-      <Stack direction="vertical" spacing="lg">
-        <ProjectPulseHeader brief={pulse.brief} onRefresh={() => void refetch()} refreshing={loading} />
+    <div className="min-h-full bg-neutral-50 px-3 py-3 lg:px-4 lg:py-3">
+      <Stack direction="vertical" spacing="md">
+        <ProjectPulseHeader
+          brief={pulse.brief}
+          onRefresh={() => void refetch()}
+          refreshing={loading}
+        />
 
         {setupMode ? (
           <ProjectSetupMode
@@ -75,17 +79,11 @@ export function ProjectDashboardView() {
             </div>
 
             <div className="grid grid-cols-1 gap-md xl:grid-cols-2">
-              <BaselineOverlayWidget
-                insight={pulse.baselineOverlay}
-                href={pulse.links.schedule}
-              />
+              <BaselineOverlayWidget insight={pulse.baselineOverlay} href={pulse.links.schedule} />
               <BurnupChartWidget insight={pulse.burnup} />
             </div>
 
-            <CapacityHeatmapWidget
-              insight={pulse.capacityHeatmap}
-              href={pulse.links.resources}
-            />
+            <CapacityHeatmapWidget insight={pulse.capacityHeatmap} href={pulse.links.resources} />
 
             <DashboardInsightGrid
               schedule={pulse.schedule}

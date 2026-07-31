@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Search } from 'lucide-react'
 import { Button, Checkbox, Input, Modal, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { useRequirements } from '@/modules/projects/requirements'
@@ -180,7 +181,7 @@ export function RequirementFunctionalLinkPanel({
         key,
         requirementId: link.sourceId,
         functionalItemId: link.targetId,
-        frCode: fr?.code ?? link.targetCode ?? link.targetId.slice(0, 8) + '…',
+        frCode: fr?.code ?? link.targetCode ?? '—',
         frTitle: fr?.title ?? link.targetTitle ?? 'Unknown function',
         linkId: link.id,
         fromFk: false,
@@ -196,7 +197,7 @@ export function RequirementFunctionalLinkPanel({
         key,
         requirementId: req.id,
         functionalItemId: req.functionalItemId,
-        frCode: fr?.code ?? req.functionalItemId.slice(0, 8) + '…',
+        frCode: fr?.code ?? '—',
         frTitle: fr?.title ?? 'Unknown function',
         linkId: null,
         fromFk: true,
@@ -414,6 +415,7 @@ export function RequirementFunctionalLinkPanel({
               onChange={(e) => setReqQuery(e.target.value)}
               placeholder="Search…"
               aria-label="Search requirements"
+              prefix={<Search size={14} />}
             />
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
@@ -437,22 +439,24 @@ export function RequirementFunctionalLinkPanel({
                         onClick={() => setFocusReqId(item.id)}
                         className={cn(
                           'w-full px-3 py-2 text-left text-sm',
-                          active ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100'
+                          active
+                            ? 'bg-secondary text-white'
+                            : 'text-neutral-900 hover:bg-neutral-100'
                         )}
                       >
-                        <div className="truncate font-medium">{item.code}</div>
+                        <div className="truncate font-medium">{item.title}</div>
                         <div
                           className={cn(
                             'truncate text-xs',
-                            active ? 'text-neutral-300' : 'text-neutral-500'
+                            active ? 'text-white/75' : 'text-neutral-500'
                           )}
                         >
-                          {item.title}
+                          {item.code}
                         </div>
                         <div
                           className={cn(
                             'truncate text-xs',
-                            active ? 'text-neutral-400' : 'text-neutral-400'
+                            active ? 'text-white/60' : 'text-neutral-400'
                           )}
                         >
                           {count === 0
@@ -598,6 +602,7 @@ function FunctionCandidatePalette({
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="Search…"
           aria-label="Search functions"
+          prefix={<Search size={14} />}
         />
         <div className="flex flex-wrap items-center justify-between gap-2 border border-neutral-200 bg-neutral-50 px-2.5 py-2">
           <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-700">

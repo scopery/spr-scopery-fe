@@ -1,6 +1,7 @@
 'use client'
 
 import { Check, Plus, Trash2 } from 'lucide-react'
+import { useResolveUsers } from '@/modules/platform'
 import { Badge, Button, Stack, Typography } from '@/shared/ui'
 import type { MeetingAgendaItem, MeetingParticipant } from '../../domain/model/meeting'
 import type { MeetingArtifactLink } from '../../domain/model/artifact-link'
@@ -44,6 +45,9 @@ export function MeetingContextRail({
   onLinkItem,
   onRemoveLink,
 }: MeetingContextRailProps) {
+  const { labelFor } = useResolveUsers(
+    participants.filter((participant) => participant.targetType === 'USER').map((p) => p.targetId)
+  )
   const discussed = agendaDiscussedCount(agendaItems)
   const present = presentCount(participants)
   const showAttendance = mode === 'during' || mode === 'post'
@@ -181,7 +185,9 @@ export function MeetingContextRail({
               >
                 <div className="min-w-0">
                   <Typography variant="small" weight="medium" className="truncate">
-                    {p.displayNameSnapshot ?? p.targetId}
+                    {p.displayNameSnapshot ??
+                      p.emailSnapshot ??
+                      (p.targetType === 'USER' ? labelFor(p.targetId) : 'Unknown participant')}
                   </Typography>
                   <Stack direction="horizontal" spacing="sm" className="mt-0.5 items-center">
                     <Badge tone="neutral">{p.participantRole}</Badge>
@@ -240,7 +246,7 @@ export function MeetingContextRail({
               >
                 <div className="min-w-0">
                   <Typography variant="small" weight="medium" className="truncate">
-                    {link.targetId}
+                    Linked {link.targetType.replace(/_/g, ' ').toLowerCase()}
                   </Typography>
                   <Typography variant="small" tone="muted">
                     {link.targetType} · {link.linkType}

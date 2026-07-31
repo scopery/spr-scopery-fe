@@ -1,7 +1,7 @@
 'use client'
 
 import NextLink from 'next/link'
-import { Typography, PageSkeleton } from '@/shared/ui'
+import { Typography, PageSkeleton, DataTable } from '@/shared/ui'
 import { IamStatusBadge } from './IamStatusBadge'
 import { useIamOwnerPolicies } from '../hooks/useIamOwnerPolicies'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
@@ -39,37 +39,41 @@ export function AdminIamOwnerPoliciesView() {
         </div>
       ) : (
         <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Resource type</th>
-                <th className="px-4 py-3 font-medium">Can delegate</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Version</th>
-              </tr>
-            </thead>
-            <tbody>
-              {policies.map((policy) => (
-                <tr key={policy.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-4 py-3 font-medium">{policy.name}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{policy.resourceType}</td>
-                  <td className="px-4 py-3">{policy.canDelegate ? 'Yes' : 'No'}</td>
-                  <td className="px-4 py-3">
+          <DataTable
+            ariaLabel="Admin Iam Owner Policies"
+            rows={policies}
+            rowKey={(policy) => String(policy.id)}
+            emptyMessage="No items."
+            columns={[
+              { id: 'name', header: 'Name', accessor: 'name' },
+              {
+                id: 'resource-type',
+                header: 'Resource type',
+                accessor: 'resourceType',
+                cellClassName: 'text-xs',
+              },
+              {
+                id: 'can-delegate',
+                header: 'Can delegate',
+                cell: (policy) => <>{policy.canDelegate ? 'Yes' : 'No'}</>,
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (policy) => (
+                  <>
                     <IamStatusBadge status={policy.status} />
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600">{policy.version}</td>
-                </tr>
-              ))}
-              {!policies.length && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-neutral-400">
-                    No owner policies found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  </>
+                ),
+              },
+              {
+                id: 'version',
+                header: 'Version',
+                accessor: 'version',
+                cellClassName: 'text-neutral-600',
+              },
+            ]}
+          />
         </div>
       )}
     </div>

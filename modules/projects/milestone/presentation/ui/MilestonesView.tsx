@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, PageSkeleton, Stack, Typography } from '@/shared/ui'
+import { Badge, Button, DataTable, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { useProject } from '../../../project/hooks/useProject'
 import { useProjectMilestones } from '../hooks/useProjectMilestones'
 import { CreateMilestoneModal } from './CreateMilestoneModal'
@@ -58,7 +58,7 @@ export function MilestonesView() {
   if (forbidden) {
     return (
       <div className="border border-neutral-200 bg-white p-8 text-center">
-        <Typography weight="medium">You don't have access to milestones</Typography>
+        <Typography weight="medium">You don&apos;t have access to milestones</Typography>
       </div>
     )
   }
@@ -71,9 +71,9 @@ export function MilestonesView() {
         current="Milestones"
       />
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 pb-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Milestones
           </Typography>
           {project ? (
@@ -95,81 +95,69 @@ export function MilestonesView() {
         </div>
       ) : null}
 
-      <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">Code / Name</th>
-              <th className="px-4 py-3 font-medium">Target date</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {milestones.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center">
-                  <Typography variant="small" tone="muted">
-                    No milestones yet
-                  </Typography>
-                </td>
-              </tr>
-            ) : (
-              milestones.map((m) => (
-                <tr key={m.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-4 py-3">
-                    <Typography as="span" variant="small" tone="muted" className="font-mono">
-                      {m.code}
+      <div className="border border-neutral-200 bg-white">
+        <DataTable
+          ariaLabel="Project milestones"
+          rows={milestones}
+          rowKey={(milestone) => milestone.id}
+          emptyMessage="No milestones yet"
+          columns={[
+            { id: 'code', header: 'Code', accessor: 'code', kind: 'code' },
+            { id: 'name', header: 'Name', accessor: 'name' },
+            {
+              id: 'targetDate',
+              header: 'Target date',
+              cell: (milestone) => (
+                <div>
+                  <Typography variant="small">{milestone.targetDate ?? '—'}</Typography>
+                  {isOverdueMilestone(milestone) ? (
+                    <Typography variant="small" className="text-red-600">
+                      Overdue
                     </Typography>
-                    <Typography as="div" weight="medium">
-                      {m.name}
-                    </Typography>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Typography variant="small">
-                      {m.targetDate ?? '—'}
-                    </Typography>
-                    {isOverdueMilestone(m) && (
-                      <Typography variant="small" className="text-red-600">
-                        Overdue
-                      </Typography>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={milestoneStatusTone(m.status)}>
-                      {milestoneStatusLabel(m.status)}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Stack direction="horizontal" spacing="sm">
-                      {canAchieveMilestone(m) && (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          disabled={actingId === m.id}
-                          onClick={() => void handleAchieve(m.id)}
-                        >
-                          Achieve
-                        </Button>
-                      )}
-                      {m.status !== 'ARCHIVED' && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          tone="error"
-                          disabled={actingId === m.id}
-                          onClick={() => void handleArchive(m.id)}
-                        >
-                          Archive
-                        </Button>
-                      )}
-                    </Stack>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  ) : null}
+                </div>
+              ),
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (milestone) => (
+                <Badge tone={milestoneStatusTone(milestone.status)}>
+                  {milestoneStatusLabel(milestone.status)}
+                </Badge>
+              ),
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (milestone) => (
+                <Stack direction="horizontal" spacing="sm">
+                  {canAchieveMilestone(milestone) ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={actingId === milestone.id}
+                      onClick={() => void handleAchieve(milestone.id)}
+                    >
+                      Achieve
+                    </Button>
+                  ) : null}
+                  {milestone.status !== 'ARCHIVED' ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      tone="error"
+                      disabled={actingId === milestone.id}
+                      onClick={() => void handleArchive(milestone.id)}
+                    >
+                      Archive
+                    </Button>
+                  ) : null}
+                </Stack>
+              ),
+            },
+          ]}
+        />
       </div>
 
       <CreateMilestoneModal

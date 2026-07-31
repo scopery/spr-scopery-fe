@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import NextLink from 'next/link'
 import { ArrowLeft, Plus } from 'lucide-react'
-import { Typography, Button, Stack, Input } from '@/shared/ui'
+import { Typography, Button, Stack, Input, Card } from '@/shared/ui'
 import { useIamUserCreate } from '../hooks/useIamUserCreate'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 
@@ -55,7 +55,7 @@ export function AdminIamUserCreateView() {
         </Typography>
       </div>
 
-      <div className="max-w-md border border-neutral-200 bg-white p-6">
+      <Card className="max-w-md p-6">
         <Stack direction="vertical" spacing="md">
           <Input
             label="Username"
@@ -110,7 +110,7 @@ export function AdminIamUserCreateView() {
             </NextLink>
           </Stack>
         </Stack>
-      </div>
+      </Card>
     </div>
   )
 }

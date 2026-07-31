@@ -35,8 +35,8 @@ export function CreateWorkspaceInvitationModal(props: CreateWorkspaceInvitationM
       {invitationCode ? (
         <Stack direction="vertical" spacing="sm">
           <Typography variant="small" tone="muted">
-            Share this code with your teammate. They can enter it during onboarding under
-            &quot;Join with invitation code&quot;.
+            Share this code with your teammate. They can enter it during onboarding under &quot;Join
+            with invitation code&quot;.
           </Typography>
           <Typography variant="small" tone="warning">
             This code is shown only once. Copy it now — you cannot retrieve it later.

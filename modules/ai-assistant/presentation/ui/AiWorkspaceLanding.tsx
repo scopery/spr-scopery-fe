@@ -11,7 +11,7 @@ import {
   ListTodo,
   Sparkles,
 } from 'lucide-react'
-import { Typography } from '@/shared/ui'
+import { Card, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 
 export type AiLandingMode = 'project' | 'document' | 'general'
@@ -21,7 +21,22 @@ export interface AiLandingPrompt {
   title: string
   description: string
   prompt: string
-  icon?: 'health' | 'changes' | 'overdue' | 'risks' | 'weekly' | 'milestone' | 'summarize' | 'requirements' | 'tasks' | 'sections' | 'ask' | 'workspace' | 'pick-project' | 'pick-docs' | 'general'
+  icon?:
+    | 'health'
+    | 'changes'
+    | 'overdue'
+    | 'risks'
+    | 'weekly'
+    | 'milestone'
+    | 'summarize'
+    | 'requirements'
+    | 'tasks'
+    | 'sections'
+    | 'ask'
+    | 'workspace'
+    | 'pick-project'
+    | 'pick-docs'
+    | 'general'
 }
 
 const PROJECT_PROMPTS: AiLandingPrompt[] = [
@@ -231,13 +246,14 @@ export function AiWorkspaceLanding({
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {prompts.map((item) => (
-            <button
+            <Card
+              as="button"
               key={item.id}
               type="button"
               disabled={disabled}
               onClick={() => onSelectPrompt(item)}
               className={cn(
-                'group border border-neutral-200 bg-white p-4 text-left transition-all',
+                'group p-4 text-left transition-all',
                 'hover:border-primary/30 hover:shadow-sm',
                 'disabled:cursor-not-allowed disabled:opacity-50'
               )}
@@ -249,7 +265,7 @@ export function AiWorkspaceLanding({
               <Typography as="span" variant="caption" tone="muted" className="mt-1 block">
                 {item.description}
               </Typography>
-            </button>
+            </Card>
           ))}
         </div>
 

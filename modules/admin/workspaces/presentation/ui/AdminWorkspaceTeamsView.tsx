@@ -3,7 +3,7 @@
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { Archive, ArrowLeft, Check } from 'lucide-react'
-import { Badge, Button, PageSkeleton, Typography } from '@/shared/ui'
+import { Badge, Button, PageSkeleton, Typography, DataTable } from '@/shared/ui'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 import { useWorkspaceTeams } from '../hooks/useWorkspacesV1'
 
@@ -64,63 +64,76 @@ export function AdminWorkspaceTeamsView() {
       </div>
 
       <div className="overflow-hidden border border-neutral-200 bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-neutral-200 bg-neutral-50">
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Name</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Code</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Status</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Updated</th>
-              <th className="min-w-[12rem] whitespace-nowrap px-4 py-3 text-right font-medium text-neutral-600">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-neutral-500">
-                  No teams
-                </td>
-              </tr>
-            ) : (
-              items.map((t) => {
+        <DataTable
+          ariaLabel="Admin Workspace Teams"
+          rows={items}
+          rowKey={(t) => String(t.id)}
+          emptyMessage="No items."
+          columns={[
+            { id: 'name', header: 'Name', accessor: 'name' },
+            {
+              id: 'code',
+              header: 'Code',
+              accessor: 'code',
+              kind: 'code',
+              cellClassName: 'text-xs',
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (t) => {
                 const active = t.status === 'ACTIVE'
                 return (
-                  <tr key={t.id} className="border-b border-neutral-100 last:border-0">
-                    <td className="px-4 py-3 font-medium">{t.name}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{t.code}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant="solid" tone={active ? 'success' : 'neutral'}>
-                        {formatStatusLabel(t.status)}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-neutral-600">{formatDate(t.updatedAt)}</td>
-                    <td className="px-4 py-3 text-right">
-                      {active ? (
-                        <Button
-                          variant="ghost"
-                          disabled={actingId === t.id}
-                          onClick={() => void archiveTeam(t.id)}
-                          icon={<Archive size={16} />}
-                        >
-                          Archive
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          disabled={actingId === t.id}
-                          onClick={() => void activateTeam(t.id)}
-                          icon={<Check size={16} />}
-                        >
-                          Activate
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
+                  <>
+                    <Badge variant="solid" tone={active ? 'success' : 'neutral'}>
+                      {formatStatusLabel(t.status)}
+                    </Badge>
+                  </>
                 )
-              })
-            )}
-          </tbody>
-        </table>
+              },
+            },
+            {
+              id: 'updated',
+              header: 'Updated',
+              cell: (t) => {
+                const active = t.status === 'ACTIVE'
+                return <>{formatDate(t.updatedAt)}</>
+              },
+              cellClassName: 'text-neutral-600',
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (t) => {
+                const active = t.status === 'ACTIVE'
+                return (
+                  <>
+                    {active ? (
+                      <Button
+                        variant="ghost"
+                        disabled={actingId === t.id}
+                        onClick={() => void archiveTeam(t.id)}
+                        icon={<Archive size={16} />}
+                      >
+                        Archive
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        disabled={actingId === t.id}
+                        onClick={() => void activateTeam(t.id)}
+                        icon={<Check size={16} />}
+                      >
+                        Activate
+                      </Button>
+                    )}
+                  </>
+                )
+              },
+              cellClassName: 'text-right',
+            },
+          ]}
+        />
       </div>
     </div>
   )

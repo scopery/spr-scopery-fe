@@ -16,8 +16,10 @@ export function PortalProjectHomeView() {
   ]
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Project home</Typography>
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <Typography as="h1" size="md" weight="medium">
+        Project home
+      </Typography>
       <nav className="flex flex-wrap gap-md">
         {links.map((l) => (
           <Link key={l.href} href={l.href} className="text-sm underline">

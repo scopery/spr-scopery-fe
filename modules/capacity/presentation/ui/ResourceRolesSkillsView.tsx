@@ -3,21 +3,13 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Plus } from 'lucide-react'
-import { Button, Input, Modal, PageSkeleton, Typography } from '@/shared/ui'
+import { Button, Input, Modal, PageSkeleton, Typography, Card } from '@/shared/ui'
 import { useResourceCatalog } from '../hooks/useResourceCatalog'
 
 export function ResourceRolesSkillsView() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
-  const {
-    roles,
-    skills,
-    loading,
-    error,
-    creatingRole,
-    creatingSkill,
-    createRole,
-    createSkill,
-  } = useResourceCatalog(workspaceId)
+  const { roles, skills, loading, error, creatingRole, creatingSkill, createRole, createSkill } =
+    useResourceCatalog(workspaceId)
 
   const [roleModal, setRoleModal] = useState(false)
   const [skillModal, setSkillModal] = useState(false)
@@ -27,7 +19,7 @@ export function ResourceRolesSkillsView() {
   if (loading) return <PageSkeleton variant="list" />
   if (error) {
     return (
-      <div className="border border-error/30 bg-error/5 p-4">
+      <div className="border-error/30 bg-error/5 border p-4">
         <Typography variant="small" tone="error">
           {error}
         </Typography>
@@ -36,18 +28,18 @@ export function ResourceRolesSkillsView() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <Typography as="h1" size="lg" weight="semibold">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2">
+        <Typography as="h1" size="md" weight="medium">
           Resource Roles & Skills
         </Typography>
         <Typography as="p" variant="small" tone="muted" className="mt-1">
-          Capacity planning catalog only. These are not IAM roles or cost roles.
-          Edit/archive is unavailable until the backend adds those endpoints.
+          Capacity planning catalog only. These are not IAM roles or cost roles. Edit/archive is
+          unavailable until the backend adds those endpoints.
         </Typography>
       </div>
 
-      <div className="mb-8 border border-neutral-200 bg-white">
+      <Card className="mb-8 border border-neutral-200 bg-white">
         <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
           <Typography weight="semibold" variant="small">
             Resource Roles ({roles.length})
@@ -82,9 +74,9 @@ export function ResourceRolesSkillsView() {
             ))}
           </ul>
         )}
-      </div>
+      </Card>
 
-      <div className="border border-neutral-200 bg-white">
+      <Card className="border border-neutral-200 bg-white">
         <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
           <Typography weight="semibold" variant="small">
             Resource Skills ({skills.length})
@@ -120,7 +112,7 @@ export function ResourceRolesSkillsView() {
             ))}
           </ul>
         )}
-      </div>
+      </Card>
 
       <Modal
         open={roleModal}

@@ -3,13 +3,20 @@
 import { Ban, Plus, Search } from 'lucide-react'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Input, Stack, Typography, Skeleton } from '@/shared/ui'
+import { Button, Select, Stack, Typography, Skeleton, DataTable } from '@/shared/ui'
 import { IamStatusBadge } from '../IamStatusBadge'
-import { IamSearchField } from '../IamSearchField'
 import { iamGrantsApi } from '@/modules/auth/iam'
 import type { IamGrant } from '@/modules/auth/iam'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
+import { UserSearchSelect } from '@/modules/platform'
+import { IamResourceSearchSelect } from '../IamResourceSearchSelect'
+import { IamRoleSearchSelect } from '../IamRoleSearchSelect'
+
+const SUBJECT_TYPE_OPTIONS = [
+  { value: 'USER', label: 'User' },
+  { value: 'ROLE', label: 'Role' },
+]
 
 export function IamGrantsPanel() {
   const [subjectId, setSubjectId] = useState('')
@@ -63,7 +70,7 @@ export function IamGrantsPanel() {
 
   const create = async () => {
     if (!form.subjectId.trim() || !form.resourceId.trim()) {
-      toast.error('Subject ID and resource ID are required')
+      toast.error('Subject and resource are required')
       return
     }
     setCreating(true)
@@ -88,20 +95,25 @@ export function IamGrantsPanel() {
   return (
     <Stack direction="vertical" spacing="md">
       <Stack direction="horizontal" spacing="sm" className="flex-wrap items-center">
-        <IamSearchField
-          placeholder="Subject ID"
-          value={subjectId}
-          onChange={(e) => setSubjectId(e.target.value)}
-        />
-        <IamSearchField
-          placeholder="Resource ID"
-          value={resourceId}
-          onChange={(e) => setResourceId(e.target.value)}
-        />
+        <div className="min-w-56">
+          <UserSearchSelect label="Filter by user" value={subjectId} onChange={setSubjectId} />
+        </div>
+        <div className="min-w-64">
+          <IamResourceSearchSelect
+            label="Filter by resource"
+            value={resourceId}
+            onChange={setResourceId}
+          />
+        </div>
         <Button variant="primary" onClick={() => void load()} icon={<Search size={16} />}>
           Search
         </Button>
-        <Button variant="neutral-flat" onClick={() => setShowCreate((v) => !v)} icon={!showCreate ? <Plus size={16} /> : undefined}>{showCreate ? 'Cancel' : 'New grant'}
+        <Button
+          variant="neutral-flat"
+          onClick={() => setShowCreate((v) => !v)}
+          icon={!showCreate ? <Plus size={16} /> : undefined}
+        >
+          {showCreate ? 'Cancel' : 'New grant'}
         </Button>
       </Stack>
       {showCreate && (
@@ -110,27 +122,41 @@ export function IamGrantsPanel() {
             Create grant
           </Typography>
           <Stack direction="vertical" spacing="sm" className="max-w-lg">
-            <Input
-              label="Subject type"
+            <Select
               value={form.subjectType}
-              onChange={(e) => setForm((f) => ({ ...f, subjectType: e.target.value }))}
+              options={SUBJECT_TYPE_OPTIONS}
+              onValueChange={(subjectType: string) =>
+                setForm((current) => ({ ...current, subjectType, subjectId: '' }))
+              }
             />
-            <Input
-              label="Subject ID"
-              value={form.subjectId}
-              onChange={(e) => setForm((f) => ({ ...f, subjectId: e.target.value }))}
-            />
-            <Input
-              label="Resource ID"
+            {form.subjectType === 'USER' ? (
+              <UserSearchSelect
+                label="User"
+                value={form.subjectId}
+                onChange={(subjectId) => setForm((current) => ({ ...current, subjectId }))}
+              />
+            ) : (
+              <IamRoleSearchSelect
+                label="Subject role"
+                value={form.subjectId}
+                onChange={(subjectId) => setForm((current) => ({ ...current, subjectId }))}
+              />
+            )}
+            <IamResourceSearchSelect
               value={form.resourceId}
-              onChange={(e) => setForm((f) => ({ ...f, resourceId: e.target.value }))}
+              onChange={(resourceId) => setForm((current) => ({ ...current, resourceId }))}
             />
-            <Input
-              label="Role ID (optional)"
+            <IamRoleSearchSelect
+              optional
               value={form.roleId}
-              onChange={(e) => setForm((f) => ({ ...f, roleId: e.target.value }))}
+              onChange={(roleId) => setForm((current) => ({ ...current, roleId }))}
             />
-            <Button variant="primary" disabled={creating} onClick={() => void create()} icon={<Plus size={16} />}>
+            <Button
+              variant="primary"
+              disabled={creating}
+              onClick={() => void create()}
+              icon={<Plus size={16} />}
+            >
               Create
             </Button>
           </Stack>
@@ -140,54 +166,58 @@ export function IamGrantsPanel() {
         <Skeleton variant="rectangular" width="100%" height={80} />
       ) : (
         <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-3 py-2 font-medium">Subject</th>
-                <th className="px-3 py-2 font-medium">Resource</th>
-                <th className="px-3 py-2 font-medium">Effect</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-                <th className="min-w-[12rem] whitespace-nowrap px-3 py-2 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((grant) => (
-                <tr key={grant.id} className="border-t border-neutral-100">
-                  <td className="px-3 py-2">
+          <DataTable
+            ariaLabel="Iam Grants Panel"
+            rows={items}
+            rowKey={(grant) => String(grant.id)}
+            emptyMessage="No items."
+            columns={[
+              {
+                id: 'subject',
+                header: 'Subject',
+                cell: (grant) => (
+                  <>
                     <Typography as="span" variant="small" tone="muted">
                       {grant.subjectType}
                     </Typography>
-                    <br />
-                    <Typography as="span" variant="small" className="font-mono">
-                      {grant.subjectId}
-                    </Typography>
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs">{grant.resourceId}</td>
-                  <td className="px-3 py-2">{grant.effect}</td>
-                  <td className="px-3 py-2">
+                  </>
+                ),
+              },
+              {
+                id: 'resource',
+                header: 'Resource',
+                accessor: () => '—',
+                kind: 'reference',
+                cellClassName: 'text-xs',
+              },
+              { id: 'effect', header: 'Effect', accessor: 'effect' },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (grant) => (
+                  <>
                     <IamStatusBadge status={grant.status} />
-                  </td>
-                  <td className="px-3 py-2">
+                  </>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (grant) => (
+                  <>
                     <Button
                       variant="ghost"
                       disabled={actingId === grant.id || grant.status !== 'ACTIVE'}
-                      onClick={() => void revoke(grant.id)} icon={<Ban size={16} />}>
+                      onClick={() => void revoke(grant.id)}
+                      icon={<Ban size={16} />}
+                    >
                       Revoke
                     </Button>
-                  </td>
-                </tr>
-              ))}
-              {!items.length && (
-                <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center">
-                    <Typography variant="small" tone="muted">
-                      No grants found
-                    </Typography>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
     </Stack>

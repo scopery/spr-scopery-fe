@@ -57,26 +57,19 @@ function caseLifecycleState(status: string | undefined) {
 
 export function SupportCaseWorkbenchView() {
   const { workspaceId, caseId } = useParams<{ workspaceId: string; caseId: string }>()
-  const {
-    item,
-    comments,
-    loading,
-    error,
-    actionError,
-    triage,
-    resolve,
-    close,
-    addComment,
-  } = useSupportCaseDetail(workspaceId, caseId)
+  const { item, comments, loading, error, actionError, triage, resolve, close, addComment } =
+    useSupportCaseDetail(workspaceId, caseId)
   const [comment, setComment] = useState('')
   const steps = caseLifecycleState(item?.status)
 
-  if (loading) return <PageSkeleton variant="detail" className="p-lg" />
+  if (loading) return <PageSkeleton variant="detail" className="px-3 py-3 lg:px-4 lg:py-3" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Support case</Typography>
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <Typography as="h1" size="md" weight="medium">
+        Support case
+      </Typography>
       {item ? (
         <>
           <Typography variant="h4">{item.title}</Typography>
@@ -140,7 +133,7 @@ export function SupportCaseWorkbenchView() {
           )}
         </>
       ) : (
-        <Typography tone="muted">Case {caseId} not found.</Typography>
+        <Typography tone="muted">Support case not found.</Typography>
       )}
     </Stack>
   )

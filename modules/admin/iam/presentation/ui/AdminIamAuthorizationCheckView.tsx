@@ -3,9 +3,15 @@
 import { Shield } from 'lucide-react'
 
 import React from 'react'
-import { Typography, Button, Stack, Badge } from '@/shared/ui'
+import { Typography, Button, Stack, Badge, Select } from '@/shared/ui'
 import { IamSearchField } from './IamSearchField'
 import { useIamAuthorizationCheck } from '../hooks/useIamAuthorizationCheck'
+import { IamScopeReferenceSelect } from './IamScopeReferenceSelect'
+
+const RESOURCE_TYPE_OPTIONS = ['GLOBAL', 'ORGANIZATION', 'WORKSPACE', 'PROJECT'].map((value) => ({
+  value,
+  label: value,
+}))
 
 export function AdminIamAuthorizationCheckView() {
   const {
@@ -47,19 +53,26 @@ export function AdminIamAuthorizationCheckView() {
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setActionCode(e.target.value)}
           className="w-full max-w-md"
         />
-        <IamSearchField
-          placeholder="resourceType (GLOBAL | WORKSPACE | ORGANIZATION)"
+        <Select
           value={resourceType}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setResourceType(e.target.value)}
-          className="w-full max-w-md"
+          options={RESOURCE_TYPE_OPTIONS}
+          onValueChange={(next: string) => {
+            setResourceType(next)
+            setResourceRefId('')
+          }}
         />
-        <IamSearchField
-          placeholder="resourceRefId (omit for GLOBAL)"
+        <IamScopeReferenceSelect
+          resourceType={resourceType}
           value={resourceRefId}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setResourceRefId(e.target.value)}
-          className="w-full max-w-md"
+          optional
+          onChange={setResourceRefId}
         />
-        <Button variant="primary" disabled={checking} onClick={() => void check()} icon={<Shield size={16} />}>
+        <Button
+          variant="primary"
+          disabled={checking}
+          onClick={() => void check()}
+          icon={<Shield size={16} />}
+        >
           {checking ? 'Checking…' : 'Check authorization'}
         </Button>
         {result && (

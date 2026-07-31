@@ -1,21 +1,20 @@
 'use client'
 
-import {
-  useEffect,
-  useState
-} from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import {
   Button,
-  Input,
   LongRunningJobPanel,
   PageSkeleton,
   Progress,
   Stack,
-  Typography
+  Typography,
+  SearchableSelect,
 } from '@/shared/ui'
 
 import { useDocumentVersionUpload } from '../hooks/useDocumentVersionUpload'
+import * as workbenchApi from '../api/document-workbench.api'
+import type { DocumentTemplate } from '../api/document-workbench.api'
 
 /**
  * Version upload + generated document jobs panel.
@@ -30,10 +29,11 @@ export function DocumentVersionUploadPanel({
 }) {
   const params = useParams<{ workspaceId?: string; projectId?: string; documentId?: string }>()
   const search = useSearchParams()
-  const projectId =
-    projectIdProp ?? params.projectId ?? search.get('projectId') ?? null
+  const projectId = projectIdProp ?? params.projectId ?? search.get('projectId') ?? null
   const documentId = documentIdProp ?? params.documentId ?? search.get('documentId') ?? null
+  const workspaceId = params.workspaceId ?? null
   const [templateId, setTemplateId] = useState('')
+  const [templates, setTemplates] = useState<DocumentTemplate[]>([])
 
   const {
     versions,
@@ -52,6 +52,22 @@ export function DocumentVersionUploadPanel({
     void refreshVersions()
     void refreshJobs()
   }, [refreshVersions, refreshJobs])
+
+  useEffect(() => {
+    if (!workspaceId) return
+    let cancelled = false
+    void workbenchApi
+      .listDocumentTemplates(workspaceId)
+      .then((response) => {
+        if (!cancelled) setTemplates(response.items ?? [])
+      })
+      .catch(() => {
+        if (!cancelled) setTemplates([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [workspaceId])
 
   if (!projectId) {
     return (
@@ -105,11 +121,7 @@ export function DocumentVersionUploadPanel({
               <span className="flex items-center gap-sm">
                 <span className="text-neutral-500">{v.status}</span>
                 {v.status === 'AVAILABLE' ? (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => void download(v.id, v.fileName)}
-                  >
+                  <Button size="sm" variant="ghost" onClick={() => void download(v.id, v.fileName)}>
                     Download
                   </Button>
                 ) : null}
@@ -121,13 +133,19 @@ export function DocumentVersionUploadPanel({
 
       <Typography variant="h4">Generated jobs</Typography>
       <div className="flex flex-wrap gap-xs">
-        <Input
-          size="sm"
-          value={templateId}
-          onChange={(e) => setTemplateId(e.target.value)}
-          placeholder="Template ID"
-          aria-label="Document template ID"
-        />
+        <div className="min-w-64">
+          <SearchableSelect
+            size="sm"
+            value={templateId}
+            options={templates.map((template) => ({
+              value: template.id,
+              label: `${template.code} · ${template.name}`,
+            }))}
+            onValueChange={setTemplateId}
+            placeholder="Select document template"
+            searchPlaceholder="Search template…"
+          />
+        </div>
         <Button
           size="sm"
           disabled={!templateId.trim()}

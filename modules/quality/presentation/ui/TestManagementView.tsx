@@ -55,10 +55,12 @@ export function TestManagementView() {
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <div>
-        <Typography variant="h2">Test Management</Typography>
-        <Typography tone="muted">
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="border-b border-neutral-200 pb-2">
+        <Typography as="h1" size="md" weight="medium">
+          Test Management
+        </Typography>
+        <Typography variant="caption" tone="muted" className="mt-0.5">
           Test plans → suites → cases → runs. Use Single or Bulk add (paste from Excel).
         </Typography>
       </div>

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { ADMIN_ROUTES } from '@/modules/admin'
+import { useAgents } from '@/modules/ai-agent-admin/agents'
 import {
   Button,
   ConfirmDialog,
@@ -13,6 +14,7 @@ import {
   Select,
   Stack,
   Typography,
+  DataTable,
 } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
 import { useCanManageAiConfig } from '../../../presentation/hooks/useCanManageAiConfig'
@@ -22,18 +24,9 @@ import {
   PromptContentFormat,
   PromptVersionStatus,
 } from '../../domain/enums/prompt.enum'
-import {
-  validatePromptContent,
-  validateVariableSchema,
-} from '../../domain/rules/prompt.rules'
-import {
-  usePromptTemplateDetail,
-  usePromptVersions,
-} from '../hooks/usePrompts'
-import {
-  usePromptTemplateMutations,
-  usePromptVersionMutations,
-} from '../hooks/usePromptMutations'
+import { validatePromptContent, validateVariableSchema } from '../../domain/rules/prompt.rules'
+import { usePromptTemplateDetail, usePromptVersions } from '../hooks/usePrompts'
+import { usePromptTemplateMutations, usePromptVersionMutations } from '../hooks/usePromptMutations'
 import { PromptTemplateFormModal } from './PromptTemplateFormModal'
 
 export function PromptTemplateDetailView() {
@@ -41,6 +34,7 @@ export function PromptTemplateDetailView() {
   const router = useRouter()
   const canManage = useCanManageAiConfig()
   const { template, loading, error, refetch } = usePromptTemplateDetail(templateId)
+  const { items: agents } = useAgents({ page: 0, size: 100 })
   const {
     items: versions,
     loading: versionsLoading,
@@ -69,6 +63,7 @@ export function PromptTemplateDetailView() {
     () => versions.find((v) => v.status === PromptVersionStatus.Active),
     [versions]
   )
+  const agent = agents.find((item) => item.id === template?.agentId)
 
   const resetCreateForm = () => {
     setTitle('')
@@ -138,7 +133,7 @@ export function PromptTemplateDetailView() {
           <Typography variant="h2" className="mt-sm">
             {template.name}
           </Typography>
-          <Typography variant="caption" tone="muted" className="mt-1 block font-mono">
+          <Typography variant="caption" tone="muted" className="mt-1 block font-normal">
             {template.code}
           </Typography>
         </div>
@@ -187,49 +182,47 @@ export function PromptTemplateDetailView() {
           Version history
         </Typography>
         <div className="overflow-x-auto border border-neutral-200 bg-white">
-          <table className="min-w-full text-sm">
-            <thead className="border-b border-neutral-200 bg-neutral-50 text-left">
-              <tr>
-                <th className="px-4 py-3 font-medium">Title</th>
-                <th className="px-4 py-3 font-medium">Format</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Updated</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {versions.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-neutral-500">
-                    No versions yet.
-                  </td>
-                </tr>
-              ) : (
-                versions.map((v) => (
-                  <tr key={v.id} className="border-b border-neutral-100">
-                    <td className="px-4 py-3">{v.title}</td>
-                    <td className="px-4 py-3">{v.contentFormat}</td>
-                    <td className="px-4 py-3">
-                      <AiLifecycleStatusBadge status={v.status} />
-                    </td>
-                    <td className="px-4 py-3 text-xs text-neutral-500">
-                      {v.updatedAt ? new Date(v.updatedAt).toLocaleString() : '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Button
-                        as={NextLink}
-                        href={ADMIN_ROUTES.aiControlPromptVersion(templateId, v.id)}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Open studio
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          <DataTable
+            ariaLabel="Prompt Template Detail"
+            rows={versions}
+            rowKey={(v) => String(v.id)}
+            emptyMessage="No items."
+            columns={[
+              { id: 'title', header: 'Title', accessor: 'title' },
+              { id: 'format', header: 'Format', accessor: 'contentFormat' },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (v) => (
+                  <>
+                    <AiLifecycleStatusBadge status={v.status} />
+                  </>
+                ),
+              },
+              {
+                id: 'updated',
+                header: 'Updated',
+                cell: (v) => <>{v.updatedAt ? new Date(v.updatedAt).toLocaleString() : '—'}</>,
+                cellClassName: 'text-xs text-neutral-500',
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (v) => (
+                  <>
+                    <Button
+                      as={NextLink}
+                      href={ADMIN_ROUTES.aiControlPromptVersion(templateId, v.id)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Open studio
+                    </Button>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       </div>
 
@@ -237,7 +230,12 @@ export function PromptTemplateDetailView() {
         open={editOpen}
         onClose={() => setEditOpen(false)}
         template={template}
-        agentOptions={[{ value: template.agentId, label: template.agentId }]}
+        agentOptions={[
+          {
+            value: template.agentId,
+            label: agent ? `${agent.name} (${agent.code})` : 'Unavailable agent',
+          },
+        ]}
         onSaved={() => void refetch()}
       />
 
@@ -272,12 +270,7 @@ export function PromptTemplateDetailView() {
               {fieldError}
             </Typography>
           ) : null}
-          <Input
-            label="Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
+          <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
           <div>
             <Typography variant="caption" tone="muted" className="mb-1 block">
               Content format
@@ -296,7 +289,7 @@ export function PromptTemplateDetailView() {
               Content
             </Typography>
             <textarea
-              className="min-h-[160px] w-full border border-neutral-200 p-sm font-mono text-sm"
+              className="min-h-[160px] w-full border border-neutral-200 p-sm text-sm font-normal"
               value={content}
               onChange={(e) => setContent(e.target.value)}
             />
@@ -306,7 +299,7 @@ export function PromptTemplateDetailView() {
               Variable schema (JSON)
             </Typography>
             <textarea
-              className="min-h-[80px] w-full border border-neutral-200 p-sm font-mono text-sm"
+              className="min-h-[80px] w-full border border-neutral-200 p-sm text-sm font-normal"
               value={variableSchema}
               onChange={(e) => setVariableSchema(e.target.value)}
               placeholder='{"vars":[]}'
@@ -327,9 +320,7 @@ export function PromptTemplateDetailView() {
         message={`Deactivate “${template.name}”?`}
         confirmLabel="Deactivate"
         variant="danger"
-        onConfirm={() =>
-          void deactivate(template.id).then(() => setDeactivateOpen(false))
-        }
+        onConfirm={() => void deactivate(template.id).then(() => setDeactivateOpen(false))}
       />
     </Stack>
   )

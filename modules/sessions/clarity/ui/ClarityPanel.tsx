@@ -119,7 +119,7 @@ export function ClarityPanel({
         <Typography variant="small" weight="medium" className="mb-1 text-neutral-500">
           Readiness
         </Typography>
-        <Typography size="lg" weight="semibold" className="text-neutral-900">
+        <Typography size="md" weight="medium" className="text-neutral-900">
           {readinessLabelDisplay} {formatScore(overallReadiness)}
         </Typography>
         <div className="mt-2 space-y-1">
@@ -289,7 +289,8 @@ export function ClarityPanel({
             onClick={onBulkAssess}
             loading={bulkAssessLoading}
             className="w-full gap-2"
-           icon={<Sparkles size={16} />}>
+            icon={<Sparkles size={16} />}
+          >
             <ClipboardCheck size={14} />
             Assess missing required answers
           </Button>

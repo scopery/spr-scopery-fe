@@ -5,7 +5,18 @@ import NextLink from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, Input, Modal, PageSkeleton, Select, Textarea, Typography } from '@/shared/ui'
+import {
+  Badge,
+  Button,
+  Card,
+  DataTable,
+  Input,
+  Modal,
+  PageSkeleton,
+  Select,
+  Textarea,
+  Typography,
+} from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { ROUTES } from '@/constants/routes'
 import * as scheduleApi from '@/modules/projects/schedule/infrastructure/api/schedule.api'
@@ -73,31 +84,31 @@ export function BaselinesRegisterView() {
   if (loading && baselines.length === 0) return <PageSkeleton variant="list" />
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="border border-neutral-200 bg-white p-8 text-center">
         <Typography weight="medium">You don’t have access to baselines</Typography>
-      </div>
+      </Card>
     )
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
         current="Baselines"
       />
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
+      <div className="mb-2 mt-1 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Baselines
           </Typography>
           {current ? (
-            <Typography variant="small" tone="muted" className="mt-1">
+            <Typography variant="caption" tone="muted" className="mt-0.5">
               Active baseline: {current.name} (#{current.baselineNumber})
             </Typography>
           ) : (
-            <Typography variant="small" tone="muted" className="mt-1">
+            <Typography variant="caption" tone="muted" className="mt-0.5">
               No active baseline yet
             </Typography>
           )}
@@ -115,116 +126,106 @@ export function BaselinesRegisterView() {
         </div>
       ) : null}
 
-      <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">Baseline</th>
-              <th className="px-4 py-3 font-medium">#</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Active</th>
-              <th className="px-4 py-3 font-medium">Approved</th>
-              <th className="px-4 py-3 font-medium">Updated</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {baselines.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center">
-                  <Typography variant="small" tone="muted">
-                    No baselines yet
-                  </Typography>
-                </td>
-              </tr>
-            ) : (
-              baselines.map((b) => (
-                <tr key={b.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-4 py-3">
-                    <NextLink
-                      href={ROUTES.workspace.projectBaseline(workspaceId, projectId, b.id)}
-                      className="font-medium text-primary underline-offset-2 hover:underline"
-                    >
-                      {b.name}
-                    </NextLink>
-                  </td>
-                  <td className="px-4 py-3">{b.baselineNumber}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant="solid" tone={baselineStatusTone(b.status)}>
-                      {baselineStatusLabel(b.status)}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    {b.currentFlag ? (
-                      <Badge variant="solid" tone="success" size="sm">
-                        Yes
-                      </Badge>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td className="px-4 py-3">{fmt(b.approvedAt)}</td>
-                  <td className="px-4 py-3">{fmt(b.updatedAt)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {canCaptureBaselineSnapshot(b) ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            void run('Latest project state captured', () => refresh(b.id))
-                          }
-                        >
-                          Capture
-                        </Button>
-                      ) : null}
-                      {canValidateBaseline(b) ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => void run('Baseline checked', () => validate(b.id))}
-                        >
-                          Check
-                        </Button>
-                      ) : null}
-                      {canApproveBaseline(b) ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => void run('Approved', () => approve(b.id))}
-                        >
-                          Approve
-                        </Button>
-                      ) : null}
-                      {canMarkBaselineCurrent(b) ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => void run('Now the active baseline', () => markCurrent(b.id))}
-                        >
-                          Use as active
-                        </Button>
-                      ) : null}
-                      {b.status !== 'ARCHIVED' ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            if (!window.confirm(`Archive “${b.name}”?`)) return
-                            void run('Archived', () => archive(b.id))
-                          }}
-                        >
-                          Archive
-                        </Button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        ariaLabel="Baselines"
+        rows={baselines}
+        rowKey={(baseline) => baseline.id}
+        emptyMessage="No baselines yet"
+        columns={[
+          {
+            id: 'baseline',
+            header: 'Baseline',
+            cell: (b) => (
+              <NextLink
+                href={ROUTES.workspace.projectBaseline(workspaceId, projectId, b.id)}
+                className="font-medium text-primary underline-offset-2 hover:underline"
+              >
+                {b.name}
+              </NextLink>
+            ),
+          },
+          { id: 'number', header: '#', accessor: 'baselineNumber' },
+          {
+            id: 'status',
+            header: 'Status',
+            cell: (b) => (
+              <Badge variant="solid" tone={baselineStatusTone(b.status)}>
+                {baselineStatusLabel(b.status)}
+              </Badge>
+            ),
+          },
+          {
+            id: 'active',
+            header: 'Active',
+            cell: (b) =>
+              b.currentFlag ? (
+                <Badge variant="solid" tone="success" size="sm">
+                  Yes
+                </Badge>
+              ) : (
+                '—'
+              ),
+          },
+          { id: 'approved', header: 'Approved', accessor: (b) => fmt(b.approvedAt) },
+          { id: 'updated', header: 'Updated', accessor: (b) => fmt(b.updatedAt) },
+          {
+            id: 'actions',
+            header: 'Actions',
+            cell: (b) => (
+              <div className="flex flex-wrap gap-1">
+                {canCaptureBaselineSnapshot(b) ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void run('Latest project state captured', () => refresh(b.id))}
+                  >
+                    Capture
+                  </Button>
+                ) : null}
+                {canValidateBaseline(b) ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void run('Baseline checked', () => validate(b.id))}
+                  >
+                    Check
+                  </Button>
+                ) : null}
+                {canApproveBaseline(b) ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void run('Approved', () => approve(b.id))}
+                  >
+                    Approve
+                  </Button>
+                ) : null}
+                {canMarkBaselineCurrent(b) ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void run('Now the active baseline', () => markCurrent(b.id))}
+                  >
+                    Use as active
+                  </Button>
+                ) : null}
+                {b.status !== 'ARCHIVED' ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      if (!window.confirm(`Archive “${b.name}”?`)) return
+                      void run('Archived', () => archive(b.id))
+                    }}
+                  >
+                    Archive
+                  </Button>
+                ) : null}
+              </div>
+            ),
+          },
+        ]}
+      />
 
       <CreateBaselineModal
         open={createOpen}
@@ -240,9 +241,7 @@ export function BaselinesRegisterView() {
             const created = await create(body)
             toast.success('Baseline created')
             if (created) {
-              router.push(
-                ROUTES.workspace.projectBaseline(workspaceId, projectId, created.id)
-              )
+              router.push(ROUTES.workspace.projectBaseline(workspaceId, projectId, created.id))
             }
           } catch (err) {
             toast.error(getProblemToastMessage(err))
@@ -272,9 +271,7 @@ function CreateBaselineModal({
   const [financeId, setFinanceId] = useState('')
   const [quoteVersionId, setQuoteVersionId] = useState('')
   const [scheduleOpts, setScheduleOpts] = useState<Array<{ value: string; label: string }>>([])
-  const [estimationOpts, setEstimationOpts] = useState<Array<{ value: string; label: string }>>(
-    []
-  )
+  const [estimationOpts, setEstimationOpts] = useState<Array<{ value: string; label: string }>>([])
   const [financeOpts, setFinanceOpts] = useState<Array<{ value: string; label: string }>>([])
   const [quoteOpts, setQuoteOpts] = useState<Array<{ value: string; label: string }>>([])
   const [loading, setLoading] = useState(false)

@@ -4,7 +4,16 @@ import { UserPlus } from 'lucide-react'
 
 import { useState } from 'react'
 import NextLink from 'next/link'
-import { Badge, Button, ConfirmDialog, Link as DesignLink, Typography, PageSkeleton } from '@/shared/ui'
+import {
+  Badge,
+  Button,
+  Card,
+  ConfirmDialog,
+  DataTable,
+  Link as DesignLink,
+  Typography,
+  PageSkeleton,
+} from '@/shared/ui'
 import { PLATFORM_ROUTES } from '@/modules/platform/lib/routes'
 import { toast } from 'sonner'
 import { useMyJoinRequests } from '../hooks/useMyJoinRequests'
@@ -37,21 +46,19 @@ export function AccountJoinRequestsView() {
       toast.success('Join request cancelled')
       setCancelTarget(null)
     } catch {
-      /* global interceptor */
+      /* Error toast is handled centrally. */
     } finally {
       setActionLoading(false)
     }
   }
 
   if (loading) {
-    return (
-      <PageSkeleton variant="list" />
-    )
+    return <PageSkeleton variant="list" />
   }
 
   return (
-    <div className="border border-neutral-200 bg-white p-6">
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <Card className="p-6">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
         <div>
           <Typography as="h2" size="lg" weight="bold" className="mb-1">
             Join requests
@@ -68,65 +75,68 @@ export function AccountJoinRequestsView() {
       </div>
 
       {items.length === 0 ? (
-        <div className="border border-neutral-200 bg-neutral-50 p-6 text-center">
+        <Card className="bg-neutral-50 p-6 text-center">
           <Typography variant="small" tone="muted" className="mb-3">
             No join requests tracked yet. Submit one with a workspace code to get started.
           </Typography>
           <DesignLink as={NextLink} href={PLATFORM_ROUTES.join}>
             Go to request form
           </DesignLink>
-        </div>
+        </Card>
       ) : (
-        <div className="overflow-hidden border border-neutral-200">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-neutral-200 bg-neutral-50">
-                <th className="px-4 py-3 text-left font-medium text-neutral-600">Workspace</th>
-                <th className="px-4 py-3 text-left font-medium text-neutral-600">Status</th>
-                <th className="px-4 py-3 text-left font-medium text-neutral-600">Submitted</th>
-                <th className="min-w-[14rem] whitespace-nowrap px-4 py-3 text-left font-medium text-neutral-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((req) => (
-                <tr key={req.id} className="border-b border-neutral-100 last:border-0">
-                  <td className="px-4 py-3">
-                    <Typography weight="medium">
-                      {req.workspaceCode || req.workspaceId.slice(0, 8) + '…'}
-                    </Typography>
-                    {req.message && (
+        <div className="border border-neutral-200">
+          <DataTable
+            ariaLabel="My workspace join requests"
+            rows={items}
+            rowKey={(req) => req.id}
+            columns={[
+              {
+                id: 'workspace',
+                header: 'Workspace',
+                kind: 'code',
+                cell: (req) => (
+                  <div>
+                    <Typography weight="medium">{req.workspaceCode || '—'}</Typography>
+                    {req.message ? (
                       <Typography variant="small" tone="muted" className="mt-0.5">
                         {req.message}
                       </Typography>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant="solid" tone={statusTone(req.status)}>
-                      {req.status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600">
-                    {new Date(req.createdAt).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    {req.status === JoinRequestStatus.Pending ? (
-                      <Button
-                        variant="ghost"
-                        tone="error"
-                        onClick={() => setCancelTarget(req)}
-                      >
-                        Cancel
-                      </Button>
-                    ) : (
-                      <Typography variant="small" tone="muted">
-                        —
-                      </Typography>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    ) : null}
+                  </div>
+                ),
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (req) => (
+                  <Badge variant="solid" tone={statusTone(req.status)}>
+                    {req.status
+                      .replace(/_/g, ' ')
+                      .toLowerCase()
+                      .replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'submitted',
+                header: 'Submitted',
+                accessor: (req) => new Date(req.createdAt).toLocaleString(),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                width: '14rem',
+                cell: (req) =>
+                  req.status === JoinRequestStatus.Pending ? (
+                    <Button variant="ghost" tone="error" onClick={() => setCancelTarget(req)}>
+                      Cancel
+                    </Button>
+                  ) : (
+                    '—'
+                  ),
+              },
+            ]}
+          />
         </div>
       )}
 
@@ -140,6 +150,6 @@ export function AccountJoinRequestsView() {
         loading={actionLoading}
         onConfirm={handleCancel}
       />
-    </div>
+    </Card>
   )
 }

@@ -2,10 +2,23 @@
 
 import { Ban, Check } from 'lucide-react'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Typography, Badge, Button, ConfirmDialog, Input, Modal, PageSkeleton, Skeleton, Select } from '@/shared/ui'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import {
+  Typography,
+  Badge,
+  Button,
+  Card,
+  ConfirmDialog,
+  DataTable,
+  Input,
+  Modal,
+  PageSkeleton,
+  Skeleton,
+  Select,
+} from '@/shared/ui'
+import { UserIdentity, useResolveUsers } from '@/modules/platform'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { useWorkspaceAuthorization } from '@/modules/auth/iam'
 import { toast } from 'sonner'
 import { useWorkspaceJoinRequests } from '../hooks/useWorkspaceJoinRequests'
@@ -43,6 +56,8 @@ export function WorkspaceJoinRequestsView({ embedded = false }: { embedded?: boo
   const [rejectTarget, setRejectTarget] = useState<JoinRequest | null>(null)
   const [rejectNote, setRejectNote] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
+  const requesterIds = useMemo(() => items.map((item) => item.requestedByUserId), [items])
+  const { peopleById } = useResolveUsers(requesterIds)
 
   useEffect(() => {
     if (canManageJoinRequests) void load()
@@ -57,7 +72,7 @@ export function WorkspaceJoinRequestsView({ embedded = false }: { embedded?: boo
       setApproveTarget(null)
       await load()
     } catch {
-      /* global interceptor */
+      /* Error toast is handled centrally. */
     } finally {
       setActionLoading(false)
     }
@@ -75,16 +90,14 @@ export function WorkspaceJoinRequestsView({ embedded = false }: { embedded?: boo
       setRejectNote('')
       await load()
     } catch {
-      /* global interceptor */
+      /* Error toast is handled centrally. */
     } finally {
       setActionLoading(false)
     }
   }
 
   if (authzLoading) {
-    return (
-      <PageSkeleton variant="list" />
-    )
+    return <PageSkeleton variant="list" />
   }
 
   if (!canManageJoinRequests) {
@@ -97,11 +110,11 @@ export function WorkspaceJoinRequestsView({ embedded = false }: { embedded?: boo
             className="mb-4"
           />
         ) : null}
-        <div className="border border-neutral-200 bg-neutral-50 p-4">
+        <Card className="bg-neutral-50 p-4">
           <Typography variant="small" tone="muted">
             You do not have permission to manage workspace join requests.
           </Typography>
-        </div>
+        </Card>
       </div>
     )
   }
@@ -117,7 +130,7 @@ export function WorkspaceJoinRequestsView({ embedded = false }: { embedded?: boo
       ) : null}
       {!embedded ? (
         <div className="mb-6">
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Join requests
           </Typography>
           <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -141,73 +154,84 @@ export function WorkspaceJoinRequestsView({ embedded = false }: { embedded?: boo
         </Typography>
       )}
 
-      <div className="overflow-hidden border border-neutral-200 bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-neutral-200 bg-neutral-50">
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Requester</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Message</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Status</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Submitted</th>
-              <th className="min-w-[16rem] whitespace-nowrap px-4 py-3 text-left font-medium text-neutral-600">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center">
-                  <Skeleton variant="rectangular" width="100%" height={80} />
-                </td>
-              </tr>
-            ) : items.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-neutral-500">
-                  No join requests
-                </td>
-              </tr>
-            ) : (
-              items.map((req) => (
-                <tr key={req.id} className="border-b border-neutral-100 last:border-0">
-                  <td className="px-4 py-3 font-mono text-xs text-neutral-700">
-                    {req.requestedByUserId.slice(0, 8)}…
-                  </td>
-                  <td className="max-w-xs truncate px-4 py-3 text-neutral-700">
-                    {req.message || '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant="solid" tone={statusTone(req.status)}>
-                      {req.status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600">
-                    {new Date(req.createdAt).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    {req.status === JoinRequestStatus.Pending ? (
-                      <div className="flex flex-nowrap items-center gap-2">
-                        <Button variant="primary" onClick={() => setApproveTarget(req)} icon={<Check size={16} />}>
-                          Approve
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          onClick={() => {
-                            setRejectNote('')
-                            setRejectTarget(req)
-                          }} icon={<Ban size={16} />}>
-                          Reject
-                        </Button>
-                      </div>
-                    ) : (
-                      <Typography variant="small" tone="muted">
-                        —
-                      </Typography>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="border border-neutral-200 bg-white">
+        {loading ? (
+          <div className="p-4">
+            <Skeleton variant="rectangular" width="100%" height={80} />
+          </div>
+        ) : (
+          <DataTable
+            ariaLabel="Workspace join requests"
+            rows={items}
+            rowKey={(req) => req.id}
+            emptyMessage="No join requests"
+            columns={[
+              {
+                id: 'requester',
+                header: 'Requester',
+                kind: 'reference',
+                cell: (req) =>
+                  peopleById[req.requestedByUserId] ? (
+                    <UserIdentity
+                      userId={req.requestedByUserId}
+                      person={peopleById[req.requestedByUserId]}
+                      showEmail
+                      size="sm"
+                    />
+                  ) : (
+                    '—'
+                  ),
+              },
+              { id: 'message', header: 'Message', accessor: (req) => req.message || '—' },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (req) => (
+                  <Badge variant="solid" tone={statusTone(req.status)}>
+                    {req.status
+                      .replace(/_/g, ' ')
+                      .toLowerCase()
+                      .replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'submitted',
+                header: 'Submitted',
+                accessor: (req) => new Date(req.createdAt).toLocaleString(),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                width: '16rem',
+                cell: (req) =>
+                  req.status === JoinRequestStatus.Pending ? (
+                    <div className="flex flex-nowrap items-center gap-2">
+                      <Button
+                        variant="primary"
+                        onClick={() => setApproveTarget(req)}
+                        icon={<Check size={16} />}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setRejectNote('')
+                          setRejectTarget(req)
+                        }}
+                        icon={<Ban size={16} />}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  ) : (
+                    '—'
+                  ),
+              },
+            ]}
+          />
+        )}
       </div>
 
       <ConfirmDialog

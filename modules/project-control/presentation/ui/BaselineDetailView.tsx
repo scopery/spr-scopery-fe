@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import {
   Badge,
   Button,
+  Card,
   ContentLoader,
   DetailDrawer,
   LongRunningJobState,
@@ -79,14 +80,14 @@ export function BaselineDetailView() {
   if (h.loading && !h.baseline) return <PageSkeleton variant="list" />
   if (h.forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="border border-neutral-200 bg-white p-8 text-center">
         <Typography weight="medium">You don’t have access to this baseline</Typography>
-      </div>
+      </Card>
     )
   }
   if (h.error || !h.baseline) {
     return (
-      <div className="border border-error/30 bg-error/5 p-4">
+      <div className="border-error/30 bg-error/5 border p-4">
         <Typography variant="small" tone="error">
           {h.error ?? 'Baseline not found'}
         </Typography>
@@ -123,14 +124,14 @@ export function BaselineDetailView() {
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
         current={b.name}
       />
 
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-2 mt-1 flex flex-wrap items-start justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
           <NextLink
             href={ROUTES.workspace.projectBaselines(workspaceId, projectId)}
@@ -139,7 +140,7 @@ export function BaselineDetailView() {
             ← Baselines
           </NextLink>
           <div className="flex flex-wrap items-center gap-2">
-            <Typography as="h1" size="lg" weight="semibold">
+            <Typography as="h1" size="md" weight="medium">
               {b.name}
             </Typography>
             <Badge variant="solid" tone={baselineStatusTone(b.status)}>
@@ -175,9 +176,7 @@ export function BaselineDetailView() {
             <Button
               variant="ghost"
               onClick={() =>
-                router.push(
-                  `${ROUTES.workspace.projectBaselines(workspaceId, projectId)}?create=1`
-                )
+                router.push(`${ROUTES.workspace.projectBaselines(workspaceId, projectId)}?create=1`)
               }
             >
               Create updated baseline
@@ -273,14 +272,10 @@ export function BaselineDetailView() {
 
       {h.viewMode === 'baseline' ? (
         <div className="space-y-4">
-          <SummaryMetricsPanel
-            title="Project Time Capsule"
-            metrics={metrics}
-            empty={!b.summary}
-          />
+          <SummaryMetricsPanel title="Project Time Capsule" metrics={metrics} empty={!b.summary} />
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-            <section className="border border-neutral-200 bg-white p-4">
+            <Card as="section" className="border border-neutral-200 bg-white p-4">
               <Typography variant="overline" tone="muted">
                 Project map
               </Typography>
@@ -297,9 +292,9 @@ export function BaselineDetailView() {
                   <SnapshotTree nodes={tree} />
                 )}
               </div>
-            </section>
+            </Card>
 
-            <aside className="border border-neutral-200 bg-white p-4">
+            <Card as="aside" className="border border-neutral-200 bg-white p-4">
               <Typography variant="overline" tone="muted">
                 Baseline health
               </Typography>
@@ -318,16 +313,10 @@ export function BaselineDetailView() {
                         : 'None'
                       : `${health.blocking} blocking · ${health.warnings} warnings`
                   }
-                  tone={
-                    health.blocking > 0 || health.warnings > 0 ? 'warn' : 'ok'
-                  }
+                  tone={health.blocking > 0 || health.warnings > 0 ? 'warn' : 'ok'}
                 />
                 <HealthRow label="Sources" value={health.sourcesLabel} />
-                <HealthRow
-                  label="Approval"
-                  value={health.approvalLabel}
-                  asSolidBadge
-                />
+                <HealthRow label="Approval" value={health.approvalLabel} asSolidBadge />
               </dl>
 
               {health.sourceChecks.length > 0 ? (
@@ -376,7 +365,7 @@ export function BaselineDetailView() {
                   {health.nextStep}
                 </Typography>
               </div>
-            </aside>
+            </Card>
           </div>
 
           <WhatChangedPreview
@@ -384,22 +373,21 @@ export function BaselineDetailView() {
             onOpenDifference={() => h.setViewMode('difference')}
           />
 
-          <section className="border border-neutral-200 bg-neutral-50 p-4">
+          <Card as="section" className="border border-neutral-200 bg-neutral-50 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <Typography variant="overline" tone="muted">
                   Captured from
                 </Typography>
                 <Typography variant="small" className="mt-1">
-                  Schedule, estimation, finance, and quote sources linked at capture
-                  time.
+                  Schedule, estimation, finance, and quote sources linked at capture time.
                 </Typography>
               </div>
               <Button size="sm" variant="ghost" onClick={() => setSourcesOpen(true)}>
                 View capture details
               </Button>
             </div>
-          </section>
+          </Card>
         </div>
       ) : null}
 
@@ -481,7 +469,7 @@ function SummaryMetricsPanel({
   empty?: boolean
 }) {
   return (
-    <section className="border border-neutral-200 bg-white p-4">
+    <Card as="section" className="border border-neutral-200 bg-white p-4">
       <Typography variant="overline" tone="muted">
         {title}
       </Typography>
@@ -489,14 +477,10 @@ function SummaryMetricsPanel({
         <MetricBlock
           label="Scope"
           primary={
-            metrics.phaseCount != null
-              ? `${formatMetricNumber(metrics.phaseCount)} Phases`
-              : '—'
+            metrics.phaseCount != null ? `${formatMetricNumber(metrics.phaseCount)} Phases` : '—'
           }
           secondary={
-            metrics.wbsCount != null
-              ? `${formatMetricNumber(metrics.wbsCount)} WBS`
-              : undefined
+            metrics.wbsCount != null ? `${formatMetricNumber(metrics.wbsCount)} WBS` : undefined
           }
         />
         <MetricBlock
@@ -516,9 +500,7 @@ function SummaryMetricsPanel({
           label="Effort"
           primary={formatMetricNumber(metrics.estimateHours, 'h')}
           secondary={
-            metrics.taskCount != null
-              ? `${formatMetricNumber(metrics.taskCount)} tasks`
-              : undefined
+            metrics.taskCount != null ? `${formatMetricNumber(metrics.taskCount)} tasks` : undefined
           }
         />
         <MetricBlock
@@ -538,7 +520,7 @@ function SummaryMetricsPanel({
           Summary metrics appear after the snapshot is captured.
         </Typography>
       ) : null}
-    </section>
+    </Card>
   )
 }
 
@@ -550,7 +532,7 @@ function WhatChangedPreview({
   onOpenDifference: () => void
 }) {
   return (
-    <section className="border border-neutral-200 bg-white p-4">
+    <Card as="section" className="border border-neutral-200 bg-white p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Typography variant="overline" tone="muted">
           What changed
@@ -582,7 +564,7 @@ function WhatChangedPreview({
           Open the Difference tab to compare this baseline with the live project plan.
         </Typography>
       )}
-    </section>
+    </Card>
   )
 }
 
@@ -602,7 +584,7 @@ function CompareSideView({
   if (loading && !summary) return <ContentLoader />
   if (error && !summary) {
     return (
-      <div className="border border-neutral-200 bg-neutral-50 p-6">
+      <Card className="border border-neutral-200 bg-neutral-50 p-6">
         <Typography variant="small" tone="muted">
           {error}
         </Typography>
@@ -615,7 +597,7 @@ function CompareSideView({
         >
           Retry
         </Button>
-      </div>
+      </Card>
     )
   }
   return (
@@ -643,7 +625,7 @@ function DifferenceView({
   if (loading && !compare) return <ContentLoader />
   if (error && !compare) {
     return (
-      <div className="border border-neutral-200 bg-neutral-50 p-6">
+      <Card className="border border-neutral-200 bg-neutral-50 p-6">
         <Typography variant="small" tone="muted">
           {error}
         </Typography>
@@ -656,16 +638,16 @@ function DifferenceView({
         >
           Retry
         </Button>
-      </div>
+      </Card>
     )
   }
   if (!compare) {
     return (
-      <div className="border border-neutral-200 bg-neutral-50 p-6">
+      <Card className="border border-neutral-200 bg-neutral-50 p-6">
         <Typography variant="small" tone="muted">
           No compare data yet.
         </Typography>
-      </div>
+      </Card>
     )
   }
 
@@ -673,7 +655,7 @@ function DifferenceView({
 
   return (
     <div className="space-y-4">
-      <section className="border border-neutral-200 bg-white p-4">
+      <Card as="section" className="border border-neutral-200 bg-white p-4">
         <Typography variant="overline" tone="muted">
           Compare
         </Typography>
@@ -689,9 +671,9 @@ function DifferenceView({
             ))}
           </ul>
         ) : null}
-      </section>
+      </Card>
 
-      <section className="border border-neutral-200 bg-white p-4">
+      <Card as="section" className="border border-neutral-200 bg-white p-4">
         <Typography variant="overline" tone="muted">
           Metric deltas
         </Typography>
@@ -726,24 +708,16 @@ function DifferenceView({
             ))
           )}
         </div>
-      </section>
+      </Card>
 
-      <section className="border border-neutral-200 bg-white p-4">
+      <Card as="section" className="border border-neutral-200 bg-white p-4">
         <Typography variant="overline" tone="muted">
           Structural changes
         </Typography>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4 text-sm">
-          <CountChip
-            label="Phases"
-            added={counts.phasesAdded}
-            removed={counts.phasesRemoved}
-          />
+        <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <CountChip label="Phases" added={counts.phasesAdded} removed={counts.phasesRemoved} />
           <CountChip label="WBS" added={counts.wbsAdded} removed={counts.wbsRemoved} />
-          <CountChip
-            label="Tasks"
-            added={counts.tasksAdded}
-            removed={counts.tasksRemoved}
-          />
+          <CountChip label="Tasks" added={counts.tasksAdded} removed={counts.tasksRemoved} />
           <CountChip
             label="Milestones"
             added={counts.milestonesAdded}
@@ -755,29 +729,21 @@ function DifferenceView({
             Currency context: {currency}
           </Typography>
         ) : null}
-      </section>
+      </Card>
     </div>
   )
 }
 
-function CountChip({
-  label,
-  added,
-  removed,
-}: {
-  label: string
-  added: number
-  removed: number
-}) {
+function CountChip({ label, added, removed }: { label: string; added: number; removed: number }) {
   return (
-    <div className="border border-neutral-100 px-3 py-2">
+    <Card className="border border-neutral-100 px-3 py-2">
       <Typography variant="caption" tone="muted">
         {label}
       </Typography>
       <Typography variant="small" weight="medium" className="mt-1">
         +{added} · −{removed}
       </Typography>
-    </div>
+    </Card>
   )
 }
 
@@ -916,8 +882,8 @@ function ProvenanceList({ baseline }: { baseline: ProjectBaseline }) {
             <Typography variant="small" weight="medium">
               {row.label}
             </Typography>
-            <Typography variant="caption" tone="muted" className="mt-1 block font-mono">
-              {row.id ?? 'Not captured'}
+            <Typography variant="caption" tone="muted" className="mt-1 block">
+              {row.id ? 'Captured' : 'Not captured'}
             </Typography>
           </div>
         ))}
@@ -931,7 +897,10 @@ function ProvenanceList({ baseline }: { baseline: ProjectBaseline }) {
         Captured {formatBaselineCapturedAt(baseline.createdAt)}
       </Typography>
       {entries.map((entry) => (
-        <div key={`${entry.source}-${entry.id ?? 'none'}`} className="border-b border-neutral-100 pb-3">
+        <div
+          key={`${entry.source}-${entry.id ?? 'none'}`}
+          className="border-b border-neutral-100 pb-3"
+        >
           <Typography variant="small" weight="medium" className="capitalize">
             {entry.label ?? entry.source}
           </Typography>
@@ -940,8 +909,8 @@ function ProvenanceList({ baseline }: { baseline: ProjectBaseline }) {
               {entry.status}
             </Typography>
           ) : null}
-          <Typography variant="caption" tone="muted" className="mt-1 block font-mono">
-            {entry.id ?? '—'}
+          <Typography variant="caption" tone="muted" className="mt-1 block">
+            {entry.id ? 'Captured' : '—'}
           </Typography>
           {entry.capturedAt ? (
             <Typography variant="caption" tone="muted" className="mt-1 block">

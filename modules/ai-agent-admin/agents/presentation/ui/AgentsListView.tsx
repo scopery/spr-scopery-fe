@@ -12,6 +12,7 @@ import {
   Select,
   Stack,
   Typography,
+  DataTable,
 } from '@/shared/ui'
 import { useCanManageAiConfig } from '../../../presentation/hooks/useCanManageAiConfig'
 import { AiLifecycleStatusBadge } from '../../../presentation/ui/AiLifecycleStatusBadge'
@@ -161,104 +162,114 @@ export function AgentsListView() {
       {error ? <Typography tone="error">{error}</Typography> : null}
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-neutral-200 bg-neutral-50 text-left">
-            <tr>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Code</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Default deployment</th>
-              <th className="px-4 py-3 font-medium">Output</th>
-              <th className="px-4 py-3 font-medium">Autonomy</th>
-              <th className="px-4 py-3 font-medium">Scope</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-neutral-500">
-                  No agents found.
-                </td>
-              </tr>
-            ) : (
-              items.map((a) => (
-                <tr key={a.id} className="border-b border-neutral-100">
-                  <td className="px-4 py-3">
-                    <Typography weight="medium">{a.name}</Typography>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs">{a.code}</td>
-                  <td className="px-4 py-3">{a.type}</td>
-                  <td className="px-4 py-3">
-                    <AiLifecycleStatusBadge status={a.status} />
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    {a.defaultModelDeploymentId
-                      ? deploymentNameById.get(a.defaultModelDeploymentId) ??
-                        a.defaultModelDeploymentId.slice(0, 8)
-                      : '—'}
-                  </td>
-                  <td className="px-4 py-3">{a.outputFormat || '—'}</td>
-                  <td className="px-4 py-3 text-xs">{a.autonomyLevel || '—'}</td>
-                  <td className="px-4 py-3">{a.scope || '—'}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      <Button
-                        as={NextLink}
-                        href={ADMIN_ROUTES.aiControlAgent(a.id)}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Open
-                      </Button>
-                      {canManage ? (
-                        <>
+        <DataTable
+          ariaLabel="Agents List"
+          rows={items}
+          rowKey={(a) => String(a.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'name',
+              header: 'Name',
+              cell: (a) => (
+                <>
+                  <Typography weight="medium">{a.name}</Typography>
+                </>
+              ),
+            },
+            {
+              id: 'code',
+              header: 'Code',
+              accessor: 'code',
+              kind: 'code',
+              cellClassName: 'text-xs',
+            },
+            { id: 'type', header: 'Type', accessor: 'type' },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (a) => (
+                <>
+                  <AiLifecycleStatusBadge status={a.status} />
+                </>
+              ),
+            },
+            {
+              id: 'default-deployment',
+              header: 'Default deployment',
+              cell: (a) => (
+                <>
+                  {a.defaultModelDeploymentId
+                    ? (deploymentNameById.get(a.defaultModelDeploymentId) ?? '—')
+                    : '—'}
+                </>
+              ),
+              cellClassName: 'text-xs',
+            },
+            { id: 'output', header: 'Output', cell: (a) => <>{a.outputFormat || '—'}</> },
+            {
+              id: 'autonomy',
+              header: 'Autonomy',
+              cell: (a) => <>{a.autonomyLevel || '—'}</>,
+              cellClassName: 'text-xs',
+            },
+            { id: 'scope', header: 'Scope', cell: (a) => <>{a.scope || '—'}</> },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (a) => (
+                <>
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      as={NextLink}
+                      href={ADMIN_ROUTES.aiControlAgent(a.id)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Open
+                    </Button>
+                    {canManage ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditing(a)
+                            setFormOpen(true)
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        {a.status !== AgentStatus.Active ? (
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => {
-                              setEditing(a)
-                              setFormOpen(true)
-                            }}
+                            disabled={saving}
+                            onClick={() => void activate(a.id)}
                           >
-                            Edit
+                            Activate
                           </Button>
-                          {a.status !== AgentStatus.Active ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={saving}
-                              onClick={() => void activate(a.id)}
-                            >
-                              Activate
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setDeactivateTarget(a)}
-                            >
-                              Deactivate
-                            </Button>
-                          )}
-                        </>
-                      ) : null}
-                      <Button
-                        as={NextLink}
-                        href={`${ADMIN_ROUTES.aiControlPrompts}?agentId=${a.id}`}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Prompts
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                        ) : (
+                          <Button size="sm" variant="ghost" onClick={() => setDeactivateTarget(a)}>
+                            Deactivate
+                          </Button>
+                        )}
+                      </>
+                    ) : null}
+                    <Button
+                      as={NextLink}
+                      href={`${ADMIN_ROUTES.aiControlPrompts}?agentId=${a.id}`}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Prompts
+                    </Button>
+                  </div>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
 
       {totalElements > PAGE_SIZE ? (

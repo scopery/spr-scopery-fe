@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { Archive, ArrowLeft, Check, Save } from 'lucide-react'
-import { Typography, Button, Stack, PageSkeleton, Input, Select } from '@/shared/ui'
+import { Typography, Button, Stack, PageSkeleton, Input, Select, Card } from '@/shared/ui'
 import { useAdminWorkspaceDetail } from '../hooks/useAdminWorkspaceDetail'
+import { useAdminOrganizations } from '@/modules/admin/organizations'
+import { useIamIdentityDirectory } from '@/modules/admin/iam'
 import { AdminWorkspaceStatusBadge } from './AdminWorkspaceStatusBadge'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 import type { Workspace } from '../../domain/model/workspace'
@@ -39,6 +41,8 @@ export function AdminWorkspaceDetailView() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
   const { data, loading, error, acting, saving, save, runAction } =
     useAdminWorkspaceDetail(workspaceId)
+  const { items: organizations } = useAdminOrganizations()
+  const { usersById } = useIamIdentityDirectory({ userIds: [data?.ownerUserId] })
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -80,6 +84,8 @@ export function AdminWorkspaceDetailView() {
     (description.trim() || '') !== (data.description ?? '') ||
     defaultVisibility !== data.defaultVisibility ||
     joinPolicy !== data.joinPolicy
+  const organization = organizations.find((item) => item.id === data.organizationId)
+  const owner = data.ownerUserId ? usersById[data.ownerUserId] : null
 
   return (
     <div>
@@ -107,14 +113,18 @@ export function AdminWorkspaceDetailView() {
             <Button
               variant="outline"
               disabled={acting}
-              onClick={() => void runAction('activate')} icon={<Check size={16} />}>
+              onClick={() => void runAction('activate')}
+              icon={<Check size={16} />}
+            >
               Activate
             </Button>
           ) : (
             <Button
               variant="outline"
               disabled={acting}
-              onClick={() => void runAction('archive')} icon={<Archive size={16} />}>
+              onClick={() => void runAction('archive')}
+              icon={<Archive size={16} />}
+            >
               Archive
             </Button>
           )}
@@ -158,7 +168,7 @@ export function AdminWorkspaceDetailView() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="border border-neutral-200 bg-white p-6">
+        <Card className="p-6">
           <Typography as="h2" size="lg" weight="semibold" className="mb-4">
             Settings
           </Typography>
@@ -201,35 +211,35 @@ export function AdminWorkspaceDetailView() {
                   defaultVisibility: defaultVisibility as Workspace['defaultVisibility'],
                   joinPolicy: joinPolicy as Workspace['joinPolicy'],
                 })
-              } icon={<Save size={16} />}>
+              }
+              icon={<Save size={16} />}
+            >
               {saving ? 'Saving…' : 'Save changes'}
             </Button>
           </Stack>
-        </div>
+        </Card>
 
-        <div className="border border-neutral-200 bg-white p-6">
+        <Card className="p-6">
           <Typography as="h2" size="lg" weight="semibold" className="mb-4">
             Metadata
           </Typography>
           <dl className="space-y-3 text-sm">
             <div>
-              <dt className="text-neutral-500">Workspace ID</dt>
-              <dd className="mt-0.5 font-mono text-xs">{data.id}</dd>
-            </div>
-            <div>
               <dt className="text-neutral-500">Organization</dt>
               <dd className="mt-0.5">
                 <NextLink
                   href={ADMIN_ROUTES.organization(data.organizationId)}
-                  className="font-mono text-xs text-primary hover:underline"
+                  className="text-primary hover:underline"
                 >
-                  {data.organizationId}
+                  {organization ? `${organization.name} (${organization.code})` : '—'}
                 </NextLink>
               </dd>
             </div>
             <div>
-              <dt className="text-neutral-500">Owner user ID</dt>
-              <dd className="mt-0.5 font-mono text-xs">{data.ownerUserId ?? '—'}</dd>
+              <dt className="text-neutral-500">Owner</dt>
+              <dd className="mt-0.5">
+                {owner ? owner.fullName || owner.username || owner.email : '—'}
+              </dd>
             </div>
             <div>
               <dt className="text-neutral-500">Created</dt>
@@ -240,7 +250,7 @@ export function AdminWorkspaceDetailView() {
               <dd className="mt-0.5">{formatDate(data.updatedAt)}</dd>
             </div>
           </dl>
-        </div>
+        </Card>
       </div>
     </div>
   )

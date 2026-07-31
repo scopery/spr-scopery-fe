@@ -1,7 +1,7 @@
 'use client'
 
 import NextLink from 'next/link'
-import { Button, Stack, Typography } from '@/shared/ui'
+import { Button, Card, Stack, Typography } from '@/shared/ui'
 import { ADMIN_ROUTES } from '@/modules/admin'
 
 interface AiControlPlaceholderViewProps {
@@ -24,7 +24,7 @@ export function AiControlPlaceholderView({
           {description}
         </Typography>
       </div>
-      <div className="border border-neutral-200 p-md">
+      <Card className="p-md">
         <Typography variant="small">
           This surface is scaffolded for Wave 5 route coverage. Full CRUD ships in{' '}
           <strong>{phaseHint}</strong>.
@@ -34,7 +34,7 @@ export function AiControlPlaceholderView({
             Back to overview
           </Button>
         </div>
-      </div>
+      </Card>
       <Typography variant="caption" tone="muted">
         No static/mock counts are shown here.
       </Typography>

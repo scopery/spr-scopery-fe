@@ -162,9 +162,10 @@ export function AiAssistantSettingsView() {
     { value: '', label: 'Use global default (application.yml)' },
     ...deployments.map((d) => ({
       value: d.id,
-      label: `${d.name} (${d.providerDeploymentId})`,
+      label: `${d.name} (${d.code})`,
     })),
   ]
+  const selectedDeployment = deployments.find((deployment) => deployment.id === deploymentId)
 
   return (
     <div className="mx-auto max-w-2xl space-y-8 p-6">
@@ -178,9 +179,11 @@ export function AiAssistantSettingsView() {
 
       {/* Model deployment */}
       <div className="space-y-3">
-        <Typography variant="small" weight="semibold">Model Deployment</Typography>
+        <Typography variant="small" weight="semibold">
+          Model Deployment
+        </Typography>
         <Typography variant="small" tone="muted">
-          Select an active deployment to use. This controls which provider and model ID are used.
+          Select an active deployment to use. This controls which provider and model are used.
         </Typography>
         <Select
           value={deploymentId}
@@ -191,7 +194,7 @@ export function AiAssistantSettingsView() {
         {deploymentId && (
           <div className="rounded border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
             <span className="font-medium">Provider:</span> {modelProvider || '—'} &nbsp;·&nbsp;
-            <span className="font-medium">Model ID:</span> {modelName || '—'}
+            <span className="font-medium">Model:</span> {selectedDeployment?.modelName || '—'}
           </div>
         )}
         {!deploymentId && (
@@ -203,7 +206,9 @@ export function AiAssistantSettingsView() {
 
       {/* System prompt */}
       <div className="space-y-3">
-        <Typography variant="small" weight="semibold">System Prompt</Typography>
+        <Typography variant="small" weight="semibold">
+          System Prompt
+        </Typography>
         <Typography variant="small" tone="muted">
           Override the assistant system prompt. Leave empty to use the default.
         </Typography>
@@ -221,9 +226,12 @@ export function AiAssistantSettingsView() {
 
       {/* Temperature */}
       <div className="space-y-3">
-        <Typography variant="small" weight="semibold">Temperature</Typography>
+        <Typography variant="small" weight="semibold">
+          Temperature
+        </Typography>
         <Typography variant="small" tone="muted">
-          Controls randomness (0.0 = deterministic, 2.0 = very creative). Default: {DEFAULT_TEMPERATURE}
+          Controls randomness (0.0 = deterministic, 2.0 = very creative). Default:{' '}
+          {DEFAULT_TEMPERATURE}
         </Typography>
         <Input
           type="number"
@@ -238,7 +246,9 @@ export function AiAssistantSettingsView() {
 
       {/* Max output tokens */}
       <div className="space-y-3">
-        <Typography variant="small" weight="semibold">Max Output Tokens</Typography>
+        <Typography variant="small" weight="semibold">
+          Max Output Tokens
+        </Typography>
         <Typography variant="small" tone="muted">
           Maximum tokens in the AI response. Default: {DEFAULT_MAX_TOKENS}
         </Typography>

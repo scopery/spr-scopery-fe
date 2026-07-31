@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Badge, Button, PageSkeleton, Typography } from '@/shared/ui'
+import { Badge, Button, Card, PageSkeleton, Typography } from '@/shared/ui'
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
 import { useWorkspaceActivityFeed } from '../../workspace/hooks/useWorkspaceActivityFeed'
 import type { WorkspaceActivityFeedItem } from '../../workspace/model/workspace-activity'
@@ -33,16 +33,16 @@ function ActivityRows({
 }) {
   if (items.length === 0) {
     return (
-      <div className="border border-dashed border-neutral-300 bg-white px-4 py-10 text-center">
+      <Card className="border-dashed border-neutral-300 px-4 py-10 text-center">
         <Typography variant="small" tone="muted">
           No activity recorded yet for this scope.
         </Typography>
-      </div>
+      </Card>
     )
   }
 
   return (
-    <ul className="divide-y divide-neutral-100 border border-neutral-200 bg-white">
+    <Card as="ul" className="divide-y divide-neutral-100">
       {items.map((item) => (
         <li key={item.id} className="px-4 py-3">
           <div className="flex flex-wrap items-start justify-between gap-2">
@@ -83,7 +83,7 @@ function ActivityRows({
           </div>
         </li>
       ))}
-    </ul>
+    </Card>
   )
 }
 
@@ -143,10 +143,7 @@ export function OrganizationActivityPanel({
 
   const feed = isWorkspace ? workspaceFeed : orgFeed
   const actorIds = useMemo(
-    () =>
-      feed.items
-        .map((i) => i.actorId)
-        .filter((id): id is string => Boolean(id)),
+    () => feed.items.map((i) => i.actorId).filter((id): id is string => Boolean(id)),
     [feed.items]
   )
   const { labelFor } = useResolveUsers(actorIds)
@@ -165,11 +162,11 @@ export function OrganizationActivityPanel({
       {feed.loading && feed.items.length === 0 ? (
         <PageSkeleton variant="list" />
       ) : feed.forbidden ? (
-        <div className="border border-neutral-200 bg-neutral-50 p-4">
+        <Card className="bg-neutral-50 p-4">
           <Typography variant="small" tone="muted">
             {feed.error}
           </Typography>
-        </div>
+        </Card>
       ) : feed.error ? (
         <Typography variant="small" tone="error">
           {feed.error}

@@ -32,9 +32,7 @@ export function DeploymentFormModal({
   const [modelId, setModelId] = useState(defaultModelId)
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
-  const [environment, setEnvironment] = useState<DeploymentEnvironment>(
-    DeploymentEnvironment.Dev
-  )
+  const [environment, setEnvironment] = useState<DeploymentEnvironment>(DeploymentEnvironment.Dev)
   const [providerDeploymentId, setProviderDeploymentId] = useState('')
   const [endpointUrl, setEndpointUrl] = useState('')
   const [temperature, setTemperature] = useState('')
@@ -55,9 +53,7 @@ export function DeploymentFormModal({
       deployment?.defaultTemperature != null ? String(deployment.defaultTemperature) : ''
     )
     setMaxTokens(
-      deployment?.defaultMaxOutputTokens != null
-        ? String(deployment.defaultMaxOutputTokens)
-        : ''
+      deployment?.defaultMaxOutputTokens != null ? String(deployment.defaultMaxOutputTokens) : ''
     )
     setIsDefault(deployment?.isDefault ?? false)
     setDescription(deployment?.description ?? '')
@@ -188,7 +184,7 @@ export function DeploymentFormModal({
         )}
         <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
         <Input
-          label="Provider deployment ID"
+          label="Provider deployment name"
           value={providerDeploymentId}
           onChange={(e) => setProviderDeploymentId(e.target.value)}
         />

@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Plus } from 'lucide-react'
 import { Button } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { QualityBulkAddModal } from './QualityBulkAddModal'
 import { QualitySingleAddModal } from './QualitySingleAddModal'
+import { TraceLinkBulkAddModal } from './TraceLinkBulkAddModal'
 import {
   QUALITY_ADD_LABELS,
   type QualityBulkKind,
@@ -57,6 +58,7 @@ export function QualityAddBar({
         size="sm"
         variant="secondary"
         disabled={disabled}
+        icon={<Plus size={14} />}
         onClick={() => setMenuOpen((v) => !v)}
         aria-expanded={menuOpen}
         aria-haspopup="menu"
@@ -110,7 +112,16 @@ export function QualityAddBar({
         />
       ) : null}
 
-      {modal === 'bulk' ? (
+      {modal === 'bulk' && kind === 'TRACE_LINK' ? (
+        <TraceLinkBulkAddModal
+          open
+          onClose={() => setModal(null)}
+          onCreate={onCreate}
+          onBatchComplete={onBatchComplete}
+        />
+      ) : null}
+
+      {modal === 'bulk' && kind !== 'TRACE_LINK' ? (
         <QualityBulkAddModal
           open
           kind={kind}

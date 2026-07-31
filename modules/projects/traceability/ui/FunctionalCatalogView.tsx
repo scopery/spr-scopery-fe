@@ -1,18 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { Search, SquareArrowOutUpRight } from 'lucide-react'
 import { useParams, useSearchParams } from 'next/navigation'
-import {
-  Button,
-  PageSkeleton,
-  Select,
-  Stack,
-  Typography,
-} from '@/shared/ui'
+import { Button, DataTable, PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
-import { useProject } from '@/modules/projects/project/hooks/useProject'
+import { useProject } from '@/modules/projects/project'
 import {
   FunctionalItemPriority,
   FunctionalItemType,
@@ -29,12 +24,11 @@ import { ImportFunctionalItemsModal } from './ImportFunctionalItemsModal'
 import { SimpleExcelImportPanel } from './SimpleExcelImportPanel'
 import { NON_FUNCTIONAL_ITEM_IMPORT_SPEC } from '../lib/excelImportSpecs'
 
-type MainTab = 'fr' | 'nfr' | 'map' | 'import'
+type MainTab = 'fr' | 'nfr' | 'import'
 
 const MAIN_TABS: { id: MainTab; label: string }[] = [
   { id: 'fr', label: 'Functional' },
   { id: 'nfr', label: 'NFR' },
-  { id: 'map', label: 'Links' },
   { id: 'import', label: 'Import' },
 ]
 
@@ -45,6 +39,7 @@ export function FunctionalCatalogView() {
   }>()
   const searchParams = useSearchParams()
   const frFromQuery = searchParams.get('fr')
+  const tabFromQuery = searchParams.get('tab')
 
   const { project, loading: projectLoading } = useProject(workspaceId, projectId)
   const {
@@ -57,10 +52,34 @@ export function FunctionalCatalogView() {
     createNfr,
     refetch,
   } = useFunctionalCatalog(projectId)
-  const { frWithoutAnchors, refetch: refetchCoverage } =
-    useFunctionalAnchorCoverage(projectId)
+  const { frWithoutAnchors, refetch: refetchCoverage } = useFunctionalAnchorCoverage(projectId)
 
-  const [tab, setTab] = useState<MainTab>('fr')
+  const [tab, setTab] = useState<MainTab | 'map'>(() => {
+    if (tabFromQuery === 'map') return 'map'
+    if (tabFromQuery === 'nfr' || tabFromQuery === 'import') return tabFromQuery
+    return 'fr'
+  })
+  const [frSearch, setFrSearch] = useState('')
+  const [nfrSearch, setNfrSearch] = useState('')
+
+  const filteredFr = useMemo(() => {
+    const q = frSearch.trim().toLowerCase()
+    if (!q) return functionalItems
+    return functionalItems.filter(
+      (i) => i.code.toLowerCase().includes(q) || i.title.toLowerCase().includes(q)
+    )
+  }, [functionalItems, frSearch])
+
+  const filteredNfr = useMemo(() => {
+    const q = nfrSearch.trim().toLowerCase()
+    if (!q) return nonFunctionalItems
+    return nonFunctionalItems.filter(
+      (i) =>
+        i.code.toLowerCase().includes(q) ||
+        i.title.toLowerCase().includes(q) ||
+        i.category.toLowerCase().includes(q)
+    )
+  }, [nonFunctionalItems, nfrSearch])
   const [selectedFrId, setSelectedFrId] = useState<string | null>(null)
   const [selectedNfrId, setSelectedNfrId] = useState<string | null>(null)
   const [importKind, setImportKind] = useState<'fr' | 'nfr'>('fr')
@@ -97,8 +116,7 @@ export function FunctionalCatalogView() {
               (input.priority as typeof FunctionalItemPriority.Medium) ||
               FunctionalItemPriority.Medium,
             type:
-              (input.type as typeof FunctionalItemType.Functional) ||
-              FunctionalItemType.Functional,
+              (input.type as typeof FunctionalItemType.Functional) || FunctionalItemType.Functional,
             workspaceId,
           },
           { refresh: false }
@@ -111,8 +129,7 @@ export function FunctionalCatalogView() {
           title: input.title,
           description: input.description ?? null,
           category:
-            (input.category as typeof NonFunctionalCategory.Other) ||
-            NonFunctionalCategory.Other,
+            (input.category as typeof NonFunctionalCategory.Other) || NonFunctionalCategory.Other,
           priority:
             (input.priority as typeof FunctionalItemPriority.Medium) ||
             FunctionalItemPriority.Medium,
@@ -158,49 +175,75 @@ export function FunctionalCatalogView() {
     <div className="flex h-full min-h-0 flex-col bg-white px-3 py-3 lg:px-4 lg:py-3">
       <div className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col">
         <header className="shrink-0">
-          <Link
-            href={ROUTES.workspace.project(workspaceId, projectId)}
-            className="text-xs text-neutral-500 hover:text-neutral-800"
-          >
-            ← Project
-          </Link>
-
-          <div className="mt-1 flex flex-wrap items-baseline justify-between gap-2 border-b border-neutral-200 pb-2">
-            <div className="min-w-0">
-              <Typography as="h1" size="md" weight="medium" className="truncate">
-                Functional Catalog
-              </Typography>
-              <Typography variant="caption" tone="muted" className="mt-0.5">
-                {metaBits.join(' · ') || 'Project catalog'}
-              </Typography>
+          {tab === 'map' ? (
+            <div className="mb-2 flex items-end justify-between border-b border-neutral-200 pb-2">
+              <div>
+                <Typography as="h1" size="md" weight="medium">
+                  Requirement → Function
+                </Typography>
+                <Typography variant="caption" tone="muted">
+                  Link requirements to functional items.
+                </Typography>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => setTab('fr')}>
+                Back to catalog
+              </Button>
             </div>
-          </div>
+          ) : (
+            <>
+              <Link
+                href={ROUTES.workspace.project(workspaceId, projectId)}
+                className="text-xs text-neutral-500 hover:text-neutral-800"
+              >
+                ← Project
+              </Link>
 
-          <nav aria-label="Catalog" className="mt-1 flex gap-0.5 border-b border-neutral-200">
-            {MAIN_TABS.map((t) => {
-              const active = tab === t.id
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  aria-current={active ? 'page' : undefined}
-                  onClick={() => {
-                    setTab(t.id)
-                    if (t.id !== 'fr') setSelectedFrId(null)
-                    if (t.id !== 'nfr') setSelectedNfrId(null)
-                  }}
-                  className={cn(
-                    'border-b-2 px-2.5 py-1.5 text-sm transition-colors',
-                    active
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-neutral-500 hover:text-neutral-800'
-                  )}
+              <div className="mt-1 flex flex-wrap items-baseline justify-between gap-2 border-b border-neutral-200 pb-2">
+                <div className="min-w-0">
+                  <Typography as="h1" size="md" weight="medium" className="truncate">
+                    Functional Catalog
+                  </Typography>
+                  <Typography variant="caption" tone="muted" className="mt-0.5">
+                    {metaBits.join(' · ') || 'Project catalog'}
+                  </Typography>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon={<SquareArrowOutUpRight size={14} />}
+                  onClick={() => setTab('map')}
                 >
-                  {t.label}
-                </button>
-              )
-            })}
-          </nav>
+                  Requirement → Function
+                </Button>
+              </div>
+
+              <nav aria-label="Catalog" className="mt-1 flex gap-0.5 border-b border-neutral-200">
+                {MAIN_TABS.map((t) => {
+                  const active = tab === t.id
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      aria-current={active ? 'page' : undefined}
+                      onClick={() => {
+                        setTab(t.id)
+                        if (t.id !== 'fr') setSelectedFrId(null)
+                        if (t.id !== 'nfr') setSelectedNfrId(null)
+                      }}
+                      className={cn(
+                        'border-b-2 px-2.5 py-1.5 text-sm transition-colors',
+                        active
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-neutral-500 hover:text-neutral-800'
+                      )}
+                    >
+                      {t.label}
+                    </button>
+                  )
+                })}
+              </nav>
+            </>
+          )}
         </header>
 
         {error ? (
@@ -211,11 +254,21 @@ export function FunctionalCatalogView() {
 
         <div className="mt-2 min-h-0 flex-1">
           {tab === 'fr' ? (
-            <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(260px,360px)] overflow-hidden border border-neutral-200 bg-white">
+            <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(260px,360px)] overflow-hidden border border-neutral-300 bg-white">
               {/* Left: list — independent scroll */}
               <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-neutral-200">
-                <div className="shrink-0 border-b border-neutral-100 px-3 py-2">
-                  <div className="flex flex-wrap items-center justify-end gap-2">
+                <div className="flex shrink-0 items-center justify-between border-b border-neutral-100 px-3 py-2">
+                  <div className="flex w-48 items-center gap-1.5 border border-neutral-200 bg-white px-2 py-1.5">
+                    <Search size={13} className="shrink-0 text-neutral-400" />
+                    <input
+                      type="text"
+                      value={frSearch}
+                      onChange={(e) => setFrSearch(e.target.value)}
+                      placeholder="Search…"
+                      className="w-full bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
                     <Button size="sm" variant="secondary" onClick={() => setFrImportOpen(true)}>
                       Import
                     </Button>
@@ -232,43 +285,34 @@ export function FunctionalCatalogView() {
                       No functional items yet. Use Add FR or Import above.
                     </Typography>
                   ) : (
-                    <table className="w-full table-fixed text-left text-sm">
-                      <thead className="sticky top-0 z-[1] bg-white">
-                        <tr className="border-b border-neutral-200 text-neutral-500">
-                          <th className="w-[36%] bg-white pb-2 pr-3">Code</th>
-                          <th className="w-[64%] bg-white pb-2">Title</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {functionalItems.map((item) => {
-                          const selected = selectedFrId === item.id
-                          return (
-                            <tr
-                              key={item.id}
-                              className={cn(
-                                'cursor-pointer border-b border-neutral-100 transition-colors',
-                                selected ? 'bg-neutral-200' : 'hover:bg-neutral-50'
-                              )}
-                              aria-selected={selected}
-                              onClick={() => setSelectedFrId(item.id)}
-                            >
-                              <td className="truncate py-2.5 pr-3 font-medium text-neutral-900">
-                                {item.code}
-                              </td>
-                              <td className="truncate py-2.5 text-neutral-800">
-                                {item.title}
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
+                    <DataTable
+                      ariaLabel="Functional catalog"
+                      rows={filteredFr}
+                      rowKey={(item) => item.id}
+                      selectedRowKey={selectedFrId}
+                      onRowClick={(item) => setSelectedFrId(item.id)}
+                      columns={[
+                        {
+                          id: 'code',
+                          header: 'Code',
+                          accessor: 'code',
+                          kind: 'code',
+                          width: '36%',
+                        },
+                        {
+                          id: 'title',
+                          header: 'Title',
+                          accessor: 'title',
+                          width: '64%',
+                        },
+                      ]}
+                    />
                   )}
                 </div>
               </div>
 
               {/* Right: detail — fills height, scrolls inside */}
-              <aside className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-neutral-50/50">
+              <aside className="bg-neutral-50/50 flex min-h-0 min-w-0 flex-col overflow-hidden">
                 {selectedFr ? (
                   <FunctionalItemDetailPanel
                     projectId={projectId}
@@ -292,9 +336,19 @@ export function FunctionalCatalogView() {
           ) : null}
 
           {tab === 'nfr' ? (
-            <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(260px,360px)] overflow-hidden border border-neutral-200 bg-white">
+            <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(260px,360px)] overflow-hidden border border-neutral-300 bg-white">
               <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-neutral-200">
-                <div className="shrink-0 border-b border-neutral-100 px-3 py-2">
+                <div className="flex shrink-0 items-center justify-between border-b border-neutral-100 px-3 py-2">
+                  <div className="flex w-48 items-center gap-1.5 border border-neutral-200 bg-white px-2 py-1.5">
+                    <Search size={13} className="shrink-0 text-neutral-400" />
+                    <input
+                      type="text"
+                      value={nfrSearch}
+                      onChange={(e) => setNfrSearch(e.target.value)}
+                      placeholder="Search…"
+                      className="w-full bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
+                    />
+                  </div>
                   <FunctionalCatalogAddBar
                     defaultKind="NFR"
                     onCreate={handleBulkCreate}
@@ -307,46 +361,40 @@ export function FunctionalCatalogView() {
                       No NFRs yet. Use Add NFR above — choose Single or Bulk.
                     </Typography>
                   ) : (
-                    <table className="w-full table-fixed text-left text-sm">
-                      <thead className="sticky top-0 z-[1] bg-white">
-                        <tr className="border-b border-neutral-200 text-neutral-500">
-                          <th className="w-[28%] bg-white pb-2 pr-3">Code</th>
-                          <th className="w-[44%] bg-white pb-2 pr-3">Title</th>
-                          <th className="w-[28%] bg-white pb-2">Category</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {nonFunctionalItems.map((item) => {
-                          const selected = selectedNfrId === item.id
-                          return (
-                            <tr
-                              key={item.id}
-                              className={cn(
-                                'cursor-pointer border-b border-neutral-100 transition-colors',
-                                selected ? 'bg-neutral-200' : 'hover:bg-neutral-50'
-                              )}
-                              aria-selected={selected}
-                              onClick={() => setSelectedNfrId(item.id)}
-                            >
-                              <td className="truncate py-2.5 pr-3 font-medium text-neutral-900">
-                                {item.code}
-                              </td>
-                              <td className="truncate py-2.5 pr-3 text-neutral-800">
-                                {item.title}
-                              </td>
-                              <td className="truncate py-2.5 text-neutral-500">
-                                {item.category}
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
+                    <DataTable
+                      ariaLabel="Non-functional catalog"
+                      rows={filteredNfr}
+                      rowKey={(item) => item.id}
+                      selectedRowKey={selectedNfrId}
+                      onRowClick={(item) => setSelectedNfrId(item.id)}
+                      columns={[
+                        {
+                          id: 'code',
+                          header: 'Code',
+                          accessor: 'code',
+                          kind: 'code',
+                          width: '28%',
+                        },
+                        {
+                          id: 'title',
+                          header: 'Title',
+                          accessor: 'title',
+                          width: '44%',
+                        },
+                        {
+                          id: 'category',
+                          header: 'Category',
+                          accessor: 'category',
+                          width: '28%',
+                          cellClassName: 'text-neutral-500',
+                        },
+                      ]}
+                    />
                   )}
                 </div>
               </div>
 
-              <aside className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-neutral-50/50">
+              <aside className="bg-neutral-50/50 flex min-h-0 min-w-0 flex-col overflow-hidden">
                 {selectedNfr ? (
                   <div className="flex h-full min-h-0 flex-col">
                     <div className="flex shrink-0 items-center justify-between gap-3 border-b border-neutral-200 px-5 py-4">
@@ -381,7 +429,9 @@ export function FunctionalCatalogView() {
                         <div className="min-w-0">
                           <div className="mb-1 text-xs text-neutral-500">Priority · Scope</div>
                           <div className="border-b border-transparent py-1.5 text-sm text-neutral-800">
-                            {[selectedNfr.priority, selectedNfr.scopeType].filter(Boolean).join(' · ')}
+                            {[selectedNfr.priority, selectedNfr.scopeType]
+                              .filter(Boolean)
+                              .join(' · ')}
                           </div>
                         </div>
                         <div className="min-w-0">
@@ -423,7 +473,7 @@ export function FunctionalCatalogView() {
           ) : null}
 
           {tab === 'import' ? (
-            <div className="h-full min-h-0 overflow-y-auto border border-neutral-200 bg-white p-3">
+            <div className="h-full min-h-0 overflow-y-auto border border-neutral-300 bg-white p-3">
               <Stack direction="vertical" spacing="md">
                 <div className="max-w-xs">
                   <Select
@@ -449,8 +499,8 @@ export function FunctionalCatalogView() {
                 ) : (
                   <>
                     <Typography variant="small" tone="muted">
-                      One file. Duplicate codes are skipped (409). For quick multi-row add,
-                      prefer Add NFR (paste from Excel).
+                      One file. Duplicate codes are skipped (409). For quick multi-row add, prefer
+                      Add NFR (paste from Excel).
                     </Typography>
                     <SimpleExcelImportPanel
                       title="Import NFRs"

@@ -1,16 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { Download, ExternalLink, Eye, FileOutput, FileText, Link2, Plus, RotateCcw, Trash2 } from 'lucide-react'
-import { Typography, Button, Badge, ConfirmDialog, Skeleton } from '@/shared/ui'
+import { ExternalLink, Eye, FileText, Link2, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { Typography, Button, Badge, Card, ConfirmDialog, Skeleton } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { DOCUMENT_RELATION_LABELS } from '@/modules/documents/document-links'
 import type { DocumentType } from '@/modules/documents/document'
 import type { EntityEvidenceDocumentsPanelProps } from '../model/evidence-documents'
 import { useEntityEvidenceDocumentsPanel } from '../hooks/useEntityEvidenceDocumentsPanel'
 import { AddEvidenceDocumentDialog } from './AddEvidenceDocumentDialog'
-import { BulkLinkEvidenceDocumentsDialog } from './BulkLinkEvidenceDocumentsDialog'
-import { CreateDeliverableDialog } from '@/modules/documents/deliverables/ui/CreateDeliverableDialog'
 import { DocumentTypeBadge } from '@/modules/documents/document/ui/DocumentTypeBadge'
 import { WorkflowStatusBadge } from '@/modules/documents/document/ui/WorkflowStatusBadge'
 
@@ -26,10 +24,6 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
     canRemoveLink,
     canRestoreLink,
     canRestoreDocument = false,
-    canExport = false,
-    canCreateDeliverable = false,
-    deliverableType,
-    enableBulkLink = true,
     title = 'Evidence documents',
     emptyStateText = 'No evidence documents linked yet.',
     linkButtonLabel = 'Link document',
@@ -49,11 +43,15 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
   const displayItems = panel.showArchivedLinks ? panel.items : activeItems
 
   return (
-    <div className={compact ? 'space-y-3' : 'space-y-4 border border-neutral-200 bg-white p-4'}>
+    <div
+      className={
+        compact ? 'space-y-3' : 'space-y-4 border border-dashed border-neutral-300 bg-white p-4'
+      }
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <Link2 size={compact ? 16 : 18} className="shrink-0 text-neutral-600" />
-          <Typography weight="semibold" size={compact ? 'sm' : 'md'}>
+          <Typography weight="semibold" size="sm" className="truncate" title={title}>
             {title}
           </Typography>
           {!panel.loading && activeItems.length > 0 && (
@@ -64,33 +62,12 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
           {canRestore && (
-            <Button variant="ghost" onClick={() => panel.setShowArchivedLinks((v) => !v)} icon={<Eye size={16} />}>
+            <Button
+              variant="ghost"
+              onClick={() => panel.setShowArchivedLinks((v) => !v)}
+              icon={<Eye size={16} />}
+            >
               {panel.showArchivedLinks ? 'Hide archived' : 'Show archived'}
-            </Button>
-          )}
-          {canExport && (linkedEntityType === 'requirement' || linkedEntityType === 'session') && (
-            <Button
-              variant="outline"
-              icon={<Download size={14} />}
-              loading={panel.exporting}
-              disabled={!panel.loading && activeItems.length === 0}
-              onClick={() => void panel.handleExportEvidencePack()}
-            >
-              Export evidence
-            </Button>
-          )}
-          {canCreateDeliverable && deliverableType && (
-            <Button
-              variant="outline"
-              icon={<FileOutput size={14} />}
-              onClick={() => panel.setDeliverableOpen(true)}
-            >
-              Create deliverable
-            </Button>
-          )}
-          {canCreateLink && enableBulkLink && !compact && (
-            <Button variant="outline" onClick={() => panel.setBulkOpen(true)} icon={<Link2 size={16} />}>
-              Link multiple
             </Button>
           )}
           {canCreateLink && (
@@ -110,13 +87,16 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
           <Skeleton variant="rectangular" width="100%" height={80} />
         </div>
       ) : displayItems.length === 0 ? (
-        <div className="rounded border border-dashed border-neutral-200 px-4 py-6 text-center">
+        <Card
+          hasShadow={false}
+          className="border-dashed border-neutral-300 bg-transparent px-4 py-6 text-center"
+        >
           <Typography variant="small" tone="muted">
             {panel.showArchivedLinks
               ? 'No archived evidence links for this entity.'
               : emptyStateText}
           </Typography>
-        </div>
+        </Card>
       ) : (
         <ul className="space-y-2">
           {displayItems.map((item) => {
@@ -125,19 +105,26 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
             const isArchivedLink = item.archived_at != null
             const isArchivedDoc = item.document_status === 'archived'
             return (
-              <li
+              <Card
+                as="li"
                 key={item.id}
+                hasShadow={false}
                 className={
                   compact
-                    ? 'rounded border border-neutral-100 p-2'
-                    : 'rounded border border-neutral-100 p-3'
+                    ? 'border-neutral-300 bg-transparent p-2'
+                    : 'border-neutral-300 bg-transparent p-3'
                 }
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
                       <FileText size={14} className="shrink-0 text-neutral-500" />
-                      <Typography weight="medium" className="truncate">
+                      <Typography
+                        size="sm"
+                        weight="medium"
+                        className="truncate"
+                        title={item.document_title}
+                      >
                         {item.document_title}
                       </Typography>
                     </div>
@@ -202,46 +189,28 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
                     )}
                   </div>
                 </div>
-              </li>
+              </Card>
             )
           })}
         </ul>
       )}
 
-      {canCreateLink && (
-        <>
-          <AddEvidenceDocumentDialog
-            orgId={orgId}
-            projectId={projectId}
-            linkedEntityType={linkedEntityType}
-            linkedEntityId={linkedEntityId}
-            sessionId={sessionId}
-            open={panel.addOpen}
-            onClose={() => panel.setAddOpen(false)}
-            onSuccess={() => {
-              panel.setAddOpen(false)
-              void panel.load()
-              props.onLinksChanged?.()
-            }}
-          />
-          {enableBulkLink && (
-            <BulkLinkEvidenceDocumentsDialog
-              orgId={orgId}
-              projectId={projectId}
-              linkedEntityType={linkedEntityType}
-              linkedEntityId={linkedEntityId}
-              sessionId={sessionId}
-              open={panel.bulkOpen}
-              onClose={() => panel.setBulkOpen(false)}
-              onSuccess={() => {
-                panel.setBulkOpen(false)
-                void panel.load()
-                props.onLinksChanged?.()
-              }}
-            />
-          )}
-        </>
-      )}
+      {canCreateLink ? (
+        <AddEvidenceDocumentDialog
+          orgId={orgId}
+          projectId={projectId}
+          linkedEntityType={linkedEntityType}
+          linkedEntityId={linkedEntityId}
+          sessionId={sessionId}
+          open={panel.addOpen}
+          onClose={() => panel.setAddOpen(false)}
+          onSuccess={() => {
+            panel.setAddOpen(false)
+            void panel.load()
+            props.onLinksChanged?.()
+          }}
+        />
+      ) : null}
 
       <ConfirmDialog
         open={panel.removeTarget != null}
@@ -275,31 +244,6 @@ export function EntityEvidenceDocumentsPanel(props: EntityEvidenceDocumentsPanel
         loading={panel.restoring}
         onConfirm={() => void panel.handleRestoreDocument()}
       />
-
-      {canCreateDeliverable && deliverableType ? (
-        <CreateDeliverableDialog
-          orgId={orgId}
-          projectId={projectId}
-          open={panel.deliverableOpen}
-          onClose={() => panel.setDeliverableOpen(false)}
-          onSuccess={() => {
-            panel.setDeliverableOpen(false)
-            void panel.load()
-            props.onLinksChanged?.()
-          }}
-          entryContext={
-            linkedEntityType === 'session' ? 'session_evidence' : 'requirement_evidence'
-          }
-          lockDeliverableType={deliverableType}
-          initialDeliverableType={deliverableType}
-          initialSourceEntityType={
-            linkedEntityType === 'session' || linkedEntityType === 'requirement'
-              ? linkedEntityType
-              : undefined
-          }
-          initialSourceEntityId={linkedEntityId}
-        />
-      ) : null}
     </div>
   )
 }

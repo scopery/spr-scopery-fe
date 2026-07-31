@@ -5,10 +5,19 @@ import { Ban, Eye, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import NextLink from 'next/link'
-import { Typography, Badge, Button, ConfirmDialog, Modal, PageSkeleton, Skeleton, Stack } from '@/shared/ui'
+import {
+  Typography,
+  Badge,
+  Button,
+  ConfirmDialog,
+  DataTable,
+  Modal,
+  PageSkeleton,
+  Skeleton,
+} from '@/shared/ui'
 import { UserIdentity } from '@/modules/platform/identity/presentation/ui/UserIdentity'
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { ROUTES } from '@/constants/routes'
 import { useWorkspace } from '../hooks/useWorkspace'
 import { useWorkspaceMembers } from '../hooks/useWorkspaceMembers'
@@ -98,20 +107,24 @@ export function WorkspaceMembersView({ embedded = false }: { embedded?: boolean 
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       {!embedded ? (
-        <WorkspaceHierarchyBreadcrumb workspaceId={workspaceId} current="Members" className="mb-4" />
+        <WorkspaceHierarchyBreadcrumb
+          workspaceId={workspaceId}
+          current="Members"
+          className="mb-4"
+        />
       ) : null}
       <div
         className={
           embedded
             ? 'mb-4 flex flex-wrap items-center justify-end gap-2'
-            : 'mb-6 flex flex-wrap items-center justify-between gap-4'
+            : 'mb-2 flex flex-wrap items-center justify-between gap-2'
         }
       >
         {!embedded ? (
           <div>
-            <Typography as="h1" size="lg" weight="semibold">
+            <Typography as="h1" size="md" weight="medium">
               Members
             </Typography>
             <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -132,107 +145,110 @@ export function WorkspaceMembersView({ embedded = false }: { embedded?: boolean 
         </div>
       </div>
 
-      <div className="overflow-hidden border border-neutral-200 bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-neutral-200 bg-neutral-50">
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">User</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Role</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Status</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Joined</th>
-              {canManageMembers && (
-                <th className="min-w-[12rem] whitespace-nowrap px-4 py-3 text-left font-medium text-neutral-600">
-                  Actions
-                </th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {members.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={canManageMembers ? 5 : 4}
-                  className="px-4 py-8 text-center text-neutral-500"
-                >
-                  No members yet
-                </td>
-              </tr>
-            ) : (
-              members.map((m) => {
-                const isMemberOwner = workspace?.ownerUserId === m.userId
-                const isSelf = m.userId === currentUserId
-                const displayName = labelFor(m.userId, {
-                  currentUserId,
-                  youLabel: profile?.display_name || session?.user?.fullName || 'You',
-                })
-
+      <div className="border border-neutral-200 bg-white">
+        <DataTable
+          ariaLabel="Workspace members"
+          rows={members}
+          rowKey={(member) => member.id}
+          emptyMessage="No members yet"
+          columns={[
+            {
+              id: 'user',
+              header: 'User',
+              kind: 'reference',
+              cell: (member) => {
+                const isSelf = member.userId === currentUserId
+                return peopleById[member.userId] || isSelf ? (
+                  <UserIdentity
+                    userId={member.userId}
+                    person={peopleById[member.userId]}
+                    fallbackName={
+                      isSelf ? profile?.display_name || session?.user?.fullName || 'You' : null
+                    }
+                    showEmail
+                    size="sm"
+                  />
+                ) : (
+                  '—'
+                )
+              },
+            },
+            {
+              id: 'role',
+              header: 'Role',
+              cell: (member) => {
+                const owner = workspace?.ownerUserId === member.userId
                 return (
-                  <tr key={m.id} className="border-b border-neutral-100 last:border-0">
-                    <td className="px-4 py-3">
-                      <UserIdentity
-                        userId={m.userId}
-                        person={peopleById[m.userId]}
-                        fallbackName={
-                          isSelf
-                            ? profile?.display_name || session?.user?.fullName || 'You'
-                            : null
-                        }
-                        showEmail
-                        size="sm"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="soft" tone={isMemberOwner ? 'primary' : 'default'}>
-                        {isMemberOwner ? 'owner' : 'member'}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge
-                        variant="solid"
-                        tone={isActiveMemberStatus(m.status) ? 'success' : 'neutral'}
-                      >
-                        {m.status
-                          .replace(/_/g, ' ')
-                          .toLowerCase()
-                          .replace(/\b\w/g, (c) => c.toUpperCase())}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-neutral-600">
-                      {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString() : '—'}
-                    </td>
-                    {canManageMembers && (
-                      <td className="px-4 py-3">
+                  <Badge variant="soft" tone={owner ? 'primary' : 'default'}>
+                    {owner ? 'owner' : 'member'}
+                  </Badge>
+                )
+              },
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (member) => (
+                <Badge
+                  variant="solid"
+                  tone={isActiveMemberStatus(member.status) ? 'success' : 'neutral'}
+                >
+                  {member.status
+                    .replace(/_/g, ' ')
+                    .toLowerCase()
+                    .replace(/\b\w/g, (c) => c.toUpperCase())}
+                </Badge>
+              ),
+            },
+            {
+              id: 'joined',
+              header: 'Joined',
+              accessor: (member) =>
+                member.joinedAt ? new Date(member.joinedAt).toLocaleDateString() : '—',
+            },
+            ...(canManageMembers
+              ? [
+                  {
+                    id: 'actions',
+                    header: 'Actions',
+                    width: '12rem',
+                    cell: (member: (typeof members)[number]) => {
+                      const owner = workspace?.ownerUserId === member.userId
+                      const displayName = labelFor(member.userId, {
+                        currentUserId,
+                        youLabel: profile?.display_name || session?.user?.fullName || 'You',
+                      })
+                      return (
                         <div className="flex flex-nowrap items-center gap-1">
                           <Button
                             variant="ghost"
-                            onClick={() => void openAccess(m.userId, displayName)}
+                            onClick={() => void openAccess(member.userId, displayName)}
                             icon={<Eye size={16} />}
                           >
                             Access
                           </Button>
-                          {m.userId !== currentUserId &&
-                            !isMemberOwner &&
-                            isActiveMemberStatus(m.status) && (
-                              <Button
-                                variant="ghost"
-                                tone="error"
-                                onClick={() =>
-                                  setConfirmDeactivate({ memberId: m.id, displayName })
-                                }
-                                icon={<Ban size={16} />}
-                              >
-                                Kick
-                              </Button>
-                            )}
+                          {member.userId !== currentUserId &&
+                          !owner &&
+                          isActiveMemberStatus(member.status) ? (
+                            <Button
+                              variant="ghost"
+                              tone="error"
+                              onClick={() =>
+                                setConfirmDeactivate({ memberId: member.id, displayName })
+                              }
+                              icon={<Ban size={16} />}
+                            >
+                              Kick
+                            </Button>
+                          ) : null}
                         </div>
-                      </td>
-                    )}
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
+                      )
+                    },
+                  },
+                ]
+              : []),
+          ]}
+        />
       </div>
 
       {confirmDeactivate && (

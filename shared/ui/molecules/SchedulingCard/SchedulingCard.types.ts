@@ -41,13 +41,5 @@ export type SchedulingCardProps<C extends React.ElementType = 'div'> =
        * Callback when action button is clicked
        */
       onAction?: () => void
-      /**
-       * Border radius for the card container
-       */
-      cardBorderRadius?: 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'full'
-      /**
-       * Shadow for the card container
-       */
-      cardShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl'
     }
   >

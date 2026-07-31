@@ -1,7 +1,11 @@
 'use client'
 
-import { TestRunExecutionView } from '@/modules/quality/presentation/ui/TestRunExecutionView'
+import { LegacyQualityRedirect, TestRunExecutionView } from '@/modules/quality'
 
 export default function TestRunExecutionPage() {
-  return <TestRunExecutionView />
+  return (
+    <LegacyQualityRedirect target="runs">
+      <TestRunExecutionView />
+    </LegacyQualityRedirect>
+  )
 }

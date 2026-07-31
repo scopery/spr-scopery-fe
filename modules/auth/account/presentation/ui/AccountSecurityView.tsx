@@ -4,7 +4,7 @@ import { Ban, Save } from 'lucide-react'
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Button, Input, Stack, Typography, Skeleton } from '@/shared/ui'
+import { Button, Card, Input, Stack, Typography, Skeleton } from '@/shared/ui'
 import { useAccountSecurity } from '../hooks/useAccountSecurity'
 
 export function AccountSecurityView() {
@@ -44,12 +44,12 @@ export function AccountSecurityView() {
   }
 
   return (
-    <Stack direction="vertical" spacing="lg">
-      <div className="border border-neutral-200 bg-white p-6">
-        <Typography as="h2" size="lg" weight="bold" className="mb-1">
+    <Stack direction="vertical" spacing="md">
+      <Card className="border border-neutral-200 bg-white p-3">
+        <Typography as="h2" size="md" weight="medium" className="mb-1">
           Security status
         </Typography>
-        <Typography as="p" variant="small" tone="muted" className="mb-4">
+        <Typography as="p" variant="small" tone="muted" className="mb-2">
           From your current IAM identity.
         </Typography>
         {meLoading ? (
@@ -74,7 +74,7 @@ export function AccountSecurityView() {
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-neutral-500">Organizations</dt>
-              <dd className="font-medium text-right">
+              <dd className="text-right font-medium">
                 {me.organizationMemberships.length
                   ? me.organizationMemberships
                       .map((m) => `${m.organizationName} (${m.membershipType})`)
@@ -88,13 +88,13 @@ export function AccountSecurityView() {
             Unable to load IAM profile (`GET /iam/me`).
           </Typography>
         )}
-      </div>
+      </Card>
 
-      <div className="border border-neutral-200 bg-white p-6">
-        <Typography as="h2" size="lg" weight="bold" className="mb-1">
+      <Card className="border border-neutral-200 bg-white p-3">
+        <Typography as="h2" size="md" weight="medium" className="mb-1">
           Change password
         </Typography>
-        <Typography as="p" variant="small" tone="muted" className="mb-6">
+        <Typography as="p" variant="small" tone="muted" className="mb-2">
           Use a strong password you do not reuse elsewhere.
         </Typography>
         <Stack direction="vertical" spacing="md" className="max-w-md">
@@ -122,14 +122,19 @@ export function AccountSecurityView() {
             fullWidth
             autoComplete="new-password"
           />
-          <Button variant="primary" loading={changing} onClick={() => void handleChangePassword()} icon={<Save size={16} />}>
+          <Button
+            variant="primary"
+            loading={changing}
+            onClick={() => void handleChangePassword()}
+            icon={<Save size={16} />}
+          >
             Update password
           </Button>
         </Stack>
-      </div>
+      </Card>
 
-      <div className="border border-neutral-200 bg-white p-6">
-        <Typography as="h2" size="lg" weight="bold" className="mb-1">
+      <Card className="border border-neutral-200 bg-white p-3">
+        <Typography as="h2" size="md" weight="medium" className="mb-1">
           Sign out everywhere
         </Typography>
         <Typography as="p" variant="small" tone="muted" className="mb-4">
@@ -139,10 +144,12 @@ export function AccountSecurityView() {
           variant="outline"
           tone="error"
           loading={revoking}
-          onClick={() => void handleRevokeAll()} icon={<Ban size={16} />}>
+          onClick={() => void handleRevokeAll()}
+          icon={<Ban size={16} />}
+        >
           Revoke all sessions
         </Button>
-      </div>
+      </Card>
     </Stack>
   )
 }

@@ -58,8 +58,7 @@ export function BulkRelationResultDialog({
             <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto border border-neutral-100 p-2 text-xs">
               {failedItems.map((f, i) => (
                 <li key={`${f.body.toNodeId}-${i}`} className="text-error">
-                  {f.body.fromNodeId.slice(0, 8)}… → {f.body.relationType} →{' '}
-                  {f.body.toNodeId.slice(0, 8)}…
+                  Source node → {f.body.relationType} → target node
                   {f.message ? ` · ${f.message}` : ''}
                 </li>
               ))}

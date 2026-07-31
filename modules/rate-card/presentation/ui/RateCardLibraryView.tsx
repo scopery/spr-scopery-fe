@@ -4,7 +4,18 @@ import { FolderOpen, Plus } from 'lucide-react'
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Badge, Button, Input, Modal, Select, Stack, Typography, PageSkeleton } from '@/shared/ui'
+import {
+  Badge,
+  Button,
+  Card,
+  DataTable,
+  Input,
+  Modal,
+  Select,
+  Stack,
+  Typography,
+  PageSkeleton,
+} from '@/shared/ui'
 import { useRateCardLibrary } from '../hooks/useRateCardLibrary'
 import { RateCardScope } from '../../domain/enums/rate-card.enum'
 import { ROUTES } from '@/constants/routes'
@@ -37,9 +48,7 @@ export function RateCardLibraryView() {
   })
 
   if (loading) {
-    return (
-      <PageSkeleton variant="list" />
-    )
+    return <PageSkeleton variant="list" />
   }
 
   if (error) {
@@ -53,17 +62,21 @@ export function RateCardLibraryView() {
   }
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Rate Cards
           </Typography>
           <Typography as="p" variant="small" tone="muted" className="mt-1">
             Rate cards define cost and billing rates by cost role, seniority, and location.
           </Typography>
         </div>
-        <Button variant="primary" onClick={() => setShowCreateModal(true)} icon={<Plus size={16} />}>
+        <Button
+          variant="primary"
+          onClick={() => setShowCreateModal(true)}
+          icon={<Plus size={16} />}
+        >
           New rate card
         </Button>
       </div>
@@ -76,56 +89,51 @@ export function RateCardLibraryView() {
         />
       </div>
 
-      <div className="border border-neutral-200 bg-white">
-        {rateCards.length === 0 ? (
-          <div className="px-4 py-16 text-center">
-            <Typography tone="muted" variant="small">
-              No rate cards yet. Create one to start defining rates.
-            </Typography>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Code</th>
-                  <th className="px-3 py-2 font-medium">Name</th>
-                  <th className="px-3 py-2 font-medium">Scope</th>
-                  <th className="px-3 py-2 font-medium">Currency</th>
-                  <th className="px-3 py-2 font-medium">Default</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
-                  <th className="px-3 py-2 font-medium" />
-                </tr>
-              </thead>
-              <tbody>
-                {rateCards.map((card) => (
-                  <tr key={card.id} className="border-t border-neutral-100">
-                    <td className="px-3 py-2 font-mono text-xs">{card.code}</td>
-                    <td className="px-3 py-2">{card.name}</td>
-                    <td className="px-3 py-2">{card.scope}</td>
-                    <td className="px-3 py-2">{card.defaultCurrencyCode}</td>
-                    <td className="px-3 py-2">{card.isDefault ? 'Yes' : '—'}</td>
-                    <td className="px-3 py-2">
-                      <Badge variant="solid" tone={statusTone(String(card.status))}>
-                        {String(card.status).replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          router.push(ROUTES.admin.workspaceRateCard(workspaceId, card.id))
-                        } icon={<FolderOpen size={16} />}>
-                        Open
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <Card className="border border-neutral-200 bg-white">
+        <DataTable
+          ariaLabel="Rate cards"
+          rows={rateCards}
+          rowKey={(card) => card.id}
+          emptyMessage="No rate cards yet. Create one to start defining rates."
+          columns={[
+            { id: 'code', header: 'Code', accessor: (card) => card.code || '—', kind: 'code' },
+            { id: 'name', header: 'Name', accessor: (card) => card.name || '—' },
+            { id: 'scope', header: 'Scope', accessor: 'scope' },
+            { id: 'currency', header: 'Currency', accessor: 'defaultCurrencyCode' },
+            {
+              id: 'default',
+              header: 'Default',
+              accessor: (card) => (card.isDefault ? 'Yes' : '—'),
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (card) => (
+                <Badge variant="solid" tone={statusTone(String(card.status))}>
+                  {String(card.status)
+                    .replace(/_/g, ' ')
+                    .toLowerCase()
+                    .replace(/\b\w/g, (c) => c.toUpperCase())}
+                </Badge>
+              ),
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              align: 'right',
+              cell: (card) => (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(ROUTES.admin.workspaceRateCard(workspaceId, card.id))}
+                  icon={<FolderOpen size={16} />}
+                >
+                  Open
+                </Button>
+              ),
+            },
+          ]}
+        />
+      </Card>
 
       <Modal
         open={showCreateModal}
@@ -156,8 +164,7 @@ export function RateCardLibraryView() {
             },
             variant: 'primary',
             loading: creating,
-            disabled:
-              !form.code.trim() || !form.name.trim() || !form.defaultCurrencyCode.trim(),
+            disabled: !form.code.trim() || !form.name.trim() || !form.defaultCurrencyCode.trim(),
           },
         ]}
       >

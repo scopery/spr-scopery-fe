@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import NextLink from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, Plus } from 'lucide-react'
-import { Typography, Button, Stack, Input, Select } from '@/shared/ui'
+import { Typography, Button, Stack, Input, Select, Card } from '@/shared/ui'
 import { useAdminWorkspaceCreate } from '../hooks/useAdminWorkspaceCreate'
 import { useAdminOrganizations } from '@/modules/admin/organizations'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
@@ -99,7 +99,7 @@ export function AdminWorkspaceCreateView() {
         </Typography>
       </div>
 
-      <div className="max-w-md border border-neutral-200 bg-white p-6">
+      <Card className="max-w-md p-6">
         <Stack direction="vertical" spacing="md">
           <div>
             <Typography variant="small" tone="muted" className="mb-1.5">
@@ -175,7 +175,7 @@ export function AdminWorkspaceCreateView() {
             {submitting ? 'Creating…' : 'Create workspace'}
           </Button>
         </Stack>
-      </div>
+      </Card>
     </div>
   )
 }

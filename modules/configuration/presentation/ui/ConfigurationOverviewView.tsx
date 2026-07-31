@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { Badge, Link, Typography, PageSkeleton } from '@/shared/ui'
+import { Badge, Card, Link, Typography, PageSkeleton } from '@/shared/ui'
 import { useConfigurationOverview } from '../hooks/useConfigurationOverview'
 
 export function ConfigurationOverviewView() {
@@ -10,9 +10,7 @@ export function ConfigurationOverviewView() {
   const base = `/admin/workspaces/${workspaceId}/config`
 
   if (loading) {
-    return (
-      <PageSkeleton variant="cards" />
-    )
+    return <PageSkeleton variant="cards" />
   }
 
   if (error) {
@@ -37,7 +35,7 @@ export function ConfigurationOverviewView() {
   return (
     <div>
       <div className="mb-6">
-        <Typography as="h1" size="lg" weight="semibold">
+        <Typography as="h1" size="md" weight="medium">
           Configuration
         </Typography>
         <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -47,23 +45,26 @@ export function ConfigurationOverviewView() {
 
       <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {summaryCards.map((card) => (
-          <Link key={card.label} href={card.href} className="block">
-            <div className="border border-neutral-200 bg-white p-4 hover:border-neutral-300">
-              <Typography size="xl" weight="bold">
-                {card.value}
-              </Typography>
-              <Typography variant="small" tone="muted">
-                {card.label}
-              </Typography>
-            </div>
-          </Link>
+          <Card
+            as={Link}
+            key={card.label}
+            href={card.href}
+            className="block p-4 hover:border-neutral-300"
+          >
+            <Typography size="md" weight="medium">
+              {card.value}
+            </Typography>
+            <Typography variant="small" tone="muted">
+              {card.label}
+            </Typography>
+          </Card>
         ))}
       </div>
 
       <Typography weight="semibold" className="mb-3">
         Object types
       </Typography>
-      <div className="overflow-x-auto border border-neutral-200 bg-white">
+      <Card className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>
@@ -103,7 +104,7 @@ export function ConfigurationOverviewView() {
             ) : null}
           </tbody>
         </table>
-      </div>
+      </Card>
     </div>
   )
 }

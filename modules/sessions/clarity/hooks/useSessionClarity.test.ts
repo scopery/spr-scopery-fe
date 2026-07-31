@@ -37,8 +37,10 @@ describe('useSessionClarity', () => {
       })
     )
 
-    await waitFor(() => expect(aiClarityApi.getClaritySummary).toHaveBeenCalled())
-    expect(result.current.claritySummaryLoading).toBe(false)
+    await waitFor(() => {
+      expect(aiClarityApi.getClaritySummary).toHaveBeenCalled()
+      expect(result.current.claritySummaryLoading).toBe(false)
+    })
   })
 
   it('disables feature on AI_FEATURE_DISABLED 409', async () => {

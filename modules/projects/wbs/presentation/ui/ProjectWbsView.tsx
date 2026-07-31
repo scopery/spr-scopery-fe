@@ -2,17 +2,17 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Plus } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button, PageSkeleton, Typography } from '@/shared/ui'
+import { Badge, Button, DataTable, PageSkeleton, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { useProject } from '../../../project/hooks/useProject'
 import { useProjectPhases } from '../../../phase/presentation/hooks/useProjectPhases'
 import { useProjectWbs } from '../hooks/useProjectWbs'
 import { CreateWbsNodeModal } from './CreateWbsNodeModal'
-import { WbsTreeRow } from './WbsTreeRow'
 import type { WbsTreeNode } from '../../domain/model/wbs'
+import { canArchiveWbsNode, wbsNodeStatusLabel } from '../../domain/rules/wbs.rules'
 
 function collectIds(nodes: WbsTreeNode[]): string[] {
   const ids: string[] = []
@@ -58,6 +58,17 @@ export function ProjectWbsView() {
       return next
     })
   }
+  const visibleNodes = useMemo(() => {
+    const result: Array<{ node: WbsTreeNode; depth: number }> = []
+    const walk = (nodes: WbsTreeNode[], depth: number) => {
+      nodes.forEach((node) => {
+        result.push({ node, depth })
+        if (node.children.length > 0 && expanded.has(node.id)) walk(node.children, depth + 1)
+      })
+    }
+    walk(tree, 0)
+    return result
+  }, [tree, expanded])
 
   if (loading && tree.length === 0) return <PageSkeleton variant="list" />
 
@@ -70,18 +81,18 @@ export function ProjectWbsView() {
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
         current="WBS"
       />
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
+      <div className="mb-2 mt-1 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Work breakdown structure
           </Typography>
-          <Typography variant="small" tone="muted" className="mt-1">
+          <Typography variant="caption" tone="muted" className="mt-0.5">
             Hierarchical deliverables and work packages
           </Typography>
         </div>
@@ -114,47 +125,90 @@ export function ProjectWbsView() {
         </div>
       ) : null}
 
-      <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">Node</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Path</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tree.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center">
-                  <Typography variant="small" tone="muted">
-                    No WBS nodes yet
-                  </Typography>
-                </td>
-              </tr>
-            ) : (
-              tree.map((node) => (
-                <WbsTreeRow
-                  key={node.id}
-                  node={node}
-                  depth={0}
-                  expanded={expanded}
-                  onToggle={toggle}
-                  onAddChild={(n) => {
-                    setParentNode(n)
-                    setCreateOpen(true)
-                  }}
-                  onArchive={(id) =>
-                    void archiveNode(id).catch((e) => toast.error(getProblemToastMessage(e)))
-                  }
-                  actingId={actingId}
-                />
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="border border-neutral-200 bg-white">
+        <DataTable
+          ariaLabel="Work breakdown structure"
+          rows={visibleNodes}
+          rowKey={({ node }) => node.id}
+          emptyMessage="No WBS nodes yet"
+          columns={[
+            {
+              id: 'node',
+              header: 'Node',
+              cell: ({ node, depth }) => {
+                const hasChildren = node.children.length > 0
+                const isExpanded = expanded.has(node.id)
+                return (
+                  <div className="flex items-center gap-1.5" style={{ paddingLeft: depth * 20 }}>
+                    {hasChildren ? (
+                      <button
+                        type="button"
+                        className="text-neutral-500 hover:text-neutral-900"
+                        onClick={() => toggle(node.id)}
+                        aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                      >
+                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      </button>
+                    ) : (
+                      <span className="inline-block w-3.5" />
+                    )}
+                    <span className="font-normal text-neutral-600">{node.code}</span>
+                    <Typography as="span" weight="medium">
+                      {node.title}
+                    </Typography>
+                  </div>
+                )
+              },
+              kind: 'code',
+            },
+            { id: 'type', header: 'Type', accessor: ({ node }) => node.nodeType },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: ({ node }) => (
+                <Badge tone={node.status === 'ARCHIVED' ? 'neutral' : 'success'}>
+                  {wbsNodeStatusLabel(node.status)}
+                </Badge>
+              ),
+            },
+            { id: 'path', header: 'Path', accessor: ({ node }) => node.path },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: ({ node }) => (
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={<Plus size={14} />}
+                    disabled={actingId === node.id}
+                    onClick={() => {
+                      setParentNode(node)
+                      setCreateOpen(true)
+                    }}
+                  >
+                    Add child
+                  </Button>
+                  {canArchiveWbsNode(node) ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      tone="error"
+                      disabled={actingId === node.id}
+                      onClick={() =>
+                        void archiveNode(node.id).catch((error) =>
+                          toast.error(getProblemToastMessage(error))
+                        )
+                      }
+                    >
+                      Archive
+                    </Button>
+                  ) : null}
+                </div>
+              ),
+            },
+          ]}
+        />
       </div>
 
       <CreateWbsNodeModal

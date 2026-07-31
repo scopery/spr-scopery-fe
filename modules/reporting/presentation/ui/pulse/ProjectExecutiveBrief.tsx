@@ -1,6 +1,6 @@
 'use client'
 
-import { Badge, Button, Stack, Typography } from '@/shared/ui'
+import { Badge, Button, Card, Stack, Typography } from '@/shared/ui'
 import { healthBadgeTone } from '../../../domain/rules/project-pulse.rules'
 import type { ProjectPulseBrief } from '../../../domain/model/project-pulse'
 import { cn } from '@/utils/cn'
@@ -35,13 +35,13 @@ export function ProjectPulseHeader({
     : 'Updated just now'
 
   return (
-    <div className="flex flex-wrap items-end justify-between gap-md">
+    <div className="flex flex-wrap items-end justify-between gap-md border-b border-neutral-200 pb-2">
       <div className="space-y-xs">
-        <Typography variant="h2">Project Pulse</Typography>
-        <Typography variant="body" className="text-neutral-700">
-          {brief.projectCode ? (
-            <span className="text-neutral-500">{brief.projectCode}</span>
-          ) : null}
+        <Typography as="h1" size="md" weight="medium">
+          Project Pulse
+        </Typography>
+        <Typography variant="small" tone="muted">
+          {brief.projectCode ? <span className="text-neutral-500">{brief.projectCode}</span> : null}
           {brief.projectCode ? ' · ' : ''}
           {brief.projectName}
         </Typography>
@@ -74,19 +74,19 @@ export function ProjectExecutiveBrief({ brief }: { brief: ProjectPulseBrief }) {
         {brief.topMetrics.length > 0 ? (
           <div className="grid grid-cols-2 gap-sm md:grid-cols-4">
             {brief.topMetrics.map((metric) => (
-              <div key={metric.key} className="bg-white/80 px-sm py-sm">
+              <Card key={metric.key} hasShadow={false} className="bg-white/80 px-sm py-sm">
                 <Typography variant="caption" tone="muted">
                   {metric.label}
                 </Typography>
                 <Typography variant="h4" className="text-neutral-950">
                   {metric.value}
                 </Typography>
-              </div>
+              </Card>
             ))}
           </div>
         ) : null}
 
-        {(brief.drivers.length > 0 || brief.positiveSignals.length > 0) ? (
+        {brief.drivers.length > 0 || brief.positiveSignals.length > 0 ? (
           <div className="grid grid-cols-1 gap-md md:grid-cols-2">
             <div>
               <Typography variant="overline" tone="muted">

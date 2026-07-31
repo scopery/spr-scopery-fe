@@ -17,10 +17,7 @@ export const WORKSPACE_ROUTES = {
   dailyRecord: (workspaceId: string) => `/workspace/${workspaceId}/daily-record`,
   teamPulse: (workspaceId: string) => `/workspace/${workspaceId}/team-pulse`,
   /** Organization directory consolidates Org members / invitations / teams. */
-  organizationDirectory: (
-    workspaceId: string,
-    tab?: 'members' | 'invitations' | 'teams'
-  ) => {
+  organizationDirectory: (workspaceId: string, tab?: 'members' | 'invitations' | 'teams') => {
     const base = `/workspace/${workspaceId}/organization/directory`
     return tab && tab !== 'members' ? `${base}?tab=${tab}` : base
   },
@@ -137,8 +134,7 @@ export const WORKSPACE_ROUTES = {
    */
   settings: (workspaceId: string) => `/workspace/${workspaceId}/settings/general`,
   settingsTemplates: (workspaceId: string) => `/workspace/${workspaceId}/settings/templates`,
-  settingsTemplateNew: (workspaceId: string) =>
-    `/workspace/${workspaceId}/settings/templates/new`,
+  settingsTemplateNew: (workspaceId: string) => `/workspace/${workspaceId}/settings/templates/new`,
   settingsTemplate: (workspaceId: string, templateId: string) =>
     `/workspace/${workspaceId}/settings/templates/${templateId}`,
   documentHub: (workspaceId: string, opts?: { projectId?: string }) => {
@@ -150,11 +146,7 @@ export const WORKSPACE_ROUTES = {
   },
   settingsControlledLists: (workspaceId: string, projectId?: string | null) =>
     `/workspace/${workspaceId}/settings/controlled-lists${projectId ? `?project=${projectId}` : ''}`,
-  settingsControlledListDetail: (
-    workspaceId: string,
-    listId: string,
-    projectId?: string | null
-  ) =>
+  settingsControlledListDetail: (workspaceId: string, listId: string, projectId?: string | null) =>
     `/workspace/${workspaceId}/settings/controlled-lists/${listId}${projectId ? `?project=${projectId}` : ''}`,
   clients: (workspaceId: string) => `/workspace/${workspaceId}/clients`,
   forms: (workspaceId: string) => `/workspace/${workspaceId}/forms`,
@@ -185,8 +177,7 @@ export const WORKSPACE_ROUTES = {
     `/workspace/${workspaceId}/governance/${policyId}`,
   agentControl: (workspaceId: string) => `/workspace/${workspaceId}/agent-control`,
   notifications: (workspaceId: string) => `/workspace/${workspaceId}/notifications`,
-  notificationSettings: (workspaceId: string) =>
-    `/workspace/${workspaceId}/notifications/settings`,
+  notificationSettings: (workspaceId: string) => `/workspace/${workspaceId}/notifications/settings`,
 
   // ── Wave 4 ─────────────────────────────────────────────────
   search: (workspaceId: string) => `/workspace/${workspaceId}/search`,
@@ -206,8 +197,38 @@ export const WORKSPACE_ROUTES = {
     `/workspace/${workspaceId}/support/cases/${caseId}`,
   projectQuality: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/quality`,
+  projectQualityCases: (
+    workspaceId: string,
+    projectId: string,
+    opts?: { type?: 'functional' | 'nfr'; selected?: string }
+  ) => {
+    const base = `/workspace/${workspaceId}/projects/${projectId}/quality/cases`
+    const params = new URLSearchParams()
+    if (opts?.type) params.set('type', opts.type)
+    if (opts?.selected) params.set('selected', opts.selected)
+    const q = params.toString()
+    return q ? `${base}?${q}` : base
+  },
+  projectQualityRuns: (
+    workspaceId: string,
+    projectId: string,
+    opts?: { runId?: string }
+  ) => {
+    const base = `/workspace/${workspaceId}/projects/${projectId}/quality/runs`
+    return opts?.runId ? `${base}?runId=${encodeURIComponent(opts.runId)}` : base
+  },
+  projectQualityDefects: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/quality/defects`,
+  projectQualityReleases: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/quality/releases`,
   projectTestPlans: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/quality/test-plans`,
+  projectTestCases: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/quality/test-cases`,
+  projectVerificationCases: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/quality/verification-cases`,
+  projectTestRuns: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/quality/test-runs`,
   projectDefects: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/defects`,
   projectReleases: (workspaceId: string, projectId: string) =>
@@ -218,11 +239,9 @@ export const WORKSPACE_ROUTES = {
     `/workspace/${workspaceId}/projects/${projectId}/requirements`,
   projectFunctionalCatalog: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/functional-catalog`,
-  projectApplicationStructure: (
-    workspaceId: string,
-    projectId: string,
-    applicationId?: string
-  ) => {
+  projectUseCases: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/use-cases`,
+  projectApplicationStructure: (workspaceId: string, projectId: string, applicationId?: string) => {
     const base = `/workspace/${workspaceId}/projects/${projectId}/application-structure`
     if (applicationId) {
       return `${base}?applicationId=${encodeURIComponent(applicationId)}`
@@ -247,14 +266,12 @@ export const WORKSPACE_ROUTES = {
     `/workspace/${workspaceId}/projects/${projectId}/dashboard`,
   projectReportLibrary: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/report-library`,
-  settingsKnowledge: (workspaceId: string) =>
-    `/workspace/${workspaceId}/settings/knowledge`,
+  settingsKnowledge: (workspaceId: string) => `/workspace/${workspaceId}/settings/knowledge`,
   settingsDocumentTemplates: (workspaceId: string) =>
     `/workspace/${workspaceId}/settings/knowledge/templates`,
   settingsKnowledgeIndexing: (workspaceId: string) =>
     `/workspace/${workspaceId}/settings/knowledge/indexing`,
-  settingsIntegrations: (workspaceId: string) =>
-    `/workspace/${workspaceId}/settings/integrations`,
+  settingsIntegrations: (workspaceId: string) => `/workspace/${workspaceId}/settings/integrations`,
   settingsTrust: (workspaceId: string) => `/workspace/${workspaceId}/settings/trust`,
   settingsSupport: (workspaceId: string) => `/workspace/${workspaceId}/settings/support`,
   aiAssistant: (workspaceId: string) => `/workspace/${workspaceId}/ai`,

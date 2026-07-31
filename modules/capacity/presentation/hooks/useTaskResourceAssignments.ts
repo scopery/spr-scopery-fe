@@ -82,7 +82,7 @@ export function useTaskResourceAssignments(
   const profileLabel = useCallback(
     (profileId: string) => {
       const p = profiles.find((x) => x.id === profileId)
-      return p?.displayName ?? profileId.slice(0, 8)
+      return p?.displayName ?? 'Resource'
     },
     [profiles]
   )

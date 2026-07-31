@@ -4,10 +4,20 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import NextLink from 'next/link'
 import { Plus, Search } from 'lucide-react'
-import { Badge, Button, Input, Typography, PageSkeleton, Skeleton, Select } from '@/shared/ui'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import {
+  Badge,
+  Button,
+  Card,
+  DataTable,
+  Input,
+  Typography,
+  PageSkeleton,
+  Skeleton,
+  Select,
+} from '@/shared/ui'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { ROUTES } from '@/constants/routes'
-import { useAuth } from '@/modules/auth/auth/context/AuthContext'
+import { useAuth } from '@/modules/auth/auth'
 import { useWorkspaceAuthorization } from '@/modules/auth/iam'
 import { useOrgTeams } from '../hooks/useOrgTeams'
 import { CreateOrgTeamModal } from './CreateOrgTeamModal'
@@ -21,20 +31,13 @@ export function WorkspaceTeamsView({ embedded = false }: { embedded?: boolean } 
     () => workspaces.find((w) => w.id === workspaceId)?.organizationId ?? null,
     [workspaces, workspaceId]
   )
-  const { canViewTeams, canCreateTeams, loading: authzLoading } = useWorkspaceAuthorization(
-    workspaceId,
-    organizationId
-  )
   const {
-    items,
-    loading,
-    error,
-    keyword,
-    setKeyword,
-    statusFilter,
-    setStatusFilter,
-    load,
-  } = useOrgTeams(organizationId)
+    canViewTeams,
+    canCreateTeams,
+    loading: authzLoading,
+  } = useWorkspaceAuthorization(workspaceId, organizationId)
+  const { items, loading, error, setKeyword, statusFilter, setStatusFilter, load } =
+    useOrgTeams(organizationId)
   const [createOpen, setCreateOpen] = useState(false)
   const [searchDraft, setSearchDraft] = useState('')
 
@@ -43,22 +46,24 @@ export function WorkspaceTeamsView({ embedded = false }: { embedded?: boolean } 
   }, [canViewTeams, organizationId, load])
 
   if (authzLoading) {
-    return (
-      <PageSkeleton variant="split" />
-    )
+    return <PageSkeleton variant="split" />
   }
 
   if (!canViewTeams) {
     return (
       <div>
         {!embedded ? (
-          <WorkspaceHierarchyBreadcrumb workspaceId={workspaceId} current="Teams" className="mb-4" />
+          <WorkspaceHierarchyBreadcrumb
+            workspaceId={workspaceId}
+            current="Teams"
+            className="mb-4"
+          />
         ) : null}
-        <div className="border border-neutral-200 bg-neutral-50 p-4">
+        <Card className="bg-neutral-50 p-4">
           <Typography variant="small" tone="muted">
             You do not have permission to view organization teams.
           </Typography>
-        </div>
+        </Card>
       </div>
     )
   }
@@ -67,7 +72,11 @@ export function WorkspaceTeamsView({ embedded = false }: { embedded?: boolean } 
     return (
       <div>
         {!embedded ? (
-          <WorkspaceHierarchyBreadcrumb workspaceId={workspaceId} current="Teams" className="mb-4" />
+          <WorkspaceHierarchyBreadcrumb
+            workspaceId={workspaceId}
+            current="Teams"
+            className="mb-4"
+          />
         ) : null}
         <Typography tone="error">Organization context is missing for this workspace.</Typography>
       </div>
@@ -75,7 +84,7 @@ export function WorkspaceTeamsView({ embedded = false }: { embedded?: boolean } 
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       {!embedded ? (
         <WorkspaceHierarchyBreadcrumb workspaceId={workspaceId} current="Teams" className="mb-4" />
       ) : null}
@@ -83,12 +92,12 @@ export function WorkspaceTeamsView({ embedded = false }: { embedded?: boolean } 
         className={
           embedded
             ? 'mb-4 flex flex-wrap items-center justify-end gap-2'
-            : 'mb-6 flex flex-wrap items-center justify-between gap-4'
+            : 'mb-2 flex flex-wrap items-center justify-between gap-2'
         }
       >
         {!embedded ? (
           <div>
-            <Typography as="h1" size="lg" weight="semibold">
+            <Typography as="h1" size="md" weight="medium">
               Teams
             </Typography>
             <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -119,10 +128,7 @@ export function WorkspaceTeamsView({ embedded = false }: { embedded?: boolean } 
             placeholder="Name or code"
           />
         </div>
-        <Button
-          variant="secondary"
-          onClick={() => setKeyword(searchDraft)}
-        >
+        <Button variant="secondary" onClick={() => setKeyword(searchDraft)}>
           <Search size={14} />
           Search
         </Button>
@@ -146,62 +152,58 @@ export function WorkspaceTeamsView({ embedded = false }: { embedded?: boolean } 
         </Typography>
       )}
 
-      <div className="overflow-hidden border border-neutral-200 bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-neutral-200 bg-neutral-50">
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Name</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Code</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Status</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Updated</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center">
-                  <Skeleton variant="rectangular" width="100%" height={80} />
-                </td>
-              </tr>
-            ) : items.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-neutral-500">
-                  No teams yet
-                </td>
-              </tr>
-            ) : (
-              items.map((team) => (
-                <tr key={team.id} className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
-                  <td className="px-4 py-3">
+      <div className="border border-neutral-200 bg-white">
+        {loading ? (
+          <div className="p-4">
+            <Skeleton variant="rectangular" width="100%" height={80} />
+          </div>
+        ) : (
+          <DataTable
+            ariaLabel="Organization teams"
+            rows={items}
+            rowKey={(team) => team.id}
+            emptyMessage="No teams yet"
+            columns={[
+              {
+                id: 'name',
+                header: 'Name',
+                cell: (team) => (
+                  <div>
                     <NextLink
                       href={ROUTES.workspace.team(workspaceId, team.id)}
                       className="font-medium text-primary hover:underline"
                     >
                       {team.name}
                     </NextLink>
-                    {team.description && (
+                    {team.description ? (
                       <Typography variant="small" tone="muted" className="mt-0.5 line-clamp-1">
                         {team.description}
                       </Typography>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-neutral-600">{team.code}</td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      variant="solid"
-                      tone={team.status === OrgTeamStatus.Active ? 'success' : 'neutral'}
-                    >
-                      {team.status === OrgTeamStatus.Active ? 'Active' : 'Archived'}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600">
-                    {new Date(team.updatedAt).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                    ) : null}
+                  </div>
+                ),
+              },
+              { id: 'code', header: 'Code', accessor: 'code', kind: 'code' },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (team) => (
+                  <Badge
+                    variant="solid"
+                    tone={team.status === OrgTeamStatus.Active ? 'success' : 'neutral'}
+                  >
+                    {team.status === OrgTeamStatus.Active ? 'Active' : 'Archived'}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'updated',
+                header: 'Updated',
+                accessor: (team) => new Date(team.updatedAt).toLocaleDateString(),
+              },
+            ]}
+          />
+        )}
       </div>
 
       <CreateOrgTeamModal

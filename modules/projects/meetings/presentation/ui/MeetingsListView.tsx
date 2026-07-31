@@ -4,15 +4,19 @@ import { useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, PageSkeleton, Stack, Typography } from '@/shared/ui'
+import { Badge, Button, Card, DataTable, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { ROUTES } from '@/constants/routes'
 import { MeetingSeriesView } from '@/modules/projects/meeting-series'
 import { useProject } from '../../../project/hooks/useProject'
 import { useProjectMeetings } from '../hooks/useProjectMeetings'
 import { CreateMeetingModal } from './CreateMeetingModal'
-import { isUpcomingMeeting, meetingStatusLabel, meetingStatusTone } from '../../domain/rules/meeting.rules'
+import {
+  isUpcomingMeeting,
+  meetingStatusLabel,
+  meetingStatusTone,
+} from '../../domain/rules/meeting.rules'
 
 function formatDateTime(iso: string | null | undefined) {
   if (!iso) return '—'
@@ -63,26 +67,26 @@ export function MeetingsListView() {
 
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="p-8 text-center">
         <Typography weight="medium">You don’t have access to meetings</Typography>
-      </div>
+      </Card>
     )
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
         current="Meetings"
       />
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
+      <div className="mb-2 mt-1 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Meetings
           </Typography>
-          <Typography variant="small" tone="muted" className="mt-1">
+          <Typography variant="caption" tone="muted" className="mt-0.5">
             Schedule and track project meetings
           </Typography>
         </div>
@@ -121,59 +125,62 @@ export function MeetingsListView() {
       {tab === 'series' ? (
         <MeetingSeriesView projectId={projectId} />
       ) : (
-        <div className="overflow-x-auto border border-neutral-200 bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Title</th>
-                <th className="px-4 py-3 font-medium">Start</th>
-                <th className="px-4 py-3 font-medium">Location</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleMeetings.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-neutral-500">
-                    No {tab} meetings
-                  </td>
-                </tr>
-              ) : (
-                visibleMeetings.map((m) => (
-                  <tr key={m.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                    <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        className="text-left font-medium text-neutral-900 hover:underline"
-                        onClick={() => openMeeting(m.id)}
-                      >
-                        {m.title}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3">{formatDateTime(m.startAt)}</td>
-                    <td className="px-4 py-3">{m.location ?? '—'}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant="solid" tone={meetingStatusTone(m.status)}>
-                        {meetingStatusLabel(m.status)}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Stack direction="horizontal" spacing="sm">
-                        <button
-                          type="button"
-                          className="text-sm text-primary hover:underline"
-                          onClick={() => openMeeting(m.id)}
-                        >
-                          Open
-                        </button>
-                      </Stack>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="border border-neutral-200 bg-white">
+          <DataTable
+            ariaLabel={`${tab} project meetings`}
+            rows={visibleMeetings}
+            rowKey={(meeting) => meeting.id}
+            emptyMessage={`No ${tab} meetings`}
+            columns={[
+              {
+                id: 'title',
+                header: 'Title',
+                cell: (meeting) => (
+                  <button
+                    type="button"
+                    className="text-left font-medium text-neutral-900 hover:underline"
+                    onClick={() => openMeeting(meeting.id)}
+                  >
+                    {meeting.title}
+                  </button>
+                ),
+              },
+              {
+                id: 'start',
+                header: 'Start',
+                accessor: (meeting) => formatDateTime(meeting.startAt),
+              },
+              {
+                id: 'location',
+                header: 'Location',
+                accessor: (meeting) => meeting.location ?? '—',
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (meeting) => (
+                  <Badge variant="solid" tone={meetingStatusTone(meeting.status)}>
+                    {meetingStatusLabel(meeting.status)}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (meeting) => (
+                  <Stack direction="horizontal" spacing="sm">
+                    <button
+                      type="button"
+                      className="text-sm text-primary hover:underline"
+                      onClick={() => openMeeting(meeting.id)}
+                    >
+                      Open
+                    </button>
+                  </Stack>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
 

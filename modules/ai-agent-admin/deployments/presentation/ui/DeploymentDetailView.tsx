@@ -4,14 +4,7 @@ import { useState } from 'react'
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { ADMIN_ROUTES } from '@/modules/admin'
-import {
-  Badge,
-  Button,
-  ConfirmDialog,
-  PageSkeleton,
-  Stack,
-  Typography,
-} from '@/shared/ui'
+import { Badge, Button, ConfirmDialog, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useCanManageAiConfig } from '../../../presentation/hooks/useCanManageAiConfig'
 import { AiLifecycleStatusBadge } from '../../../presentation/ui/AiLifecycleStatusBadge'
 import { useModels } from '@/modules/ai-agent-admin/models'
@@ -39,12 +32,7 @@ export function DeploymentDetailView() {
     return (
       <Stack direction="vertical" spacing="md" className="p-lg">
         <Typography tone="error">{error ?? 'Deployment not found'}</Typography>
-        <Button
-          as={NextLink}
-          href={ADMIN_ROUTES.aiControlDeployments}
-          size="sm"
-          variant="outline"
-        >
+        <Button as={NextLink} href={ADMIN_ROUTES.aiControlDeployments} size="sm" variant="outline">
           Back to deployments
         </Button>
       </Stack>
@@ -55,12 +43,7 @@ export function DeploymentDetailView() {
     <Stack direction="vertical" spacing="lg" className="p-lg">
       <div className="flex flex-wrap items-start justify-between gap-md">
         <div>
-          <Button
-            as={NextLink}
-            href={ADMIN_ROUTES.aiControlDeployments}
-            size="sm"
-            variant="ghost"
-          >
+          <Button as={NextLink} href={ADMIN_ROUTES.aiControlDeployments} size="sm" variant="ghost">
             ← Deployments
           </Button>
           <Typography variant="h2" className="mt-sm">
@@ -77,11 +60,7 @@ export function DeploymentDetailView() {
                 Edit
               </Button>
               {deployment.status !== DeploymentStatus.Active ? (
-                <Button
-                  size="sm"
-                  disabled={saving}
-                  onClick={() => void activate(deployment.id)}
-                >
+                <Button size="sm" disabled={saving} onClick={() => void activate(deployment.id)}>
                   Activate
                 </Button>
               ) : (
@@ -124,7 +103,7 @@ export function DeploymentDetailView() {
         </div>
         <div>
           <Typography variant="caption" tone="muted">
-            Provider deployment ID
+            Provider deployment name
           </Typography>
           <Typography className="mt-1 font-mono">
             {deployment.providerDeploymentId || '—'}
@@ -143,9 +122,7 @@ export function DeploymentDetailView() {
             Max output tokens
           </Typography>
           <Typography className="mt-1">
-            {deployment.defaultMaxOutputTokens != null
-              ? deployment.defaultMaxOutputTokens
-              : '—'}
+            {deployment.defaultMaxOutputTokens != null ? deployment.defaultMaxOutputTokens : '—'}
           </Typography>
         </div>
       </dl>
@@ -164,9 +141,7 @@ export function DeploymentDetailView() {
         message={`Deactivate “${deployment.name}”?`}
         confirmLabel="Deactivate"
         variant="danger"
-        onConfirm={() =>
-          void deactivate(deployment.id).then(() => setDeactivateOpen(false))
-        }
+        onConfirm={() => void deactivate(deployment.id).then(() => setDeactivateOpen(false))}
       />
       <ConfirmDialog
         open={setDefaultOpen}
@@ -174,9 +149,7 @@ export function DeploymentDetailView() {
         title="Set default deployment"
         message={`Set “${deployment.name}” as default for ${deployment.environment}? Peers for the same model+environment are cleared by the server.`}
         confirmLabel="Set default"
-        onConfirm={() =>
-          void setDefault(deployment.id).then(() => setSetDefaultOpen(false))
-        }
+        onConfirm={() => void setDefault(deployment.id).then(() => setSetDefaultOpen(false))}
       />
     </Stack>
   )

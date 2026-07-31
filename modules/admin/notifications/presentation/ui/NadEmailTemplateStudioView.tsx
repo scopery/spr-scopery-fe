@@ -2,7 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Badge, Button, Input, Modal, PageSkeleton, Stack, Textarea, Typography } from '@/shared/ui'
+import {
+  Badge,
+  Button,
+  Input,
+  Modal,
+  PageSkeleton,
+  Stack,
+  Textarea,
+  Typography,
+  DataTable, Card,
+} from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { useEmailTemplates, useEmailTemplateVersions } from '../hooks/useEmailTemplates'
 import * as notificationsApi from '../../infrastructure/api/notifications.api'
@@ -77,7 +87,7 @@ export function NadEmailTemplateStudioView() {
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
-        <div className="border border-neutral-200 bg-white">
+        <Card>
           {items.length === 0 ? (
             <div className="p-4">
               <Typography variant="small" tone="muted">
@@ -101,7 +111,12 @@ export function NadEmailTemplateStudioView() {
                         {t.status}
                       </Badge>
                     </div>
-                    <Typography as="span" variant="small" tone="muted" className="mt-0.5 block font-mono">
+                    <Typography
+                      as="span"
+                      variant="small"
+                      tone="muted"
+                      className="mt-0.5 block font-normal"
+                    >
                       {t.code}
                     </Typography>
                   </button>
@@ -109,18 +124,18 @@ export function NadEmailTemplateStudioView() {
               ))}
             </ul>
           )}
-        </div>
+        </Card>
 
         <div>
           {!selected ? (
-            <div className="border border-neutral-200 bg-neutral-50 p-6">
+            <Card className="bg-neutral-50 p-6">
               <Typography variant="small" tone="muted">
                 Select a template to view details.
               </Typography>
-            </div>
+            </Card>
           ) : (
             <div className="space-y-6">
-              <div className="border border-neutral-200 bg-white p-4">
+              <Card className="p-4">
                 <Typography variant="small" weight="semibold" className="mb-3">
                   Template
                 </Typography>
@@ -153,9 +168,9 @@ export function NadEmailTemplateStudioView() {
                     Save name
                   </Button>
                 </Stack>
-              </div>
+              </Card>
 
-              <div className="border border-neutral-200 bg-white p-4">
+              <Card className="p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <Typography variant="small" weight="semibold">
                     Versions
@@ -168,67 +183,62 @@ export function NadEmailTemplateStudioView() {
                   <PageSkeleton variant="list" />
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-sm">
-                      <thead className="bg-neutral-50 text-neutral-600">
-                        <tr>
-                          <th className="px-3 py-2 font-medium">Subject</th>
-                          <th className="px-3 py-2 font-medium">Status</th>
-                          <th className="px-3 py-2 font-medium">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {versions.length === 0 ? (
-                          <tr>
-                            <td colSpan={3} className="px-3 py-6 text-center">
-                              <Typography variant="small" tone="muted">
-                                No versions
-                              </Typography>
-                            </td>
-                          </tr>
-                        ) : (
-                          versions.map((v) => (
-                            <tr key={v.id} className="border-t border-neutral-100">
-                              <td className="px-3 py-2">{v.subjectTemplate}</td>
-                              <td className="px-3 py-2">
-                                <Badge tone={v.status === 'ACTIVE' ? 'success' : 'neutral'}>
-                                  {v.status}
-                                </Badge>
-                              </td>
-                              <td className="px-3 py-2">
-                                <Stack direction="horizontal" spacing="sm">
-                                  <Button size="sm" variant="ghost" onClick={() => openPreview(v.id)}>
-                                    Preview
+                    <DataTable
+                      ariaLabel="Nad Email Template Studio"
+                      rows={versions}
+                      rowKey={(v) => String(v.id)}
+                      emptyMessage="No items."
+                      columns={[
+                        { id: 'subject', header: 'Subject', accessor: 'subjectTemplate' },
+                        {
+                          id: 'status',
+                          header: 'Status',
+                          cell: (v) => (
+                            <>
+                              <Badge tone={v.status === 'ACTIVE' ? 'success' : 'neutral'}>
+                                {v.status}
+                              </Badge>
+                            </>
+                          ),
+                        },
+                        {
+                          id: 'actions',
+                          header: 'Actions',
+                          cell: (v) => (
+                            <>
+                              <Stack direction="horizontal" spacing="sm">
+                                <Button size="sm" variant="ghost" onClick={() => openPreview(v.id)}>
+                                  Preview
+                                </Button>
+                                {v.status === 'DRAFT' ? (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    loading={publishingId === v.id}
+                                    onClick={() => {
+                                      setPublishingId(v.id)
+                                      void notificationsApi
+                                        .publishEmailTemplateVersion(selected.id, v.id)
+                                        .then(() => {
+                                          toast.success('Version published')
+                                          return refetchVersions()
+                                        })
+                                        .catch((e) => toast.error(getProblemToastMessage(e)))
+                                        .finally(() => setPublishingId(null))
+                                    }}
+                                  >
+                                    Publish
                                   </Button>
-                                  {v.status === 'DRAFT' ? (
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      loading={publishingId === v.id}
-                                      onClick={() => {
-                                        setPublishingId(v.id)
-                                        void notificationsApi
-                                          .publishEmailTemplateVersion(selected.id, v.id)
-                                          .then(() => {
-                                            toast.success('Version published')
-                                            return refetchVersions()
-                                          })
-                                          .catch((e) => toast.error(getProblemToastMessage(e)))
-                                          .finally(() => setPublishingId(null))
-                                      }}
-                                    >
-                                      Publish
-                                    </Button>
-                                  ) : null}
-                                </Stack>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                                ) : null}
+                              </Stack>
+                            </>
+                          ),
+                        },
+                      ]}
+                    />
                   </div>
                 )}
-              </div>
+              </Card>
             </div>
           )}
         </div>
@@ -332,7 +342,7 @@ export function NadEmailTemplateStudioView() {
             onChange={(e) => setSamplePayloadText(e.target.value)}
           />
           {previewResult ? (
-            <div className="space-y-2 border border-neutral-200 bg-neutral-50 p-3">
+            <Card className="space-y-2 bg-neutral-50 p-3">
               <Typography variant="small" weight="semibold">
                 Subject: {previewResult.subject}
               </Typography>
@@ -340,8 +350,8 @@ export function NadEmailTemplateStudioView() {
                 <Typography variant="small" tone="muted" className="mb-1">
                   HTML body
                 </Typography>
-                <div
-                  className="border border-neutral-200 bg-white p-3 text-sm"
+                <Card
+                  className="p-3 text-sm"
                   dangerouslySetInnerHTML={{ __html: previewResult.htmlBody }}
                 />
               </div>
@@ -355,7 +365,7 @@ export function NadEmailTemplateStudioView() {
                   </pre>
                 </div>
               ) : null}
-            </div>
+            </Card>
           ) : null}
         </div>
       </Modal>

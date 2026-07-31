@@ -3,7 +3,7 @@
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
-import { Typography, PageSkeleton } from '@/shared/ui'
+import { Typography, PageSkeleton, Card } from '@/shared/ui'
 import { IamStatusBadge } from './IamStatusBadge'
 import { useIamResourceDetail } from '../hooks/useIamResourceDetail'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
@@ -22,9 +22,7 @@ export function AdminIamResourceDetailView() {
   const { resource, loading, error } = useIamResourceDetail(resourceId)
 
   if (loading) {
-    return (
-      <PageSkeleton variant="detail" />
-    )
+    return <PageSkeleton variant="detail" />
   }
 
   if (error || !resource) {
@@ -46,7 +44,6 @@ export function AdminIamResourceDetailView() {
   }
 
   const fields = [
-    { label: 'Resource ID', value: resource.id, mono: true },
     { label: 'Code', value: resource.code, mono: true },
     { label: 'Type', value: resource.resourceType },
     { label: 'Name', value: resource.name },
@@ -77,7 +74,7 @@ export function AdminIamResourceDetailView() {
         </Typography>
       </div>
 
-      <div className="max-w-lg border border-neutral-200 bg-white">
+      <Card className="max-w-lg">
         <div className="divide-y divide-neutral-100">
           {fields.map(({ label, value, mono }) => (
             <div key={label} className="flex items-start gap-4 px-4 py-3">
@@ -93,7 +90,7 @@ export function AdminIamResourceDetailView() {
             </div>
           ))}
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

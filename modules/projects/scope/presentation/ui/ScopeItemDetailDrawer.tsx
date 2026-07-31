@@ -3,7 +3,10 @@
 import { X } from 'lucide-react'
 import { Badge, Button, Stack, Typography } from '@/shared/ui'
 import type { ScopeItem } from '../../domain/model/scope'
-import { scopeItemClassificationLabel, scopeItemPriorityLabel } from '../../domain/rules/scope.rules'
+import {
+  scopeItemClassificationLabel,
+  scopeItemPriorityLabel,
+} from '../../domain/rules/scope.rules'
 import { ScopeMappingPanel } from '@/modules/projects/scope-mappings'
 
 interface ScopeItemDetailDrawerProps {
@@ -29,9 +32,13 @@ export function ScopeItemDetailDrawer({
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-neutral-900/[0.18] motion-drawer-backdrop" aria-hidden onClick={onClose} />
+      <div
+        className="bg-neutral-900/[0.18] motion-drawer-backdrop fixed inset-0 z-40"
+        aria-hidden
+        onClick={onClose}
+      />
       <aside
-        className="drawer fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-neutral-200 bg-white shadow-xl motion-drawer-panel"
+        className="drawer motion-drawer-panel fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-neutral-200 bg-white shadow-xl"
         role="dialog"
         aria-label="Scope item detail"
       >
@@ -65,9 +72,7 @@ export function ScopeItemDetailDrawer({
             <Typography variant="small" tone="muted">
               Description
             </Typography>
-            <Typography className="mt-1 whitespace-pre-wrap">
-              {item.description || '—'}
-            </Typography>
+            <Typography className="mt-1 whitespace-pre-wrap">{item.description || '—'}</Typography>
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
@@ -97,7 +102,7 @@ export function ScopeItemDetailDrawer({
           </div>
 
           <div className="border-t border-neutral-200 pt-4">
-            <ScopeMappingPanel scopeItemId={item.id} />
+            <ScopeMappingPanel scopeItemId={item.id} projectId={item.projectId} />
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 'use client'
 
-import { TraceabilityMatrixView } from '@/modules/projects/traceability/ui/TraceabilityMatrixView'
+import { RequirementTraceabilityView } from '@/modules/projects'
 
 export default function Page() {
-  return <TraceabilityMatrixView />
+  return <RequirementTraceabilityView />
 }

@@ -3,7 +3,16 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, Input, Modal, PageSkeleton, Stack, Typography } from '@/shared/ui'
+import {
+  Badge,
+  Button,
+  Input,
+  Modal,
+  PageSkeleton,
+  Stack,
+  Typography,
+  DataTable, Card,
+} from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { useAutomationRules } from '../hooks/useAutomationRules'
 import type { CreateReminderRulePayload } from '../../domain/model/reminder-rule'
@@ -75,9 +84,9 @@ export function AutomationRulesView({ workspaceId }: AutomationRulesViewProps) {
 
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="p-8 text-center">
         <Typography weight="medium">You don&apos;t have access to automation rules</Typography>
-      </div>
+      </Card>
     )
   }
 
@@ -194,50 +203,82 @@ export function AutomationRulesView({ workspaceId }: AutomationRulesViewProps) {
       {activeTab === 'reminders' && (
         <div>
           <div className="mb-4 flex items-center justify-between">
-            <Typography as="h2" size="lg" weight="bold">Reminder rules</Typography>
-            <Button variant="primary" icon={<Plus size={16} />} onClick={() => setReminderOpen(true)}>
+            <Typography as="h2" size="lg" weight="bold">
+              Reminder rules
+            </Typography>
+            <Button
+              variant="primary"
+              icon={<Plus size={16} />}
+              onClick={() => setReminderOpen(true)}
+            >
               New reminder rule
             </Button>
           </div>
 
           <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Trigger Condition</th>
-                  <th className="px-4 py-3 font-medium">Offset (minutes)</th>
-                  <th className="px-4 py-3 font-medium">Channel</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Enabled</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reminderRules.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center">
-                      <Typography variant="small" tone="muted">No reminder rules</Typography>
-                    </td>
-                  </tr>
-                ) : reminderRules.map((r) => (
-                  <tr key={r.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                    <td className="px-4 py-3"><Typography weight="medium">{r.name}</Typography></td>
-                    <td className="px-4 py-3 font-mono text-xs text-neutral-500">{r.triggerCondition}</td>
-                    <td className="px-4 py-3 text-neutral-500">{r.offsetMinutes}</td>
-                    <td className="px-4 py-3 text-neutral-500">{r.channel || '—'}</td>
-                    <td className="px-4 py-3"><Badge tone={statusTone(r.status)}>{r.status}</Badge></td>
-                    <td className="px-4 py-3">
-                      <Badge tone={r.enabled ? 'success' : 'neutral'}>{r.enabled ? 'On' : 'Off'}</Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              ariaLabel="Automation Rules"
+              rows={reminderRules}
+              rowKey={(r) => String(r.id)}
+              emptyMessage="No items."
+              columns={[
+                {
+                  id: 'name',
+                  header: 'Name',
+                  cell: (r) => (
+                    <>
+                      <Typography weight="medium">{r.name}</Typography>
+                    </>
+                  ),
+                },
+                {
+                  id: 'trigger-condition',
+                  header: 'Trigger Condition',
+                  accessor: 'triggerCondition',
+                  cellClassName: 'text-xs text-neutral-500',
+                },
+                {
+                  id: 'offset-minutes-',
+                  header: 'Offset (minutes)',
+                  accessor: 'offsetMinutes',
+                  cellClassName: 'text-neutral-500',
+                },
+                {
+                  id: 'channel',
+                  header: 'Channel',
+                  cell: (r) => <>{r.channel || '—'}</>,
+                  cellClassName: 'text-neutral-500',
+                },
+                {
+                  id: 'status',
+                  header: 'Status',
+                  cell: (r) => (
+                    <>
+                      <Badge tone={statusTone(r.status)}>{r.status}</Badge>
+                    </>
+                  ),
+                },
+                {
+                  id: 'enabled',
+                  header: 'Enabled',
+                  cell: (r) => (
+                    <>
+                      <Badge tone={r.enabled ? 'success' : 'neutral'}>
+                        {r.enabled ? 'On' : 'Off'}
+                      </Badge>
+                    </>
+                  ),
+                },
+              ]}
+            />
           </div>
 
           <Modal
             open={reminderOpen}
-            onClose={() => { setReminderOpen(false); resetReminderForm() }}
+            onClose={() => {
+              setReminderOpen(false)
+              resetReminderForm()
+            }}
             title="New reminder rule"
           >
             <form onSubmit={(e) => void handleCreateReminder(e)}>
@@ -274,7 +315,10 @@ export function AutomationRulesView({ workspaceId }: AutomationRulesViewProps) {
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => { setReminderOpen(false); resetReminderForm() }}
+                    onClick={() => {
+                      setReminderOpen(false)
+                      resetReminderForm()
+                    }}
                     disabled={reminderSaving}
                   >
                     Cancel
@@ -297,50 +341,78 @@ export function AutomationRulesView({ workspaceId }: AutomationRulesViewProps) {
       {activeTab === 'alerts' && (
         <div>
           <div className="mb-4 flex items-center justify-between">
-            <Typography as="h2" size="lg" weight="bold">Alert rules</Typography>
+            <Typography as="h2" size="lg" weight="bold">
+              Alert rules
+            </Typography>
             <Button variant="primary" icon={<Plus size={16} />} onClick={() => setAlertOpen(true)}>
               New alert rule
             </Button>
           </div>
 
           <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Trigger Condition</th>
-                  <th className="px-4 py-3 font-medium">Severity</th>
-                  <th className="px-4 py-3 font-medium">Channel</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Enabled</th>
-                </tr>
-              </thead>
-              <tbody>
-                {alertRules.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center">
-                      <Typography variant="small" tone="muted">No alert rules</Typography>
-                    </td>
-                  </tr>
-                ) : alertRules.map((r) => (
-                  <tr key={r.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                    <td className="px-4 py-3"><Typography weight="medium">{r.name}</Typography></td>
-                    <td className="px-4 py-3 font-mono text-xs text-neutral-500">{r.triggerCondition}</td>
-                    <td className="px-4 py-3 text-neutral-500">{r.severity || '—'}</td>
-                    <td className="px-4 py-3 text-neutral-500">{r.channel || '—'}</td>
-                    <td className="px-4 py-3"><Badge tone={statusTone(r.status)}>{r.status}</Badge></td>
-                    <td className="px-4 py-3">
-                      <Badge tone={r.enabled ? 'success' : 'neutral'}>{r.enabled ? 'On' : 'Off'}</Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              ariaLabel="Automation Rules"
+              rows={alertRules}
+              rowKey={(r) => String(r.id)}
+              emptyMessage="No items."
+              columns={[
+                {
+                  id: 'name',
+                  header: 'Name',
+                  cell: (r) => (
+                    <>
+                      <Typography weight="medium">{r.name}</Typography>
+                    </>
+                  ),
+                },
+                {
+                  id: 'trigger-condition',
+                  header: 'Trigger Condition',
+                  accessor: 'triggerCondition',
+                  cellClassName: 'text-xs text-neutral-500',
+                },
+                {
+                  id: 'severity',
+                  header: 'Severity',
+                  cell: (r) => <>{r.severity || '—'}</>,
+                  cellClassName: 'text-neutral-500',
+                },
+                {
+                  id: 'channel',
+                  header: 'Channel',
+                  cell: (r) => <>{r.channel || '—'}</>,
+                  cellClassName: 'text-neutral-500',
+                },
+                {
+                  id: 'status',
+                  header: 'Status',
+                  cell: (r) => (
+                    <>
+                      <Badge tone={statusTone(r.status)}>{r.status}</Badge>
+                    </>
+                  ),
+                },
+                {
+                  id: 'enabled',
+                  header: 'Enabled',
+                  cell: (r) => (
+                    <>
+                      <Badge tone={r.enabled ? 'success' : 'neutral'}>
+                        {r.enabled ? 'On' : 'Off'}
+                      </Badge>
+                    </>
+                  ),
+                },
+              ]}
+            />
           </div>
 
           <Modal
             open={alertOpen}
-            onClose={() => { setAlertOpen(false); resetAlertForm() }}
+            onClose={() => {
+              setAlertOpen(false)
+              resetAlertForm()
+            }}
             title="New alert rule"
           >
             <form onSubmit={(e) => void handleCreateAlert(e)}>
@@ -377,7 +449,10 @@ export function AutomationRulesView({ workspaceId }: AutomationRulesViewProps) {
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => { setAlertOpen(false); resetAlertForm() }}
+                    onClick={() => {
+                      setAlertOpen(false)
+                      resetAlertForm()
+                    }}
                     disabled={alertSaving}
                   >
                     Cancel
@@ -400,48 +475,72 @@ export function AutomationRulesView({ workspaceId }: AutomationRulesViewProps) {
       {activeTab === 'digests' && (
         <div>
           <div className="mb-4 flex items-center justify-between">
-            <Typography as="h2" size="lg" weight="bold">Digest rules</Typography>
+            <Typography as="h2" size="lg" weight="bold">
+              Digest rules
+            </Typography>
             <Button variant="primary" icon={<Plus size={16} />} onClick={() => setDigestOpen(true)}>
               New digest rule
             </Button>
           </div>
 
           <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Schedule</th>
-                  <th className="px-4 py-3 font-medium">Channel</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Enabled</th>
-                </tr>
-              </thead>
-              <tbody>
-                {digestRules.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center">
-                      <Typography variant="small" tone="muted">No digest rules</Typography>
-                    </td>
-                  </tr>
-                ) : digestRules.map((r) => (
-                  <tr key={r.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                    <td className="px-4 py-3"><Typography weight="medium">{r.name}</Typography></td>
-                    <td className="px-4 py-3 font-mono text-xs text-neutral-500">{r.schedule}</td>
-                    <td className="px-4 py-3 text-neutral-500">{r.channel || '—'}</td>
-                    <td className="px-4 py-3"><Badge tone={statusTone(r.status)}>{r.status}</Badge></td>
-                    <td className="px-4 py-3">
-                      <Badge tone={r.enabled ? 'success' : 'neutral'}>{r.enabled ? 'On' : 'Off'}</Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              ariaLabel="Automation Rules"
+              rows={digestRules}
+              rowKey={(r) => String(r.id)}
+              emptyMessage="No items."
+              columns={[
+                {
+                  id: 'name',
+                  header: 'Name',
+                  cell: (r) => (
+                    <>
+                      <Typography weight="medium">{r.name}</Typography>
+                    </>
+                  ),
+                },
+                {
+                  id: 'schedule',
+                  header: 'Schedule',
+                  accessor: 'schedule',
+                  cellClassName: 'text-xs text-neutral-500',
+                },
+                {
+                  id: 'channel',
+                  header: 'Channel',
+                  cell: (r) => <>{r.channel || '—'}</>,
+                  cellClassName: 'text-neutral-500',
+                },
+                {
+                  id: 'status',
+                  header: 'Status',
+                  cell: (r) => (
+                    <>
+                      <Badge tone={statusTone(r.status)}>{r.status}</Badge>
+                    </>
+                  ),
+                },
+                {
+                  id: 'enabled',
+                  header: 'Enabled',
+                  cell: (r) => (
+                    <>
+                      <Badge tone={r.enabled ? 'success' : 'neutral'}>
+                        {r.enabled ? 'On' : 'Off'}
+                      </Badge>
+                    </>
+                  ),
+                },
+              ]}
+            />
           </div>
 
           <Modal
             open={digestOpen}
-            onClose={() => { setDigestOpen(false); resetDigestForm() }}
+            onClose={() => {
+              setDigestOpen(false)
+              resetDigestForm()
+            }}
             title="New digest rule"
           >
             <form onSubmit={(e) => void handleCreateDigest(e)}>
@@ -471,7 +570,10 @@ export function AutomationRulesView({ workspaceId }: AutomationRulesViewProps) {
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => { setDigestOpen(false); resetDigestForm() }}
+                    onClick={() => {
+                      setDigestOpen(false)
+                      resetDigestForm()
+                    }}
                     disabled={digestSaving}
                   >
                     Cancel
@@ -494,40 +596,54 @@ export function AutomationRulesView({ workspaceId }: AutomationRulesViewProps) {
       {activeTab === 'runs' && (
         <div>
           <div className="mb-4">
-            <Typography as="h2" size="lg" weight="bold">Digest runs</Typography>
+            <Typography as="h2" size="lg" weight="bold">
+              Digest runs
+            </Typography>
           </div>
 
           <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Rule ID</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Started</th>
-                  <th className="px-4 py-3 font-medium">Completed</th>
-                  <th className="px-4 py-3 font-medium">Recipients</th>
-                </tr>
-              </thead>
-              <tbody>
-                {digestRuns.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center">
-                      <Typography variant="small" tone="muted">No digest runs</Typography>
-                    </td>
-                  </tr>
-                ) : digestRuns.map((run) => (
-                  <tr key={run.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                    <td className="px-4 py-3 font-mono text-xs text-neutral-500">{run.ruleId}</td>
-                    <td className="px-4 py-3"><Badge tone={statusTone(run.status)}>{run.status}</Badge></td>
-                    <td className="px-4 py-3 text-neutral-500">{run.startedAt}</td>
-                    <td className="px-4 py-3 text-neutral-500">{run.completedAt ?? '—'}</td>
-                    <td className="px-4 py-3 text-neutral-500">
-                      {run.recipientCount !== null ? run.recipientCount : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              ariaLabel="Automation Rules"
+              rows={digestRuns}
+              rowKey={(run) => String(run.id)}
+              emptyMessage="No items."
+              columns={[
+                {
+                  id: 'rule-id',
+                  header: 'Rule ID',
+                  accessor: () => '—',
+                  kind: 'reference',
+                  cellClassName: 'text-xs text-neutral-500',
+                },
+                {
+                  id: 'status',
+                  header: 'Status',
+                  cell: (run) => (
+                    <>
+                      <Badge tone={statusTone(run.status)}>{run.status}</Badge>
+                    </>
+                  ),
+                },
+                {
+                  id: 'started',
+                  header: 'Started',
+                  accessor: 'startedAt',
+                  cellClassName: 'text-neutral-500',
+                },
+                {
+                  id: 'completed',
+                  header: 'Completed',
+                  cell: (run) => <>{run.completedAt ?? '—'}</>,
+                  cellClassName: 'text-neutral-500',
+                },
+                {
+                  id: 'recipients',
+                  header: 'Recipients',
+                  cell: (run) => <>{run.recipientCount !== null ? run.recipientCount : '—'}</>,
+                  cellClassName: 'text-neutral-500',
+                },
+              ]}
+            />
           </div>
         </div>
       )}

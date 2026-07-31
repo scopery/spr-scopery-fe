@@ -3,7 +3,7 @@
 import { Ban, Check, Plus, Search, Trash2 } from 'lucide-react'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Typography, Button, Input, Stack, Skeleton } from '@/shared/ui'
+import { Typography, Button, Input, Stack, Skeleton, DataTable } from '@/shared/ui'
 import { IamStatusBadge } from '../IamStatusBadge'
 import { IamSearchField } from '../IamSearchField'
 import { iamRolesApi } from '@/modules/auth/iam'
@@ -25,7 +25,11 @@ export function IamRolesPanel() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await iamRolesApi.searchRoles({ keyword: keyword.trim() || undefined, page: 0, size: 50 })
+      const res = await iamRolesApi.searchRoles({
+        keyword: keyword.trim() || undefined,
+        page: 0,
+        size: 50,
+      })
       setItems(res.items)
     } catch (err) {
       toast.error(getProblemToastMessage(err))
@@ -89,7 +93,12 @@ export function IamRolesPanel() {
         <Button variant="primary" onClick={() => void load()} icon={<Search size={16} />}>
           Search
         </Button>
-        <Button variant="neutral-flat" onClick={() => setCreateOpen((v) => !v)} icon={!createOpen ? <Plus size={16} /> : undefined}>{createOpen ? 'Cancel' : 'New system role'}
+        <Button
+          variant="neutral-flat"
+          onClick={() => setCreateOpen((v) => !v)}
+          icon={!createOpen ? <Plus size={16} /> : undefined}
+        >
+          {createOpen ? 'Cancel' : 'New system role'}
         </Button>
       </Stack>
       {createOpen && (
@@ -98,10 +107,27 @@ export function IamRolesPanel() {
             Create system role
           </Typography>
           <Stack direction="vertical" spacing="sm" className="max-w-md">
-            <Input label="Code" value={createCode} onChange={(e) => setCreateCode(e.target.value)} />
-            <Input label="Name" value={createName} onChange={(e) => setCreateName(e.target.value)} />
-            <Input label="Description" value={createDesc} onChange={(e) => setCreateDesc(e.target.value)} />
-            <Button variant="primary" disabled={creating} onClick={() => void handleCreate()} icon={<Plus size={16} />}>
+            <Input
+              label="Code"
+              value={createCode}
+              onChange={(e) => setCreateCode(e.target.value)}
+            />
+            <Input
+              label="Name"
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+            />
+            <Input
+              label="Description"
+              value={createDesc}
+              onChange={(e) => setCreateDesc(e.target.value)}
+            />
+            <Button
+              variant="primary"
+              disabled={creating}
+              onClick={() => void handleCreate()}
+              icon={<Plus size={16} />}
+            >
               Create
             </Button>
           </Stack>
@@ -111,62 +137,68 @@ export function IamRolesPanel() {
         <Skeleton variant="rectangular" width="100%" height={80} />
       ) : (
         <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-3 py-2 font-medium">Code</th>
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Scope</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-                <th className="min-w-[12rem] whitespace-nowrap px-3 py-2 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((role) => (
-                <tr key={role.id} className="border-t border-neutral-100">
-                  <td className="px-3 py-2 font-mono text-xs">{role.code}</td>
-                  <td className="px-3 py-2">{role.name}</td>
-                  <td className="px-3 py-2">{role.roleScope}</td>
-                  <td className="px-3 py-2">
+          <DataTable
+            ariaLabel="Iam Roles Panel"
+            rows={items}
+            rowKey={(role) => String(role.id)}
+            emptyMessage="No items."
+            columns={[
+              {
+                id: 'code',
+                header: 'Code',
+                accessor: 'code',
+                kind: 'code',
+                cellClassName: 'text-xs',
+              },
+              { id: 'name', header: 'Name', accessor: 'name' },
+              { id: 'scope', header: 'Scope', accessor: 'roleScope' },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (role) => (
+                  <>
                     <IamStatusBadge status={role.status} />
-                  </td>
-                  <td className="px-3 py-2">
+                  </>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (role) => (
+                  <>
                     <Stack direction="horizontal" spacing="xs" className="flex-wrap">
                       <Button
                         variant="ghost"
                         disabled={actingId === role.id}
-                        onClick={() => void runAction(role.id, 'activate')} icon={<Check size={16} />}>
+                        onClick={() => void runAction(role.id, 'activate')}
+                        icon={<Check size={16} />}
+                      >
                         Activate
                       </Button>
                       <Button
                         variant="ghost"
                         disabled={actingId === role.id}
-                        onClick={() => void runAction(role.id, 'deactivate')} icon={<Ban size={16} />}>
+                        onClick={() => void runAction(role.id, 'deactivate')}
+                        icon={<Ban size={16} />}
+                      >
                         Deactivate
                       </Button>
                       {!role.isSystem && (
                         <Button
                           variant="ghost"
                           disabled={actingId === role.id}
-                          onClick={() => void runAction(role.id, 'softDelete')} icon={<Trash2 size={16} />}>
+                          onClick={() => void runAction(role.id, 'softDelete')}
+                          icon={<Trash2 size={16} />}
+                        >
                           Delete
                         </Button>
                       )}
                     </Stack>
-                  </td>
-                </tr>
-              ))}
-              {!items.length && (
-                <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center">
-                    <Typography variant="small" tone="muted">
-                      No roles found
-                    </Typography>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
     </Stack>

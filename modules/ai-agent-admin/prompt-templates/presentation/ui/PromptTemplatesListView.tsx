@@ -13,6 +13,7 @@ import {
   Select,
   Stack,
   Typography,
+  DataTable,
 } from '@/shared/ui'
 import { useCanManageAiConfig } from '../../../presentation/hooks/useCanManageAiConfig'
 import { AiLifecycleStatusBadge } from '../../../presentation/ui/AiLifecycleStatusBadge'
@@ -131,93 +132,103 @@ export function PromptTemplatesListView() {
       {error ? <Typography tone="error">{error}</Typography> : null}
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-neutral-200 bg-neutral-50 text-left">
-            <tr>
-              <th className="px-4 py-3 font-medium">Agent</th>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Code</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Description</th>
-              <th className="px-4 py-3 font-medium">Updated</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-neutral-500">
-                  No templates found.
-                </td>
-              </tr>
-            ) : (
-              items.map((t) => (
-                <tr key={t.id} className="border-b border-neutral-100">
-                  <td className="px-4 py-3">
-                    {agentNameById.get(t.agentId) ?? t.agentId.slice(0, 8)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Typography weight="medium">{t.name}</Typography>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs">{t.code}</td>
-                  <td className="px-4 py-3">
-                    <AiLifecycleStatusBadge status={t.status} />
-                  </td>
-                  <td className="max-w-[200px] truncate px-4 py-3 text-xs">
-                    {t.description || '—'}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-neutral-500">
-                    {t.updatedAt ? new Date(t.updatedAt).toLocaleString() : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      <Button
-                        as={NextLink}
-                        href={ADMIN_ROUTES.aiControlPrompt(t.id)}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Versions
-                      </Button>
-                      {canManage ? (
-                        <>
+        <DataTable
+          ariaLabel="Prompt Templates List"
+          rows={items}
+          rowKey={(t) => String(t.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'agent',
+              header: 'Agent',
+              kind: 'reference',
+              cell: (t) => <>{agentNameById.get(t.agentId) ?? '—'}</>,
+            },
+            {
+              id: 'name',
+              header: 'Name',
+              cell: (t) => (
+                <>
+                  <Typography weight="medium">{t.name}</Typography>
+                </>
+              ),
+            },
+            {
+              id: 'code',
+              header: 'Code',
+              accessor: 'code',
+              kind: 'code',
+              cellClassName: 'text-xs',
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (t) => (
+                <>
+                  <AiLifecycleStatusBadge status={t.status} />
+                </>
+              ),
+            },
+            {
+              id: 'description',
+              header: 'Description',
+              cell: (t) => <>{t.description || '—'}</>,
+              cellClassName: 'max-w-[200px] truncate text-xs',
+            },
+            {
+              id: 'updated',
+              header: 'Updated',
+              cell: (t) => <>{t.updatedAt ? new Date(t.updatedAt).toLocaleString() : '—'}</>,
+              cellClassName: 'text-xs text-neutral-500',
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (t) => (
+                <>
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      as={NextLink}
+                      href={ADMIN_ROUTES.aiControlPrompt(t.id)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Versions
+                    </Button>
+                    {canManage ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditing(t)
+                            setFormOpen(true)
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        {t.status !== PromptTemplateStatus.Active ? (
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => {
-                              setEditing(t)
-                              setFormOpen(true)
-                            }}
+                            disabled={saving}
+                            onClick={() => void activate(t.id)}
                           >
-                            Edit
+                            Activate
                           </Button>
-                          {t.status !== PromptTemplateStatus.Active ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={saving}
-                              onClick={() => void activate(t.id)}
-                            >
-                              Activate
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setDeactivateTarget(t)}
-                            >
-                              Deactivate
-                            </Button>
-                          )}
-                        </>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                        ) : (
+                          <Button size="sm" variant="ghost" onClick={() => setDeactivateTarget(t)}>
+                            Deactivate
+                          </Button>
+                        )}
+                      </>
+                    ) : null}
+                  </div>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
 
       {totalElements > PAGE_SIZE ? (

@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import NextLink from 'next/link'
-import { Badge, Input, PageSkeleton, Typography } from '@/shared/ui'
+import { Badge, PageSkeleton, Typography, DataTable, Card } from '@/shared/ui'
+import { AdminWorkspaceSearchSelect } from '@/modules/admin/workspaces'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 import { cn } from '@/utils/cn'
 import { useAutomationRules } from '../hooks/useAutomationRules'
@@ -45,8 +46,7 @@ export function NadAutomationView() {
     workspaceId.trim() || null
   )
 
-  const rules =
-    tab === 'reminder' ? reminderRules : tab === 'alert' ? alertRules : digestRules
+  const rules = tab === 'reminder' ? reminderRules : tab === 'alert' ? alertRules : digestRules
 
   return (
     <div>
@@ -71,16 +71,13 @@ export function NadAutomationView() {
       </Typography>
 
       <div className="mb-6 max-w-md">
-        <Input
-          label="Workspace ID"
-          fullWidth
-          placeholder="UUID of workspace to inspect"
-          value={workspaceId}
-          onChange={(e) => setWorkspaceId(e.target.value)}
-        />
+        <AdminWorkspaceSearchSelect value={workspaceId} onChange={setWorkspaceId} />
       </div>
 
-      <nav aria-label="Automation rule types" className="mb-4 flex gap-1 border-b border-neutral-200">
+      <nav
+        aria-label="Automation rule types"
+        className="mb-4 flex gap-1 border-b border-neutral-200"
+      >
         {TABS.map((t) => {
           const active = t.id === tab
           return (
@@ -107,11 +104,11 @@ export function NadAutomationView() {
       </Typography>
 
       {!workspaceId.trim() ? (
-        <div className="border border-neutral-200 bg-white p-8 text-center">
+        <Card className="p-8 text-center">
           <Typography variant="small" tone="muted">
             Enter a workspace ID to load automation rules
           </Typography>
-        </div>
+        </Card>
       ) : loading ? (
         <PageSkeleton variant="list" />
       ) : error ? (
@@ -122,43 +119,31 @@ export function NadAutomationView() {
         </div>
       ) : (
         <div className="overflow-x-auto border border-neutral-200 bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">ID</th>
-                <th className="px-4 py-3 font-medium">Label</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rules.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center">
-                    <Typography variant="small" tone="muted">
-                      No rules returned
-                    </Typography>
-                  </td>
-                </tr>
-              ) : (
-                rules.map((rule) => {
+          <DataTable
+            ariaLabel="Nad Automation"
+            rows={rules}
+            rowKey={(rule) => String(rule.id)}
+            emptyMessage="No items."
+            columns={[
+              { id: 'id', header: 'ID', accessor: () => '—', kind: 'reference' },
+              {
+                id: 'label',
+                header: 'Label',
+                cell: (rule) => {
                   const status = ruleStatus(rule)
-                  return (
-                    <tr key={rule.id} className="border-t border-neutral-100">
-                      <td className="px-4 py-3">
-                        <Typography as="span" variant="small" className="font-mono">
-                          {rule.id}
-                        </Typography>
-                      </td>
-                      <td className="px-4 py-3">{ruleLabel(rule)}</td>
-                      <td className="px-4 py-3">
-                        {status ? <Badge tone="neutral">{status}</Badge> : '—'}
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
+                  return <>{ruleLabel(rule)}</>
+                },
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (rule) => {
+                  const status = ruleStatus(rule)
+                  return <>{status ? <Badge tone="neutral">{status}</Badge> : '—'}</>
+                },
+              },
+            ]}
+          />
         </div>
       )}
     </div>

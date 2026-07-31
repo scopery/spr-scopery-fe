@@ -12,17 +12,21 @@ import {
   PageSkeleton,
   Stack,
   Badge,
+  Card,
   Modal,
   ConfirmDialog,
-  Select,
+  DataTable,
 } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
-import { UserIdentity } from '@/modules/platform/identity/presentation/ui/UserIdentity'
-import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
-import { useAuth } from '@/modules/auth/auth/context/AuthContext'
-import { useWorkspaceMembers } from '@/modules/org/workspace/hooks/useWorkspaceMembers'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
+import {
+  UserIdentity,
+  UserSearchSelect,
+  useResolveUsers,
+  type PersonIdentity,
+} from '@/modules/platform'
+import { useWorkspaceMembers } from '@/modules/org/workspace'
 import { ROUTES } from '@/constants/routes'
 import { useProject } from '../hooks/useProject'
 import { useProjectLifecycle } from '../hooks/useProjectLifecycle'
@@ -66,14 +70,6 @@ export function ProjectSettingsView() {
   const workspaceId = params.workspaceId as string
   const projectId = params.projectId as string
 
-  const { session, profile } = useAuth()
-  const currentUserId = session?.user?.id ?? profile?.user_id ?? ''
-  const currentUserLabel =
-    profile?.display_name ||
-    session?.user?.fullName ||
-    session?.user?.email ||
-    session?.user?.username ||
-    'You'
   const { members } = useWorkspaceMembers(workspaceId)
 
   const { project, loading, error, refetch } = useProject(workspaceId, projectId)
@@ -81,7 +77,15 @@ export function ProjectSettingsView() {
     () => [...members.map((m) => m.userId), project?.ownerUserId],
     [members, project?.ownerUserId]
   )
-  const { labelFor, peopleById } = useResolveUsers(memberUserIds)
+  const { peopleById, personFor } = useResolveUsers(memberUserIds)
+  const ownerPeople = useMemo(
+    () =>
+      members
+        .filter((member) => isActiveMember(member.status))
+        .map((member) => personFor(member.userId))
+        .filter((person): person is PersonIdentity => Boolean(person)),
+    [members, personFor]
+  )
   const { actingId, runLifecycle } = useProjectLifecycle(() => {
     void refetch()
   })
@@ -115,41 +119,6 @@ export function ProjectSettingsView() {
     phaseId: string
     action: PhaseLifecycleAction
   } | null>(null)
-
-  const ownerOptions = useMemo(() => {
-    const active = members.filter((m) => isActiveMember(m.status))
-    const seen = new Set<string>()
-    const options: { value: string; label: string }[] = [{ value: '', label: 'No owner' }]
-
-    if (currentUserId) {
-      seen.add(currentUserId)
-      options.push({ value: currentUserId, label: `You — ${currentUserLabel}` })
-    }
-
-    if (project?.ownerUserId && !seen.has(project.ownerUserId)) {
-      seen.add(project.ownerUserId)
-      options.push({
-        value: project.ownerUserId,
-        label: labelFor(project.ownerUserId, { currentUserId, youLabel: currentUserLabel }),
-      })
-    }
-
-    for (const m of active) {
-      if (seen.has(m.userId)) continue
-      seen.add(m.userId)
-      options.push({
-        value: m.userId,
-        label: labelFor(m.userId, { currentUserId, youLabel: currentUserLabel }),
-      })
-    }
-
-    return options
-  }, [members, currentUserId, currentUserLabel, project?.ownerUserId, labelFor])
-
-  const ownerLabel = useMemo(() => {
-    if (!project?.ownerUserId) return '—'
-    return labelFor(project.ownerUserId, { currentUserId, youLabel: currentUserLabel })
-  }, [project?.ownerUserId, labelFor, currentUserId, currentUserLabel])
 
   const nextPhaseOrder = useMemo(() => {
     if (phases.length === 0) return 1
@@ -225,17 +194,17 @@ export function ProjectSettingsView() {
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={{ id: projectId, name: project.name }}
-        className="mb-4"
+        className="mb-1"
       />
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
           <Stack direction="horizontal" spacing="sm" className="mb-2 items-center">
-            <Typography as="h1" size="lg" weight="semibold">
+            <Typography as="h1" size="md" weight="medium">
               Project settings
             </Typography>
             <ProjectStatusBadge status={project.status} />
@@ -259,7 +228,7 @@ export function ProjectSettingsView() {
         />
       </div>
 
-      <section className="mb-8 max-w-2xl border border-neutral-200 bg-white p-5">
+      <Card as="section" className="mb-8 max-w-2xl p-5">
         <div className="mb-4 flex items-start justify-between gap-3">
           <Typography as="h2" weight="semibold">
             Project details
@@ -291,7 +260,7 @@ export function ProjectSettingsView() {
                   showEmail
                 />
               ) : (
-                ownerLabel
+                '—'
               )
             }
           />
@@ -301,9 +270,9 @@ export function ProjectSettingsView() {
             value={`${formatDate(project.plannedStartDate)} → ${formatDate(project.plannedEndDate)}`}
           />
         </Stack>
-      </section>
+      </Card>
 
-      <section className="mb-8 border border-neutral-200 bg-white p-5">
+      <Card as="section" className="mb-8 p-5">
         <div className="mb-4 flex items-center justify-between gap-3">
           <Typography as="h2" weight="semibold">
             Phases
@@ -317,79 +286,62 @@ export function ProjectSettingsView() {
             Add phases
           </Button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-3 py-2 font-medium">Code</th>
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Description</th>
-                <th className="px-3 py-2 font-medium">Start</th>
-                <th className="px-3 py-2 font-medium">End</th>
-                <th className="px-3 py-2 font-medium">Order</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {phases.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-3 py-6 text-center text-neutral-500">
-                    No phases yet
-                  </td>
-                </tr>
-              ) : (
-                phases
-                  .slice()
-                  .sort((a, b) => a.displayOrder - b.displayOrder)
-                  .map((ph) => (
-                    <tr key={ph.id} className="border-t border-neutral-100">
-                      <td className="px-3 py-2 font-mono text-xs">{ph.code}</td>
-                      <td className="px-3 py-2">{ph.name}</td>
-                      <td className="max-w-xs px-3 py-2 text-neutral-600">
-                        {ph.description?.trim() ? ph.description : '—'}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-2 text-neutral-600">
-                        {formatDate(ph.plannedStartDate)}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-2 text-neutral-600">
-                        {formatDate(ph.plannedEndDate)}
-                      </td>
-                      <td className="px-3 py-2">{ph.displayOrder}</td>
-                      <td className="px-3 py-2">
-                        <Badge tone="neutral">{phaseStatusLabel(ph.status)}</Badge>
-                      </td>
-                      <td className="px-3 py-2">
-                        <Stack direction="horizontal" spacing="sm" className="flex-wrap">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            icon={<Pencil size={14} />}
-                            onClick={() => openEditPhase(ph)}
-                            aria-label={`Edit phase ${ph.code}`}
-                          >
-                            Edit
-                          </Button>
-                          {allowedPhaseLifecycleActions(ph.status).map((action) => (
-                            <Button
-                              key={action}
-                              size="sm"
-                              variant="ghost"
-                              disabled={phaseActingId === ph.id}
-                              onClick={() => setPendingPhaseAction({ phaseId: ph.id, action })}
-                            >
-                              {action}
-                            </Button>
-                          ))}
-                        </Stack>
-                      </td>
-                    </tr>
-                  ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+        <DataTable
+          ariaLabel="Project phases"
+          rows={phases.slice().sort((a, b) => a.displayOrder - b.displayOrder)}
+          rowKey={(phase) => phase.id}
+          emptyMessage="No phases yet"
+          columns={[
+            { id: 'code', header: 'Code', accessor: 'code', kind: 'code' },
+            { id: 'name', header: 'Name', accessor: 'name' },
+            {
+              id: 'description',
+              header: 'Description',
+              accessor: (phase) => phase.description?.trim() || '—',
+            },
+            {
+              id: 'start',
+              header: 'Start',
+              accessor: (phase) => formatDate(phase.plannedStartDate),
+            },
+            { id: 'end', header: 'End', accessor: (phase) => formatDate(phase.plannedEndDate) },
+            { id: 'order', header: 'Order', accessor: 'displayOrder' },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (phase) => <Badge tone="neutral">{phaseStatusLabel(phase.status)}</Badge>,
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (phase) => (
+                <Stack direction="horizontal" spacing="sm" className="flex-wrap">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<Pencil size={14} />}
+                    onClick={() => openEditPhase(phase)}
+                    aria-label={`Edit phase ${phase.code}`}
+                  >
+                    Edit
+                  </Button>
+                  {allowedPhaseLifecycleActions(phase.status).map((action) => (
+                    <Button
+                      key={action}
+                      size="sm"
+                      variant="ghost"
+                      disabled={phaseActingId === phase.id}
+                      onClick={() => setPendingPhaseAction({ phaseId: phase.id, action })}
+                    >
+                      {action}
+                    </Button>
+                  ))}
+                </Stack>
+              ),
+            },
+          ]}
+        />
+      </Card>
 
       <section className="border border-red-200 bg-red-50/40 p-5">
         <Typography as="h2" weight="semibold" className="mb-2">
@@ -432,17 +384,13 @@ export function ProjectSettingsView() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-          <div>
-            <Typography variant="small" className="mb-1.5">
-              Owner
-            </Typography>
-            <Select
-              value={ownerUserId}
-              onValueChange={setOwnerUserId}
-              options={ownerOptions}
-              placeholder="Select owner"
-            />
-          </div>
+          <UserSearchSelect
+            label="Owner"
+            value={ownerUserId}
+            onChange={setOwnerUserId}
+            seedPeople={ownerPeople}
+            allowRemoteSearch={false}
+          />
           <Input
             label="Currency"
             fullWidth

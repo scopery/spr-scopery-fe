@@ -5,7 +5,17 @@ import { Archive, Copy, Eye, Pencil, Plus, Upload } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Box, Button, Input, Typography, Stack, Select, ConfirmDialog, PageSkeleton } from '@/shared/ui'
+import {
+  Box,
+  Button,
+  Card,
+  Input,
+  Typography,
+  Stack,
+  Select,
+  ConfirmDialog,
+  PageSkeleton,
+} from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import {
@@ -166,18 +176,14 @@ export function OrgTemplatesManagementView() {
         </div>
         <Button
           variant="primary"
-          onClick={() => router.push(ROUTES.workspace.settingsTemplateNew(orgId))} icon={<Plus size={16} />}>
+          onClick={() => router.push(ROUTES.workspace.settingsTemplateNew(orgId))}
+          icon={<Plus size={16} />}
+        >
           New template
         </Button>
       </Stack>
 
-      <Box
-        padding="lg"
-        background="white"
-        radius="lg"
-        shadow="sm"
-        className="space-y-4 border border-neutral-200"
-      >
+      <Card className="space-y-4 p-lg">
         <div className="w-48">
           <Select
             value={scopeTab}
@@ -245,12 +251,9 @@ export function OrgTemplatesManagementView() {
         {loading ? (
           <PageSkeleton variant="list" />
         ) : filteredEmpty ? (
-          <Box
-            padding="lg"
-            className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 text-center"
-          >
+          <Card className="border-dashed border-neutral-300 bg-neutral-50 p-lg text-center">
             <Typography tone="muted">{emptyMessage}</Typography>
-          </Box>
+          </Card>
         ) : (
           <div className="space-y-3">
             {templates.map((template) => {
@@ -259,11 +262,7 @@ export function OrgTemplatesManagementView() {
               const archivable = canArchiveTemplate(template, userId, isAdmin)
 
               return (
-                <Box
-                  key={template.id}
-                  padding="md"
-                  className="rounded-lg border border-neutral-200 transition-colors hover:border-neutral-300"
-                >
+                <Card key={template.id} className="p-md transition-colors hover:border-neutral-300">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <Typography weight="semibold">{template.title}</Typography>
@@ -289,7 +288,9 @@ export function OrgTemplatesManagementView() {
                     <div className="flex flex-wrap gap-2">
                       <Button
                         variant="ghost"
-                        onClick={() => setPreviewTemplate(template)} icon={<Eye size={16} />}>
+                        onClick={() => setPreviewTemplate(template)}
+                        icon={<Eye size={16} />}
+                      >
                         Preview
                       </Button>
                       {editable && (
@@ -297,7 +298,9 @@ export function OrgTemplatesManagementView() {
                           variant="outline"
                           onClick={() =>
                             router.push(ROUTES.workspace.settingsTemplate(orgId, template.id))
-                          } icon={<Pencil size={16} />}>
+                          }
+                          icon={<Pencil size={16} />}
+                        >
                           Edit
                         </Button>
                       )}
@@ -305,7 +308,9 @@ export function OrgTemplatesManagementView() {
                         <Button
                           variant="ghost"
                           loading={actionLoading}
-                          onClick={() => void handleDuplicate(template)} icon={<Copy size={16} />}>
+                          onClick={() => void handleDuplicate(template)}
+                          icon={<Copy size={16} />}
+                        >
                           Duplicate
                         </Button>
                       )}
@@ -313,7 +318,9 @@ export function OrgTemplatesManagementView() {
                         <Button
                           variant="ghost"
                           loading={actionLoading}
-                          onClick={() => void handlePublishToggle(template)} icon={<Upload size={16} />}>
+                          onClick={() => void handlePublishToggle(template)}
+                          icon={<Upload size={16} />}
+                        >
                           {template.is_published && template.status === 'published'
                             ? 'Unpublish'
                             : 'Publish'}
@@ -322,18 +329,20 @@ export function OrgTemplatesManagementView() {
                       {archivable && template.status !== 'archived' && (
                         <Button
                           variant="ghost"
-                          onClick={() => setArchiveTarget(template)} icon={<Archive size={16} />}>
+                          onClick={() => setArchiveTarget(template)}
+                          icon={<Archive size={16} />}
+                        >
                           Archive
                         </Button>
                       )}
                     </div>
                   </div>
-                </Box>
+                </Card>
               )
             })}
           </div>
         )}
-      </Box>
+      </Card>
 
       <TemplatePreviewDialog
         template={previewTemplate}

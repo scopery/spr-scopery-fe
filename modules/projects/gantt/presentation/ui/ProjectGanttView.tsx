@@ -271,10 +271,7 @@ export function ProjectGanttView() {
             {
               manualStartDate: m.start,
               manualFinishDate: m.end,
-              reason:
-                summaryTask.itemType === 'PHASE'
-                  ? 'Gantt phase drag'
-                  : 'Gantt WBS drag',
+              reason: summaryTask.itemType === 'PHASE' ? 'Gantt phase drag' : 'Gantt WBS drag',
               recalculate: false,
             },
             { refresh: false }
@@ -450,7 +447,7 @@ export function ProjectGanttView() {
     }
     setExporting(true)
     void downloadGanttExcel(tree.length ? tree : items, {
-      projectName: project?.name ?? project?.code ?? projectId,
+      projectName: project?.name ?? project?.code ?? 'Project',
       fileName: `${project?.code ?? 'project'}-timeline`,
     })
       .then(() => toast.success('Excel downloaded'))
@@ -471,20 +468,20 @@ export function ProjectGanttView() {
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
         current="Timeline"
       />
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-4">
+      <div className="mb-2 mt-1 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div className="min-w-0">
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Timeline
           </Typography>
           {project ? (
-            <Typography variant="small" tone="muted" className="mt-1">
+            <Typography variant="caption" tone="muted" className="mt-0.5">
               {project.code} · {project.name}
             </Typography>
           ) : null}
@@ -596,9 +593,7 @@ export function ProjectGanttView() {
 
       <GanttScheduleModal
         open={scheduleModal != null}
-        title={
-          scheduleModal?.kind === 'phase' ? 'Edit phase dates' : 'Edit task schedule'
-        }
+        title={scheduleModal?.kind === 'phase' ? 'Edit phase dates' : 'Edit task schedule'}
         subtitle={
           scheduleModal
             ? scheduleModal.kind === 'phase'

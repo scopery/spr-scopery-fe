@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Badge, Button, PageSkeleton, Stack, Typography } from '@/shared/ui'
+import { Badge, Button, PageSkeleton, Stack, Typography, DataTable } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import * as notificationsApi from '../../infrastructure/api/notifications.api'
@@ -44,75 +44,77 @@ export function NadEmailRulesView() {
         </div>
       ) : null}
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">Code</th>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Enabled</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center">
-                  <Typography variant="small" tone="muted">
-                    No email rules
+        <DataTable
+          ariaLabel="Nad Email Rules"
+          rows={items}
+          rowKey={(r) => String(r.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'code',
+              header: 'Code',
+              cell: (r) => (
+                <>
+                  <Typography as="span" variant="small" className="font-normal">
+                    {r.code}
                   </Typography>
-                </td>
-              </tr>
-            ) : (
-              items.map((r) => (
-                <tr key={r.id} className="border-t border-neutral-100">
-                  <td className="px-4 py-3">
-                    <Typography as="span" variant="small" className="font-mono">
-                      {r.code}
-                    </Typography>
-                  </td>
-                  <td className="px-4 py-3">{r.name}</td>
-                  <td className="px-4 py-3">
-                    <Badge tone="neutral">{r.status}</Badge>
-                  </td>
-                  <td className="px-4 py-3">{r.enabled ? 'Yes' : 'No'}</td>
-                  <td className="px-4 py-3">
-                    <Stack direction="horizontal" spacing="sm">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          void (r.enabled
+                </>
+              ),
+              kind: 'code',
+            },
+            { id: 'name', header: 'Name', accessor: 'name' },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (r) => (
+                <>
+                  <Badge tone="neutral">{r.status}</Badge>
+                </>
+              ),
+            },
+            { id: 'enabled', header: 'Enabled', cell: (r) => <>{r.enabled ? 'Yes' : 'No'}</> },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (r) => (
+                <>
+                  <Stack direction="horizontal" spacing="sm">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        void (
+                          r.enabled
                             ? notificationsApi.disableEmailRule(r.id)
                             : notificationsApi.enableEmailRule(r.id)
-                          )
-                            .then(() => load())
-                            .catch((e) => toast.error(getProblemToastMessage(e)))
-                        }
-                      >
-                        {r.enabled ? 'Disable' : 'Enable'}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          void (r.status === 'ACTIVE'
+                        )
+                          .then(() => load())
+                          .catch((e) => toast.error(getProblemToastMessage(e)))
+                      }
+                    >
+                      {r.enabled ? 'Disable' : 'Enable'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        void (
+                          r.status === 'ACTIVE'
                             ? notificationsApi.deactivateEmailRule(r.id)
                             : notificationsApi.activateEmailRule(r.id)
-                          )
-                            .then(() => load())
-                            .catch((e) => toast.error(getProblemToastMessage(e)))
-                        }
-                      >
-                        {r.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                      </Button>
-                    </Stack>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                        )
+                          .then(() => load())
+                          .catch((e) => toast.error(getProblemToastMessage(e)))
+                      }
+                    >
+                      {r.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                    </Button>
+                  </Stack>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
     </div>
   )

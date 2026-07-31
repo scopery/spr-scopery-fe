@@ -12,8 +12,10 @@ export function GlobalSearchView() {
   const [value, setValue] = useState('')
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Search</Typography>
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <Typography as="h1" size="md" weight="medium">
+        Search
+      </Typography>
       <Input
         value={value}
         onChange={(e) => {
@@ -24,7 +26,11 @@ export function GlobalSearchView() {
         aria-label="Global search"
       />
       {loading ? (
-        <div className="space-y-3 border border-neutral-200 p-md" aria-busy="true" aria-label="Searching">
+        <div
+          className="space-y-3 border border-neutral-200 p-md"
+          aria-busy="true"
+          aria-label="Searching"
+        >
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="space-y-2">
               <Skeleton variant="text" width="45%" height={14} />

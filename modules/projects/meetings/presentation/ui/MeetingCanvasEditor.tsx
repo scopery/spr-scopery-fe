@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button, Input, Stack, Textarea, Typography } from '@/shared/ui'
+import { Button, Card, Input, Stack, Textarea, Typography } from '@/shared/ui'
 import { MeetingNoteAiEditToolbar } from './MeetingNoteAiEditToolbar'
 
 export type SlashCaptureKind = 'action' | 'decision' | 'risk' | 'issue' | 'requirement' | 'change'
@@ -160,7 +160,7 @@ export function MeetingCanvasEditor({
   const activeOption = CAPTURE_OPTIONS.find((o) => o.kind === activeKind)
 
   return (
-    <section className="border border-neutral-200 bg-white p-4">
+    <Card as="section" className="p-4">
       <Typography weight="semibold" className="mb-1">
         {label}
       </Typography>
@@ -171,7 +171,7 @@ export function MeetingCanvasEditor({
       ) : null}
 
       {showSlashHints && onSlashCapture ? (
-        <div className="mb-3 border border-neutral-200 bg-neutral-50 p-3">
+        <Card className="mb-3 bg-neutral-50 p-3">
           <Typography variant="small" weight="medium" className="mb-2">
             Quick capture
           </Typography>
@@ -251,7 +251,7 @@ export function MeetingCanvasEditor({
               </Stack>
             </div>
           ) : null}
-        </div>
+        </Card>
       ) : null}
 
       <div className="relative">
@@ -288,6 +288,6 @@ export function MeetingCanvasEditor({
           {feedback}
         </Typography>
       ) : null}
-    </section>
+    </Card>
   )
 }

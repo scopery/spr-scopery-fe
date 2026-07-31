@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, Typography } from '@/shared/ui'
+import { Button, Card, Typography } from '@/shared/ui'
 import { Check, Circle } from 'lucide-react'
 
 interface WorkspaceSetupStateProps {
@@ -27,8 +27,8 @@ export function WorkspaceSetupState({
   ]
 
   return (
-    <section className="border border-neutral-200 bg-white px-6 py-10 text-center">
-      <Typography as="h2" size="lg" weight="semibold" className="text-neutral-900">
+    <Card as="section" className="px-6 py-10 text-center">
+      <Typography as="h2" size="md" weight="medium" className="text-neutral-900">
         Set up your Workspace portfolio
       </Typography>
       <Typography variant="small" tone="muted" className="mx-auto mt-2 max-w-md">
@@ -53,6 +53,6 @@ export function WorkspaceSetupState({
           Create Project
         </Button>
       ) : null}
-    </section>
+    </Card>
   )
 }

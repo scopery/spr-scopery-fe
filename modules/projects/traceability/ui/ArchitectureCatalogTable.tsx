@@ -1,7 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Input, Stack, Typography } from '@/shared/ui'
+import { Search } from 'lucide-react'
+import { DataTable, Input, Stack, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import {
   ARCHITECTURE_NODE_TYPE_LABEL,
@@ -59,6 +60,7 @@ export function ArchitectureCatalogTable({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search…"
             aria-label="Search architecture catalog"
+            prefix={<Search size={14} />}
           />
         </div>
         <div className="flex flex-wrap gap-1" role="tablist" aria-label="Node type">
@@ -93,48 +95,36 @@ export function ArchitectureCatalogTable({
         </Typography>
       ) : (
         <div>
-          <table className="w-full table-fixed text-left text-sm">
-            <thead className="sticky top-0 z-[1] bg-white">
-              <tr className="border-b border-neutral-200 text-neutral-500">
-                <th className="w-[22%] bg-white pb-2 pr-3">Code</th>
-                <th className="w-[34%] bg-white pb-2 pr-3">Name</th>
-                <th className="w-[18%] bg-white pb-2 pr-3">Type</th>
-                <th className="w-[26%] bg-white pb-2">Detail</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((node) => {
-                const key = `${node.type}:${node.id}`
-                const selected = selectedKey
-                  ? selectedKey === key
-                  : selectedId === node.id
-                return (
-                  <tr
-                    key={key}
-                    className={cn(
-                      'cursor-pointer border-b border-neutral-100 transition-colors',
-                      selected
-                        ? 'bg-neutral-200'
-                        : 'hover:bg-neutral-50'
-                    )}
-                    aria-selected={selected}
-                    onClick={() => onSelect(node)}
-                  >
-                    <td className="truncate py-2.5 pr-3 font-calsans text-neutral-900">
-                      {node.code}
-                    </td>
-                    <td className="truncate py-2.5 pr-3 font-calsans text-neutral-800">{node.name}</td>
-                    <td className="truncate py-2.5 pr-3 text-neutral-500">
-                      {ARCHITECTURE_NODE_TYPE_LABEL[node.type]}
-                    </td>
-                    <td className="truncate py-2.5 text-neutral-500">
-                      {node.secondary ?? '—'}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+          <DataTable
+            ariaLabel="Architecture catalog"
+            rows={filtered}
+            rowKey={(node) => `${node.type}:${node.id}`}
+            selectedRowKey={
+              selectedKey ??
+              (nodes.find((node) => node.id === selectedId)
+                ? `${nodes.find((node) => node.id === selectedId)!.type}:${selectedId}`
+                : null)
+            }
+            onRowClick={onSelect}
+            columns={[
+              { id: 'code', header: 'Code', accessor: 'code', kind: 'code', width: '22%' },
+              { id: 'name', header: 'Name', accessor: 'name', width: '34%' },
+              {
+                id: 'type',
+                header: 'Type',
+                accessor: (node) => ARCHITECTURE_NODE_TYPE_LABEL[node.type],
+                width: '18%',
+                cellClassName: 'text-neutral-500',
+              },
+              {
+                id: 'detail',
+                header: 'Detail',
+                accessor: (node) => node.secondary ?? '—',
+                width: '26%',
+                cellClassName: 'text-neutral-500',
+              },
+            ]}
+          />
           <Typography variant="caption" tone="muted" className="mt-3 block">
             {filtered.length} item{filtered.length === 1 ? '' : 's'}
             {typeFilter !== 'ALL' ? ` · ${FILTERS.find((f) => f.id === typeFilter)?.label}` : ''}

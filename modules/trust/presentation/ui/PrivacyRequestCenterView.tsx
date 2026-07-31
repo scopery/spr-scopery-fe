@@ -8,7 +8,7 @@ import {
   MaskedValue,
   PageSkeleton,
   Stack,
-  Typography
+  Typography,
 } from '@/shared/ui'
 import { usePrivacyRequests } from '../hooks/usePrivacyRequests'
 
@@ -29,12 +29,14 @@ export function PrivacyRequestCenterView() {
     execute,
   } = usePrivacyRequests(workspaceId)
 
-  if (loading) return <PageSkeleton variant="list" className="p-lg" />
+  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Privacy Request Center</Typography>
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <Typography as="h1" size="md" weight="medium">
+        Privacy Request Center
+      </Typography>
       <div className="flex flex-wrap gap-sm">
         <ClassificationBadge level={ClassificationLevel.Restricted} />
         <MaskedValue masked />
@@ -44,8 +46,9 @@ export function PrivacyRequestCenterView() {
       </Typography>
       {hasActiveLegalHold ? (
         <Typography tone="error">
-          Active legal holds ({holds.filter((h) => h.status === 'ACTIVE' || h.status === 'HELD').length}) —
-          execute is blocked.
+          Active legal holds (
+          {holds.filter((h) => h.status === 'ACTIVE' || h.status === 'HELD').length}) — execute is
+          blocked.
         </Typography>
       ) : null}
       {actionError ? <Typography tone="error">{actionError}</Typography> : null}
@@ -63,7 +66,7 @@ export function PrivacyRequestCenterView() {
           >
             {plans.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name ?? p.id} · {p.status}
+                {p.name ?? 'Unnamed plan'} · {p.status}
               </option>
             ))}
           </select>

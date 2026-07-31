@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { Box, Button, Input, Select, Typography, Badge, PageSkeleton } from '@/shared/ui'
+import { Box, Button, Card, Input, Select, Typography, Badge, PageSkeleton } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { governanceApi } from '@/modules/governance'
 import {
@@ -21,7 +21,10 @@ import {
 } from '@/modules/governance'
 import { useEffectivePermissions } from '@/modules/permissions/access/hooks/useEffectivePermissions'
 import { hasPermission, PERMISSIONS } from '@/modules/permissions/access/lib/permissions'
-import { GOVERNANCE_ACTION_KEYS, GOVERNANCE_EFFECTS } from '@/modules/governance/policy/lib/governance-constants'
+import {
+  GOVERNANCE_ACTION_KEYS,
+  GOVERNANCE_EFFECTS,
+} from '@/modules/governance/policy/lib/governance-constants'
 import { ApiError } from '@/shared/lib/api-types'
 
 export function GovernancePolicyDetailView() {
@@ -109,9 +112,7 @@ export function GovernancePolicyDetailView() {
   }
 
   if (loading) {
-    return (
-      <PageSkeleton variant="detail" />
-    )
+    return <PageSkeleton variant="detail" />
   }
 
   if (!policy) {
@@ -120,7 +121,10 @@ export function GovernancePolicyDetailView() {
 
   return (
     <Box className="space-y-6">
-      <Link href={ROUTES.workspace.governance(orgId)} className="text-sm text-primary hover:underline">
+      <Link
+        href={ROUTES.workspace.governance(orgId)}
+        className="text-sm text-primary hover:underline"
+      >
         ← Back to governance
       </Link>
 
@@ -145,25 +149,36 @@ export function GovernancePolicyDetailView() {
           </Typography>
         </div>
         <Badge variant="solid" tone={policy.status === 'active' ? 'success' : 'neutral'}>
-          {policy.status === 'active' ? 'Active' : policy.status === 'archived' ? 'Archived' : policy.status}
+          {policy.status === 'active'
+            ? 'Active'
+            : policy.status === 'archived'
+              ? 'Archived'
+              : policy.status}
         </Badge>
       </div>
 
       {canManage && policy.status !== 'archived' ? (
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowRuleForm((v) => !v)} icon={!showRuleForm ? <Plus size={16} /> : undefined}>{showRuleForm ? 'Cancel rule' : 'Add rule'}
+          <Button
+            variant="outline"
+            onClick={() => setShowRuleForm((v) => !v)}
+            icon={!showRuleForm ? <Plus size={16} /> : undefined}
+          >
+            {showRuleForm ? 'Cancel rule' : 'Add rule'}
           </Button>
           <Button
             variant="outline"
             tone="error"
-            onClick={() => void handleArchivePolicy()} icon={<Archive size={16} />}>
+            onClick={() => void handleArchivePolicy()}
+            icon={<Archive size={16} />}
+          >
             Archive policy
           </Button>
         </div>
       ) : null}
 
       {showRuleForm && canManage ? (
-        <div className="border-border space-y-3 rounded-md border p-4">
+        <Card className="border-border space-y-3 p-4">
           <Input label="Rule key" value={ruleKey} onChange={(e) => setRuleKey(e.target.value)} />
           <Input label="Name" value={ruleName} onChange={(e) => setRuleName(e.target.value)} />
           <Select
@@ -206,10 +221,12 @@ export function GovernancePolicyDetailView() {
           <Button
             variant="primary"
             loading={saving}
-            onClick={() => void handleCreateRule()} icon={<Plus size={16} />}>
+            onClick={() => void handleCreateRule()}
+            icon={<Plus size={16} />}
+          >
             Create rule
           </Button>
-        </div>
+        </Card>
       ) : null}
 
       <div className="space-y-4">
@@ -227,7 +244,7 @@ export function GovernancePolicyDetailView() {
                 {action}
               </Typography>
               {actionRules.map((rule) => (
-                <div key={rule.id} className="border-border space-y-2 rounded-md border p-4">
+                <Card key={rule.id} className="border-border space-y-2 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <Typography variant="small" className="font-medium">
                       {rule.name}
@@ -261,11 +278,13 @@ export function GovernancePolicyDetailView() {
                   {canManage && rule.status !== 'archived' ? (
                     <Button
                       variant="ghost"
-                      onClick={() => void handleArchiveRule(rule.id)} icon={<Archive size={16} />}>
+                      onClick={() => void handleArchiveRule(rule.id)}
+                      icon={<Archive size={16} />}
+                    >
                       Archive rule
                     </Button>
                   ) : null}
-                </div>
+                </Card>
               ))}
             </div>
           ))

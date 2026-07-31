@@ -1,12 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import {
-  Button,
-  PageSkeleton,
-  Stack,
-  Typography
-} from '@/shared/ui'
+import { Button, Card, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useDeployments } from '../hooks/useDeployments'
 
 export function DeploymentCenterView() {
@@ -31,16 +26,22 @@ export function DeploymentCenterView() {
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Deployment Center</Typography>
-      <Typography tone="muted">Track deployments and rollbacks for this project.</Typography>
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="border-b border-neutral-200 pb-2">
+        <Typography as="h1" size="md" weight="medium">
+          Deployment Center
+        </Typography>
+        <Typography variant="caption" tone="muted" className="mt-0.5">
+          Track deployments and rollbacks for this project.
+        </Typography>
+      </div>
       {actionError ? <Typography tone="error">{actionError}</Typography> : null}
 
       <Typography variant="h4">Deployments</Typography>
       {items.length === 0 ? (
         <Typography tone="muted">No deployments yet.</Typography>
       ) : (
-        <ul className="divide-y divide-neutral-200 border border-neutral-200">
+        <Card as="ul" className="divide-y divide-neutral-200">
           {items.map((item) => (
             <li key={item.id} className="flex items-center justify-between gap-md p-md">
               <div>
@@ -69,7 +70,7 @@ export function DeploymentCenterView() {
               </div>
             </li>
           ))}
-        </ul>
+        </Card>
       )}
 
       <Typography variant="h4">Environments</Typography>
@@ -78,7 +79,7 @@ export function DeploymentCenterView() {
           No environments.
         </Typography>
       ) : (
-        <ul className="divide-y divide-neutral-200 border border-neutral-200">
+        <Card as="ul" className="divide-y divide-neutral-200">
           {environments.map((env) => (
             <li key={env.id} className="flex items-center justify-between gap-md p-md">
               <Typography variant="small">
@@ -89,7 +90,7 @@ export function DeploymentCenterView() {
               </Button>
             </li>
           ))}
-        </ul>
+        </Card>
       )}
 
       <Typography variant="h4">Rollback plans</Typography>
@@ -98,33 +99,31 @@ export function DeploymentCenterView() {
           No rollback plans.
         </Typography>
       ) : (
-        <ul className="divide-y divide-neutral-200 border border-neutral-200">
+        <Card as="ul" className="divide-y divide-neutral-200">
           {rollbackPlans.map((plan) => (
             <li key={plan.id} className="flex items-center justify-between gap-md p-md">
               <Typography variant="small">
-                {[plan.name ?? plan.id, plan.status].filter(Boolean).join(' · ')}
+                {[plan.name ?? 'Unnamed rollback plan', plan.status].filter(Boolean).join(' · ')}
               </Typography>
               <Button size="sm" variant="outline" onClick={() => void approveRollback(plan.id)}>
                 Approve
               </Button>
             </li>
           ))}
-        </ul>
+        </Card>
       )}
 
       <Typography variant="h4">Quality reports</Typography>
       <div className="grid grid-cols-1 gap-sm md:grid-cols-2">
         {Object.entries(reports).map(([key, value]) => (
-          <div key={key} className="border border-neutral-200 p-md">
+          <Card key={key} className="p-md">
             <Typography variant="caption" tone="muted">
               {key}
             </Typography>
             <Typography variant="small">
-              {Object.keys(value).length === 0
-                ? 'No data'
-                : `${Object.keys(value).length} fields`}
+              {Object.keys(value).length === 0 ? 'No data' : `${Object.keys(value).length} fields`}
             </Typography>
-          </div>
+          </Card>
         ))}
       </div>
     </Stack>

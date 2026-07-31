@@ -4,7 +4,20 @@ import { Archive, Ban, Check, Copy, Pencil, Plus, Save, Trash2, Upload } from 'l
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Badge, Button, ConfirmDialog, Input, Modal, Select, Stack, Typography, PageSkeleton, Skeleton } from '@/shared/ui'
+import {
+  Badge,
+  Button,
+  Card,
+  ConfirmDialog,
+  DataTable,
+  Input,
+  Modal,
+  Select,
+  Stack,
+  Typography,
+  PageSkeleton,
+  Skeleton,
+} from '@/shared/ui'
 import { useRateCardEditor } from '../hooks/useRateCardEditor'
 import {
   canEditVersionLines,
@@ -13,6 +26,7 @@ import {
 } from '../../domain/rules/rate-card.rules'
 import type { RateCardLine } from '../../domain/model/rate-card-line'
 import type { RateCardVersion } from '../../domain/model/rate-card-version'
+import { useCostingSetup } from '../hooks/useCostingSetup'
 
 const EMPTY_LINE_FORM = {
   costRoleId: '',
@@ -24,7 +38,12 @@ const EMPTY_LINE_FORM = {
   notes: '',
 }
 
-type ConfirmActionType = 'publish' | 'archive-version' | 'archive-card' | 'deactivate-card' | 'delete-line'
+type ConfirmActionType =
+  | 'publish'
+  | 'archive-version'
+  | 'archive-card'
+  | 'deactivate-card'
+  | 'delete-line'
 
 function versionStatusTone(version: RateCardVersion): 'success' | 'warning' | 'neutral' {
   if (version.status === 'PUBLISHED') return 'success'
@@ -70,6 +89,7 @@ export function RateCardEditorView() {
     type: ConfirmActionType
     targetId?: string
   } | null>(null)
+  const { costRoles } = useCostingSetup(rateCard?.workspaceId ?? null)
 
   useEffect(() => {
     if (!rateCard) return
@@ -128,9 +148,7 @@ export function RateCardEditorView() {
   }
 
   if (loading) {
-    return (
-      <PageSkeleton variant="detail" />
-    )
+    return <PageSkeleton variant="detail" />
   }
 
   if (error || !rateCard) {
@@ -175,10 +193,10 @@ export function RateCardEditorView() {
       metaForm.defaultCurrencyCode.trim() !== rateCard.defaultCurrencyCode)
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             {rateCard.name}
           </Typography>
           <Typography as="p" variant="small" tone="muted" className="mt-1 font-mono text-xs">
@@ -214,7 +232,11 @@ export function RateCardEditorView() {
             </Button>
           ) : null}
           {rateCard.status === 'INACTIVE' ? (
-            <Button variant="outline" onClick={() => void activateRateCard()} icon={<Check size={16} />}>
+            <Button
+              variant="outline"
+              onClick={() => void activateRateCard()}
+              icon={<Check size={16} />}
+            >
               Activate
             </Button>
           ) : null}
@@ -232,7 +254,7 @@ export function RateCardEditorView() {
       </div>
 
       {rateCard.status !== 'ARCHIVED' ? (
-        <div className="mb-4 border border-neutral-200 bg-white p-4">
+        <Card className="mb-4 border border-neutral-200 bg-white p-4">
           <Typography weight="semibold" variant="small" className="mb-3">
             Card metadata
           </Typography>
@@ -256,7 +278,12 @@ export function RateCardEditorView() {
             />
             <Button
               variant="primary"
-              disabled={!metaDirty || !metaForm.name.trim() || !metaForm.defaultCurrencyCode.trim() || saving}
+              disabled={
+                !metaDirty ||
+                !metaForm.name.trim() ||
+                !metaForm.defaultCurrencyCode.trim() ||
+                saving
+              }
               onClick={() =>
                 void updateRateCard({
                   name: metaForm.name.trim(),
@@ -269,7 +296,7 @@ export function RateCardEditorView() {
               Save metadata
             </Button>
           </Stack>
-        </div>
+        </Card>
       ) : null}
 
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border border-neutral-200 bg-white p-4">
@@ -285,13 +312,19 @@ export function RateCardEditorView() {
           />
         </div>
         <Stack direction="horizontal" spacing="sm">
-          <Button variant="outline" onClick={() => setShowVersionModal(true)} icon={<Plus size={16} />}>
+          <Button
+            variant="outline"
+            onClick={() => setShowVersionModal(true)}
+            icon={<Plus size={16} />}
+          >
             New version
           </Button>
           {selectedVersion && canPublishVersion(selectedVersion) ? (
             <Button
               variant="primary"
-              onClick={() => setConfirmAction({ type: 'publish', targetId: selectedVersion.id })} icon={<Upload size={16} />}>
+              onClick={() => setConfirmAction({ type: 'publish', targetId: selectedVersion.id })}
+              icon={<Upload size={16} />}
+            >
               Publish
             </Button>
           ) : null}
@@ -300,14 +333,18 @@ export function RateCardEditorView() {
               variant="ghost"
               onClick={() =>
                 setConfirmAction({ type: 'archive-version', targetId: selectedVersion.id })
-              } icon={<Archive size={16} />}>
+              }
+              icon={<Archive size={16} />}
+            >
               Archive version
             </Button>
           ) : null}
           {selectedVersion ? (
             <Button
               variant="ghost"
-              onClick={() => void duplicateVersion(selectedVersion.id)} icon={<Copy size={16} />}>
+              onClick={() => void duplicateVersion(selectedVersion.id)}
+              icon={<Copy size={16} />}
+            >
               Duplicate
             </Button>
           ) : null}
@@ -320,17 +357,25 @@ export function RateCardEditorView() {
             Effective {selectedVersion.effectiveFrom} → {selectedVersion.effectiveTo ?? '∞'}
           </Typography>
           <Badge variant="solid" tone={versionStatusTone(selectedVersion)}>
-            {String(selectedVersion.status).replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+            {String(selectedVersion.status)
+              .replace(/_/g, ' ')
+              .toLowerCase()
+              .replace(/\b\w/g, (c) => c.toUpperCase())}
           </Badge>
         </div>
       ) : null}
 
-      <div className="border border-neutral-200 bg-white">
+      <Card className="border border-neutral-200 bg-white">
         <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
           <Typography weight="semibold" variant="small">
             Lines ({lines.length})
           </Typography>
-          <Button variant="primary" disabled={!editable} onClick={openCreateLine} icon={<Plus size={16} />}>
+          <Button
+            variant="primary"
+            disabled={!editable}
+            onClick={openCreateLine}
+            icon={<Plus size={16} />}
+          >
             Add line
           </Button>
         </div>
@@ -344,63 +389,69 @@ export function RateCardEditorView() {
           <div className="flex justify-center py-10">
             <Skeleton variant="rectangular" width="100%" height={80} />
           </div>
-        ) : lines.length === 0 ? (
-          <div className="px-4 py-10 text-center">
-            <Typography tone="muted" variant="small">
-              No lines yet for this version.
-            </Typography>
-          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Cost role</th>
-                  <th className="px-3 py-2 font-medium">Seniority</th>
-                  <th className="px-3 py-2 font-medium">Location</th>
-                  <th className="px-3 py-2 font-medium">Currency</th>
-                  <th className="px-3 py-2 font-medium">Cost / hr</th>
-                  <th className="px-3 py-2 font-medium">Billing / hr</th>
-                  <th className="px-3 py-2 font-medium" />
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line) => (
-                  <tr key={line.id} className="border-t border-neutral-100">
-                    <td className="px-3 py-2 font-mono text-xs">{line.costRoleId}</td>
-                    <td className="px-3 py-2">{line.seniorityLevel ?? '—'}</td>
-                    <td className="px-3 py-2">{line.locationCode ?? '—'}</td>
-                    <td className="px-3 py-2">{line.currencyCode}</td>
-                    <td className="px-3 py-2">{line.costRatePerHour.toFixed(2)}</td>
-                    <td className="px-3 py-2">
-                      {line.billingRatePerHour != null ? line.billingRatePerHour.toFixed(2) : '—'}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {editable ? (
-                        <Stack direction="horizontal" spacing="xs" justify="end">
-                          <Button variant="ghost" onClick={() => openEditLine(line)} icon={<Pencil size={16} />}>
-                            Edit
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            tone="error"
-                            onClick={() =>
-                              setConfirmAction({ type: 'delete-line', targetId: line.id })
-                            } icon={<Trash2 size={16} />}>
-                            Delete
-                          </Button>
-                        </Stack>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable<RateCardLine>
+            ariaLabel="Rate card lines"
+            rows={lines}
+            rowKey={(line) => line.id}
+            emptyMessage="No lines yet for this version."
+            columns={[
+              {
+                id: 'role',
+                header: 'Cost role',
+                accessor: (line) =>
+                  costRoles.find((role) => role.id === line.costRoleId)?.name ?? '—',
+                kind: 'reference',
+              },
+              {
+                id: 'seniority',
+                header: 'Seniority',
+                accessor: (line) => line.seniorityLevel ?? '—',
+              },
+              { id: 'location', header: 'Location', accessor: (line) => line.locationCode ?? '—' },
+              { id: 'currency', header: 'Currency', accessor: 'currencyCode' },
+              {
+                id: 'cost',
+                header: 'Cost / hr',
+                accessor: (line) => line.costRatePerHour.toFixed(2),
+              },
+              {
+                id: 'billing',
+                header: 'Billing / hr',
+                accessor: (line) =>
+                  line.billingRatePerHour != null ? line.billingRatePerHour.toFixed(2) : '—',
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                align: 'right',
+                cell: (line) =>
+                  editable ? (
+                    <Stack direction="horizontal" spacing="xs" justify="end">
+                      <Button
+                        variant="ghost"
+                        onClick={() => openEditLine(line)}
+                        icon={<Pencil size={16} />}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        tone="error"
+                        onClick={() => setConfirmAction({ type: 'delete-line', targetId: line.id })}
+                        icon={<Trash2 size={16} />}
+                      >
+                        Delete
+                      </Button>
+                    </Stack>
+                  ) : (
+                    '—'
+                  ),
+              },
+            ]}
+          />
         )}
-      </div>
+      </Card>
 
       <Modal
         open={showVersionModal}
@@ -467,11 +518,16 @@ export function RateCardEditorView() {
         ]}
       >
         <Stack direction="vertical" spacing="md">
-          <Input
-            label="Cost role ID"
+          <Select
+            label="Cost role"
             value={lineForm.costRoleId}
-            onChange={(e) => setLineForm((f) => ({ ...f, costRoleId: e.target.value }))}
-            helperText="UUID of the cost role from Costing Setup."
+            options={costRoles.map((role) => ({
+              value: role.id,
+              label: `${role.code} · ${role.name}`,
+            }))}
+            onValueChange={(costRoleId: string) =>
+              setLineForm((current) => ({ ...current, costRoleId }))
+            }
           />
           <Input
             label="Seniority level (optional)"

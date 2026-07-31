@@ -1,9 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { Plus, Trash2 } from 'lucide-react'
-import { Button, Input, Modal, Typography } from '@/shared/ui'
+import { Button, DataTable, Input, Modal, Typography } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
+import { UseCaseSearchSelect } from '@/modules/projects/traceability'
 import { cn } from '@/utils/cn'
 import {
   emptyDraftValues,
@@ -81,12 +83,14 @@ export function QualityBulkAddModal({
   onCreate,
   onBatchComplete,
 }: QualityBulkAddModalProps) {
+  const { projectId } = useParams<{ projectId: string }>()
   const columns = QUALITY_BULK_COLUMNS[kind]
   const [rows, setRows] = useState<DraftRow[]>([newRow(kind)])
   const [submitting, setSubmitting] = useState(false)
   const submittingRef = useRef(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [pasteHint, setPasteHint] = useState(false)
+  const [useCaseId, setUseCaseId] = useState('')
 
   useEffect(() => {
     if (!open) return
@@ -95,12 +99,10 @@ export function QualityBulkAddModal({
     setSubmitting(false)
     submittingRef.current = false
     setPasteHint(false)
+    setUseCaseId('')
   }, [open, kind])
 
-  const validRows = useMemo(
-    () => rows.filter((r) => isDraftRowValid(kind, r.values)),
-    [rows, kind]
-  )
+  const validRows = useMemo(() => rows.filter((r) => isDraftRowValid(kind, r.values)), [rows, kind])
 
   const updateCell = (id: string, key: string, value: string) => {
     setRows((prev) =>
@@ -149,6 +151,14 @@ export function QualityBulkAddModal({
       setFormError('Add at least one row with required fields.')
       return
     }
+    if (kind === 'TEST_CASE' && !useCaseId) {
+      setFormError('Select the Use Case covered by these Test Cases.')
+      return
+    }
+    if (kind === 'TEST_CASE' && validRows.some((row) => row.values.type === 'NON_FUNCTIONAL')) {
+      setFormError('Use Verification Cases for non-functional requirements.')
+      return
+    }
     submittingRef.current = true
     setSubmitting(true)
     setFormError(null)
@@ -163,7 +173,12 @@ export function QualityBulkAddModal({
         continue
       }
       try {
-        await onCreate(mapDraftToCreateInput(kind, row.values))
+        await onCreate(
+          mapDraftToCreateInput(
+            kind,
+            kind === 'TEST_CASE' ? { ...row.values, useCaseId } : row.values
+          )
+        )
         created += 1
       } catch (err: unknown) {
         const message =
@@ -206,7 +221,7 @@ export function QualityBulkAddModal({
           label: submitting ? 'Creating…' : `Create ${validRows.length}`,
           onClick: () => void handleSubmit(),
           variant: 'primary',
-          disabled: submitting || validRows.length === 0,
+          disabled: submitting || validRows.length === 0 || (kind === 'TEST_CASE' && !useCaseId),
           loading: submitting,
         },
       ]}
@@ -221,61 +236,60 @@ export function QualityBulkAddModal({
             Pasted — review rows below.
           </Typography>
         ) : null}
+        {kind === 'TEST_CASE' ? (
+          <UseCaseSearchSelect
+            projectId={projectId}
+            value={useCaseId}
+            onChange={setUseCaseId}
+            label="Use Case for all Test Cases"
+            required
+          />
+        ) : null}
         {formError ? (
           <Typography variant="small" tone="error">
             {formError}
           </Typography>
         ) : null}
 
-        <div className="overflow-x-auto border border-neutral-200">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-neutral-200 bg-neutral-50 text-xs text-neutral-500">
-                <th className="w-8 px-2 py-2">#</th>
-                {columns.map((col) => (
-                  <th key={col.key} className="px-2 py-2">
-                    {col.label}
-                    {col.required ? ' *' : ''}
-                  </th>
-                ))}
-                <th className="w-10 px-2 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, index) => (
-                <tr
-                  key={row.id}
-                  className={cn(
-                    'border-b border-neutral-100 align-top',
-                    row.error && 'bg-error/5'
-                  )}
+        <DataTable
+          className="border border-neutral-200"
+          tableClassName="min-w-[640px]"
+          ariaLabel="Bulk add quality items"
+          rows={rows}
+          rowKey={(row) => row.id}
+          rowClassName={(row) => cn('align-top', row.error && 'bg-error/5')}
+          columns={[
+            { id: 'index', header: '#', cell: (_row, index) => index + 1, width: '48px' },
+            ...columns.map((col) => ({
+              id: col.key,
+              header: `${col.label}${col.required ? ' *' : ''}`,
+              kind: col.key === 'code' ? ('code' as const) : undefined,
+              cell: (row: DraftRow) => (
+                <Input
+                  fullWidth
+                  value={row.values[col.key] ?? ''}
+                  placeholder={col.placeholder}
+                  onChange={(event) => updateCell(row.id, col.key, event.target.value)}
+                />
+              ),
+            })),
+            {
+              id: 'remove',
+              header: '',
+              width: '48px',
+              cell: (row) => (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-label="Remove row"
+                  onClick={() => removeRow(row.id)}
                 >
-                  <td className="px-2 py-2 text-xs text-neutral-400">{index + 1}</td>
-                  {columns.map((col) => (
-                    <td key={col.key} className="px-1 py-1">
-                      <Input
-                        fullWidth
-                        value={row.values[col.key] ?? ''}
-                        placeholder={col.placeholder}
-                        onChange={(e) => updateCell(row.id, col.key, e.target.value)}
-                      />
-                    </td>
-                  ))}
-                  <td className="px-1 py-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      aria-label="Remove row"
-                      onClick={() => removeRow(row.id)}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  <Trash2 size={14} />
+                </Button>
+              ),
+            },
+          ]}
+        />
 
         {rows.some((r) => r.error) ? (
           <ul className="space-y-1">

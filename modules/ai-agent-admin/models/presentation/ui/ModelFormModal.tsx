@@ -133,7 +133,7 @@ export function ModelFormModal({
           />
         </div>
         <Input
-          label="Provider model ID"
+          label="Provider model key"
           value={providerModelId}
           onChange={(e) => setProviderModelId(e.target.value)}
           placeholder="e.g. gpt-4o"

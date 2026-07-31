@@ -4,9 +4,10 @@ import { useMemo, useState } from 'react'
 import NextLink from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, Plus } from 'lucide-react'
-import { Typography, Button, Stack, Input, Select } from '@/shared/ui'
+import { Typography, Button, Stack, Input, Select, Card } from '@/shared/ui'
 import { useIamRoleCreate, type RoleCreateType } from '../hooks/useIamRoleCreate'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
+import { AdminWorkspaceSearchSelect } from '@/modules/admin/workspaces'
 
 const TYPE_OPTIONS = [
   { value: 'system', label: 'System role' },
@@ -30,9 +31,7 @@ export function AdminIamRoleCreateView() {
   })
 
   const canSubmit =
-    form.code.trim() &&
-    form.name.trim() &&
-    (type !== 'workspace' || form.workspaceId.trim())
+    form.code.trim() && form.name.trim() && (type !== 'workspace' || form.workspaceId.trim())
 
   const handleSubmit = async () => {
     if (!canSubmit) return
@@ -66,7 +65,7 @@ export function AdminIamRoleCreateView() {
         </Typography>
       </div>
 
-      <div className="max-w-md border border-neutral-200 bg-white p-6">
+      <Card className="max-w-md p-6">
         <Stack direction="vertical" spacing="md">
           <div>
             <Typography variant="small" tone="muted" className="mb-1.5">
@@ -96,11 +95,9 @@ export function AdminIamRoleCreateView() {
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
           />
           {type === 'workspace' && (
-            <Input
-              label="Workspace ID"
+            <AdminWorkspaceSearchSelect
               value={form.workspaceId}
-              onChange={(e) => setForm((f) => ({ ...f, workspaceId: e.target.value }))}
-              placeholder="Enter workspace ID"
+              onChange={(workspaceId) => setForm((current) => ({ ...current, workspaceId }))}
             />
           )}
 
@@ -129,7 +126,7 @@ export function AdminIamRoleCreateView() {
             </NextLink>
           </Stack>
         </Stack>
-      </div>
+      </Card>
     </div>
   )
 }

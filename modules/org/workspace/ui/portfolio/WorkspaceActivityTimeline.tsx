@@ -1,7 +1,7 @@
 'use client'
 
 import NextLink from 'next/link'
-import { Badge, Button, Typography } from '@/shared/ui'
+import { Badge, Button, Card, Typography } from '@/shared/ui'
 import { WORKSPACE_ROUTES } from '@/modules/org/lib/routes'
 import type { WorkspaceActivityFeedItem } from '../../model/workspace-activity'
 
@@ -56,12 +56,17 @@ export function WorkspaceActivityTimeline({
   }
 
   return (
-    <section className="border border-neutral-200 bg-white">
+    <Card as="section">
       <header className="flex items-center justify-between gap-2 border-b border-neutral-200 px-4 py-3">
         <Typography as="h2" size="sm" weight="semibold">
           Recent activity
         </Typography>
-        <Button as={NextLink} href={WORKSPACE_ROUTES.activity(workspaceId)} variant="ghost" size="sm">
+        <Button
+          as={NextLink}
+          href={WORKSPACE_ROUTES.activity(workspaceId)}
+          variant="ghost"
+          size="sm"
+        >
           View all
         </Button>
       </header>
@@ -139,6 +144,6 @@ export function WorkspaceActivityTimeline({
           ))}
         </div>
       )}
-    </section>
+    </Card>
   )
 }

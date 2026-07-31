@@ -1,6 +1,6 @@
 import type { CoverageMatrixCell, TraceLink } from '../api/traceability.api'
-import type { Requirement } from '@/modules/projects/requirements/model/requirements'
-import type { TestCase } from '@/modules/quality/domain/model/quality'
+import type { Requirement } from '@/modules/projects/requirements'
+import type { TestCase } from '@/modules/quality'
 
 export const CoverageStatus = {
   Covered: 'covered',
@@ -13,6 +13,8 @@ export type CoverageStatus = (typeof CoverageStatus)[keyof typeof CoverageStatus
 export type CoverageQuickFilter =
   | 'all'
   | 'gaps'
+  | 'failed'
+  | 'blocked'
   | 'failed_or_blocked'
   | 'no_result'
   | 'open_defects'
@@ -50,6 +52,19 @@ export interface RequirementCoverageRow {
   fromReport: boolean
 }
 
+export type CoverageNextActionType =
+  | 'LINK_TEST_CASE'
+  | 'OPEN_NFR'
+  | 'START_TEST_RUN'
+  | 'REVIEW_FAILURE'
+  | 'RESOLVE_BLOCKER'
+  | 'VIEW_RESULTS'
+
+export interface CoverageNextAction {
+  type: CoverageNextActionType
+  label: string
+}
+
 export interface CoverageSummary {
   requirements: number
   covered: number
@@ -65,9 +80,9 @@ export function coverageStatusLabel(status: CoverageStatus): string {
     case CoverageStatus.Covered:
       return 'Covered'
     case CoverageStatus.MissingTests:
-      return 'Missing tests'
+      return 'Missing test'
     case CoverageStatus.AtRisk:
-      return 'At risk'
+      return 'Partial'
     case CoverageStatus.NotEvaluated:
       return 'Not evaluated'
   }
@@ -80,11 +95,34 @@ export function coverageStatusTone(
     case CoverageStatus.Covered:
       return 'success'
     case CoverageStatus.MissingTests:
-      return 'warning'
-    case CoverageStatus.AtRisk:
       return 'error'
+    case CoverageStatus.AtRisk:
+      return 'warning'
     case CoverageStatus.NotEvaluated:
       return 'neutral'
+  }
+}
+
+export function coverageNextAction(row: RequirementCoverageRow): CoverageNextAction {
+  const requirementType = (row.reqType ?? '').toUpperCase().replace(/-/g, '_')
+  if (requirementType === 'NON_FUNCTIONAL' || requirementType === 'NFR') {
+    return { type: 'OPEN_NFR', label: 'Review NFR Pipeline' }
+  }
+
+  if (row.testCaseCount === 0) {
+    return { type: 'LINK_TEST_CASE', label: 'Link Test Case' }
+  }
+
+  switch (row.latestResultLabel.toUpperCase()) {
+    case 'FAILED':
+      return { type: 'REVIEW_FAILURE', label: 'Review Failure' }
+    case 'BLOCKED':
+      return { type: 'RESOLVE_BLOCKER', label: 'Resolve Blocker' }
+    case 'NOT RUN':
+    case '—':
+      return { type: 'START_TEST_RUN', label: 'Start Test Run' }
+    default:
+      return { type: 'VIEW_RESULTS', label: 'View Results' }
   }
 }
 
@@ -101,9 +139,7 @@ export function deriveCoverageStatus(input: {
   return CoverageStatus.Covered
 }
 
-export function mapApiCoverageStatus(
-  status: string | null | undefined
-): CoverageStatus | null {
+export function mapApiCoverageStatus(status: string | null | undefined): CoverageStatus | null {
   if (!status) return null
   switch (status.toUpperCase()) {
     case 'MISSING_TESTS':
@@ -174,7 +210,7 @@ function isReqToTestLink(link: TraceLink): boolean {
 
 function reqLabel(r: Requirement): { code: string; title: string; reqType: string | null } {
   return {
-    code: r.code || r.id.slice(0, 8),
+    code: r.code || '—',
     title: r.title || 'Untitled requirement',
     reqType: (r.req_type ?? r.type ?? null) as string | null,
   }
@@ -199,10 +235,8 @@ function mapCellToRow(cell: CoverageMatrixCell): RequirementCoverageRow {
     status: d.status ?? null,
   }))
   const testCaseCount =
-    cell.testCaseCount ??
-    (testCases.length > 0 ? testCases.length : cell.hasTestCase ? 1 : 0)
-  const hasResult =
-    cell.hasResult ?? Boolean(cell.latestResult && cell.latestResult !== 'NOT_RUN')
+    cell.testCaseCount ?? (testCases.length > 0 ? testCases.length : cell.hasTestCase ? 1 : 0)
+  const hasResult = cell.hasResult ?? Boolean(cell.latestResult && cell.latestResult !== 'NOT_RUN')
   const hasDefect =
     cell.hasDefect ?? (cell.openDefectCount != null ? cell.openDefectCount > 0 : false)
   const hasRelease = cell.hasRelease ?? cell.targetRelease != null
@@ -217,7 +251,7 @@ function mapCellToRow(cell: CoverageMatrixCell): RequirementCoverageRow {
 
   return {
     requirementId: cell.requirementId,
-    code: cell.code || cell.requirementCode || cell.requirementId.slice(0, 8),
+    code: cell.code || cell.requirementCode || '—',
     title: cell.title || cell.requirementTitle || 'Requirement',
     reqType: cell.requirementType ?? null,
     moduleName: cell.moduleName ?? null,
@@ -262,16 +296,19 @@ export function mapCoverageMatrixItemsToRows(
 }
 
 export function mapCoverageSummary(
-  summary: {
-    requirements: number
-    covered: number
-    coveredPct: number
-    missingTests: number
-    failed: number
-    blocked: number
-    notEvaluated?: number
-    atRisk?: number
-  } | null | undefined,
+  summary:
+    | {
+        requirements: number
+        covered: number
+        coveredPct: number
+        missingTests: number
+        failed: number
+        blocked: number
+        notEvaluated?: number
+        atRisk?: number
+      }
+    | null
+    | undefined,
   fallbackRows: RequirementCoverageRow[]
 ): CoverageSummary {
   if (summary) {
@@ -284,8 +321,7 @@ export function mapCoverageSummary(
       blocked: summary.blocked,
       notEvaluated:
         summary.notEvaluated ??
-        fallbackRows.filter((r) => r.coverageStatus === CoverageStatus.NotEvaluated)
-          .length,
+        fallbackRows.filter((r) => r.coverageStatus === CoverageStatus.NotEvaluated).length,
     }
   }
   return summarizeCoverage(fallbackRows)
@@ -353,7 +389,7 @@ export function buildRequirementCoverageRows(input: {
       return {
         id: link.targetId,
         code: tc?.code ?? null,
-        title: tc?.title ?? `Test ${link.targetId.slice(0, 8)}…`,
+        title: tc?.title ?? 'Unavailable test case',
         latestResultLabel: '—',
       }
     })
@@ -371,14 +407,11 @@ export function buildRequirementCoverageRows(input: {
     const tests = testsFromCell.length > 0 ? testsFromCell : testsFromLinks
 
     const testCaseCount =
-      cell?.testCaseCount ??
-      (tests.length > 0 ? tests.length : cell?.hasTestCase ? 1 : 0)
+      cell?.testCaseCount ?? (tests.length > 0 ? tests.length : cell?.hasTestCase ? 1 : 0)
     const hasResult =
-      cell?.hasResult ??
-      Boolean(cell?.latestResult && cell.latestResult !== 'NOT_RUN')
+      cell?.hasResult ?? Boolean(cell?.latestResult && cell.latestResult !== 'NOT_RUN')
     const hasDefect =
-      cell?.hasDefect ??
-      (cell?.openDefectCount != null ? cell.openDefectCount > 0 : false)
+      cell?.hasDefect ?? (cell?.openDefectCount != null ? cell.openDefectCount > 0 : false)
     const hasRelease = cell?.hasRelease ?? cell?.targetRelease != null
     const status =
       mapApiCoverageStatus(cell?.coverageStatus) ??
@@ -442,17 +475,12 @@ export function buildRequirementCoverageRows(input: {
 export function summarizeCoverage(rows: RequirementCoverageRow[]): CoverageSummary {
   const requirements = rows.length
   const covered = rows.filter((r) => r.coverageStatus === CoverageStatus.Covered).length
-  const missingTests = rows.filter(
-    (r) => r.coverageStatus === CoverageStatus.MissingTests
-  ).length
+  const missingTests = rows.filter((r) => r.coverageStatus === CoverageStatus.MissingTests).length
   const failed = rows.filter(
-    (r) =>
-      r.coverageStatus === CoverageStatus.AtRisk && r.hasResult && !r.hasDefect
+    (r) => r.coverageStatus === CoverageStatus.AtRisk && r.hasResult && !r.hasDefect
   ).length
   const blocked = rows.filter((r) => r.hasDefect).length
-  const notEvaluated = rows.filter(
-    (r) => r.coverageStatus === CoverageStatus.NotEvaluated
-  ).length
+  const notEvaluated = rows.filter((r) => r.coverageStatus === CoverageStatus.NotEvaluated).length
   return {
     requirements,
     covered,
@@ -473,16 +501,22 @@ export function filterCoverageRows(
 ): RequirementCoverageRow[] {
   const q = opts.query.trim().toLowerCase()
   return rows.filter((row) => {
+    const requirementType = (row.reqType ?? '').toUpperCase().replace(/-/g, '_')
+    const isNfr = requirementType === 'NON_FUNCTIONAL' || requirementType === 'NFR'
+    if (opts.quickFilter === 'gaps' && isNfr) return false
     if (opts.quickFilter === 'gaps' && row.coverageStatus !== CoverageStatus.MissingTests) {
       return false
     }
     if (opts.quickFilter === 'failed_or_blocked') {
       if (row.coverageStatus !== CoverageStatus.AtRisk && !row.hasDefect) return false
     }
-    if (
-      opts.quickFilter === 'no_result' &&
-      row.coverageStatus !== CoverageStatus.NotEvaluated
-    ) {
+    if (opts.quickFilter === 'failed' && row.latestResultLabel.toUpperCase() !== 'FAILED') {
+      return false
+    }
+    if (opts.quickFilter === 'blocked' && row.latestResultLabel.toUpperCase() !== 'BLOCKED') {
+      return false
+    }
+    if (opts.quickFilter === 'no_result' && row.coverageStatus !== CoverageStatus.NotEvaluated) {
       return false
     }
     if (opts.quickFilter === 'open_defects' && !row.hasDefect) return false
@@ -507,10 +541,10 @@ export function formatTraceLinkEndpoints(link: TraceLink): {
 } {
   const source =
     [link.sourceCode, link.sourceTitle].filter(Boolean).join(' · ') ||
-    `${link.sourceType} ${link.sourceId.slice(0, 8)}…`
+    `${link.sourceType} · Unavailable`
   const target =
     [link.targetCode, link.targetTitle].filter(Boolean).join(' · ') ||
-    `${link.targetType} ${link.targetId.slice(0, 8)}…`
+    `${link.targetType} · Unavailable`
   return { source, target }
 }
 
@@ -522,20 +556,20 @@ export function resolveTraceLinkLabel(
   link?: TraceLink
 ): string {
   if (link?.sourceId === id && (link.sourceCode || link.sourceTitle)) {
-    return [link.sourceCode, link.sourceTitle].filter(Boolean).join(' · ') || id
+    return [link.sourceCode, link.sourceTitle].filter(Boolean).join(' · ') || '—'
   }
   if (link?.targetId === id && (link.targetCode || link.targetTitle)) {
-    return [link.targetCode, link.targetTitle].filter(Boolean).join(' · ') || id
+    return [link.targetCode, link.targetTitle].filter(Boolean).join(' · ') || '—'
   }
 
   const t = type.toUpperCase()
   if (t === 'REQUIREMENT') {
     const r = requirements.find((x) => x.id === id)
-    if (r) return [r.code, r.title].filter(Boolean).join(' · ') || id
+    if (r) return [r.code, r.title].filter(Boolean).join(' · ') || '—'
   }
   if (t === 'TEST_CASE') {
     const tc = testCases.find((x) => x.id === id)
-    if (tc) return [tc.code, tc.title].filter(Boolean).join(' · ') || id
+    if (tc) return [tc.code, tc.title].filter(Boolean).join(' · ') || '—'
   }
-  return `${type} ${id.slice(0, 8)}…`
+  return `${type} · Unavailable`
 }

@@ -77,9 +77,13 @@ export function DeliverableDetailDrawer({
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-neutral-900/[0.18] motion-drawer-backdrop" aria-hidden onClick={onClose} />
+      <div
+        className="bg-neutral-900/[0.18] motion-drawer-backdrop fixed inset-0 z-40"
+        aria-hidden
+        onClick={onClose}
+      />
       <aside
-        className="drawer fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-neutral-200 bg-white shadow-xl motion-drawer-panel"
+        className="drawer motion-drawer-panel fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-neutral-200 bg-white shadow-xl"
         role="dialog"
         aria-label="Deliverable detail"
       >
@@ -109,7 +113,9 @@ export function DeliverableDetailDrawer({
         </div>
 
         <nav className="flex gap-1 border-b border-neutral-200 px-5">
-          {(['criteria', 'evidence', 'review', 'linked-tasks', 'comments'] as DeliverableDrawerTab[]).map((t) => (
+          {(
+            ['criteria', 'evidence', 'review', 'linked-tasks', 'comments'] as DeliverableDrawerTab[]
+          ).map((t) => (
             <button
               key={t}
               type="button"
@@ -194,24 +200,36 @@ export function DeliverableDetailDrawer({
             ) : null
           ) : tab === 'review' ? (
             <DeliverableReviewPanel projectId={projectId} deliverableId={deliverable.id} />
-          ) : tab === 'linked-tasks' ? (
-            <DeliverableMappingPanel deliverableId={deliverable.id} />
-          ) : (
-            projectId ? (
-              <CommentThreadsPanel projectId={projectId} targetType="DELIVERABLE" targetId={deliverable.id} />
-            ) : null
-          )}
+          ) : tab === 'linked-tasks' && projectId ? (
+            <DeliverableMappingPanel projectId={projectId} deliverableId={deliverable.id} />
+          ) : projectId ? (
+            <CommentThreadsPanel
+              projectId={projectId}
+              targetType="DELIVERABLE"
+              targetId={deliverable.id}
+            />
+          ) : null}
         </div>
 
         <div className="space-y-3 border-t border-neutral-200 px-5 py-4">
           <Stack direction="horizontal" spacing="sm" className="flex-wrap">
             {canAcceptDeliverable(deliverable) ? (
-              <Button size="sm" variant="primary" disabled={acting} onClick={() => void handleAccept()}>
+              <Button
+                size="sm"
+                variant="primary"
+                disabled={acting}
+                onClick={() => void handleAccept()}
+              >
                 Accept
               </Button>
             ) : null}
             {canReopenDeliverable(deliverable) ? (
-              <Button size="sm" variant="secondary" disabled={acting} onClick={() => void handleReopen()}>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={acting}
+                onClick={() => void handleReopen()}
+              >
                 Reopen
               </Button>
             ) : null}

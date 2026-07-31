@@ -8,7 +8,9 @@ import { toast } from 'sonner'
 import {
   Badge,
   Button,
+  Card,
   CurrencyAmount,
+  DataTable,
   FinancialKpiStrip,
   Input,
   LongRunningJobState,
@@ -25,10 +27,7 @@ import { ROUTES } from '@/constants/routes'
 import { financeApi } from '@/modules/finance'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import { useProject } from '@/modules/projects/project/hooks/useProject'
-import {
-  useQuoteBuilder,
-  type QuoteBuilderSection,
-} from '../hooks/useQuoteBuilder'
+import { useQuoteBuilder, type QuoteBuilderSection } from '../hooks/useQuoteBuilder'
 import {
   canApproveVersion,
   canDuplicateVersion,
@@ -116,15 +115,15 @@ export function QuoteBuilderView() {
 
   if (b.forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="border border-neutral-200 bg-white p-8 text-center">
         <Typography weight="medium">You don’t have access to this quote</Typography>
-      </div>
+      </Card>
     )
   }
 
   if (b.error || !b.quote) {
     return (
-      <div className="border border-error/30 bg-error/5 p-4">
+      <div className="border-error/30 bg-error/5 border p-4">
         <Typography variant="small" tone="error">
           {b.error ?? 'Quote not found'}
         </Typography>
@@ -148,9 +147,7 @@ export function QuoteBuilderView() {
         {
           id: 'total',
           label: 'Quoted total',
-          value: (
-            <CurrencyAmount amount={b.summary.totalQuotedAmount} currency={currency} />
-          ),
+          value: <CurrencyAmount amount={b.summary.totalQuotedAmount} currency={currency} />,
         },
         {
           id: 'cost',
@@ -166,16 +163,14 @@ export function QuoteBuilderView() {
           id: 'pct',
           label: 'Margin %',
           value: (
-            <Typography weight="semibold">
-              {formatPercent(b.summary.grossMarginPercent)}
-            </Typography>
+            <Typography weight="semibold">{formatPercent(b.summary.grossMarginPercent)}</Typography>
           ),
         },
       ]
     : []
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
@@ -190,16 +185,14 @@ export function QuoteBuilderView() {
           >
             ← Quote Register
           </NextLink>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             {b.quote.title}
           </Typography>
           <div className="mt-2 flex flex-wrap items-center gap-sm">
             <Typography variant="small" tone="muted">
               {b.quote.code}
             </Typography>
-            <Badge tone={quoteStatusTone(b.quote.status)}>
-              {quoteStatusLabel(b.quote.status)}
-            </Badge>
+            <Badge tone={quoteStatusTone(b.quote.status)}>{quoteStatusLabel(b.quote.status)}</Badge>
             {b.version ? (
               <>
                 <Badge tone={quoteStatusTone(b.version.status)} size="sm">
@@ -316,8 +309,8 @@ export function QuoteBuilderView() {
       {!FEATURES.wave3QuoteDocuments ? (
         <div className="mb-4 border border-neutral-200 bg-neutral-50 px-3 py-2">
           <Typography variant="caption" tone="muted">
-            PDF generation and email send are disabled (`wave3QuoteDocuments`) until the
-            backend document/send contract is available.
+            PDF generation and email send are disabled (`wave3QuoteDocuments`) until the backend
+            document/send contract is available.
           </Typography>
         </div>
       ) : null}
@@ -427,9 +420,7 @@ export function QuoteBuilderView() {
         )}
       </div>
 
-      {b.summary ? (
-        <FinancialKpiStrip items={kpiItems} mode="compact" className="mb-4" />
-      ) : null}
+      {b.summary ? <FinancialKpiStrip items={kpiItems} mode="compact" className="mb-4" /> : null}
 
       <div className="mb-4 flex flex-wrap gap-1 border-b border-neutral-200">
         {SECTIONS.map((s) => (
@@ -480,7 +471,7 @@ export function QuoteBuilderView() {
               )
             }}
           />
-          <div className="md:col-span-2 border border-neutral-200 bg-neutral-50 p-4">
+          <Card className="border border-neutral-200 bg-neutral-50 p-4 md:col-span-2">
             <Typography weight="semibold" className="mb-2">
               Target margin solver
             </Typography>
@@ -522,7 +513,7 @@ export function QuoteBuilderView() {
                 </Typography>
               </div>
             ) : null}
-          </div>
+          </Card>
         </div>
       ) : null}
 
@@ -541,11 +532,7 @@ export function QuoteBuilderView() {
                   { value: QuoteLineType.Discount, label: 'Discount' },
                 ]}
               />
-              <Input
-                label="Name"
-                value={lineName}
-                onChange={(e) => setLineName(e.target.value)}
-              />
+              <Input label="Name" value={lineName} onChange={(e) => setLineName(e.target.value)} />
               <Input
                 label="Unit price"
                 type="number"
@@ -575,84 +562,72 @@ export function QuoteBuilderView() {
               </Button>
             </div>
           ) : null}
-          <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Type</th>
-                  <th className="px-3 py-2 font-medium">Name</th>
-                  <th className="px-3 py-2 font-medium">Qty</th>
-                  <th className="px-3 py-2 font-medium">Unit</th>
-                  <th className="px-3 py-2 font-medium">Amount</th>
-                  <th className="px-3 py-2 font-medium">Client</th>
-                  <th className="px-3 py-2 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {b.lines.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-3 py-8 text-center">
-                      <Typography variant="small" tone="muted">
-                        No lines
+          <DataTable
+            ariaLabel="Quote lines"
+            rows={b.lines}
+            rowKey={(line) => line.id}
+            emptyMessage="No lines"
+            columns={[
+              { id: 'type', header: 'Type', accessor: 'lineType' },
+              {
+                id: 'name',
+                header: 'Name',
+                cell: (line) => (
+                  <>
+                    <Typography>{line.name || '—'}</Typography>
+                    {line.internalNote ? (
+                      <Typography variant="caption" tone="muted" className="block">
+                        Internal: {line.internalNote}
                       </Typography>
-                    </td>
-                  </tr>
-                ) : (
-                  b.lines.map((line) => (
-                    <tr key={line.id} className="border-t border-neutral-100">
-                      <td className="px-3 py-2">{line.lineType}</td>
-                      <td className="px-3 py-2">
-                        <Typography weight="medium">{line.name}</Typography>
-                        {line.internalNote ? (
-                          <Typography variant="caption" tone="muted" className="block">
-                            Internal: {line.internalNote}
-                          </Typography>
-                        ) : null}
-                      </td>
-                      <td className="px-3 py-2">{line.quantity}</td>
-                      <td className="px-3 py-2">
-                        <CurrencyAmount
-                          amount={line.unitPrice}
-                          currency={line.currencyCode}
-                          size="sm"
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <CurrencyAmount
-                          amount={line.amount}
-                          currency={line.currencyCode}
-                          size="sm"
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        {line.clientVisible ? 'Yes' : 'No'}
-                      </td>
-                      <td className="px-3 py-2">
-                        {editable ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() =>
-                              void run('Line deleted', () => b.removeLine(line.id))
-                            }
-                          >
-                            Delete
-                          </Button>
-                        ) : null}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                    ) : null}
+                  </>
+                ),
+              },
+              { id: 'quantity', header: 'Qty', accessor: 'quantity' },
+              {
+                id: 'unit',
+                header: 'Unit',
+                cell: (line) => (
+                  <CurrencyAmount amount={line.unitPrice} currency={line.currencyCode} size="sm" />
+                ),
+              },
+              {
+                id: 'amount',
+                header: 'Amount',
+                cell: (line) => (
+                  <CurrencyAmount amount={line.amount} currency={line.currencyCode} size="sm" />
+                ),
+              },
+              {
+                id: 'client',
+                header: 'Client',
+                accessor: (line) => (line.clientVisible ? 'Yes' : 'No'),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (line) =>
+                  editable ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => void run('Line deleted', () => b.removeLine(line.id))}
+                    >
+                      Delete
+                    </Button>
+                  ) : (
+                    '—'
+                  ),
+              },
+            ]}
+          />
         </div>
       ) : null}
 
       {b.section === 'terms' ? (
         <div>
           {editable ? (
-            <div className="mb-3 space-y-2 border border-neutral-200 bg-neutral-50 p-3">
+            <Card className="mb-3 space-y-2 border border-neutral-200 bg-neutral-50 p-3">
               <Select
                 value={termType}
                 onValueChange={setTermType}
@@ -696,7 +671,7 @@ export function QuoteBuilderView() {
               >
                 Add term
               </Button>
-            </div>
+            </Card>
           ) : null}
           <div className="space-y-3">
             {b.terms.length === 0 ? (
@@ -705,7 +680,7 @@ export function QuoteBuilderView() {
               </Typography>
             ) : (
               b.terms.map((t) => (
-                <div key={t.id} className="border border-neutral-200 p-3">
+                <Card key={t.id} className="border border-neutral-200 p-3">
                   <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                     <Typography weight="medium">
                       {t.title}{' '}
@@ -717,9 +692,7 @@ export function QuoteBuilderView() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() =>
-                          void run('Term deleted', () => b.removeTerm(t.id))
-                        }
+                        onClick={() => void run('Term deleted', () => b.removeTerm(t.id))}
                       >
                         Delete
                       </Button>
@@ -733,7 +706,7 @@ export function QuoteBuilderView() {
                       Internal only
                     </Typography>
                   ) : null}
-                </div>
+                </Card>
               ))
             )}
           </div>
@@ -829,47 +802,41 @@ export function QuoteBuilderView() {
       ) : null}
 
       {b.section === 'summary' && b.summary ? (
-        <div className="overflow-x-auto border border-neutral-200 bg-white">
-          <table className="min-w-full text-left text-sm">
-            <tbody>
-              {(
-                [
-                  ['Cost base', b.summary.costBase],
-                  ['Direct cost', b.summary.directCost],
-                  ['Overhead', b.summary.overhead],
-                  ['Subtotal before discount', b.summary.subtotalBeforeDiscount],
-                  ['Discount', b.summary.discountAmount ?? 0],
-                  ['Subtotal after discount', b.summary.subtotalAfterDiscount],
-                  ['Tax', b.summary.taxAmount],
-                  ['Total quoted', b.summary.totalQuotedAmount],
-                  ['Required contract value', b.summary.requiredContractValue ?? 0],
-                  ['Gross margin', b.summary.grossMargin],
-                  ['PBT', b.summary.profitBeforeTax],
-                ] as const
-              ).map(([label, amount]) => (
-                <tr key={label} className="border-t border-neutral-100">
-                  <td className="px-4 py-2 text-neutral-600">{label}</td>
-                  <td className="px-4 py-2">
-                    <CurrencyAmount amount={amount} currency={currency} size="sm" />
-                  </td>
-                </tr>
-              ))}
-              <tr className="border-t border-neutral-100">
-                <td className="px-4 py-2 text-neutral-600">Margin %</td>
-                <td className="px-4 py-2">{formatPercent(b.summary.grossMarginPercent)}</td>
-              </tr>
-              <tr className="border-t border-neutral-100">
-                <td className="px-4 py-2 text-neutral-600">Formula</td>
-                <td className="px-4 py-2">{b.summary.formulaVersion ?? '—'}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          ariaLabel="Quote summary"
+          rows={[
+            ...(
+              [
+                ['Cost base', b.summary.costBase],
+                ['Direct cost', b.summary.directCost],
+                ['Overhead', b.summary.overhead],
+                ['Subtotal before discount', b.summary.subtotalBeforeDiscount],
+                ['Discount', b.summary.discountAmount ?? 0],
+                ['Subtotal after discount', b.summary.subtotalAfterDiscount],
+                ['Tax', b.summary.taxAmount],
+                ['Total quoted', b.summary.totalQuotedAmount],
+                ['Required contract value', b.summary.requiredContractValue ?? 0],
+                ['Gross margin', b.summary.grossMargin],
+                ['PBT', b.summary.profitBeforeTax],
+              ] as const
+            ).map(([label, amount]) => ({
+              label,
+              value: <CurrencyAmount amount={amount} currency={currency} size="sm" />,
+            })),
+            { label: 'Margin %', value: formatPercent(b.summary.grossMarginPercent) },
+            { label: 'Formula', value: b.summary.formulaVersion ?? '—' },
+          ]}
+          rowKey={(row) => row.label}
+          columns={[
+            { id: 'metric', header: 'Metric', accessor: 'label' },
+            { id: 'value', header: 'Value', accessor: 'value' },
+          ]}
+        />
       ) : null}
 
       {b.section === 'preview' ? (
-        <div className="mx-auto max-w-2xl border border-neutral-200 bg-white p-6">
-          <Typography as="h2" size="lg" weight="bold" className="mb-1">
+        <Card className="mx-auto max-w-2xl border border-neutral-200 bg-white p-6">
+          <Typography as="h2" size="md" weight="medium" className="mb-1">
             {b.version?.proposalTitle ?? b.quote.title}
           </Typography>
           <Typography variant="small" tone="muted" className="mb-4">
@@ -900,11 +867,7 @@ export function QuoteBuilderView() {
           {b.summary ? (
             <div className="mb-4 border-t border-neutral-200 pt-3 text-right">
               <Typography weight="semibold">
-                Total{' '}
-                <CurrencyAmount
-                  amount={b.summary.totalQuotedAmount}
-                  currency={currency}
-                />
+                Total <CurrencyAmount amount={b.summary.totalQuotedAmount} currency={currency} />
               </Typography>
             </div>
           ) : null}
@@ -926,7 +889,7 @@ export function QuoteBuilderView() {
           <Typography variant="caption" tone="muted" className="mt-6 block">
             Client preview excludes internal notes, cost base, and margin details.
           </Typography>
-        </div>
+        </Card>
       ) : null}
     </div>
   )

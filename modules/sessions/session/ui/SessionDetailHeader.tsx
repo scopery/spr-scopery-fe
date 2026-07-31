@@ -1,10 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { AlertCircle, CircleArrowOutUpLeft, CloudCheck, Download, Lock, RotateCcw, Save } from 'lucide-react'
+import {
+  AlertCircle,
+  CircleArrowOutUpLeft,
+  CloudCheck,
+  Download,
+  Lock,
+  RotateCcw,
+  Save,
+} from 'lucide-react'
 import { Typography, Button, Badge } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { ProjectStepIndicator } from '@/modules/projects/project/ui/ProjectStepIndicator'
+import { ProjectStepIndicator } from '@/modules/projects/project'
 import { SESSION_STATUS_LABEL, type SessionDetail, type SessionProgress } from '../model/session'
 
 export type SessionDetailHeaderProps = {
@@ -55,7 +63,7 @@ export function SessionDetailHeader({
       <ProjectStepIndicator
         steps={headerSteps}
         leftMeta={
-          <div className="mb-10">
+          <div className="mb-2">
             <Link
               href={ROUTES.workspace.project(orgId, projectId)}
               className="mb-2 block cursor-pointer text-sm text-primary hover:underline"
@@ -63,7 +71,7 @@ export function SessionDetailHeader({
               <CircleArrowOutUpLeft size={20} />
             </Link>
             <div className="flex flex-wrap items-center gap-2">
-              <Typography as="h1" size="lg" weight="semibold">
+              <Typography as="h1" size="md" weight="medium">
                 {session.name}
               </Typography>
               <Badge
@@ -133,7 +141,12 @@ export function SessionDetailHeader({
             </Button>
             {canSave && (
               <>
-                <Button variant="outline" onClick={onSave} loading={saving} icon={<Save size={16} />}>
+                <Button
+                  variant="outline"
+                  onClick={onSave}
+                  loading={saving}
+                  icon={<Save size={16} />}
+                >
                   Save
                 </Button>
                 {canLock && session.status !== 'locked' && (
@@ -154,19 +167,21 @@ export function SessionDetailHeader({
       />
 
       {canReopen && (
-        <div className="mb-6 flex gap-2">
+        <div className="mb-2 flex gap-2">
           <Button
             variant="outline"
             tone="success"
             onClick={onReopen}
-            loading={reopenLoading} icon={<RotateCcw size={16} />}>
+            loading={reopenLoading}
+            icon={<RotateCcw size={16} />}
+          >
             Reopen session
           </Button>
         </div>
       )}
 
       {isLocked && (
-        <div className="border-warning/50 bg-warning/10 mb-6 flex items-center gap-2 border p-4">
+        <div className="border-warning/50 bg-warning/10 mb-2 flex items-center gap-2 border p-3">
           <AlertCircle size={20} className="shrink-0 text-warning" />
           <Typography>Session locked. No further edits allowed.</Typography>
         </div>

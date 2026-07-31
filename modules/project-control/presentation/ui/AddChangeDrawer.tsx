@@ -1,21 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import {
-  Button,
-  Checkbox,
-  DetailDrawer,
-  Input,
-  Radio,
-  Textarea,
-  Typography,
-} from '@/shared/ui'
-import {
-  AffectedArea,
-  ChangeItemOperation,
-} from '../../domain/enums/project-control.enum'
+import { Button, Checkbox, DetailDrawer, Input, Radio, Textarea, Typography } from '@/shared/ui'
+import { AffectedArea, ChangeItemOperation } from '../../domain/enums/project-control.enum'
 import type { CreateChangeRequestItemPayload } from '../../domain/model/project-control'
 import { affectedAreaLabel } from '../../domain/rules/project-control.rules'
+import { TaskSearchSelect } from '@/modules/projects/task'
+import { FunctionalItemSearchSelect } from '@/modules/projects/traceability'
 
 type ChangeKind =
   | 'modify_function'
@@ -73,7 +64,7 @@ function kindToPayload(
       return {
         targetType: 'FUNCTION',
         targetId: id,
-        operation: ChangeItemOperation.Modify,
+        operation: ChangeItemOperation.Update,
         summary,
         affectedAreas: areas,
       }
@@ -81,7 +72,7 @@ function kindToPayload(
       return {
         targetType: 'FUNCTION',
         targetId: id,
-        operation: ChangeItemOperation.Add,
+        operation: ChangeItemOperation.Create,
         summary,
         affectedAreas: areas,
       }
@@ -89,7 +80,7 @@ function kindToPayload(
       return {
         targetType: 'FUNCTION',
         targetId: id,
-        operation: ChangeItemOperation.Remove,
+        operation: ChangeItemOperation.Delete,
         summary,
         affectedAreas: areas,
       }
@@ -97,7 +88,7 @@ function kindToPayload(
       return {
         targetType: 'TASK',
         targetId: id,
-        operation: ChangeItemOperation.Modify,
+        operation: ChangeItemOperation.Update,
         summary,
         affectedAreas: areas,
       }
@@ -105,7 +96,7 @@ function kindToPayload(
       return {
         targetType: 'TASK',
         targetId: id,
-        operation: ChangeItemOperation.Add,
+        operation: ChangeItemOperation.Create,
         summary,
         affectedAreas: areas,
       }
@@ -113,7 +104,7 @@ function kindToPayload(
       return {
         targetType: 'SCHEDULE',
         targetId: id,
-        operation: ChangeItemOperation.Modify,
+        operation: ChangeItemOperation.Update,
         summary,
         affectedAreas: areas,
       }
@@ -121,20 +112,17 @@ function kindToPayload(
 }
 
 function needsExistingTarget(kind: ChangeKind): boolean {
-  return (
-    kind === 'modify_function' ||
-    kind === 'remove_function' ||
-    kind === 'modify_task'
-  )
+  return kind === 'modify_function' || kind === 'remove_function' || kind === 'modify_task'
 }
 
 interface AddChangeDrawerProps {
   open: boolean
+  projectId: string
   onClose: () => void
   onSubmit: (payload: CreateChangeRequestItemPayload) => Promise<void>
 }
 
-export function AddChangeDrawer({ open, onClose, onSubmit }: AddChangeDrawerProps) {
+export function AddChangeDrawer({ open, projectId, onClose, onSubmit }: AddChangeDrawerProps) {
   const [step, setStep] = useState<'kind' | 'details'>('kind')
   const [kind, setKind] = useState<ChangeKind>('modify_function')
   const [summary, setSummary] = useState('')
@@ -242,18 +230,24 @@ export function AddChangeDrawer({ open, onClose, onSubmit }: AddChangeDrawerProp
           <Typography variant="small" tone="muted">
             {CHANGE_KINDS.find((k) => k.id === kind)?.label}
           </Typography>
-          {needsExistingTarget(kind) || kind === 'add_function' || kind === 'add_task' ? (
-            <Input
-              label={
-                needsExistingTarget(kind)
-                  ? 'Target ID (optional)'
-                  : 'Reference ID (optional)'
-              }
-              value={targetId}
-              onChange={(e) => setTargetId(e.target.value)}
-              placeholder="Paste Function or Task ID if known"
-              helperText="You can leave this blank and describe the target in the change text."
-            />
+          {needsExistingTarget(kind) ? (
+            kind.includes('function') ? (
+              <FunctionalItemSearchSelect
+                projectId={projectId}
+                optional
+                label="Target Function"
+                value={targetId}
+                onChange={setTargetId}
+              />
+            ) : (
+              <TaskSearchSelect
+                projectId={projectId}
+                optional
+                label="Target Task"
+                value={targetId}
+                onChange={setTargetId}
+              />
+            )
           ) : null}
           <Textarea
             label="Describe the requested change"

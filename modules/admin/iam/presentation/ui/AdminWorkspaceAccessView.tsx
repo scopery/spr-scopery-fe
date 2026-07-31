@@ -4,12 +4,14 @@ import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import NextLink from 'next/link'
 import { ArrowLeft, Ban, Check, UserPlus } from 'lucide-react'
-import { Typography, Button, Badge, Stack, Input, Select, PageSkeleton } from '@/shared/ui'
+import { Typography, Button, Badge, Stack, Select, PageSkeleton, DataTable } from '@/shared/ui'
+import { UserSearchSelect } from '@/modules/platform'
 import { IamStatusBadge } from './IamStatusBadge'
 import { useWorkspaceAccess } from '../hooks/useWorkspaceAccess'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 import { useIamIdentityDirectory } from '../hooks/useIamIdentityDirectory'
 import { IamEntityIdentityCard } from './IamEntityIdentityCard'
+import { IamRoleSearchSelect } from './IamRoleSearchSelect'
 
 const ASSIGNEE_TYPE_OPTIONS = [
   { value: 'USER', label: 'User' },
@@ -29,7 +31,9 @@ export function AdminWorkspaceAccessView() {
   const { assignments, roles, loading, error, actingId, creating, createAssignment, runAction } =
     useWorkspaceAccess(workspaceId)
   const { usersById, rolesById, workspacesById } = useIamIdentityDirectory({
-    userIds: assignments.filter((item) => item.assigneeType === 'USER').map((item) => item.assigneeId),
+    userIds: assignments
+      .filter((item) => item.assigneeType === 'USER')
+      .map((item) => item.assigneeId),
     roleIds: [...assignments.map((item) => item.roleId), ...roles.map((role) => role.id)],
     workspaceIds: [workspaceId],
   })
@@ -52,11 +56,6 @@ export function AdminWorkspaceAccessView() {
       // error already toasted
     }
   }
-
-  const roleOptions = [
-    { value: '', label: 'Enter role ID manually…' },
-    ...roles.map((r) => ({ value: r.id, label: `${r.name} (${r.code})` })),
-  ]
 
   return (
     <div>
@@ -81,11 +80,19 @@ export function AdminWorkspaceAccessView() {
                 id={workspaceId}
               />
             ) : (
-              <IamEntityIdentityCard title={workspaceId} id={workspaceId} />
+              <IamEntityIdentityCard
+                title="Workspace"
+                subtitle="Details unavailable"
+                id={workspaceId}
+              />
             )}
           </div>
         </div>
-        <Button variant="primary" onClick={() => setCreateOpen((v) => !v)} icon={!createOpen ? <UserPlus size={16} /> : undefined}>
+        <Button
+          variant="primary"
+          onClick={() => setCreateOpen((v) => !v)}
+          icon={!createOpen ? <UserPlus size={16} /> : undefined}
+        >
           {createOpen ? 'Cancel' : 'Assign role'}
         </Button>
       </div>
@@ -97,41 +104,41 @@ export function AdminWorkspaceAccessView() {
           </Typography>
           <Stack direction="vertical" spacing="sm" className="max-w-md">
             <div>
-              <Typography variant="small" tone="muted" className="mb-1.5">Assignee type</Typography>
+              <Typography variant="small" tone="muted" className="mb-1.5">
+                Assignee type
+              </Typography>
               <Select
                 value={form.assigneeType}
-                onValueChange={(v: string) => setForm((f) => ({ ...f, assigneeType: v }))}
+                onValueChange={(assigneeType: string) =>
+                  setForm((current) => ({ ...current, assigneeType, assigneeId: '' }))
+                }
                 options={ASSIGNEE_TYPE_OPTIONS}
               />
             </div>
-            <Input
-              label="Assignee ID"
-              value={form.assigneeId}
-              onChange={(e) => setForm((f) => ({ ...f, assigneeId: e.target.value }))}
-              placeholder="Enter user or role ID"
-            />
-            {roles.length > 0 ? (
-              <div>
-                <Typography variant="small" tone="muted" className="mb-1.5">Role</Typography>
-                <Select
-                  value={form.roleId}
-                  onValueChange={(v: string) => setForm((f) => ({ ...f, roleId: v }))}
-                  options={roleOptions}
-                />
-              </div>
+            {form.assigneeType === 'USER' ? (
+              <UserSearchSelect
+                label="User"
+                value={form.assigneeId}
+                onChange={(assigneeId) => setForm((current) => ({ ...current, assigneeId }))}
+              />
             ) : (
-              <Input
-                label="Role ID"
-                value={form.roleId}
-                onChange={(e) => setForm((f) => ({ ...f, roleId: e.target.value }))}
-                placeholder="Enter role ID"
+              <IamRoleSearchSelect
+                label="Assignee role"
+                value={form.assigneeId}
+                onChange={(assigneeId) => setForm((current) => ({ ...current, assigneeId }))}
               />
             )}
+            <IamRoleSearchSelect
+              value={form.roleId}
+              onChange={(roleId) => setForm((current) => ({ ...current, roleId }))}
+            />
             <Stack direction="horizontal" spacing="sm">
               <Button
                 variant="primary"
                 disabled={creating || !form.assigneeId.trim() || !form.roleId.trim()}
-                onClick={() => void handleCreate()} icon={<UserPlus size={16} />}>
+                onClick={() => void handleCreate()}
+                icon={<UserPlus size={16} />}
+              >
                 {creating ? 'Assigning…' : 'Assign'}
               </Button>
               <Button variant="ghost" onClick={() => setCreateOpen(false)}>
@@ -152,33 +159,35 @@ export function AdminWorkspaceAccessView() {
         </div>
       ) : (
         <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Assignee type</th>
-                <th className="px-4 py-3 font-medium">Assignee</th>
-                <th className="px-4 py-3 font-medium">Role</th>
-                <th className="px-4 py-3 font-medium">Assigned at</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="min-w-[12rem] whitespace-nowrap px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assignments.map((a) => (
-                <tr key={a.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-4 py-3">
-                    <Badge tone="neutral">
-                      {a.assigneeType}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
+          <DataTable
+            ariaLabel="Admin Workspace Access"
+            rows={assignments}
+            rowKey={(a) => String(a.id)}
+            emptyMessage="No items."
+            columns={[
+              {
+                id: 'assignee-type',
+                header: 'Assignee type',
+                cell: (a) => (
+                  <>
+                    <Badge tone="neutral">{a.assigneeType}</Badge>
+                  </>
+                ),
+              },
+              {
+                id: 'assignee',
+                header: 'Assignee',
+                cell: (a) => (
+                  <>
                     {a.assigneeType === 'USER' && usersById[a.assigneeId] ? (
                       <IamEntityIdentityCard
                         title={usersById[a.assigneeId].fullName || usersById[a.assigneeId].username}
                         subtitle={`@${usersById[a.assigneeId].username}`}
                         meta={usersById[a.assigneeId].email}
                         id={a.assigneeId}
-                        avatarFallback={usersById[a.assigneeId].fullName || usersById[a.assigneeId].username}
+                        avatarFallback={
+                          usersById[a.assigneeId].fullName || usersById[a.assigneeId].username
+                        }
                       />
                     ) : a.assigneeType === 'ROLE' && rolesById[a.assigneeId] ? (
                       <IamEntityIdentityCard
@@ -188,10 +197,16 @@ export function AdminWorkspaceAccessView() {
                         id={a.assigneeId}
                       />
                     ) : (
-                      <IamEntityIdentityCard title={a.assigneeId} id={a.assigneeId} />
+                      <IamEntityIdentityCard title="—" id={a.assigneeId} />
                     )}
-                  </td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              {
+                id: 'role',
+                header: 'Role',
+                cell: (a) => (
+                  <>
                     {rolesById[a.roleId] ? (
                       <IamEntityIdentityCard
                         title={rolesById[a.roleId].name}
@@ -200,22 +215,39 @@ export function AdminWorkspaceAccessView() {
                         id={a.roleId}
                       />
                     ) : (
-                      <IamEntityIdentityCard title={a.roleId} id={a.roleId} />
+                      <IamEntityIdentityCard title="—" id={a.roleId} />
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600">
-                    {a.assignedAt ? formatDate(a.assignedAt) : '—'}
-                  </td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              {
+                id: 'assigned-at',
+                header: 'Assigned at',
+                cell: (a) => <>{a.assignedAt ? formatDate(a.assignedAt) : '—'}</>,
+                cellClassName: 'text-neutral-600',
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (a) => (
+                  <>
                     <IamStatusBadge status={a.status} />
-                  </td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (a) => (
+                  <>
                     <Stack direction="horizontal" spacing="xs">
                       {a.status.toUpperCase() !== 'ACTIVE' && (
                         <Button
                           variant="ghost"
                           disabled={actingId === a.id}
-                          onClick={() => void runAction(a.id, 'activate')} icon={<Check size={16} />}>
+                          onClick={() => void runAction(a.id, 'activate')}
+                          icon={<Check size={16} />}
+                        >
                           Activate
                         </Button>
                       )}
@@ -223,23 +255,18 @@ export function AdminWorkspaceAccessView() {
                         <Button
                           variant="ghost"
                           disabled={actingId === a.id}
-                          onClick={() => void runAction(a.id, 'deactivate')} icon={<Ban size={16} />}>
+                          onClick={() => void runAction(a.id, 'deactivate')}
+                          icon={<Ban size={16} />}
+                        >
                           Deactivate
                         </Button>
                       )}
                     </Stack>
-                  </td>
-                </tr>
-              ))}
-              {!assignments.length && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-neutral-400">
-                    No role assignments for this workspace
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
 
@@ -248,8 +275,8 @@ export function AdminWorkspaceAccessView() {
           Need to manage grants or permissions beyond role assignments?{' '}
           <NextLink href={ADMIN_ROUTES.iamGrantNew} className="text-primary underline">
             Go to Grant Access
-          </NextLink>
-          {' '}and pre-fill the workspace scope.
+          </NextLink>{' '}
+          and pre-fill the workspace scope.
         </Typography>
       </div>
     </div>

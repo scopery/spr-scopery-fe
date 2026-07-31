@@ -3,7 +3,11 @@
 > **Status:** Proposed for BE implementation  
 > **Date:** 2026-07-25  
 > **Owner:** FE (Scopery) → handoff to BE  
-> **FE context:** `/workspace/{ws}/projects/{projectId}/traceability` redesigned as **coverage-first** (Requirement rows → link tests → Pass/Fail/Defect). FE ships UI with workarounds; this doc lists API gaps to unlock accurate metrics and expand detail.  
+> **Scope:** **Test Execution** only — Requirement ↔ Test Case ↔ Result ↔ Defect (`coverage-matrix`).  
+> **FE context:** `/workspace/{ws}/projects/{projectId}/traceability` tab **Test Execution** (legacy “coverage-first” page). FE ships UI with workarounds; this doc lists API gaps to unlock accurate test metrics and expand detail.  
+> **Full-chain Traceability (Coverage / Matrix / Gaps):** see  
+> [`REQUIREMENT_TRACEABILITY_BE_API_REQUIREMENTS.md`](./REQUIREMENT_TRACEABILITY_BE_API_REQUIREMENTS.md)  
+> — do **not** extend this doc’s `COVERED` / `MISSING_TESTS` vocabulary into Function / Use Case / Implementation coverage.  
 > **Related contracts:**  
 > - `docs/phase-tracking/wave-04/WAVE4_API_CONTRACT.md` §14.2 Trace Links + Coverage Matrix  
 > - Requirements: `GET /api/.../requirements`  

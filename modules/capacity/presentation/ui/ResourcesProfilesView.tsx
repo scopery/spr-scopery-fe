@@ -6,14 +6,16 @@ import { Archive, Plus, Users } from 'lucide-react'
 import {
   Badge,
   Button,
+  Card,
+  DataTable,
   Input,
   Modal,
   PageSkeleton,
   Select,
   Typography,
 } from '@/shared/ui'
-import * as workspaceMembersApi from '@/modules/org/workspace/api/workspace-members.api'
-import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
+import { listWorkspaceMembers } from '@/modules/org/workspace'
+import { PersonReferenceSelect, useResolveUsers } from '@/modules/platform'
 import { useResourceProfiles } from '../hooks/useResourceProfiles'
 import { ResourceProfileStatus, ResourceType } from '../../domain/enums/capacity.enum'
 
@@ -74,13 +76,21 @@ export function ResourcesProfilesView() {
   const [showSync, setShowSync] = useState(false)
   const [members, setMembers] = useState<{ id: string; userId: string }[]>([])
   const memberUserIds = useMemo(() => members.map((m) => m.userId), [members])
-  const { labelFor } = useResolveUsers(memberUserIds)
+  const { personFor } = useResolveUsers(memberUserIds)
+  const memberOptions = useMemo(
+    () =>
+      members.flatMap((member) => {
+        const person = personFor(member.userId)
+        return person ? [{ value: member.id, person }] : []
+      }),
+    [members, personFor]
+  )
   const [form, setForm] = useState(emptyCreateForm)
 
   const loadMembers = useCallback(async () => {
     if (!workspaceId) return
     try {
-      const res = await workspaceMembersApi.listWorkspaceMembers(workspaceId, {
+      const res = await listWorkspaceMembers(workspaceId, {
         page: 0,
         size: 100,
       })
@@ -97,7 +107,7 @@ export function ResourcesProfilesView() {
   if (loading && items.length === 0) return <PageSkeleton variant="split" />
   if (error) {
     return (
-      <div className="border border-error/30 bg-error/5 p-4">
+      <div className="border-error/30 bg-error/5 border p-4">
         <Typography variant="small" tone="error">
           {error}
         </Typography>
@@ -106,10 +116,10 @@ export function ResourcesProfilesView() {
   }
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-md">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-md">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Resources & Profiles
           </Typography>
           <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -118,18 +128,10 @@ export function ResourcesProfilesView() {
           </Typography>
         </div>
         <div className="flex flex-wrap gap-sm">
-          <Button
-            variant="secondary"
-            icon={<Users size={16} />}
-            onClick={() => setShowSync(true)}
-          >
+          <Button variant="secondary" icon={<Users size={16} />} onClick={() => setShowSync(true)}>
             Sync from members
           </Button>
-          <Button
-            variant="primary"
-            icon={<Plus size={16} />}
-            onClick={() => setShowCreate(true)}
-          >
+          <Button variant="primary" icon={<Plus size={16} />} onClick={() => setShowCreate(true)}>
             Create resource
           </Button>
         </div>
@@ -169,66 +171,54 @@ export function ResourcesProfilesView() {
       </div>
 
       <div className="grid gap-md lg:grid-cols-[1.4fr_1fr]">
-        <div className="border border-neutral-200 bg-white">
-          {items.length === 0 ? (
-            <div className="px-4 py-10 text-center">
-              <Typography tone="muted" variant="small">
-                No resources match these filters.
-              </Typography>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-neutral-50 text-neutral-600">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">Resource</th>
-                    <th className="px-3 py-2 font-medium">Type</th>
-                    <th className="px-3 py-2 font-medium">Role</th>
-                    <th className="px-3 py-2 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((r) => (
-                    <tr
-                      key={r.id}
-                      className={`cursor-pointer border-t border-neutral-100 ${
-                        selectedId === r.id ? 'bg-neutral-50' : 'hover:bg-neutral-50'
-                      }`}
-                      onClick={() => setSelectedId(r.id)}
-                    >
-                      <td className="px-3 py-2 font-medium">{r.displayName}</td>
-                      <td className="px-3 py-2">
-                        <Badge
-                          size="sm"
-                          tone={
-                            r.resourceType === ResourceType.PlaceholderRole
-                              ? 'warning'
-                              : 'neutral'
-                          }
-                        >
-                          {r.resourceType}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-2">{roleName(r.primaryRoleId)}</td>
-                      <td className="px-3 py-2">
-                        <Badge
-                          size="sm"
-                          tone={
-                            r.status === ResourceProfileStatus.Active ? 'success' : 'neutral'
-                          }
-                        >
-                          {r.status}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <Card className="border border-neutral-200 bg-white">
+          <DataTable
+            ariaLabel="Resource profiles"
+            rows={items}
+            rowKey={(resource) => resource.id}
+            emptyMessage="No resources match these filters."
+            selectedRowKey={selectedId}
+            onRowClick={(resource) => setSelectedId(resource.id)}
+            columns={[
+              { id: 'resource', header: 'Resource', accessor: (r) => r.displayName || '—' },
+              {
+                id: 'type',
+                header: 'Type',
+                cell: (r) => (
+                  <Badge
+                    size="sm"
+                    tone={r.resourceType === ResourceType.PlaceholderRole ? 'warning' : 'neutral'}
+                  >
+                    {r.resourceType}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'role',
+                header: 'Role',
+                accessor: (r) => {
+                  const label = roleName(r.primaryRoleId)
+                  return r.primaryRoleId && label === r.primaryRoleId.slice(0, 8) ? '—' : label
+                },
+                kind: 'reference',
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (r) => (
+                  <Badge
+                    size="sm"
+                    tone={r.status === ResourceProfileStatus.Active ? 'success' : 'neutral'}
+                  >
+                    {r.status}
+                  </Badge>
+                ),
+              },
+            ]}
+          />
+        </Card>
 
-        <aside className="border border-neutral-200 bg-white p-md">
+        <Card as="aside" className="border border-neutral-200 bg-white p-md">
           {!selected ? (
             <Typography tone="muted" variant="small">
               Select a resource to inspect.
@@ -243,9 +233,7 @@ export function ResourcesProfilesView() {
                   </Badge>
                   <Badge
                     size="sm"
-                    tone={
-                      selected.status === ResourceProfileStatus.Active ? 'success' : 'neutral'
-                    }
+                    tone={selected.status === ResourceProfileStatus.Active ? 'success' : 'neutral'}
                   >
                     {selected.status}
                   </Badge>
@@ -263,9 +251,9 @@ export function ResourcesProfilesView() {
                     Linked member
                   </Typography>
                   <Typography variant="small">
-                    {selected.linkedWorkspaceMemberId
-                      ? selected.linkedWorkspaceMemberId.slice(0, 8)
-                      : '—'}
+                    {memberOptions.find(
+                      (member) => member.value === selected.linkedWorkspaceMemberId
+                    )?.person.fullName ?? '—'}
                   </Typography>
                 </div>
                 <div>
@@ -273,7 +261,9 @@ export function ResourcesProfilesView() {
                     Linked user
                   </Typography>
                   <Typography variant="small">
-                    {selected.linkedUserId ? selected.linkedUserId.slice(0, 8) : '—'}
+                    {selected.linkedUserId
+                      ? (personFor(selected.linkedUserId)?.fullName ?? '—')
+                      : '—'}
                   </Typography>
                 </div>
               </dl>
@@ -292,7 +282,7 @@ export function ResourcesProfilesView() {
               ) : null}
             </div>
           )}
-        </aside>
+        </Card>
       </div>
 
       <Modal
@@ -344,27 +334,20 @@ export function ResourcesProfilesView() {
             onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
           />
           {form.resourceType === ResourceType.InternalUser ? (
-            <div>
-              <Typography variant="small" weight="medium" className="mb-1">
-                Linked member
-              </Typography>
-              <Select
-                value={form.linkedWorkspaceMemberId}
-                onValueChange={(v: string) => {
-                  const member = members.find((m) => m.id === v)
-                  setForm((f) => ({
-                    ...f,
-                    linkedWorkspaceMemberId: v,
-                    linkedUserId: member?.userId ?? '',
-                  }))
-                }}
-                options={members.map((m) => ({
-                  value: m.id,
-                  label: labelFor(m.userId),
-                }))}
-                placeholder="Select member"
-              />
-            </div>
+            <PersonReferenceSelect
+              label="Linked member"
+              value={form.linkedWorkspaceMemberId}
+              onChange={(v: string) => {
+                const member = members.find((m) => m.id === v)
+                setForm((f) => ({
+                  ...f,
+                  linkedWorkspaceMemberId: v,
+                  linkedUserId: member?.userId ?? '',
+                }))
+              }}
+              options={memberOptions}
+              placeholder="Select member"
+            />
           ) : null}
           <div>
             <Typography variant="small" weight="medium" className="mb-1">
@@ -399,8 +382,8 @@ export function ResourcesProfilesView() {
         ]}
       >
         <Typography variant="small">
-          Creates resource profiles for workspace members that do not already have one. You will
-          see created / skipped / error counts after the sync completes.
+          Creates resource profiles for workspace members that do not already have one. You will see
+          created / skipped / error counts after the sync completes.
         </Typography>
       </Modal>
     </div>

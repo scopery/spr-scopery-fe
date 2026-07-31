@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { Settings } from 'lucide-react'
-import { Badge, Button, PageSkeleton, Stack, Typography } from '@/shared/ui'
+import { Badge, Button, PageSkeleton, Stack, Typography, Card } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { ROUTES } from '@/constants/routes'
@@ -27,16 +27,8 @@ export function NotificationInboxView() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'unread' | 'reminders' | 'alerts'>('all')
 
-  const {
-    items,
-    unreadCount,
-    loading,
-    error,
-    forbidden,
-    markRead,
-    markAllRead,
-    dismiss,
-  } = useNotifications()
+  const { items, unreadCount, loading, error, forbidden, markRead, markAllRead, dismiss } =
+    useNotifications()
 
   const filtered = useMemo(() => {
     if (filter === 'unread') {
@@ -52,17 +44,17 @@ export function NotificationInboxView() {
 
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="p-8 text-center">
         <Typography weight="medium">You don’t have access to notifications</Typography>
-      </div>
+      </Card>
     )
   }
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Notifications
           </Typography>
           <Typography variant="small" tone="muted" className="mt-1">
@@ -132,102 +124,106 @@ export function NotificationInboxView() {
       </div>
 
       {filter === 'reminders' && (
-        <div className="border border-neutral-200 bg-white p-5">
+        <Card className="p-5">
           <RemindersTab workspaceId={workspaceId} />
-        </div>
+        </Card>
       )}
 
       {filter === 'alerts' && (
-        <div className="border border-neutral-200 bg-white p-5">
+        <Card className="p-5">
           <AlertsTab workspaceId={workspaceId} />
-        </div>
+        </Card>
       )}
 
       {(filter === 'all' || filter === 'unread') && (
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-        <div className="border border-neutral-200 bg-white">
-          {filtered.length === 0 ? (
-            <Typography as="div" variant="small" tone="muted" className="p-8 text-center">
-              No notifications
-            </Typography>
-          ) : (
-            <ul>
-              {filtered.map((n) => (
-                <li key={n.id} className="border-b border-neutral-100 last:border-0">
-                  <button
-                    type="button"
-                    className={`w-full px-4 py-3 text-left hover:bg-neutral-50 ${
-                      selected?.id === n.id ? 'bg-neutral-50' : ''
-                    }`}
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+          <Card>
+            {filtered.length === 0 ? (
+              <Typography as="div" variant="small" tone="muted" className="p-8 text-center">
+                No notifications
+              </Typography>
+            ) : (
+              <ul>
+                {filtered.map((n) => (
+                  <li key={n.id} className="border-b border-neutral-100 last:border-0">
+                    <button
+                      type="button"
+                      className={`w-full px-4 py-3 text-left hover:bg-neutral-50 ${
+                        selected?.id === n.id ? 'bg-neutral-50' : ''
+                      }`}
+                      onClick={() => {
+                        setSelectedId(n.id)
+                        if (n.status === NotificationStatus.Unread) {
+                          void markRead(n.id).catch(() => undefined)
+                        }
+                      }}
+                    >
+                      {(() => {
+                        const badge = getTypeBadge(n.title)
+                        return (
+                          <Stack
+                            direction="horizontal"
+                            spacing="sm"
+                            className="mb-1 flex-wrap items-center"
+                          >
+                            {n.status === NotificationStatus.Unread ? (
+                              <Badge variant="solid" tone="info">
+                                Unread
+                              </Badge>
+                            ) : null}
+                            {badge ? (
+                              <Badge variant="solid" tone={badge.tone} size="sm">
+                                {badge.label}
+                              </Badge>
+                            ) : null}
+                          </Stack>
+                        )
+                      })()}
+                      <Typography weight="medium" className="line-clamp-1">
+                        {n.title}
+                      </Typography>
+                      <Typography variant="small" tone="muted" className="line-clamp-2">
+                        {n.bodyPreview}
+                      </Typography>
+                      <Typography variant="small" tone="muted" className="mt-1">
+                        {formatWhen(n.createdAt)}
+                      </Typography>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card className="p-5">
+            {!selected ? (
+              <Typography tone="muted">Select a notification</Typography>
+            ) : (
+              <div className="space-y-4">
+                <Typography as="h2" weight="semibold">
+                  {selected.title}
+                </Typography>
+                <Typography>{selected.bodyPreview}</Typography>
+                <Typography variant="small" tone="muted">
+                  {formatWhen(selected.createdAt)} · {selected.sourceSystem ?? '—'}
+                </Typography>
+                <Stack direction="horizontal" spacing="sm" className="flex-wrap">
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={() => {
-                      setSelectedId(n.id)
-                      if (n.status === NotificationStatus.Unread) {
-                        void markRead(n.id).catch(() => undefined)
-                      }
+                      void dismiss(selected.id).catch((err) =>
+                        toast.error(getProblemToastMessage(err))
+                      )
                     }}
                   >
-                    {(() => {
-                      const badge = getTypeBadge(n.title)
-                      return (
-                        <Stack direction="horizontal" spacing="sm" className="mb-1 items-center flex-wrap">
-                          {n.status === NotificationStatus.Unread ? (
-                            <Badge variant="solid" tone="info">
-                              Unread
-                            </Badge>
-                          ) : null}
-                          {badge ? (
-                            <Badge variant="solid" tone={badge.tone} size="sm">
-                              {badge.label}
-                            </Badge>
-                          ) : null}
-                        </Stack>
-                      )
-                    })()}
-                    <Typography weight="medium" className="line-clamp-1">
-                      {n.title}
-                    </Typography>
-                    <Typography variant="small" tone="muted" className="line-clamp-2">
-                      {n.bodyPreview}
-                    </Typography>
-                    <Typography variant="small" tone="muted" className="mt-1">
-                      {formatWhen(n.createdAt)}
-                    </Typography>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                    Dismiss
+                  </Button>
+                </Stack>
+              </div>
+            )}
+          </Card>
         </div>
-
-        <div className="border border-neutral-200 bg-white p-5">
-          {!selected ? (
-            <Typography tone="muted">Select a notification</Typography>
-          ) : (
-            <div className="space-y-4">
-              <Typography as="h2" weight="semibold">
-                {selected.title}
-              </Typography>
-              <Typography>{selected.bodyPreview}</Typography>
-              <Typography variant="small" tone="muted">
-                {formatWhen(selected.createdAt)} · {selected.sourceSystem ?? '—'}
-              </Typography>
-              <Stack direction="horizontal" spacing="sm" className="flex-wrap">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    void dismiss(selected.id).catch((err) =>
-                      toast.error(getProblemToastMessage(err))
-                    )
-                  }}
-                >
-                  Dismiss
-                </Button>
-              </Stack>
-            </div>
-          )}
-        </div>
-      </div>
       )}
     </div>
   )

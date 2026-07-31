@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Button, Input, Stack, Typography } from '@/shared/ui'
+import { Button, Stack, Typography } from '@/shared/ui'
 import { FEATURES } from '@/config/features'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
@@ -30,7 +30,6 @@ export function NativeTemplatePublishPanel({
   const [templates, setTemplates] = useState<DocumentTemplate[]>([])
   const [templateId, setTemplateId] = useState('')
   const [lastVersionId, setLastVersionId] = useState('')
-  const [versionIdInput, setVersionIdInput] = useState('')
   const [publishing, setPublishing] = useState(false)
   const [instantiating, setInstantiating] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -67,8 +66,6 @@ export function NativeTemplatePublishPanel({
     )
   }
 
-  const activeVersionId = versionIdInput.trim() || lastVersionId
-
   return (
     <Stack direction="vertical" spacing="sm" className="border border-neutral-200 p-sm">
       <Typography variant="h4">Native templates</Typography>
@@ -82,7 +79,7 @@ export function NativeTemplatePublishPanel({
         </Typography>
       ) : null}
       <select
-        className="w-full border border-neutral-200 bg-surface px-sm py-xs text-sm"
+        className="bg-surface w-full border border-neutral-200 px-sm py-xs text-sm"
         value={templateId}
         onChange={(e) => setTemplateId(e.target.value)}
         aria-label="Template"
@@ -113,7 +110,6 @@ export function NativeTemplatePublishPanel({
               const id = String((version as { id?: string }).id ?? '')
               if (id) {
                 setLastVersionId(id)
-                setVersionIdInput(id)
               }
               toast.success('Native template version published')
             } catch (err) {
@@ -127,18 +123,15 @@ export function NativeTemplatePublishPanel({
         Publish from editor
       </Button>
 
-      <Input
-        size="sm"
-        fullWidth
-        value={versionIdInput}
-        onChange={(e) => setVersionIdInput(e.target.value)}
-        placeholder="Version UUID (from publish)"
-        aria-label="Native template version ID"
-      />
+      <Typography variant="caption" tone="muted">
+        {lastVersionId
+          ? 'The newly published version is ready to instantiate.'
+          : 'Publish a version before instantiating it.'}
+      </Typography>
       <Button
         size="sm"
         variant="outline"
-        disabled={!templateId || !activeVersionId || instantiating}
+        disabled={!templateId || !lastVersionId || instantiating}
         onClick={() => {
           void (async () => {
             setInstantiating(true)
@@ -146,7 +139,7 @@ export function NativeTemplatePublishPanel({
               await nativeTemplateApi.instantiateNativeTemplate(
                 workspaceId,
                 templateId,
-                activeVersionId,
+                lastVersionId,
                 {
                   projectId,
                   targetDocumentId: documentId,

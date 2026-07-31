@@ -1,7 +1,8 @@
 'use client'
 
 import { CheckSquare, Plus } from 'lucide-react'
-import { Badge, Button, Stack, Typography } from '@/shared/ui'
+import { useResolveUsers } from '@/modules/platform'
+import { Badge, Button, Card, Stack, Typography } from '@/shared/ui'
 import { actionItemStatusLabel } from '../../domain/rules/meeting.rules'
 import type { MeetingActionItem } from '../../domain/model/meeting-action-item'
 
@@ -22,8 +23,10 @@ export function MeetingActionItemList({
   onCreateLinkedTask,
   hint,
 }: MeetingActionItemListProps) {
+  const { labelFor } = useResolveUsers(actionItems.map((item) => item.ownerTargetId))
+
   return (
-    <section className="border border-neutral-200 bg-white p-4">
+    <Card as="section" className="p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <Typography weight="semibold">
           Action items
@@ -79,7 +82,7 @@ export function MeetingActionItemList({
                         {a.title}
                       </Typography>
                       <Typography variant="small" tone="muted">
-                        {a.ownerTargetId ? `Owner · ${a.ownerTargetId.slice(0, 8)}…` : 'No owner'}
+                        {a.ownerTargetId ? `Owner · ${labelFor(a.ownerTargetId)}` : 'No owner'}
                         {a.dueDate ? ` · Due ${a.dueDate}` : ''}
                         {a.linkedTaskId
                           ? ` · Task linked`
@@ -116,6 +119,6 @@ export function MeetingActionItemList({
           })}
         </ul>
       )}
-    </section>
+    </Card>
   )
 }

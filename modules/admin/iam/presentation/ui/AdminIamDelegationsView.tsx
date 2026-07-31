@@ -1,25 +1,14 @@
 'use client'
 
-import React from 'react'
 import NextLink from 'next/link'
-import { CircleArrowRight, Search } from 'lucide-react'
-import { Typography, Button, Stack, PageSkeleton } from '@/shared/ui'
+import { CircleArrowRight } from 'lucide-react'
+import { Typography, Stack, PageSkeleton, DataTable } from '@/shared/ui'
 import { IamStatusBadge } from './IamStatusBadge'
-import { IamSearchField } from './IamSearchField'
 import { useIamGrants } from '../hooks/useIamGrants'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 
 export function AdminIamDelegationsView() {
-  const {
-    items,
-    loading,
-    error,
-    subjectId,
-    setSubjectId,
-    resourceId,
-    setResourceId,
-    refetch,
-  } = useIamGrants()
+  const { items, loading, error } = useIamGrants()
 
   return (
     <div>
@@ -40,22 +29,6 @@ export function AdminIamDelegationsView() {
         </NextLink>
       </div>
 
-      <Stack direction="horizontal" spacing="sm" className="mb-6 flex-wrap items-center">
-        <IamSearchField
-          placeholder="Subject ID"
-          value={subjectId}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSubjectId(e.target.value)}
-        />
-        <IamSearchField
-          placeholder="Resource ID"
-          value={resourceId}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setResourceId(e.target.value)}
-        />
-        <Button variant="primary" onClick={() => void refetch()} icon={<Search size={16} />}>
-          Search
-        </Button>
-      </Stack>
-
       {loading ? (
         <PageSkeleton variant="list" />
       ) : error ? (
@@ -66,41 +39,51 @@ export function AdminIamDelegationsView() {
         </div>
       ) : (
         <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Grant ID</th>
-                <th className="px-4 py-3 font-medium">Subject</th>
-                <th className="px-4 py-3 font-medium">Resource</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="min-w-[12rem] whitespace-nowrap px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((grant) => (
-                <tr key={grant.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-4 py-3 font-mono text-xs">
-                    <NextLink
-                      href={ADMIN_ROUTES.iamGrant(grant.id)}
-                      className="text-primary hover:underline"
-                    >
-                      {grant.id}
-                    </NextLink>
-                  </td>
-                  <td className="px-4 py-3">
+          <DataTable
+            ariaLabel="Admin Iam Delegations"
+            rows={items}
+            rowKey={(grant) => String(grant.id)}
+            emptyMessage="No items."
+            columns={[
+              {
+                id: 'grant-id',
+                header: 'Grant ID',
+                accessor: () => '—',
+                kind: 'reference',
+                cellClassName: 'text-xs',
+              },
+              {
+                id: 'subject',
+                header: 'Subject',
+                cell: (grant) => (
+                  <>
                     <Typography as="span" variant="small" tone="muted">
                       {grant.subjectType}
                     </Typography>
-                    <br />
-                    <Typography as="span" variant="small" className="font-mono">
-                      {grant.subjectId}
-                    </Typography>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs">{grant.resourceId}</td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              {
+                id: 'resource',
+                header: 'Resource',
+                accessor: () => '—',
+                kind: 'reference',
+                cellClassName: 'text-xs',
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (grant) => (
+                  <>
                     <IamStatusBadge status={grant.status} />
-                  </td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (grant) => (
+                  <>
                     <Stack direction="horizontal" spacing="xs" className="flex-wrap">
                       <NextLink
                         href={`${ADMIN_ROUTES.iamDelegationNew}?resourceRefId=${encodeURIComponent(grant.resourceId)}`}
@@ -116,20 +99,11 @@ export function AdminIamDelegationsView() {
                         View
                       </NextLink>
                     </Stack>
-                  </td>
-                </tr>
-              ))}
-              {!items.length && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center">
-                    <Typography variant="small" tone="muted">
-                      No grants found
-                    </Typography>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
     </div>

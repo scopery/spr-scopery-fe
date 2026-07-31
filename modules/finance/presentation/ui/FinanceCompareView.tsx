@@ -5,7 +5,9 @@ import { useParams } from 'next/navigation'
 import {
   Badge,
   Button,
+  Card,
   CurrencyAmount,
+  DataTable,
   PageSkeleton,
   Select,
   Typography,
@@ -14,11 +16,7 @@ import { ROUTES } from '@/constants/routes'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import { useProject } from '@/modules/projects/project/hooks/useProject'
 import { useFinanceCompare } from '../hooks/useFinanceCompare'
-import {
-  deltaDirection,
-  formatHours,
-  formatPercent,
-} from '../../domain/rules/finance.rules'
+import { deltaDirection, formatHours, formatPercent } from '../../domain/rules/finance.rules'
 
 export function FinanceCompareView() {
   const params = useParams()
@@ -46,10 +44,7 @@ export function FinanceCompareView() {
     label: `${s.name} (${s.code})`,
   }))
 
-  const currency =
-    result?.leftSummary.currencyCode ??
-    result?.rightSummary.currencyCode ??
-    'USD'
+  const currency = result?.leftSummary.currencyCode ?? result?.rightSummary.currencyCode ?? 'USD'
 
   const rows = result
     ? [
@@ -111,21 +106,21 @@ export function FinanceCompareView() {
     : []
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
         current="Compare scenarios"
       />
 
-      <div className="mb-6 border-b border-neutral-200 pb-6">
+      <div className="mb-2 border-b border-neutral-200 pb-2">
         <NextLink
           href={ROUTES.workspace.projectFinancials(workspaceId, projectId)}
           className="mb-2 inline-block text-sm text-primary underline-offset-2 hover:underline"
         >
           ← Finance Scenarios
         </NextLink>
-        <Typography as="h1" size="lg" weight="semibold">
+        <Typography as="h1" size="md" weight="medium">
           Scenario Comparison
         </Typography>
         <Typography variant="small" tone="muted" className="mt-1">
@@ -184,81 +179,48 @@ export function FinanceCompareView() {
               Right: {result.rightScenario.name}
             </Badge>
           </div>
-          <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Metric</th>
-                  <th className="px-4 py-3 font-medium">Left</th>
-                  <th className="px-4 py-3 font-medium">Right</th>
-                  <th className="px-4 py-3 font-medium">Delta</th>
-                  <th className="px-4 py-3 font-medium">Signal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => {
+          <DataTable
+            ariaLabel="Finance scenario comparison"
+            rows={rows}
+            rowKey={(row) => row.id}
+            columns={[
+              { id: 'metric', header: 'Metric', accessor: 'label' },
+              ...(['left', 'right', 'delta'] as const).map((field) => ({
+                id: field,
+                header: field[0].toUpperCase() + field.slice(1),
+                cell: (row: (typeof rows)[number]) =>
+                  row.kind === 'money' ? (
+                    <CurrencyAmount amount={row[field]} currency={currency} size="sm" />
+                  ) : row.kind === 'percent' ? (
+                    formatPercent(row[field])
+                  ) : (
+                    formatHours(row[field])
+                  ),
+              })),
+              {
+                id: 'signal',
+                header: 'Signal',
+                cell: (row) => {
                   const dir = deltaDirection(row.metric, row.delta)
                   return (
-                    <tr key={row.id} className="border-t border-neutral-100">
-                      <td className="px-4 py-3 font-medium">{row.label}</td>
-                      <td className="px-4 py-3">
-                        {row.kind === 'money' ? (
-                          <CurrencyAmount amount={row.left} currency={currency} size="sm" />
-                        ) : row.kind === 'percent' ? (
-                          formatPercent(row.left)
-                        ) : (
-                          formatHours(row.left)
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {row.kind === 'money' ? (
-                          <CurrencyAmount amount={row.right} currency={currency} size="sm" />
-                        ) : row.kind === 'percent' ? (
-                          formatPercent(row.right)
-                        ) : (
-                          formatHours(row.right)
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {row.kind === 'money' ? (
-                          <CurrencyAmount amount={row.delta} currency={currency} size="sm" />
-                        ) : row.kind === 'percent' ? (
-                          formatPercent(row.delta)
-                        ) : (
-                          formatHours(row.delta)
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge
-                          size="sm"
-                          tone={
-                            dir === 'better'
-                              ? 'success'
-                              : dir === 'worse'
-                                ? 'warning'
-                                : 'neutral'
-                          }
-                        >
-                          {dir === 'better'
-                            ? 'Better'
-                            : dir === 'worse'
-                              ? 'Worse'
-                              : 'Neutral'}
-                        </Badge>
-                      </td>
-                    </tr>
+                    <Badge
+                      size="sm"
+                      tone={dir === 'better' ? 'success' : dir === 'worse' ? 'warning' : 'neutral'}
+                    >
+                      {dir === 'better' ? 'Better' : dir === 'worse' ? 'Worse' : 'Neutral'}
+                    </Badge>
                   )
-                })}
-              </tbody>
-            </table>
-          </div>
+                },
+              },
+            ]}
+          />
         </>
       ) : (
-        <div className="border border-neutral-200 bg-neutral-50 p-4">
+        <Card className="border border-neutral-200 bg-neutral-50 p-4">
           <Typography variant="small" tone="muted">
             Select two scenarios and run compare.
           </Typography>
-        </div>
+        </Card>
       )}
     </div>
   )

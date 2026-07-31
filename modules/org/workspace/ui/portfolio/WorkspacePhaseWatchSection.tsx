@@ -2,14 +2,11 @@
 
 import { useMemo, useState } from 'react'
 import { ArrowUpRight } from 'lucide-react'
-import { Button, Typography } from '@/shared/ui'
+import { Button, Card, Typography } from '@/shared/ui'
 import { PhaseFollowUpDrawer, PhaseWatchFollowUpKind } from '@/modules/projects/phase'
 import { PhaseWatchTable } from '@/modules/projects/phase/presentation/ui/PhaseWatchRow'
-import {
-  filterPhaseWatchRows,
-} from '@/modules/projects/phase/domain/rules/phase-watch.rules'
+import { filterPhaseWatchRows } from '@/modules/projects/phase/domain/rules/phase-watch.rules'
 import type { PhaseWatchProjectRow } from '@/modules/projects/phase/domain/model/phase-watch'
-import { cn } from '@/utils/cn'
 
 interface WorkspacePhaseWatchSectionProps {
   workspaceId: string
@@ -33,7 +30,7 @@ export function WorkspacePhaseWatchSection({
 
   return (
     <>
-      <section className={cn('border border-neutral-200 bg-white')}>
+      <Card as="section">
         <header className="flex items-start justify-between gap-3 border-b border-neutral-200 px-4 py-3">
           <div className="min-w-0">
             <Typography as="h2" size="sm" weight="semibold" className="text-neutral-900">
@@ -80,7 +77,7 @@ export function WorkspacePhaseWatchSection({
             </div>
           )}
         </div>
-      </section>
+      </Card>
 
       <PhaseFollowUpDrawer
         open={drawerOpen}

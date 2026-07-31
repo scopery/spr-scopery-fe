@@ -1,3 +1,5 @@
+export { ProjectSearchSelect } from './ui/ProjectSearchSelect'
+export { ProjectRecordSearchSelect, type ProjectRecordType } from './ui/ProjectRecordSearchSelect'
 export { ProjectsListView } from './ui/ProjectsListView'
 export { ProjectDetailView } from './ui/ProjectDetailView'
 export { ProjectOverviewView } from './ui/ProjectOverviewView'

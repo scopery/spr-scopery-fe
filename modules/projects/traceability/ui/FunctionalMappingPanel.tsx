@@ -175,7 +175,7 @@ export function FunctionalMappingPanel({
   const renderEdge = (edge: LinkEdge) => {
     const nodeLabel = edge.node
       ? labelArchitectureNode(edge.node)
-      : edge.nodeId.slice(0, 8) + '…'
+      : 'Unavailable node'
     return (
       <li
         key={edge.key}
@@ -320,7 +320,7 @@ export function FunctionalMappingPanel({
               className={cn(
                 'px-3 py-1.5 text-sm transition-colors',
                 active
-                  ? 'bg-neutral-900 text-white'
+                  ? 'bg-secondary text-white'
                   : 'text-neutral-600 hover:bg-neutral-100'
               )}
             >
@@ -382,17 +382,22 @@ export function FunctionalMappingPanel({
                       }}
                       className={cn(
                         'w-full px-3 py-2 text-left text-sm',
-                        active ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100'
+                        active
+                          ? 'bg-secondary text-white'
+                          : 'text-neutral-900 hover:bg-neutral-100'
                       )}
                     >
-                      <div className="truncate">{item.code}</div>
+                      <div className="truncate font-medium">{item.title}</div>
                       <div
                         className={cn(
                           'truncate text-xs',
-                          active ? 'text-neutral-300' : 'text-neutral-500'
+                          active ? 'text-white/75' : 'text-neutral-500'
                         )}
                       >
-                        {count === 0 ? 'Not linked' : `${count} node${count === 1 ? '' : 's'}`}
+                        {item.code}
+                        {count === 0
+                          ? ' · Not linked'
+                          : ` · ${count} node${count === 1 ? '' : 's'}`}
                       </div>
                     </button>
                   </li>
@@ -424,7 +429,7 @@ export function FunctionalMappingPanel({
                             {nodeTypeLabel(edge.nodeType)} ·{' '}
                             {edge.node
                               ? labelArchitectureNode(edge.node)
-                              : edge.nodeId.slice(0, 8) + '…'}
+                              : 'Unavailable node'}
                           </div>
                         </div>
                         <Button size="sm" variant="ghost" onClick={() => void unlink(edge)}>
@@ -502,19 +507,19 @@ export function FunctionalMappingPanel({
                         onClick={() => setSelectedNodeId(n.id)}
                         className={cn(
                           'w-full px-3 py-2 text-left text-sm',
-                          active ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100'
+                          active
+                            ? 'bg-secondary text-white'
+                            : 'text-neutral-900 hover:bg-neutral-100'
                         )}
                       >
-                        <div className="truncate">
-                          {n.code} — {n.name}
-                        </div>
+                        <div className="truncate font-medium">{n.name}</div>
                         <div
                           className={cn(
                             'truncate text-xs',
-                            active ? 'text-neutral-300' : 'text-neutral-500'
+                            active ? 'text-white/75' : 'text-neutral-500'
                           )}
                         >
-                          {ARCHITECTURE_NODE_TYPE_LABEL[n.type]}
+                          {n.code} · {ARCHITECTURE_NODE_TYPE_LABEL[n.type]}
                           {count ? ` · ${count} FR` : ' · no FR yet'}
                         </div>
                       </button>

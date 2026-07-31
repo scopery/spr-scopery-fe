@@ -6,6 +6,7 @@ import { ADMIN_ROUTES } from '@/modules/admin'
 import { FEATURES } from '@/config/features'
 import {
   Button,
+  Card,
   Input,
   PageSkeleton,
   Select,
@@ -212,7 +213,7 @@ export function PlaygroundView() {
         ))}
       </div>
 
-      <div className="border border-neutral-200 bg-neutral-50 p-md">
+      <Card className="bg-neutral-50 p-md">
         <Stack direction="vertical" spacing="sm">
           {mode === 'event-config' ? (
             <div className="max-w-md">
@@ -324,10 +325,10 @@ export function PlaygroundView() {
             </Button>
           </div>
         </Stack>
-      </div>
+      </Card>
 
       {lastRun ? (
-        <div className="border border-neutral-200 p-md">
+        <Card className="p-md">
           <Typography variant="h3" className="mb-sm">
             Run result
           </Typography>
@@ -401,11 +402,11 @@ export function PlaygroundView() {
               </pre>
             </div>
           </dl>
-        </div>
+        </Card>
       ) : null}
 
       {preview ? (
-        <div className="border border-neutral-200 p-md">
+        <Card className="p-md">
           <Typography variant="h3" className="mb-sm">
             Prompt preview
           </Typography>
@@ -431,7 +432,7 @@ export function PlaygroundView() {
           <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded border border-neutral-200 bg-neutral-50 p-sm font-mono text-sm">
             {preview.renderedUserPrompt || '—'}
           </pre>
-        </div>
+        </Card>
       ) : null}
     </Stack>
   )

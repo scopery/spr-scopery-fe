@@ -24,6 +24,7 @@ export { WorkspaceVisibility, WorkspaceJoinPolicy } from './model'
 
 export { useWorkspace } from './hooks/useWorkspace'
 export { useWorkspaceMembers } from './hooks/useWorkspaceMembers'
+export { useWorkspaceMemberPeople } from './hooks/useWorkspaceMemberPeople'
 export { useWorkspaceSettings } from './hooks/useWorkspaceSettings'
 export { WorkspaceSettingsView } from './ui/WorkspaceSettingsView'
 export { WorkspaceOverviewView } from './ui/WorkspaceOverviewView'
@@ -34,7 +35,4 @@ export { WorkspaceActivityView } from './ui/WorkspaceActivityView'
 export { WorkspaceDailyRecordView } from './ui/WorkspaceDailyRecordView'
 export { WorkspaceTeamPulseView } from './ui/WorkspaceTeamPulseView'
 export { CreateWorkspaceModal } from './ui/CreateWorkspaceModal'
-export type {
-  CreateWorkspaceModalProps,
-  CreateWorkspaceOrgOption,
-} from './ui/CreateWorkspaceModal'
+export type { CreateWorkspaceModalProps, CreateWorkspaceOrgOption } from './ui/CreateWorkspaceModal'

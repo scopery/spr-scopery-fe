@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Input, Modal, Select, Stack, Typography } from '@/shared/ui'
+import { Input, Modal, SearchableSelect, Select, Stack, Typography } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
 import {
   USAGE_ACTION_OPTIONS,
@@ -19,6 +19,7 @@ import {
 } from '../../domain/rules/usage-policy.rules'
 import type { AiUsagePolicy } from '../../domain/model/usage-policy'
 import { useUsagePolicyMutations } from '../hooks/useUsagePolicyMutations'
+import { useUsagePolicyTargetOptions } from '../hooks/useUsagePolicyTargetOptions'
 
 interface UsagePolicyFormModalProps {
   open: boolean
@@ -49,6 +50,8 @@ export function UsagePolicyFormModal({
   const [priority, setPriority] = useState('')
   const [description, setDescription] = useState('')
   const [fieldError, setFieldError] = useState<string | null>(null)
+  const { options: targetOptions, loading: loadingTargets } =
+    useUsagePolicyTargetOptions(targetType)
 
   useEffect(() => {
     if (!open) return
@@ -167,7 +170,10 @@ export function UsagePolicyFormModal({
           </Typography>
           <Select
             value={targetType}
-            onValueChange={(v: string) => setTargetType(v as UsagePolicyTargetType)}
+            onValueChange={(v: string) => {
+              setTargetType(v as UsagePolicyTargetType)
+              setTargetId('')
+            }}
             options={USAGE_TARGET_TYPE_OPTIONS.map((o) => ({
               value: o.value,
               label: o.label,
@@ -175,11 +181,12 @@ export function UsagePolicyFormModal({
           />
         </div>
         {targetType !== UsagePolicyTargetType.Global ? (
-          <Input
-            label="Target ID"
+          <SearchableSelect
             value={targetId}
-            onChange={(e) => setTargetId(e.target.value)}
-            required
+            options={targetOptions}
+            placeholder={loadingTargets ? 'Loading targets…' : 'Select target'}
+            searchPlaceholder="Search targets…"
+            onValueChange={setTargetId}
           />
         ) : (
           <Typography variant="caption" tone="muted">
@@ -212,11 +219,7 @@ export function UsagePolicyFormModal({
             value={dailyBudget}
             onChange={(e) => setDailyBudget(e.target.value)}
           />
-          <Input
-            label="Priority"
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-          />
+          <Input label="Priority" value={priority} onChange={(e) => setPriority(e.target.value)} />
         </div>
         <div className="grid gap-md sm:grid-cols-2">
           <div>

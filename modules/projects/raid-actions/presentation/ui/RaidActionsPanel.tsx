@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, Stack, Typography } from '@/shared/ui'
+import { Badge, Button, DataTable, Stack, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { useRaidActions } from '../hooks/useRaidActions'
 import { AddRaidActionModal } from './AddRaidActionModal'
@@ -16,10 +16,14 @@ import { RaidActionStatus } from '../../domain/enums/raid-action.enum'
 
 function statusTone(status: string): 'success' | 'error' | 'warning' | 'neutral' {
   switch (status) {
-    case RaidActionStatus.Complete: return 'success'
-    case RaidActionStatus.Cancelled: return 'error'
-    case RaidActionStatus.InProgress: return 'warning'
-    default: return 'neutral'
+    case RaidActionStatus.Complete:
+      return 'success'
+    case RaidActionStatus.Cancelled:
+      return 'error'
+    case RaidActionStatus.InProgress:
+      return 'warning'
+    default:
+      return 'neutral'
   }
 }
 
@@ -68,71 +72,76 @@ export function RaidActionsPanel({ projectId, raidItemId }: Props) {
       </div>
 
       {loading && actions.length === 0 ? (
-        <Typography variant="small" tone="muted">Loading…</Typography>
+        <Typography variant="small" tone="muted">
+          Loading…
+        </Typography>
       ) : actions.length === 0 ? (
-        <Typography variant="small" tone="muted">No actions yet</Typography>
+        <Typography variant="small" tone="muted">
+          No actions yet
+        </Typography>
       ) : (
-        <div className="overflow-x-auto border border-neutral-200 bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-500">
-              <tr>
-                <th className="px-3 py-2 font-medium">Title</th>
-                <th className="px-3 py-2 font-medium">Owner</th>
-                <th className="px-3 py-2 font-medium">Due date</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {actions.map((action) => (
-                <tr key={action.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-3 py-2 font-medium">{action.title}</td>
-                  <td className="px-3 py-2 text-neutral-500">{action.owner ?? '—'}</td>
-                  <td className="px-3 py-2 text-neutral-500">
-                    {action.dueDate ? new Date(action.dueDate).toLocaleDateString() : '—'}
-                  </td>
-                  <td className="px-3 py-2">
-                    <Badge tone={statusTone(action.status)}>
-                      {raidActionStatusLabel(action.status)}
-                    </Badge>
-                  </td>
-                  <td className="px-3 py-2">
-                    <Stack direction="horizontal" spacing="sm">
-                      {canCompleteRaidAction(action) && (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          disabled={actingId === action.id}
-                          onClick={() => void handleLifecycle(action.id, 'complete')}
-                        >
-                          Complete
-                        </Button>
-                      )}
-                      {canCancelRaidAction(action) && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          tone="error"
-                          disabled={actingId === action.id}
-                          onClick={() => void handleLifecycle(action.id, 'cancel')}
-                        >
-                          Cancel
-                        </Button>
-                      )}
+        <div className="border border-neutral-200 bg-white">
+          <DataTable
+            ariaLabel="RAID actions"
+            rows={actions}
+            rowKey={(action) => action.id}
+            columns={[
+              { id: 'title', header: 'Title', accessor: 'title' },
+              { id: 'owner', header: 'Owner', accessor: (action) => action.owner ?? '—' },
+              {
+                id: 'dueDate',
+                header: 'Due date',
+                accessor: (action) =>
+                  action.dueDate ? new Date(action.dueDate).toLocaleDateString() : '—',
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (action) => (
+                  <Badge tone={statusTone(action.status)}>
+                    {raidActionStatusLabel(action.status)}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (action) => (
+                  <Stack direction="horizontal" spacing="sm">
+                    {canCompleteRaidAction(action) ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={actingId === action.id}
+                        onClick={() => void handleLifecycle(action.id, 'complete')}
+                      >
+                        Complete
+                      </Button>
+                    ) : null}
+                    {canCancelRaidAction(action) ? (
                       <Button
                         size="sm"
                         variant="ghost"
+                        tone="error"
                         disabled={actingId === action.id}
-                        onClick={() => void handleCreateTask(action.id)}
+                        onClick={() => void handleLifecycle(action.id, 'cancel')}
                       >
-                        Create task
+                        Cancel
                       </Button>
-                    </Stack>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    ) : null}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={actingId === action.id}
+                      onClick={() => void handleCreateTask(action.id)}
+                    >
+                      Create task
+                    </Button>
+                  </Stack>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
 

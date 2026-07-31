@@ -30,7 +30,11 @@ export const ORG_TEAM_ENDPOINTS = {
     apiPath(`/organizations/${organizationId}/teams/${teamId}/archive`),
   addMember: (organizationId: string, teamId: string) =>
     apiPath(`/organizations/${organizationId}/teams/${teamId}/members`),
-  listMembers: (organizationId: string, teamId: string, params?: { page?: number; size?: number }) =>
+  listMembers: (
+    organizationId: string,
+    teamId: string,
+    params?: { page?: number; size?: number }
+  ) =>
     withQuery(
       apiPath(`/organizations/${organizationId}/teams/${teamId}/members`),
       params as Record<string, string | number | boolean | undefined>
@@ -50,5 +54,6 @@ export const ORG_TEAM_ENDPOINTS = {
     ),
   revokeWorkspaceAssignment: (organizationId: string, teamId: string, assignmentId: string) =>
     apiPath(
-      `/organizations/${organizationId}/teams/${teamId}/workspace-assignments/${assignmentId}`),
+      `/organizations/${organizationId}/teams/${teamId}/workspace-assignments/${assignmentId}`
+    ),
 } as const

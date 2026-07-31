@@ -5,11 +5,24 @@ import { Archive, Ban, Check, Plus, Save, Trash2, UserPlus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import NextLink from 'next/link'
-import { Badge, Button, ConfirmDialog, Input, Modal, Stack, Typography, PageSkeleton } from '@/shared/ui'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import {
+  Badge,
+  Button,
+  Card,
+  ConfirmDialog,
+  DataTable,
+  Input,
+  Modal,
+  Stack,
+  Typography,
+  PageSkeleton,
+} from '@/shared/ui'
+import { UserIdentity, UserSearchSelect, useResolveUsers } from '@/modules/platform'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { ROUTES } from '@/constants/routes'
 import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import { useWorkspaceAuthorization } from '@/modules/auth/iam'
+import { useWorkspaceMemberPeople } from '@/modules/org/workspace'
 import { toast } from 'sonner'
 import { useOrgTeamDetail } from '../hooks/useOrgTeamDetail'
 import * as orgTeamsApi from '../api/org-teams.api'
@@ -36,7 +49,6 @@ export function WorkspaceTeamDetailView() {
     organizationId,
     teamId
   )
-
   const [editName, setEditName] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [saving, setSaving] = useState(false)
@@ -45,6 +57,9 @@ export function WorkspaceTeamDetailView() {
   const [removeUserId, setRemoveUserId] = useState<string | null>(null)
   const [archiveConfirm, setArchiveConfirm] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
+  const { people: workspacePeople } = useWorkspaceMemberPeople(addMemberOpen ? workspaceId : null)
+  const memberUserIds = useMemo(() => members.map((member) => member.userId), [members])
+  const { peopleById } = useResolveUsers(memberUserIds)
 
   useEffect(() => {
     if (canViewTeams && organizationId && teamId) void load()
@@ -117,7 +132,7 @@ export function WorkspaceTeamDetailView() {
     if (!organizationId || !team) return
     const userId = newUserId.trim()
     if (!userId) {
-      toast.error('User ID is required')
+      toast.error('Select a user')
       return
     }
     setActionLoading(true)
@@ -182,20 +197,18 @@ export function WorkspaceTeamDetailView() {
   }
 
   if (authzLoading || loading) {
-    return (
-      <PageSkeleton variant="detail" />
-    )
+    return <PageSkeleton variant="detail" />
   }
 
   if (!canViewTeams) {
     return (
       <div>
         <WorkspaceHierarchyBreadcrumb workspaceId={workspaceId} current="Team" className="mb-4" />
-        <div className="border border-neutral-200 bg-neutral-50 p-4">
+        <Card className="bg-neutral-50 p-4">
           <Typography variant="small" tone="muted">
             You do not have permission to view this team.
           </Typography>
-        </div>
+        </Card>
       </div>
     )
   }
@@ -205,7 +218,10 @@ export function WorkspaceTeamDetailView() {
       <div>
         <WorkspaceHierarchyBreadcrumb workspaceId={workspaceId} current="Team" className="mb-4" />
         <Typography tone="error">{error || 'Team not found'}</Typography>
-        <NextLink href={ROUTES.workspace.teams(workspaceId)} className="mt-4 inline-block text-primary">
+        <NextLink
+          href={ROUTES.workspace.teams(workspaceId)}
+          className="mt-4 inline-block text-primary"
+        >
           Back to teams
         </NextLink>
       </div>
@@ -213,23 +229,27 @@ export function WorkspaceTeamDetailView() {
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         current={team.name}
         className="mb-4"
       />
 
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="mb-1 flex items-center gap-2">
-            <Typography as="h1" size="lg" weight="semibold">
+            <Typography as="h1" size="md" weight="medium">
               {team.name}
             </Typography>
-            <Badge variant="solid"
+            <Badge
+              variant="solid"
               tone={team.status === OrgTeamStatus.Active ? 'success' : 'neutral'}
             >
-                      {team.status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+              {team.status
+                .replace(/_/g, ' ')
+                .toLowerCase()
+                .replace(/\b\w/g, (c) => c.toUpperCase())}
             </Badge>
           </div>
           <Typography as="p" variant="small" tone="muted" className="font-mono">
@@ -238,7 +258,11 @@ export function WorkspaceTeamDetailView() {
         </div>
         <div className="flex flex-wrap gap-2">
           {team.status === OrgTeamStatus.Active && canArchiveTeams && (
-            <Button variant="secondary" onClick={() => setArchiveConfirm(true)} icon={<Archive size={16} />}>
+            <Button
+              variant="secondary"
+              onClick={() => setArchiveConfirm(true)}
+              icon={<Archive size={16} />}
+            >
               Archive
             </Button>
           )}
@@ -246,15 +270,17 @@ export function WorkspaceTeamDetailView() {
             <Button
               variant="secondary"
               loading={actionLoading}
-              onClick={() => void handleActivate()} icon={<Check size={16} />}>
+              onClick={() => void handleActivate()}
+              icon={<Check size={16} />}
+            >
               Activate
             </Button>
           )}
         </div>
       </div>
 
-      <div className="mb-8 border border-neutral-200 bg-white p-6">
-        <Typography as="h2" size="lg" weight="bold" className="mb-4">
+      <Card className="mb-8 p-6">
+        <Typography as="h2" size="md" weight="medium" className="mb-4">
           Details
         </Typography>
         {canUpdateTeams && team.status === OrgTeamStatus.Active ? (
@@ -271,7 +297,12 @@ export function WorkspaceTeamDetailView() {
               onChange={(e) => setEditDescription(e.target.value)}
               fullWidth
             />
-            <Button variant="primary" loading={saving} onClick={() => void handleSave()} icon={<Save size={16} />}>
+            <Button
+              variant="primary"
+              loading={saving}
+              onClick={() => void handleSave()}
+              icon={<Save size={16} />}
+            >
               Save changes
             </Button>
           </Stack>
@@ -280,30 +311,34 @@ export function WorkspaceTeamDetailView() {
             {team.description || 'No description'}
           </Typography>
         )}
-      </div>
+      </Card>
 
-      <div className="mb-8 border border-neutral-200 bg-white p-6">
+      <Card className="mb-8 p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <Typography as="h2" size="lg" weight="bold">
+          <Typography as="h2" size="md" weight="medium">
             This workspace
           </Typography>
-          {canManageTeams && team.status === OrgTeamStatus.Active && (
-            isAssignedHere ? (
+          {canManageTeams &&
+            team.status === OrgTeamStatus.Active &&
+            (isAssignedHere ? (
               <Button
                 variant="secondary"
                 loading={actionLoading}
-                onClick={() => void handleRevokeHere()} icon={<Ban size={16} />}>
+                onClick={() => void handleRevokeHere()}
+                icon={<Ban size={16} />}
+              >
                 Revoke assignment
               </Button>
             ) : (
               <Button
                 variant="primary"
                 loading={actionLoading}
-                onClick={() => void handleAssignHere()} icon={<UserPlus size={16} />}>
+                onClick={() => void handleAssignHere()}
+                icon={<UserPlus size={16} />}
+              >
                 Assign to this workspace
               </Button>
-            )
-          )}
+            ))}
         </div>
         <Typography variant="small" tone="muted">
           {isAssignedHere
@@ -314,74 +349,90 @@ export function WorkspaceTeamDetailView() {
           <ul className="mt-4 space-y-2 text-sm text-neutral-700">
             {assignments.map((a) => (
               <li key={a.id} className="flex flex-wrap gap-2">
-                <span className="font-mono text-xs">{a.workspaceId.slice(0, 8)}…</span>
-                <Badge variant="solid"
+                <span className="text-xs">
+                  {workspaces.find((workspace) => workspace.id === a.workspaceId)?.name ?? '—'}
+                </span>
+                <Badge
+                  variant="solid"
                   tone={a.status === OrgTeamAssignmentStatus.Active ? 'success' : 'neutral'}
                 >
-                      {String(a.status).replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+                  {String(a.status)
+                    .replace(/_/g, ' ')
+                    .toLowerCase()
+                    .replace(/\b\w/g, (c) => c.toUpperCase())}
                 </Badge>
-                {a.workspaceId === workspaceId && (
-                  <Badge variant="outline">
-                    current
-                  </Badge>
-                )}
+                {a.workspaceId === workspaceId && <Badge variant="outline">current</Badge>}
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </Card>
 
-      <div className="border border-neutral-200 bg-white p-6">
+      <Card className="p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <Typography as="h2" size="lg" weight="bold">
+          <Typography as="h2" size="md" weight="medium">
             Members
           </Typography>
           {canAddTeamMembers && team.status === OrgTeamStatus.Active && (
-            <Button variant="primary" onClick={() => setAddMemberOpen(true)} icon={<Plus size={16} />}>
+            <Button
+              variant="primary"
+              onClick={() => setAddMemberOpen(true)}
+              icon={<Plus size={16} />}
+            >
               Add member
             </Button>
           )}
         </div>
-        <div className="overflow-hidden border border-neutral-200">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-neutral-200 bg-neutral-50">
-                <th className="px-4 py-3 text-left font-medium text-neutral-600">User ID</th>
-                <th className="px-4 py-3 text-left font-medium text-neutral-600">Joined</th>
-                <th className="min-w-[10rem] whitespace-nowrap px-4 py-3 text-left font-medium text-neutral-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-neutral-500">
-                    No members
-                  </td>
-                </tr>
-              ) : (
-                members.map((m) => (
-                  <tr key={m.userId} className="border-b border-neutral-100 last:border-0">
-                    <td className="px-4 py-3 font-mono text-xs">{m.userId}</td>
-                    <td className="px-4 py-3 text-neutral-600">
-                      {new Date(m.joinedAt).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      {canRemoveTeamMembers && (
-                        <Button
-                          variant="ghost"
-                          tone="error"
-                          onClick={() => setRemoveUserId(m.userId)} icon={<Trash2 size={16} />}>
-                          Remove
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="border border-neutral-200">
+          <DataTable
+            ariaLabel="Team members"
+            rows={members}
+            rowKey={(member) => member.userId}
+            emptyMessage="No members"
+            columns={[
+              {
+                id: 'user',
+                header: 'User',
+                kind: 'reference',
+                cell: (member) =>
+                  peopleById[member.userId] ? (
+                    <UserIdentity
+                      userId={member.userId}
+                      person={peopleById[member.userId]}
+                      showEmail
+                      size="sm"
+                    />
+                  ) : (
+                    '—'
+                  ),
+              },
+              {
+                id: 'joined',
+                header: 'Joined',
+                accessor: (member) => new Date(member.joinedAt).toLocaleString(),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                width: '10rem',
+                cell: (member) =>
+                  canRemoveTeamMembers ? (
+                    <Button
+                      variant="ghost"
+                      tone="error"
+                      onClick={() => setRemoveUserId(member.userId)}
+                      icon={<Trash2 size={16} />}
+                    >
+                      Remove
+                    </Button>
+                  ) : (
+                    '—'
+                  ),
+              },
+            ]}
+          />
         </div>
-      </div>
+      </Card>
 
       <Modal
         open={addMemberOpen}
@@ -408,12 +459,12 @@ export function WorkspaceTeamDetailView() {
           },
         ]}
       >
-        <Input
-          label="User ID"
+        <UserSearchSelect
           value={newUserId}
-          onChange={(e) => setNewUserId(e.target.value)}
-          fullWidth
-          placeholder="UUID of the user"
+          onChange={setNewUserId}
+          placeholder="Search user…"
+          seedPeople={workspacePeople}
+          allowRemoteSearch={false}
         />
       </Modal>
 

@@ -4,13 +4,21 @@ import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { useState } from 'react'
 import { ArrowLeft, Ban, Plus, Trash2 } from 'lucide-react'
-import { Typography, Button, Stack, PageSkeleton, Input } from '@/shared/ui'
+import {
+  Typography,
+  Button,
+  Stack,
+  PageSkeleton,
+  Input,
+  SearchableSelect,
+  DataTable, Card,
+} from '@/shared/ui'
 import { IamStatusBadge } from './IamStatusBadge'
 import { useIamGrantDetail } from '../hooks/useIamGrantDetail'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
-import { cn } from '@/utils/cn'
 import { useIamIdentityDirectory } from '../hooks/useIamIdentityDirectory'
 import { IamEntityIdentityCard } from './IamEntityIdentityCard'
+import { useIamPermissions } from '../hooks/useIamPermissions'
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -45,18 +53,16 @@ export function AdminIamGrantDetailView() {
     resourceIds: [grant?.resourceId],
     workspaceIds: [grant?.workspaceId, grant?.scopeRefId],
   })
+  const { items: availableRights, loading: loadingRights } = useIamPermissions()
 
   const [rightIdDraft, setRightIdDraft] = useState('')
   const [actionDraft, setActionDraft] = useState({
-    permissionActionId: '',
     permissionCode: '',
     actionCode: '',
   })
 
   if (loading) {
-    return (
-      <PageSkeleton variant="detail" />
-    )
+    return <PageSkeleton variant="detail" />
   }
 
   if (error || !grant) {
@@ -78,7 +84,6 @@ export function AdminIamGrantDetailView() {
   }
 
   const fields = [
-    { label: 'Grant ID', value: grant.id, mono: true },
     { label: 'Subject type', value: grant.subjectType },
     { label: 'Effect', value: grant.effect },
     { label: 'Scope type', value: grant.scopeType ?? '—' },
@@ -105,9 +110,6 @@ export function AdminIamGrantDetailView() {
             </Typography>
             <IamStatusBadge status={grant.status} />
           </div>
-          <Typography as="p" variant="small" tone="muted" className="mt-1 font-mono text-xs">
-            {grant.id}
-          </Typography>
         </div>
         <Stack direction="horizontal" spacing="sm">
           <NextLink
@@ -120,13 +122,15 @@ export function AdminIamGrantDetailView() {
             variant="outline"
             tone="error"
             disabled={revoking || grant.status !== 'ACTIVE'}
-            onClick={() => void revoke()} icon={<Ban size={16} />}>
+            onClick={() => void revoke()}
+            icon={<Ban size={16} />}
+          >
             {revoking ? 'Revoking…' : 'Revoke'}
           </Button>
         </Stack>
       </div>
 
-      <div className="mb-8 max-w-2xl border border-neutral-200 bg-white">
+      <Card className="mb-8 max-w-2xl">
         <div className="grid gap-4 border-b border-neutral-100 p-4 md:grid-cols-2">
           <div>
             <Typography variant="small" tone="muted" className="mb-2">
@@ -138,7 +142,9 @@ export function AdminIamGrantDetailView() {
                 subtitle={`@${usersById[grant.subjectId].username}`}
                 meta={usersById[grant.subjectId].email}
                 id={grant.subjectId}
-                avatarFallback={usersById[grant.subjectId].fullName || usersById[grant.subjectId].username}
+                avatarFallback={
+                  usersById[grant.subjectId].fullName || usersById[grant.subjectId].username
+                }
                 badge={grant.subjectType}
               />
             ) : grant.subjectType === 'ROLE' && rolesById[grant.subjectId] ? (
@@ -150,7 +156,7 @@ export function AdminIamGrantDetailView() {
                 badge={grant.subjectType}
               />
             ) : (
-              <IamEntityIdentityCard title={grant.subjectId} subtitle={grant.subjectType} id={grant.subjectId} />
+              <IamEntityIdentityCard title="—" subtitle={grant.subjectType} id={grant.subjectId} />
             )}
           </div>
           <div>
@@ -165,7 +171,7 @@ export function AdminIamGrantDetailView() {
                 id={grant.resourceId}
               />
             ) : (
-              <IamEntityIdentityCard title={grant.resourceId} id={grant.resourceId} />
+              <IamEntityIdentityCard title="—" id={grant.resourceId} />
             )}
           </div>
           {grant.roleId ? (
@@ -181,7 +187,7 @@ export function AdminIamGrantDetailView() {
                   id={grant.roleId}
                 />
               ) : (
-                <IamEntityIdentityCard title={grant.roleId} id={grant.roleId} />
+                <IamEntityIdentityCard title="—" id={grant.roleId} />
               )}
             </div>
           ) : null}
@@ -198,22 +204,18 @@ export function AdminIamGrantDetailView() {
                   id={grant.workspaceId}
                 />
               ) : (
-                <IamEntityIdentityCard title={grant.workspaceId} id={grant.workspaceId} />
+                <IamEntityIdentityCard title="—" id={grant.workspaceId} />
               )}
             </div>
           ) : null}
         </div>
         <div className="divide-y divide-neutral-100">
-          {fields.map(({ label, value, mono }) => (
+          {fields.map(({ label, value }) => (
             <div key={label} className="flex items-start gap-4 px-4 py-3">
               <Typography variant="small" tone="muted" className="w-32 shrink-0">
                 {label}
               </Typography>
-              <Typography
-                variant="small"
-                weight="medium"
-                className={cn('flex-1 break-all', mono && 'font-mono text-xs')}
-              >
+              <Typography variant="small" weight="medium" className="flex-1 break-all">
                 {value}
               </Typography>
             </div>
@@ -232,7 +234,11 @@ export function AdminIamGrantDetailView() {
                     id={grant.scopeRefId}
                   />
                 ) : (
-                  <IamEntityIdentityCard title={grant.scopeRefId} subtitle={grant.scopeType ?? undefined} id={grant.scopeRefId} />
+                  <IamEntityIdentityCard
+                    title="—"
+                    subtitle={grant.scopeType ?? undefined}
+                    id={grant.scopeRefId}
+                  />
                 )
               ) : (
                 <Typography variant="small">—</Typography>
@@ -247,14 +253,18 @@ export function AdminIamGrantDetailView() {
               {grant.grantedBy ? (
                 usersById[grant.grantedBy] ? (
                   <IamEntityIdentityCard
-                    title={usersById[grant.grantedBy].fullName || usersById[grant.grantedBy].username}
+                    title={
+                      usersById[grant.grantedBy].fullName || usersById[grant.grantedBy].username
+                    }
                     subtitle={`@${usersById[grant.grantedBy].username}`}
                     meta={usersById[grant.grantedBy].email}
                     id={grant.grantedBy}
-                    avatarFallback={usersById[grant.grantedBy].fullName || usersById[grant.grantedBy].username}
+                    avatarFallback={
+                      usersById[grant.grantedBy].fullName || usersById[grant.grantedBy].username
+                    }
                   />
                 ) : (
-                  <IamEntityIdentityCard title={grant.grantedBy} id={grant.grantedBy} />
+                  <IamEntityIdentityCard title="—" id={grant.grantedBy} />
                 )
               ) : (
                 <Typography variant="small">—</Typography>
@@ -262,7 +272,7 @@ export function AdminIamGrantDetailView() {
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <Typography as="h2" size="lg" weight="semibold">
@@ -270,19 +280,24 @@ export function AdminIamGrantDetailView() {
         </Typography>
         {grant.status === 'ACTIVE' ? (
           <Stack direction="horizontal" spacing="sm" className="items-end">
-            <Input
-              label="Right ID"
-              value={rightIdDraft}
-              onChange={(e) => setRightIdDraft(e.target.value)}
-              placeholder="uuid"
-              className="w-64"
-            />
+            <div className="w-72">
+              <SearchableSelect
+                value={rightIdDraft}
+                options={availableRights
+                  .filter((right) => !grantRights.some((row) => row.rightId === right.id))
+                  .map((right) => ({
+                    value: right.id,
+                    label: `${right.code} · ${right.name}`,
+                  }))}
+                placeholder={loadingRights ? 'Loading rights…' : 'Select right'}
+                searchPlaceholder="Search rights…"
+                onValueChange={setRightIdDraft}
+              />
+            </div>
             <Button
               variant="primary"
               disabled={acting || !rightIdDraft.trim()}
-              onClick={() =>
-                void addRight(rightIdDraft).then(() => setRightIdDraft(''))
-              }
+              onClick={() => void addRight(rightIdDraft).then(() => setRightIdDraft(''))}
               icon={<Plus size={16} />}
             >
               Add right
@@ -298,30 +313,51 @@ export function AdminIamGrantDetailView() {
         </div>
       ) : (
         <div className="mb-8 overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Code</th>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Module</th>
-                <th className="px-4 py-3 font-medium">Right ID</th>
-                <th className="px-4 py-3 font-medium">Attached</th>
-                <th className="min-w-[8rem] whitespace-nowrap px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {grantRights.map((row) => {
-                const right = rightsById[row.rightId]
-                return (
-                  <tr key={`${row.grantId}:${row.rightId}`} className="border-t border-neutral-100">
-                    <td className="px-4 py-3 font-mono text-xs">{right?.code ?? '—'}</td>
-                    <td className="px-4 py-3">{right?.name ?? '—'}</td>
-                    <td className="px-4 py-3 text-neutral-600">{right?.module ?? '—'}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{row.rightId}</td>
-                    <td className="px-4 py-3 text-neutral-600 whitespace-nowrap">
-                      {formatDate(row.createdAt)}
-                    </td>
-                    <td className="px-4 py-3">
+          <DataTable
+            ariaLabel="Admin Iam Grant Detail"
+            rows={grantRights}
+            rowKey={(row) => String(`${row.grantId}:${row.rightId}`)}
+            emptyMessage="No items."
+            columns={[
+              {
+                id: 'code',
+                header: 'Code',
+                cell: (row) => {
+                  const right = rightsById[row.rightId]
+                  return <>{right?.code ?? '—'}</>
+                },
+                kind: 'code',
+                cellClassName: 'font-normal text-xs',
+              },
+              {
+                id: 'name',
+                header: 'Name',
+                cell: (row) => {
+                  const right = rightsById[row.rightId]
+                  return <>{right?.name ?? '—'}</>
+                },
+              },
+              {
+                id: 'module',
+                header: 'Module',
+                cell: (row) => {
+                  const right = rightsById[row.rightId]
+                  return <>{right?.module ?? '—'}</>
+                },
+                cellClassName: 'text-neutral-600',
+              },
+              {
+                id: 'attached',
+                header: 'Attached',
+                cell: (row) => <>{formatDate(row.createdAt)}</>,
+                cellClassName: 'whitespace-nowrap text-neutral-600',
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (row) => {
+                  return (
+                    <>
                       {grant.status === 'ACTIVE' ? (
                         <Button
                           variant="ghost"
@@ -333,12 +369,12 @@ export function AdminIamGrantDetailView() {
                           Remove
                         </Button>
                       ) : null}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                    </>
+                  )
+                },
+              },
+            ]}
+          />
         </div>
       )}
 
@@ -349,20 +385,9 @@ export function AdminIamGrantDetailView() {
         {grant.status === 'ACTIVE' ? (
           <Stack direction="horizontal" spacing="sm" className="flex-wrap items-end">
             <Input
-              label="Permission action ID"
-              value={actionDraft.permissionActionId}
-              onChange={(e) =>
-                setActionDraft((d) => ({ ...d, permissionActionId: e.target.value }))
-              }
-              placeholder="optional uuid"
-              className="w-48"
-            />
-            <Input
               label="Permission code"
               value={actionDraft.permissionCode}
-              onChange={(e) =>
-                setActionDraft((d) => ({ ...d, permissionCode: e.target.value }))
-              }
+              onChange={(e) => setActionDraft((d) => ({ ...d, permissionCode: e.target.value }))}
               placeholder="WORKSPACE_MANAGEMENT"
               className="w-48"
             />
@@ -376,18 +401,13 @@ export function AdminIamGrantDetailView() {
             <Button
               variant="primary"
               disabled={
-                acting ||
-                (!actionDraft.permissionActionId.trim() &&
-                  !(actionDraft.permissionCode.trim() && actionDraft.actionCode.trim()))
+                acting || !(actionDraft.permissionCode.trim() && actionDraft.actionCode.trim())
               }
               onClick={() =>
                 void addAction({
-                  permissionActionId: actionDraft.permissionActionId.trim() || undefined,
                   permissionCode: actionDraft.permissionCode.trim() || undefined,
                   actionCode: actionDraft.actionCode.trim() || undefined,
-                }).then(() =>
-                  setActionDraft({ permissionActionId: '', permissionCode: '', actionCode: '' })
-                )
+                }).then(() => setActionDraft({ permissionCode: '', actionCode: '' }))
               }
               icon={<Plus size={16} />}
             >
@@ -404,28 +424,36 @@ export function AdminIamGrantDetailView() {
         </div>
       ) : (
         <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Permission</th>
-                <th className="px-4 py-3 font-medium">Action</th>
-                <th className="px-4 py-3 font-medium">Legacy right</th>
-                <th className="px-4 py-3 font-medium">Attached</th>
-                <th className="min-w-[8rem] whitespace-nowrap px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {actions.map((action) => (
-                <tr key={action.permissionActionId} className="border-t border-neutral-100">
-                  <td className="px-4 py-3 font-mono text-xs">{action.permissionCode}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{action.actionCode}</td>
-                  <td className="px-4 py-3 font-mono text-xs">
-                    {action.legacyRightCode ?? '—'}
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600 whitespace-nowrap">
-                    {formatDate(action.createdAt)}
-                  </td>
-                  <td className="px-4 py-3">
+          <DataTable
+            ariaLabel="Admin Iam Grant Detail"
+            rows={actions}
+            rowKey={(action) => String(action.permissionActionId)}
+            emptyMessage="No items."
+            columns={[
+              {
+                id: 'permission',
+                header: 'Permission',
+                accessor: 'permissionCode',
+                cellClassName: 'text-xs',
+              },
+              { id: 'action', header: 'Action', accessor: 'actionCode', cellClassName: 'text-xs' },
+              {
+                id: 'legacy',
+                header: 'Legacy',
+                cell: (action) => <>{action.legacyRightCode ?? '—'}</>,
+                cellClassName: 'text-xs',
+              },
+              {
+                id: 'attached',
+                header: 'Attached',
+                cell: (action) => <>{formatDate(action.createdAt)}</>,
+                cellClassName: 'whitespace-nowrap text-neutral-600',
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (action) => (
+                  <>
                     {grant.status === 'ACTIVE' ? (
                       <Button
                         variant="ghost"
@@ -437,11 +465,11 @@ export function AdminIamGrantDetailView() {
                         Remove
                       </Button>
                     ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
     </div>

@@ -2,6 +2,7 @@ export { DeploymentsListView } from './presentation/ui/DeploymentsListView'
 export { DeploymentDetailView } from './presentation/ui/DeploymentDetailView'
 export { useDeployments, useDeploymentDetail } from './presentation/hooks/useDeployments'
 export { useDeploymentMutations } from './presentation/hooks/useDeploymentMutations'
+export * as deploymentsApi from './infrastructure/api/deployments.api'
 export type {
   AiModelDeployment,
   CreateAiModelDeploymentPayload,

@@ -5,8 +5,7 @@ export const QualityPlanStatus = {
   Current: 'CURRENT',
   Archived: 'ARCHIVED',
 } as const
-export type QualityPlanStatus =
-  (typeof QualityPlanStatus)[keyof typeof QualityPlanStatus]
+export type QualityPlanStatus = (typeof QualityPlanStatus)[keyof typeof QualityPlanStatus]
 
 export const TestLevel = {
   Unit: 'UNIT',
@@ -24,13 +23,14 @@ export type TestLevel = (typeof TestLevel)[keyof typeof TestLevel]
 
 export const TestCaseType = {
   Functional: 'FUNCTIONAL',
-  Negative: 'NEGATIVE',
+  NonFunctional: 'NON_FUNCTIONAL',
+  Integration: 'INTEGRATION',
   Regression: 'REGRESSION',
-  Uat: 'UAT',
   Smoke: 'SMOKE',
   Performance: 'PERFORMANCE',
   Security: 'SECURITY',
-  Other: 'OTHER',
+  Usability: 'USABILITY',
+  Exploratory: 'EXPLORATORY',
 } as const
 export type TestCaseType = (typeof TestCaseType)[keyof typeof TestCaseType]
 
@@ -40,19 +40,148 @@ export const TestCasePriority = {
   Medium: 'MEDIUM',
   Low: 'LOW',
 } as const
-export type TestCasePriority =
-  (typeof TestCasePriority)[keyof typeof TestCasePriority]
+export type TestCasePriority = (typeof TestCasePriority)[keyof typeof TestCasePriority]
+
+export const TestCaseStatus = {
+  Draft: 'DRAFT',
+  Ready: 'READY',
+  /** @deprecated Prefer Deprecated for simplified Case lifecycle; kept for BE compat */
+  Approved: 'APPROVED',
+  Deprecated: 'DEPRECATED',
+  Archived: 'ARCHIVED',
+} as const
+export type TestCaseStatus = (typeof TestCaseStatus)[keyof typeof TestCaseStatus]
+
+/** Unified Case lifecycle used by simplified Cases UI (maps APPROVED → Ready). */
+export const CaseLifecycleStatus = {
+  Draft: 'DRAFT',
+  Ready: 'READY',
+  Deprecated: 'DEPRECATED',
+  Archived: 'ARCHIVED',
+} as const
+export type CaseLifecycleStatus = (typeof CaseLifecycleStatus)[keyof typeof CaseLifecycleStatus]
+
+export const TestRunStatus = {
+  Draft: 'DRAFT',
+  Planned: 'PLANNED',
+  InProgress: 'IN_PROGRESS',
+  Completed: 'COMPLETED',
+  Cancelled: 'CANCELLED',
+} as const
+export type TestRunStatus = (typeof TestRunStatus)[keyof typeof TestRunStatus]
+
+export const ReleaseReadinessStatus = {
+  Draft: 'DRAFT',
+  AtRisk: 'AT_RISK',
+  Blocked: 'BLOCKED',
+  Ready: 'READY',
+  Released: 'RELEASED',
+  Cancelled: 'CANCELLED',
+} as const
+export type ReleaseReadinessStatus =
+  (typeof ReleaseReadinessStatus)[keyof typeof ReleaseReadinessStatus]
+
+/** Simplified Defect work-queue statuses (maps richer BE statuses). */
+export const DefectWorkflowStatus = {
+  Open: 'OPEN',
+  InProgress: 'IN_PROGRESS',
+  Resolved: 'RESOLVED',
+  Retest: 'RETEST',
+  Closed: 'CLOSED',
+  Rejected: 'REJECTED',
+} as const
+export type DefectWorkflowStatus =
+  (typeof DefectWorkflowStatus)[keyof typeof DefectWorkflowStatus]
+
+export const AutomationStatus = {
+  Manual: 'MANUAL',
+  Planned: 'PLANNED',
+  Automated: 'AUTOMATED',
+} as const
+export type AutomationStatus = (typeof AutomationStatus)[keyof typeof AutomationStatus]
+
+export const TestExecutionResult = {
+  NotRun: 'NOT_RUN',
+  Passed: 'PASSED',
+  Failed: 'FAILED',
+  Blocked: 'BLOCKED',
+  Skipped: 'SKIPPED',
+} as const
+export type TestExecutionResult = (typeof TestExecutionResult)[keyof typeof TestExecutionResult]
 
 export const TestRunType = {
   Manual: 'MANUAL',
   Automated: 'AUTOMATED',
-  Mixed: 'MIXED',
   Regression: 'REGRESSION',
   Smoke: 'SMOKE',
-  Uat: 'UAT',
-  Other: 'OTHER',
 } as const
 export type TestRunType = (typeof TestRunType)[keyof typeof TestRunType]
+
+export const RunScope = {
+  Functional: 'FUNCTIONAL',
+  NonFunctional: 'NON_FUNCTIONAL',
+  Mixed: 'MIXED',
+} as const
+export type RunScope = (typeof RunScope)[keyof typeof RunScope]
+
+export const VerificationMethod = {
+  LoadTest: 'LOAD_TEST',
+  PerformanceTest: 'PERFORMANCE_TEST',
+  SecurityScan: 'SECURITY_SCAN',
+  PenetrationTest: 'PENETRATION_TEST',
+  AvailabilityCheck: 'AVAILABILITY_CHECK',
+  AccessibilityAudit: 'ACCESSIBILITY_AUDIT',
+  ComplianceReview: 'COMPLIANCE_REVIEW',
+  ManualReview: 'MANUAL_REVIEW',
+  MonitoringCheck: 'MONITORING_CHECK',
+} as const
+export type VerificationMethod = (typeof VerificationMethod)[keyof typeof VerificationMethod]
+
+export const VerificationCaseStatus = {
+  Draft: 'DRAFT',
+  Ready: 'READY',
+  Deprecated: 'DEPRECATED',
+  Archived: 'ARCHIVED',
+} as const
+export type VerificationCaseStatus =
+  (typeof VerificationCaseStatus)[keyof typeof VerificationCaseStatus]
+
+export const QualityAttribute = {
+  Performance: 'PERFORMANCE',
+  Security: 'SECURITY',
+  Availability: 'AVAILABILITY',
+  Reliability: 'RELIABILITY',
+  Scalability: 'SCALABILITY',
+  Usability: 'USABILITY',
+  Accessibility: 'ACCESSIBILITY',
+  Compatibility: 'COMPATIBILITY',
+  Maintainability: 'MAINTAINABILITY',
+  Observability: 'OBSERVABILITY',
+  DataIntegrity: 'DATA_INTEGRITY',
+  Compliance: 'COMPLIANCE',
+} as const
+export type QualityAttribute = (typeof QualityAttribute)[keyof typeof QualityAttribute]
+
+export const ComparisonOperator = {
+  Lt: 'LT',
+  Lte: 'LTE',
+  Gt: 'GT',
+  Gte: 'GTE',
+  Eq: 'EQ',
+  Between: 'BETWEEN',
+} as const
+export type ComparisonOperator = (typeof ComparisonOperator)[keyof typeof ComparisonOperator]
+
+export const NfrTargetType = {
+  System: 'SYSTEM',
+  Module: 'MODULE',
+  Function: 'FUNCTION',
+  Api: 'API',
+  Component: 'COMPONENT',
+  Entity: 'ENTITY',
+  Infrastructure: 'INFRASTRUCTURE',
+} as const
+export type NfrTargetType = (typeof NfrTargetType)[keyof typeof NfrTargetType]
 
 export const DefectCategory = {
   Functional: 'FUNCTIONAL',
@@ -73,8 +202,7 @@ export const DefectSeverity = {
   Minor: 'MINOR',
   Trivial: 'TRIVIAL',
 } as const
-export type DefectSeverity =
-  (typeof DefectSeverity)[keyof typeof DefectSeverity]
+export type DefectSeverity = (typeof DefectSeverity)[keyof typeof DefectSeverity]
 
 export const DefectPriority = {
   P0: 'P0',
@@ -83,8 +211,7 @@ export const DefectPriority = {
   P3: 'P3',
   P4: 'P4',
 } as const
-export type DefectPriority =
-  (typeof DefectPriority)[keyof typeof DefectPriority]
+export type DefectPriority = (typeof DefectPriority)[keyof typeof DefectPriority]
 
 export const DefectStatus = {
   Open: 'OPEN',

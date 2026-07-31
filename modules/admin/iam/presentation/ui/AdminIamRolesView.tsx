@@ -3,7 +3,7 @@
 import React from 'react'
 import NextLink from 'next/link'
 import { Ban, Check, CheckCircle2, CircleArrowRight, MinusCircle, Trash2 } from 'lucide-react'
-import { Typography, Button, Badge, Stack, Select, PageSkeleton } from '@/shared/ui'
+import { Typography, Button, Badge, Stack, Select, PageSkeleton, DataTable } from '@/shared/ui'
 import { IamStatusBadge } from './IamStatusBadge'
 import { IamSearchField } from './IamSearchField'
 import { useIamRoles } from '../hooks/useIamRoles'
@@ -16,8 +16,17 @@ const SCOPE_OPTIONS = [
 ]
 
 export function AdminIamRolesView() {
-  const { items, loading, error, keyword, setKeyword, scopeFilter, setScopeFilter, actingId, runAction } =
-    useIamRoles()
+  const {
+    items,
+    loading,
+    error,
+    keyword,
+    setKeyword,
+    scopeFilter,
+    setScopeFilter,
+    actingId,
+    runAction,
+  } = useIamRoles()
 
   return (
     <div>
@@ -63,46 +72,76 @@ export function AdminIamRolesView() {
         </div>
       ) : (
         <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Code</th>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Scope</th>
-                <th className="px-4 py-3 font-medium">Source</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="min-w-[12rem] whitespace-nowrap px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((role) => (
-                <tr key={role.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-4 py-3">
-                    <span className="font-mono text-xs text-neutral-700">{role.code}</span>
+          <DataTable
+            ariaLabel="Admin Iam Roles"
+            rows={items}
+            rowKey={(role) => String(role.id)}
+            emptyMessage="No items."
+            columns={[
+              {
+                id: 'code',
+                header: 'Code',
+                cell: (role) => (
+                  <>
+                    <span className="text-xs font-normal text-neutral-700">{role.code}</span>
                     {role.isSystem && (
                       <Badge tone="info" className="ml-2">
                         System
                       </Badge>
                     )}
-                  </td>
-                  <td className="px-4 py-3 font-medium">
-                    <NextLink href={ADMIN_ROUTES.iamRole(role.id)} className="text-primary hover:underline">
+                  </>
+                ),
+                kind: 'code',
+              },
+              {
+                id: 'name',
+                header: 'Name',
+                cell: (role) => (
+                  <>
+                    <NextLink
+                      href={ADMIN_ROUTES.iamRole(role.id)}
+                      className="text-primary hover:underline"
+                    >
                       {role.name}
                     </NextLink>
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600">{role.roleScope ?? '—'}</td>
-                  <td className="px-4 py-3 text-neutral-600">{role.roleSource ?? '—'}</td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              {
+                id: 'scope',
+                header: 'Scope',
+                cell: (role) => <>{role.roleScope ?? '—'}</>,
+                cellClassName: 'text-neutral-600',
+              },
+              {
+                id: 'source',
+                header: 'Source',
+                cell: (role) => <>{role.roleSource ?? '—'}</>,
+                cellClassName: 'text-neutral-600',
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (role) => (
+                  <>
                     <IamStatusBadge status={role.status} />
-                  </td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (role) => (
+                  <>
                     <Stack direction="horizontal" spacing="xs" className="flex-wrap">
                       {role.status.toUpperCase() !== 'ACTIVE' && (
                         <Button
                           variant="ghost"
                           disabled={actingId === role.id}
                           onClick={() => void runAction(role.id, 'activate')}
-                          className="gap-1 text-emerald-600 hover:text-emerald-700" icon={<Check size={16} />}>
+                          className="gap-1 text-emerald-600 hover:text-emerald-700"
+                          icon={<Check size={16} />}
+                        >
                           <CheckCircle2 size={14} />
                           Activate
                         </Button>
@@ -112,7 +151,9 @@ export function AdminIamRolesView() {
                           variant="ghost"
                           disabled={actingId === role.id}
                           onClick={() => void runAction(role.id, 'deactivate')}
-                          className="gap-1 text-amber-600 hover:text-amber-700" icon={<Ban size={16} />}>
+                          className="gap-1 text-amber-600 hover:text-amber-700"
+                          icon={<Ban size={16} />}
+                        >
                           <MinusCircle size={14} />
                           Deactivate
                         </Button>
@@ -136,18 +177,11 @@ export function AdminIamRolesView() {
                         View
                       </NextLink>
                     </Stack>
-                  </td>
-                </tr>
-              ))}
-              {!items.length && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-neutral-400">
-                    No roles found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
     </div>

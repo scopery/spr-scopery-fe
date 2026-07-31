@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import { ArrowUpRight } from 'lucide-react'
-import { Button, Typography } from '@/shared/ui'
-import { cn } from '@/utils/cn'
+import { Button, Card, Typography } from '@/shared/ui'
 import { PhaseWatchFollowUpKind } from '../../domain/enums/phase-watch.enum'
 import { usePhaseWatch } from '../hooks/usePhaseWatch'
 import { PhaseFollowUpDrawer } from './PhaseFollowUpDrawer'
@@ -28,7 +27,7 @@ export function PhaseWatchWidget({ workspaceId, projectId, className }: PhaseWat
 
   return (
     <>
-      <section className={cn('rounded-none border border-neutral-200 bg-white', className)}>
+      <Card as="section" className={className}>
         <header className="flex items-start justify-between gap-3 border-b border-neutral-200 px-4 py-3">
           <div className="min-w-0">
             <Typography as="h2" size="sm" weight="semibold" className="text-neutral-900">
@@ -75,7 +74,7 @@ export function PhaseWatchWidget({ workspaceId, projectId, className }: PhaseWat
             </div>
           )}
         </div>
-      </section>
+      </Card>
 
       <PhaseFollowUpDrawer
         open={drawerOpen}

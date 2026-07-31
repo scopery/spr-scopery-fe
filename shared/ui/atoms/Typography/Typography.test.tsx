@@ -101,6 +101,11 @@ describe('Typography', () => {
       expect(screen.getByText('Small H1')).toHaveClass('text-sm')
     })
 
+    it('maps compact md size to text-base', () => {
+      render(<Typography size="md">Compact page title</Typography>)
+      expect(screen.getByText('Compact page title')).toHaveClass('text-base')
+    })
+
     it('applies custom size to body', () => {
       render(
         <Typography variant="body" size="xl">

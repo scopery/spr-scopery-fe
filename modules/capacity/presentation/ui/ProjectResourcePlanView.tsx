@@ -6,6 +6,8 @@ import { useParams } from 'next/navigation'
 import {
   Badge,
   Button,
+  Card,
+  DataTable,
   LongRunningJobState,
   LongRunningJobStatus,
   PageSkeleton,
@@ -17,7 +19,10 @@ import {
   type ProjectResourcePlanTab,
 } from '../hooks/useProjectResourcePlan'
 import { formatHours, formatPercent } from '../../domain/rules/capacity.rules'
-import { AssignmentConflictStatus, ResourceRiskStatus } from '../../domain/model/project-resource-plan'
+import {
+  AssignmentConflictStatus,
+  ResourceRiskStatus,
+} from '../../domain/model/project-resource-plan'
 import { CapacityEntityStatus } from '../../domain/enums/capacity.enum'
 
 const TABS: { id: ProjectResourcePlanTab; label: string }[] = [
@@ -61,7 +66,7 @@ export function ProjectResourcePlanView() {
   if (loading && allocations.length === 0) return <PageSkeleton variant="list" />
   if (error) {
     return (
-      <div className="border border-error/30 bg-error/5 p-4">
+      <div className="border-error/30 bg-error/5 border p-4">
         <Typography variant="small" tone="error">
           {error}
         </Typography>
@@ -70,10 +75,10 @@ export function ProjectResourcePlanView() {
   }
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-md">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-md">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Project Resource Plan
           </Typography>
           <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -91,7 +96,7 @@ export function ProjectResourcePlanView() {
       </div>
 
       {summary ? (
-        <div className="mb-4 flex flex-wrap gap-md border border-neutral-200 bg-white px-4 py-3">
+        <Card className="mb-4 flex flex-wrap gap-md border border-neutral-200 bg-white px-4 py-3">
           <div>
             <Typography variant="caption" tone="muted">
               Members
@@ -102,19 +107,15 @@ export function ProjectResourcePlanView() {
             <Typography variant="caption" tone="muted">
               Allocated %
             </Typography>
-            <Typography weight="medium">
-              {formatPercent(summary.totalAllocatedPercent)}
-            </Typography>
+            <Typography weight="medium">{formatPercent(summary.totalAllocatedPercent)}</Typography>
           </div>
           <div>
             <Typography variant="caption" tone="muted">
               Allocated hours
             </Typography>
-            <Typography weight="medium">
-              {formatHours(summary.totalAllocatedHours)}
-            </Typography>
+            <Typography weight="medium">{formatHours(summary.totalAllocatedHours)}</Typography>
           </div>
-        </div>
+        </Card>
       ) : null}
 
       <div className="mb-4 flex flex-wrap gap-1 border-b border-neutral-200">
@@ -141,61 +142,54 @@ export function ProjectResourcePlanView() {
       ) : null}
 
       {tab === 'team' || tab === 'allocations' ? (
-        <div className="border border-neutral-200 bg-white">
-          {allocations.length === 0 ? (
-            <div className="px-4 py-10 text-center">
-              <Typography tone="muted" variant="small">
-                No allocations on this project yet.
-              </Typography>
-              <NextLink
-                href={ROUTES.workspace.capacityAllocations(workspaceId)}
-                className="mt-3 inline-block text-sm text-primary hover:underline"
-              >
-                Open Allocation Planner
-              </NextLink>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-neutral-50 text-neutral-600">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">Resource</th>
-                    <th className="px-3 py-2 font-medium">Type</th>
-                    <th className="px-3 py-2 font-medium">%</th>
-                    <th className="px-3 py-2 font-medium">Period</th>
-                    <th className="px-3 py-2 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allocations.map((a) => (
-                    <tr key={a.id} className="border-t border-neutral-100">
-                      <td className="px-3 py-2">{resourceLabel(a.workspaceMemberId)}</td>
-                      <td className="px-3 py-2">{a.allocationType}</td>
-                      <td className="px-3 py-2">{a.allocationPercent}%</td>
-                      <td className="px-3 py-2">
-                        {a.startDate} → {a.endDate}
-                      </td>
-                      <td className="px-3 py-2">
-                        <Badge
-                          size="sm"
-                          tone={
-                            a.status === CapacityEntityStatus.Active ? 'success' : 'neutral'
-                          }
-                        >
-                          {a.status}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <Card className="border border-neutral-200 bg-white">
+          <DataTable
+            ariaLabel="Project allocations"
+            rows={allocations}
+            rowKey={(allocation) => allocation.id}
+            emptyMessage={
+              <div>
+                No allocations on this project yet.{' '}
+                <NextLink
+                  href={ROUTES.workspace.capacityAllocations(workspaceId)}
+                  className="text-primary hover:underline"
+                >
+                  Open Allocation Planner
+                </NextLink>
+              </div>
+            }
+            columns={[
+              {
+                id: 'resource',
+                header: 'Resource',
+                accessor: (a) => {
+                  const label = resourceLabel(a.workspaceMemberId)
+                  return label === a.workspaceMemberId.slice(0, 8) ? '—' : label || '—'
+                },
+                kind: 'reference',
+              },
+              { id: 'type', header: 'Type', accessor: 'allocationType' },
+              { id: 'percent', header: '%', accessor: (a) => `${a.allocationPercent}%` },
+              { id: 'period', header: 'Period', accessor: (a) => `${a.startDate} → ${a.endDate}` },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (a) => (
+                  <Badge
+                    size="sm"
+                    tone={a.status === CapacityEntityStatus.Active ? 'success' : 'neutral'}
+                  >
+                    {a.status}
+                  </Badge>
+                ),
+              },
+            ]}
+          />
+        </Card>
       ) : null}
 
       {tab === 'forecast' ? (
-        <div className="flex flex-wrap gap-sm border border-neutral-200 bg-white p-md">
+        <Card className="flex flex-wrap gap-sm border border-neutral-200 bg-white p-md">
           <Button
             variant="secondary"
             loading={jobStatus === LongRunningJobStatus.Running}
@@ -213,12 +207,12 @@ export function ProjectResourcePlanView() {
           <Typography variant="caption" tone="muted" className="w-full">
             Rebuild actions are synchronous until the backend exposes job progress.
           </Typography>
-        </div>
+        </Card>
       ) : null}
 
       {tab === 'conflicts' ? (
         <div className="grid gap-md lg:grid-cols-2">
-          <div className="border border-neutral-200 bg-white">
+          <Card className="border border-neutral-200 bg-white">
             <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
               <Typography weight="semibold" variant="small">
                 Conflicts ({conflicts.length})
@@ -263,8 +257,8 @@ export function ProjectResourcePlanView() {
                 ))}
               </ul>
             )}
-          </div>
-          <div className="border border-neutral-200 bg-white">
+          </Card>
+          <Card className="border border-neutral-200 bg-white">
             <div className="border-b border-neutral-100 px-4 py-3">
               <Typography weight="semibold" variant="small">
                 Risk flags ({risks.length})
@@ -293,20 +287,12 @@ export function ProjectResourcePlanView() {
                     </Typography>
                     <div className="mt-1 flex gap-1">
                       {r.status === ResourceRiskStatus.Open ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => void mitigateRisk(r.id)}
-                        >
+                        <Button size="sm" variant="ghost" onClick={() => void mitigateRisk(r.id)}>
                           Mitigate
                         </Button>
                       ) : null}
                       {r.status !== ResourceRiskStatus.Closed ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => void closeRisk(r.id)}
-                        >
+                        <Button size="sm" variant="ghost" onClick={() => void closeRisk(r.id)}>
                           Close
                         </Button>
                       ) : null}
@@ -315,12 +301,12 @@ export function ProjectResourcePlanView() {
                 ))}
               </ul>
             )}
-          </div>
+          </Card>
         </div>
       ) : null}
 
       {tab === 'cost' ? (
-        <div className="border border-neutral-200 bg-white p-md">
+        <Card className="border border-neutral-200 bg-white p-md">
           <div className="mb-3 flex flex-wrap gap-sm">
             <Button variant="secondary" onClick={() => void loadCostInputs()}>
               Refresh cost inputs
@@ -334,15 +320,15 @@ export function ProjectResourcePlanView() {
             </Button>
           </div>
           <Typography variant="caption" tone="muted" className="mb-2 block">
-            Loaded without sensitive fields. Typed cost breakdown UI awaits a stable DTO;
-            rebuild is available now.
+            Loaded without sensitive fields. Typed cost breakdown UI awaits a stable DTO; rebuild is
+            available now.
           </Typography>
           <Typography variant="small">
             {costInputs == null
               ? 'No cost inputs loaded.'
               : 'Cost inputs loaded. Open rebuild if figures look stale.'}
           </Typography>
-        </div>
+        </Card>
       ) : null}
     </div>
   )

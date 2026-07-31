@@ -6,19 +6,25 @@ import { ChevronDown, Plus } from 'lucide-react'
 import {
   Typography,
   Button,
+  Card,
   Input,
   Select,
   PageSkeleton,
   Stack,
   Badge,
   Checkbox,
+  DataTable,
 } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { ROUTES } from '@/constants/routes'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
-import { UserIdentity } from '@/modules/platform/identity/presentation/ui/UserIdentity'
-import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
+import {
+  UserIdentity,
+  UserSearchSelect,
+  useResolveUsers,
+  WorkspaceHierarchyBreadcrumb,
+} from '@/modules/platform'
+import { useWorkspaceMemberPeople } from '@/modules/org/workspace'
 import { useProject } from '../../../project/hooks/useProject'
 import { useProjectPhases } from '../../../phase/presentation/hooks/useProjectPhases'
 import { useProjectTasks } from '../hooks/useProjectTasks'
@@ -34,10 +40,7 @@ import {
 import { TaskStatus } from '../../../project/domain/enums/project.enum'
 import { cn } from '@/utils/cn'
 
-const DEFAULT_STATUS_FILTERS = [
-  TaskStatus.Todo,
-  TaskStatus.InProgress,
-] as const
+const DEFAULT_STATUS_FILTERS = [TaskStatus.Todo, TaskStatus.InProgress] as const
 
 const STATUS_CHECKBOX_OPTIONS: { value: string; label: string }[] = [
   { value: TaskStatus.Todo, label: 'To do' },
@@ -61,6 +64,7 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
   const searchParams = useSearchParams()
   const workspaceId = params.workspaceId as string
   const projectId = params.projectId as string
+  const { people: assigneePeople } = useWorkspaceMemberPeople(workspaceId)
 
   const view = searchParams.get('view') === 'board' ? 'board' : 'list'
   const [keyword, setKeyword] = useState('')
@@ -179,27 +183,27 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
 
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="p-8 text-center">
         <Typography weight="medium">You don’t have access to work items</Typography>
-      </div>
+      </Card>
     )
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
-        className="mb-4"
+        className="mb-1"
       />
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Work items
           </Typography>
           {project ? (
-            <Typography variant="small" tone="muted" className="mt-1">
+            <Typography variant="caption" tone="muted" className="mt-0.5">
               {project.code} · {project.name}
             </Typography>
           ) : null}
@@ -243,7 +247,7 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
               'flex h-9 w-full min-w-0 items-center justify-between gap-2 overflow-hidden px-3',
               'border border-neutral-300 bg-white text-[13px] text-neutral-900',
               'transition-colors duration-200',
-              'focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20'
+              'focus:ring-primary/20 focus:border-primary focus:outline-none focus:ring-1'
             )}
             onClick={() => setStatusMenuOpen((v) => !v)}
             aria-expanded={statusMenuOpen}
@@ -282,7 +286,7 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
                           className={cn(
                             'relative flex cursor-pointer select-none items-center gap-2',
                             'px-3 py-2 text-sm text-neutral-900 outline-none',
-                            'hover:bg-neutral-100 focus-within:bg-neutral-100',
+                            'focus-within:bg-neutral-100 hover:bg-neutral-100',
                             opt.value === TaskStatus.Archived && 'mt-1 border-t border-neutral-100'
                           )}
                         >
@@ -312,11 +316,12 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
           className="min-w-[11rem] flex-1 basis-[11rem]"
         />
         <div className="min-w-[10rem] flex-1 basis-[10rem]">
-          <Input
-            fullWidth
-            placeholder="Assignee id…"
+          <UserSearchSelect
             value={assigneeFilter}
-            onChange={(e) => setAssigneeFilter(e.target.value)}
+            onChange={setAssigneeFilter}
+            placeholder="Assignee"
+            seedPeople={assigneePeople}
+            allowRemoteSearch={false}
           />
         </div>
       </Stack>
@@ -330,79 +335,77 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
       ) : null}
 
       {view === 'list' ? (
-        <div className="overflow-x-auto border border-neutral-200 bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Code / Title</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Priority</th>
-                <th className="px-4 py-3 font-medium">Assignee</th>
-                <th className="px-4 py-3 font-medium">Phase</th>
-                <th className="px-4 py-3 font-medium">Estimate</th>
-                <th className="px-4 py-3 font-medium">Due</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTasks.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center">
-                    <Typography variant="small" tone="muted">
-                      No tasks found
-                    </Typography>
-                  </td>
-                </tr>
-              ) : (
-                filteredTasks.map((t) => (
-                  <tr key={t.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                    <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        className="text-left hover:underline"
-                        onClick={() => void openTask(t.id)}
-                      >
-                        <Typography as="span" variant="small" tone="muted" className="font-mono">
-                          {t.code}
-                        </Typography>
-                        <Typography as="div" weight="medium">
-                          {t.title}
-                        </Typography>
-                      </button>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge tone="neutral">{taskStatusLabel(t.status)}</Badge>
-                    </td>
-                    <td className="px-4 py-3">{taskPriorityLabel(t.priority)}</td>
-                    <td className="px-4 py-3">
-                      <UserIdentity
-                        userId={t.inChargeUserId}
-                        person={t.inChargeUserId ? peopleById[t.inChargeUserId] : null}
-                        size="xs"
-                        compact
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      {t.projectPhaseId
-                        ? (phaseNameById.get(t.projectPhaseId) ?? t.projectPhaseId.slice(0, 8))
-                        : '—'}
-                    </td>
-                    <td className="px-4 py-3">{t.estimateHours ?? '—'}</td>
-                    <td className="px-4 py-3">{formatDate(t.dueDate)}</td>
-                    <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        className="text-sm text-primary hover:underline"
-                        onClick={() => void openTask(t.id)}
-                      >
-                        Open
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="border border-neutral-200 bg-white">
+          <DataTable
+            ariaLabel="Project work items"
+            rows={filteredTasks}
+            rowKey={(task) => task.id}
+            emptyMessage="No tasks found"
+            columns={[
+              { id: 'code', header: 'Code', accessor: 'code', kind: 'code' },
+              {
+                id: 'title',
+                header: 'Title',
+                cell: (task) => (
+                  <button
+                    type="button"
+                    className="text-left font-medium hover:underline"
+                    onClick={() => void openTask(task.id)}
+                  >
+                    {task.title}
+                  </button>
+                ),
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (task) => <Badge tone="neutral">{taskStatusLabel(task.status)}</Badge>,
+              },
+              {
+                id: 'priority',
+                header: 'Priority',
+                accessor: (task) => taskPriorityLabel(task.priority),
+              },
+              {
+                id: 'assignee',
+                header: 'Assignee',
+                kind: 'reference',
+                cell: (task) =>
+                  task.inChargeUserId && peopleById[task.inChargeUserId] ? (
+                    <UserIdentity
+                      userId={task.inChargeUserId}
+                      person={peopleById[task.inChargeUserId]}
+                      size="xs"
+                      compact
+                    />
+                  ) : (
+                    '—'
+                  ),
+              },
+              {
+                id: 'phase',
+                header: 'Phase',
+                kind: 'reference',
+                accessor: (task) =>
+                  task.projectPhaseId ? (phaseNameById.get(task.projectPhaseId) ?? '—') : '—',
+              },
+              { id: 'estimate', header: 'Estimate', accessor: (task) => task.estimateHours ?? '—' },
+              { id: 'due', header: 'Due', accessor: (task) => formatDate(task.dueDate) },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (task) => (
+                  <button
+                    type="button"
+                    className="text-sm text-primary hover:underline"
+                    onClick={() => void openTask(task.id)}
+                  >
+                    Open
+                  </button>
+                ),
+              },
+            ]}
+          />
         </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">

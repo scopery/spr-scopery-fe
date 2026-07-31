@@ -15,6 +15,7 @@ import {
 } from '../../domain/rules/decision.rules'
 import { useDecisionDetail } from '../hooks/useDecisionDetail'
 import { CommentThreadsPanel } from '@/modules/projects/comments'
+import { ProjectRecordSearchSelect } from '@/modules/projects/project'
 
 type DrawerTab = 'options' | 'impact' | 'links' | 'comments'
 
@@ -28,7 +29,7 @@ const LINK_TYPE_OPTIONS = [
 const LINK_TARGET_OPTIONS = [
   { value: 'RAID_ITEM', label: 'RAID item' },
   { value: 'TASK', label: 'Task' },
-  { value: 'DELIVERABLE', label: 'Deliverable' },
+  { value: 'DELIVERABLE', label: 'Deliverable (picker unavailable)', disabled: true },
 ]
 
 interface Props {
@@ -171,12 +172,12 @@ export function DecisionDetailDrawer({ projectId, decision, open, onClose, onUpd
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-neutral-900/[0.18] motion-drawer-backdrop"
+        className="bg-neutral-900/[0.18] motion-drawer-backdrop fixed inset-0 z-40"
         aria-hidden
         onClick={onClose}
       />
       <aside
-        className="drawer fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-neutral-200 bg-white shadow-xl motion-drawer-panel"
+        className="drawer motion-drawer-panel fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-neutral-200 bg-white shadow-xl"
         role="dialog"
         aria-label="Decision detail"
       >
@@ -232,21 +233,33 @@ export function DecisionDetailDrawer({ projectId, decision, open, onClose, onUpd
           {tab === 'options' && (
             <div className="space-y-4">
               <div>
-                <Typography variant="small" tone="muted">Rationale</Typography>
-                <Typography className="mt-1 whitespace-pre-wrap">{decision.rationale || '—'}</Typography>
+                <Typography variant="small" tone="muted">
+                  Rationale
+                </Typography>
+                <Typography className="mt-1 whitespace-pre-wrap">
+                  {decision.rationale || '—'}
+                </Typography>
               </div>
               {decision.outcome ? (
                 <div>
-                  <Typography variant="small" tone="muted">Outcome</Typography>
+                  <Typography variant="small" tone="muted">
+                    Outcome
+                  </Typography>
                   <Typography className="mt-1 whitespace-pre-wrap">{decision.outcome}</Typography>
                 </div>
               ) : null}
               <div>
-                <Typography variant="small" tone="muted" className="mb-2">Options</Typography>
+                <Typography variant="small" tone="muted" className="mb-2">
+                  Options
+                </Typography>
                 {loading ? (
-                  <Typography variant="small" tone="muted">Loading…</Typography>
+                  <Typography variant="small" tone="muted">
+                    Loading…
+                  </Typography>
                 ) : options.length === 0 ? (
-                  <Typography variant="small" tone="muted">No options recorded</Typography>
+                  <Typography variant="small" tone="muted">
+                    No options recorded
+                  </Typography>
                 ) : (
                   <ul className="space-y-2">
                     {options.map((o) => (
@@ -255,12 +268,20 @@ export function DecisionDetailDrawer({ projectId, decision, open, onClose, onUpd
                         className="flex items-start justify-between gap-2 border border-neutral-200 p-3"
                       >
                         <div className="min-w-0">
-                          <Typography weight="medium" className="truncate">{o.optionTitle}</Typography>
+                          <Typography weight="medium" className="truncate">
+                            {o.optionTitle}
+                          </Typography>
                           {o.optionDescription ? (
-                            <Typography variant="small" tone="muted">{o.optionDescription}</Typography>
+                            <Typography variant="small" tone="muted">
+                              {o.optionDescription}
+                            </Typography>
                           ) : null}
                         </div>
-                        <Stack direction="horizontal" spacing="sm" className="shrink-0 items-center">
+                        <Stack
+                          direction="horizontal"
+                          spacing="sm"
+                          className="shrink-0 items-center"
+                        >
                           {o.selectedFlag ? <Badge tone="success">Selected</Badge> : null}
                           <Button
                             size="sm"
@@ -283,16 +304,22 @@ export function DecisionDetailDrawer({ projectId, decision, open, onClose, onUpd
           {tab === 'impact' && (
             <div className="space-y-4">
               <div>
-                <Typography variant="small" weight="medium" className="mb-1">Schedule days impact</Typography>
+                <Typography variant="small" weight="medium" className="mb-1">
+                  Schedule days impact
+                </Typography>
                 <Input
                   type="number"
                   value={scheduleImpact}
                   onChange={(e) => setScheduleImpact(e.target.value)}
-                  placeholder={impact?.scheduleDaysImpact != null ? String(impact.scheduleDaysImpact) : '0'}
+                  placeholder={
+                    impact?.scheduleDaysImpact != null ? String(impact.scheduleDaysImpact) : '0'
+                  }
                 />
               </div>
               <div>
-                <Typography variant="small" weight="medium" className="mb-1">Cost impact</Typography>
+                <Typography variant="small" weight="medium" className="mb-1">
+                  Cost impact
+                </Typography>
                 <Input
                   type="number"
                   value={costImpact}
@@ -301,7 +328,9 @@ export function DecisionDetailDrawer({ projectId, decision, open, onClose, onUpd
                 />
               </div>
               <div>
-                <Typography variant="small" weight="medium" className="mb-1">Scope impact</Typography>
+                <Typography variant="small" weight="medium" className="mb-1">
+                  Scope impact
+                </Typography>
                 <Input
                   value={scopeImpact}
                   onChange={(e) => setScopeImpact(e.target.value)}
@@ -309,7 +338,9 @@ export function DecisionDetailDrawer({ projectId, decision, open, onClose, onUpd
                 />
               </div>
               <div>
-                <Typography variant="small" weight="medium" className="mb-1">Description</Typography>
+                <Typography variant="small" weight="medium" className="mb-1">
+                  Description
+                </Typography>
                 <Textarea
                   value={impactDesc}
                   onChange={(e) => setImpactDesc(e.target.value)}
@@ -318,7 +349,12 @@ export function DecisionDetailDrawer({ projectId, decision, open, onClose, onUpd
                   fullWidth
                 />
               </div>
-              <Button variant="primary" size="sm" disabled={savingImpact} onClick={() => void handleSaveImpact()}>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={savingImpact}
+                onClick={() => void handleSaveImpact()}
+              >
                 {savingImpact ? 'Saving…' : 'Save impact'}
               </Button>
             </div>
@@ -335,24 +371,31 @@ export function DecisionDetailDrawer({ projectId, decision, open, onClose, onUpd
           {tab === 'links' && (
             <div className="space-y-4">
               <div className="space-y-2 rounded border border-neutral-200 p-3">
-                <Typography variant="small" weight="medium">Add link</Typography>
-                <Select
-                  value={linkType}
-                  onValueChange={setLinkType}
-                  options={LINK_TYPE_OPTIONS}
-                />
+                <Typography variant="small" weight="medium">
+                  Add link
+                </Typography>
+                <Select value={linkType} onValueChange={setLinkType} options={LINK_TYPE_OPTIONS} />
                 <Select
                   value={linkTargetType}
-                  onValueChange={setLinkTargetType}
+                  onValueChange={(targetType: string) => {
+                    setLinkTargetType(targetType)
+                    setLinkTargetId('')
+                  }}
                   options={LINK_TARGET_OPTIONS}
                 />
                 <div className="flex gap-2">
-                  <Input
-                    value={linkTargetId}
-                    onChange={(e) => setLinkTargetId(e.target.value)}
-                    placeholder="Target ID"
-                    className="flex-1"
-                  />
+                  <div className="min-w-0 flex-1">
+                    <ProjectRecordSearchSelect
+                      projectId={projectId ?? ''}
+                      recordType={linkTargetType}
+                      label={
+                        LINK_TARGET_OPTIONS.find((option) => option.value === linkTargetType)
+                          ?.label ?? 'Target'
+                      }
+                      value={linkTargetId}
+                      onChange={setLinkTargetId}
+                    />
+                  </div>
                   <Button
                     size="sm"
                     variant="secondary"
@@ -366,17 +409,24 @@ export function DecisionDetailDrawer({ projectId, decision, open, onClose, onUpd
               </div>
 
               {loading ? (
-                <Typography variant="small" tone="muted">Loading…</Typography>
+                <Typography variant="small" tone="muted">
+                  Loading…
+                </Typography>
               ) : links.length === 0 ? (
-                <Typography variant="small" tone="muted">No links yet</Typography>
+                <Typography variant="small" tone="muted">
+                  No links yet
+                </Typography>
               ) : (
                 <ul className="space-y-2">
                   {links.map((l) => (
-                    <li key={l.id} className="flex items-center justify-between gap-2 border border-neutral-200 px-3 py-2">
+                    <li
+                      key={l.id}
+                      className="flex items-center justify-between gap-2 border border-neutral-200 px-3 py-2"
+                    >
                       <div>
                         <Badge tone="neutral">{l.linkType.replace(/_/g, ' ')}</Badge>
                         <Typography variant="small" tone="muted" className="mt-0.5">
-                          {l.targetType.replace(/_/g, ' ')} · {l.targetId}
+                          {l.targetType.replace(/_/g, ' ')} · Target details unavailable
                         </Typography>
                       </div>
                       <Button
@@ -410,17 +460,32 @@ export function DecisionDetailDrawer({ projectId, decision, open, onClose, onUpd
           )}
           <Stack direction="horizontal" spacing="sm" className="flex-wrap">
             {canDecideDecision(decision) ? (
-              <Button size="sm" variant="primary" disabled={acting} onClick={() => void handleDecide()}>
+              <Button
+                size="sm"
+                variant="primary"
+                disabled={acting}
+                onClick={() => void handleDecide()}
+              >
                 Decide
               </Button>
             ) : null}
             {canRejectDecision(decision) ? (
-              <Button size="sm" variant="secondary" disabled={acting} onClick={() => void handleReject()}>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={acting}
+                onClick={() => void handleReject()}
+              >
                 Reject
               </Button>
             ) : null}
             {canSupersedeDecision(decision) ? (
-              <Button size="sm" variant="secondary" disabled={acting} onClick={() => void handleSupersede()}>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={acting}
+                onClick={() => void handleSupersede()}
+              >
                 Supersede
               </Button>
             ) : null}

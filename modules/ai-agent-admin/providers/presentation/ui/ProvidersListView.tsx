@@ -14,6 +14,7 @@ import {
   Select,
   Stack,
   Typography,
+  DataTable,
 } from '@/shared/ui'
 import {
   PROVIDER_STATUS_OPTIONS,
@@ -138,113 +139,124 @@ export function ProvidersListView() {
       {error ? <Typography tone="error">{error}</Typography> : null}
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-neutral-200 bg-neutral-50 text-left">
-            <tr>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Code</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">API base URL</th>
-              <th className="px-4 py-3 font-medium">Updated</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-neutral-500">
-                  No providers found.
-                </td>
-              </tr>
-            ) : (
-              items.map((p) => (
-                <tr key={p.id} className="border-b border-neutral-100">
-                  <td className="px-4 py-3">
-                    <Typography weight="medium">{p.name}</Typography>
-                    {p.description ? (
-                      <Typography variant="caption" tone="muted" className="block">
-                        {p.description}
-                      </Typography>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs">{p.code}</td>
-                  <td className="px-4 py-3">{p.type}</td>
-                  <td className="px-4 py-3">
-                    <ProviderStatusBadge status={p.status} />
-                  </td>
-                  <td className="max-w-[180px] truncate px-4 py-3 text-xs">
-                    {p.apiBaseUrl || '—'}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-neutral-500">
-                    {p.updatedAt ? new Date(p.updatedAt).toLocaleString() : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      <Button
-                        as={NextLink}
-                        href={ADMIN_ROUTES.aiControlProvider(p.id)}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Open
-                      </Button>
-                      {canManage ? (
-                        <>
+        <DataTable
+          ariaLabel="Providers List"
+          rows={items}
+          rowKey={(p) => String(p.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'name',
+              header: 'Name',
+              cell: (p) => (
+                <>
+                  <Typography weight="medium">{p.name}</Typography>
+                  {p.description ? (
+                    <Typography variant="caption" tone="muted" className="block">
+                      {p.description}
+                    </Typography>
+                  ) : null}
+                </>
+              ),
+            },
+            {
+              id: 'code',
+              header: 'Code',
+              accessor: 'code',
+              kind: 'code',
+              cellClassName: 'text-xs',
+            },
+            { id: 'type', header: 'Type', accessor: 'type' },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (p) => (
+                <>
+                  <ProviderStatusBadge status={p.status} />
+                </>
+              ),
+            },
+            {
+              id: 'api-base-url',
+              header: 'API base URL',
+              cell: (p) => <>{p.apiBaseUrl || '—'}</>,
+              cellClassName: 'max-w-[180px] truncate text-xs',
+            },
+            {
+              id: 'updated',
+              header: 'Updated',
+              cell: (p) => <>{p.updatedAt ? new Date(p.updatedAt).toLocaleString() : '—'}</>,
+              cellClassName: 'text-xs text-neutral-500',
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (p) => (
+                <>
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      as={NextLink}
+                      href={ADMIN_ROUTES.aiControlProvider(p.id)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Open
+                    </Button>
+                    {canManage ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditing(p)
+                            setFormOpen(true)
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        {p.status !== ProviderStatus.Active ? (
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => {
-                              setEditing(p)
-                              setFormOpen(true)
-                            }}
+                            disabled={saving}
+                            onClick={() => void activate(p.id)}
                           >
-                            Edit
+                            Activate
                           </Button>
-                          {p.status !== ProviderStatus.Active ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={saving}
-                              onClick={() => void activate(p.id)}
-                            >
-                              Activate
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={saving}
-                              onClick={() => setDeactivateTarget(p)}
-                            >
-                              Deactivate
-                            </Button>
-                          )}
-                        </>
-                      ) : null}
-                      <Button
-                        as={NextLink}
-                        href={`${ADMIN_ROUTES.aiControlProviderSecrets}?providerId=${p.id}`}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Secrets
-                      </Button>
-                      <Button
-                        as={NextLink}
-                        href={ADMIN_ROUTES.aiControlModels}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Models
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={saving}
+                            onClick={() => setDeactivateTarget(p)}
+                          >
+                            Deactivate
+                          </Button>
+                        )}
+                      </>
+                    ) : null}
+                    <Button
+                      as={NextLink}
+                      href={`${ADMIN_ROUTES.aiControlProviderSecrets}?providerId=${p.id}`}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Secrets
+                    </Button>
+                    <Button
+                      as={NextLink}
+                      href={ADMIN_ROUTES.aiControlModels}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Models
+                    </Button>
+                  </div>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
 
       {totalElements > PAGE_SIZE ? (

@@ -17,6 +17,10 @@ export interface Requirement {
   applicationId?: string | null
   scopeItemId?: string | null
   scopePackageId?: string | null
+  /** YES | NO | AUTO — BE field for UC coverage rules */
+  requiresUseCase?: 'YES' | 'NO' | 'AUTO' | string | null
+  /** Computed: whether UC chain is required for Complete */
+  requiresUseCaseResolved?: boolean
 }
 
 export interface RequirementsListResponse {
@@ -47,4 +51,5 @@ export interface UpdateRequirementPayload {
   nonFunctionalItemId?: string | null
   scopeItemId?: string | null
   scopePackageId?: string | null
+  requiresUseCase?: 'YES' | 'NO' | 'AUTO' | string | null
 }

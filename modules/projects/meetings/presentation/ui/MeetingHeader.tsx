@@ -88,7 +88,7 @@ export function MeetingHeader({
   const saveLabel = autosaveLabel(autosaveState, autosaveSecondsLeft)
 
   return (
-    <div className="mb-4 border-b border-neutral-200 pb-5">
+    <div className="mb-2 border-b border-neutral-200 pb-2">
       <button
         type="button"
         className="mb-2 inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-800"
@@ -101,7 +101,7 @@ export function MeetingHeader({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <Stack direction="horizontal" spacing="sm" className="mb-1 flex-wrap items-center">
-            <Typography as="h1" size="lg" weight="semibold" className="truncate">
+            <Typography as="h1" size="md" weight="medium" className="truncate">
               {meeting.title}
             </Typography>
             <Badge variant="solid" tone={meetingStatusTone(meeting.status)}>
@@ -117,9 +117,7 @@ export function MeetingHeader({
           {saveLabel ? (
             <Typography
               variant="small"
-              className={
-                autosaveState === 'error' ? 'mt-1 text-error' : 'mt-1 text-neutral-400'
-              }
+              className={autosaveState === 'error' ? 'mt-1 text-error' : 'mt-1 text-neutral-400'}
             >
               {saveLabel}
             </Typography>

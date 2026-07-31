@@ -7,7 +7,9 @@ import { Plus, Trash2 } from 'lucide-react'
 import {
   Badge,
   Button,
+  Card,
   ConfirmDialog,
+  DataTable,
   Input,
   Modal,
   PageSkeleton,
@@ -17,10 +19,7 @@ import {
 } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { useWorkingCalendarDetail } from '../hooks/useWorkingCalendarDetail'
-import {
-  CalendarExceptionType,
-  DAY_OF_WEEK_ORDER,
-} from '../../domain/enums/capacity.enum'
+import { CalendarExceptionType, DAY_OF_WEEK_ORDER } from '../../domain/enums/capacity.enum'
 
 const EXCEPTION_OPTIONS = [
   { value: CalendarExceptionType.Holiday, label: 'Holiday' },
@@ -65,7 +64,7 @@ export function WorkingCalendarDetailView() {
   if (loading) return <PageSkeleton variant="detail" />
   if (error || !calendar) {
     return (
-      <div className="border border-error/30 bg-error/5 p-4">
+      <div className="border-error/30 bg-error/5 border p-4">
         <Typography variant="small" tone="error">
           {error ?? 'Calendar not found'}
         </Typography>
@@ -85,7 +84,7 @@ export function WorkingCalendarDetailView() {
   )
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <div className="mb-4">
         <NextLink
           href={ROUTES.workspace.settingsCapacityCalendars(workspaceId)}
@@ -95,10 +94,10 @@ export function WorkingCalendarDetailView() {
         </NextLink>
       </div>
 
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-md">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-md">
         <div>
           <div className="flex flex-wrap items-center gap-sm">
-            <Typography as="h1" size="lg" weight="semibold">
+            <Typography as="h1" size="md" weight="medium">
               {calendar.name}
             </Typography>
             {calendar.isDefault ? (
@@ -124,7 +123,7 @@ export function WorkingCalendarDetailView() {
         </Button>
       </div>
 
-      <section className="mb-8 border border-neutral-200 bg-white">
+      <Card as="section" className="mb-8 border border-neutral-200 bg-white">
         <div className="border-b border-neutral-100 px-4 py-3">
           <Typography weight="semibold" variant="small">
             Weekly schedule
@@ -133,75 +132,77 @@ export function WorkingCalendarDetailView() {
             Changes replace the full week. Save when ready — no auto-save per cell.
           </Typography>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-3 py-2 font-medium">Day</th>
-                <th className="px-3 py-2 font-medium">Working</th>
-                <th className="px-3 py-2 font-medium">Start</th>
-                <th className="px-3 py-2 font-medium">End</th>
-                <th className="px-3 py-2 font-medium">Hours</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orderedRules.map((rule) => (
-                <tr key={rule.dayOfWeek} className="border-t border-neutral-100">
-                  <td className="px-3 py-2 font-medium">{dayLabel(rule.dayOfWeek)}</td>
-                  <td className="px-3 py-2">
-                    <Switch
-                      checked={rule.isWorkingDay}
-                      onChange={(e) => {
-                        const checked = e.target.checked
-                        updateDayRule(rule.dayOfWeek, {
-                          isWorkingDay: checked,
-                          startTime: checked ? (rule.startTime ?? '09:00') : null,
-                          endTime: checked ? (rule.endTime ?? '17:00') : null,
-                          workingHours: checked ? rule.workingHours || 8 : 0,
-                        })
-                      }}
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="time"
-                      disabled={!rule.isWorkingDay}
-                      value={rule.startTime ?? ''}
-                      onChange={(e) =>
-                        updateDayRule(rule.dayOfWeek, { startTime: e.target.value || null })
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="time"
-                      disabled={!rule.isWorkingDay}
-                      value={rule.endTime ?? ''}
-                      onChange={(e) =>
-                        updateDayRule(rule.dayOfWeek, { endTime: e.target.value || null })
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number"
-                      disabled={!rule.isWorkingDay}
-                      value={String(rule.workingHours)}
-                      onChange={(e) =>
-                        updateDayRule(rule.dayOfWeek, {
-                          workingHours: Number(e.target.value) || 0,
-                        })
-                      }
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+        <DataTable
+          ariaLabel="Weekly schedule"
+          rows={orderedRules}
+          rowKey={(rule) => rule.dayOfWeek}
+          columns={[
+            { id: 'day', header: 'Day', accessor: (rule) => dayLabel(rule.dayOfWeek) },
+            {
+              id: 'working',
+              header: 'Working',
+              cell: (rule) => (
+                <Switch
+                  checked={rule.isWorkingDay}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    updateDayRule(rule.dayOfWeek, {
+                      isWorkingDay: checked,
+                      startTime: checked ? (rule.startTime ?? '09:00') : null,
+                      endTime: checked ? (rule.endTime ?? '17:00') : null,
+                      workingHours: checked ? rule.workingHours || 8 : 0,
+                    })
+                  }}
+                />
+              ),
+            },
+            {
+              id: 'start',
+              header: 'Start',
+              cell: (rule) => (
+                <Input
+                  type="time"
+                  disabled={!rule.isWorkingDay}
+                  value={rule.startTime ?? ''}
+                  onChange={(e) =>
+                    updateDayRule(rule.dayOfWeek, { startTime: e.target.value || null })
+                  }
+                />
+              ),
+            },
+            {
+              id: 'end',
+              header: 'End',
+              cell: (rule) => (
+                <Input
+                  type="time"
+                  disabled={!rule.isWorkingDay}
+                  value={rule.endTime ?? ''}
+                  onChange={(e) =>
+                    updateDayRule(rule.dayOfWeek, { endTime: e.target.value || null })
+                  }
+                />
+              ),
+            },
+            {
+              id: 'hours',
+              header: 'Hours',
+              cell: (rule) => (
+                <Input
+                  type="number"
+                  disabled={!rule.isWorkingDay}
+                  value={String(rule.workingHours)}
+                  onChange={(e) =>
+                    updateDayRule(rule.dayOfWeek, { workingHours: Number(e.target.value) || 0 })
+                  }
+                />
+              ),
+            },
+          ]}
+        />
+      </Card>
 
-      <section className="border border-neutral-200 bg-white">
+      <Card as="section" className="border border-neutral-200 bg-white">
         <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
           <Typography weight="semibold" variant="small">
             Exceptions ({exceptions.length})
@@ -215,49 +216,37 @@ export function WorkingCalendarDetailView() {
             Add exception
           </Button>
         </div>
-        {exceptions.length === 0 ? (
-          <div className="px-4 py-8 text-center">
-            <Typography tone="muted" variant="small">
-              No exceptions yet.
-            </Typography>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Date</th>
-                  <th className="px-3 py-2 font-medium">Type</th>
-                  <th className="px-3 py-2 font-medium">Name</th>
-                  <th className="px-3 py-2 font-medium">Working</th>
-                  <th className="px-3 py-2 font-medium">Hours</th>
-                  <th className="px-3 py-2 font-medium" />
-                </tr>
-              </thead>
-              <tbody>
-                {exceptions.map((ex) => (
-                  <tr key={ex.id} className="border-t border-neutral-100">
-                    <td className="px-3 py-2">{ex.exceptionDate}</td>
-                    <td className="px-3 py-2">{ex.exceptionType}</td>
-                    <td className="px-3 py-2">{ex.name}</td>
-                    <td className="px-3 py-2">{ex.isWorkingDay ? 'Yes' : 'No'}</td>
-                    <td className="px-3 py-2">{ex.workingHours}</td>
-                    <td className="px-3 py-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        icon={<Trash2 size={14} />}
-                        onClick={() => void removeException(ex.id)}
-                        title="Delete"
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+        <DataTable
+          ariaLabel="Calendar exceptions"
+          rows={exceptions}
+          rowKey={(exception) => exception.id}
+          emptyMessage="No exceptions yet."
+          columns={[
+            { id: 'date', header: 'Date', accessor: 'exceptionDate' },
+            { id: 'type', header: 'Type', accessor: 'exceptionType' },
+            { id: 'name', header: 'Name', accessor: (ex) => ex.name || '—' },
+            {
+              id: 'working',
+              header: 'Working',
+              accessor: (ex) => (ex.isWorkingDay ? 'Yes' : 'No'),
+            },
+            { id: 'hours', header: 'Hours', accessor: 'workingHours' },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (ex) => (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<Trash2 size={14} />}
+                  onClick={() => void removeException(ex.id)}
+                  title="Delete"
+                />
+              ),
+            },
+          ]}
+        />
+      </Card>
 
       <ConfirmDialog
         open={confirmSave}

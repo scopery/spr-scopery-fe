@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { CheckCircle, XCircle, RefreshCw, Send } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, Stack, Textarea, Typography } from '@/shared/ui'
+import { UserIdentity, useResolveUsers } from '@/modules/platform'
+import { Badge, Button, Card, Stack, Textarea, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { useDeliverableReview } from '../hooks/useDeliverableReview'
 import {
@@ -22,6 +23,7 @@ interface DeliverableReviewPanelProps {
 export function DeliverableReviewPanel({ projectId, deliverableId }: DeliverableReviewPanelProps) {
   const { review, acting, forbidden, submit, approve, reject, requestRework } =
     useDeliverableReview(projectId, deliverableId)
+  const { peopleById } = useResolveUsers([review?.reviewerId])
   const [comment, setComment] = useState('')
 
   const handleSubmit = async () => {
@@ -80,7 +82,7 @@ export function DeliverableReviewPanel({ projectId, deliverableId }: Deliverable
       <Typography weight="semibold">Deliverable Review</Typography>
 
       {!review ? (
-        <div className="space-y-3 rounded border border-neutral-200 p-4">
+        <Card className="space-y-3 p-4">
           <Typography variant="small" tone="muted">
             Not submitted
           </Typography>
@@ -102,7 +104,7 @@ export function DeliverableReviewPanel({ projectId, deliverableId }: Deliverable
           >
             Submit for review
           </Button>
-        </div>
+        </Card>
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 text-sm">
@@ -129,7 +131,11 @@ export function DeliverableReviewPanel({ projectId, deliverableId }: Deliverable
                 <Typography variant="small" tone="muted">
                   Reviewer
                 </Typography>
-                <Typography>{review.reviewerId}</Typography>
+                <UserIdentity
+                  userId={review.reviewerId}
+                  person={peopleById[review.reviewerId]}
+                  showEmail
+                />
               </div>
             )}
             {review.reviewedAt && (

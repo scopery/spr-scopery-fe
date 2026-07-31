@@ -4,7 +4,16 @@ import { Plus, Upload } from 'lucide-react'
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Badge, Button, Checkbox, Input, Select, Typography, PageSkeleton, Skeleton } from '@/shared/ui'
+import {
+  Badge,
+  Button,
+  Checkbox,
+  Input,
+  Select,
+  Typography,
+  PageSkeleton,
+  Skeleton, Card,
+} from '@/shared/ui'
 import { useFormBuilder } from '../hooks/useFormBuilder'
 import { FormFieldSource } from '../../domain/enums/configuration.enum'
 import { canEditFormVersion } from '../../domain/rules/configuration.rules'
@@ -45,9 +54,7 @@ export function FormBuilderView() {
   })
 
   if (loading) {
-    return (
-      <PageSkeleton variant="detail" />
-    )
+    return <PageSkeleton variant="detail" />
   }
 
   if (!form) {
@@ -77,9 +84,9 @@ export function FormBuilderView() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             {form.name}
           </Typography>
           <Typography as="p" variant="small" tone="muted" className="mt-1 font-mono text-xs">
@@ -107,7 +114,9 @@ export function FormBuilderView() {
             <Button
               variant="primary"
               disabled={publishing}
-              onClick={() => void publishVersion(selectedVersion.id)} icon={<Upload size={16} />}>
+              onClick={() => void publishVersion(selectedVersion.id)}
+              icon={<Upload size={16} />}
+            >
               {publishing ? 'Publishing…' : 'Publish'}
             </Button>
           ) : null}
@@ -122,13 +131,20 @@ export function FormBuilderView() {
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
-          <div className="border border-neutral-200 bg-white p-4">
+          <Card className="p-4">
             <div className="mb-4 flex items-center justify-between">
               <Typography weight="semibold" variant="small">
                 Version {selectedVersion.versionNumber}
               </Typography>
-              <Badge variant="solid" tone={selectedVersion.status === 'PUBLISHED' ? 'success' : 'neutral'}>
-                {selectedVersion.status === 'PUBLISHED' ? 'Published' : selectedVersion.status === 'DRAFT' ? 'Draft' : selectedVersion.status}
+              <Badge
+                variant="solid"
+                tone={selectedVersion.status === 'PUBLISHED' ? 'success' : 'neutral'}
+              >
+                {selectedVersion.status === 'PUBLISHED'
+                  ? 'Published'
+                  : selectedVersion.status === 'DRAFT'
+                    ? 'Draft'
+                    : selectedVersion.status}
               </Badge>
             </div>
 
@@ -139,7 +155,10 @@ export function FormBuilderView() {
             ) : (
               <div className="space-y-4">
                 {fieldGroups.map((group, idx) => (
-                  <div key={group.section?.id ?? `unsectioned-${idx}`} className="border border-neutral-100">
+                  <div
+                    key={group.section?.id ?? `unsectioned-${idx}`}
+                    className="border border-neutral-100"
+                  >
                     <div className="border-b border-neutral-100 bg-neutral-50 px-3 py-2">
                       <Typography weight="medium" variant="small">
                         {group.section?.title ?? 'Unsectioned fields'}
@@ -158,16 +177,15 @@ export function FormBuilderView() {
                             (f) => f.id === field.customFieldDefinitionId
                           )
                           return (
-                            <li key={field.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                            <li
+                              key={field.id}
+                              className="flex items-center justify-between px-3 py-2 text-sm"
+                            >
                               <span>{def?.label ?? field.fieldSource}</span>
                               <div className="flex items-center gap-2">
-                                <Badge tone="neutral">
-                                  {field.fieldSource}
-                                </Badge>
+                                <Badge tone="neutral">{field.fieldSource}</Badge>
                                 {field.requiredOnForm ? (
-                                  <Badge tone="warning">
-                                    Required
-                                  </Badge>
+                                  <Badge tone="warning">Required</Badge>
                                 ) : null}
                               </div>
                             </li>
@@ -184,11 +202,11 @@ export function FormBuilderView() {
                 ) : null}
               </div>
             )}
-          </div>
+          </Card>
 
           {editable ? (
             <div className="space-y-6">
-              <div className="border border-neutral-200 bg-white p-4">
+              <Card className="p-4">
                 <Typography weight="semibold" variant="small" className="mb-3">
                   Add section
                 </Typography>
@@ -205,22 +223,22 @@ export function FormBuilderView() {
                       void createSection({ title: sectionTitle.trim() }).then(() =>
                         setSectionTitle('')
                       )
-                    } icon={<Plus size={16} />}>
+                    }
+                    icon={<Plus size={16} />}
+                  >
                     Add section
                   </Button>
                 </div>
-              </div>
+              </Card>
 
-              <div className="border border-neutral-200 bg-white p-4">
+              <Card className="p-4">
                 <Typography weight="semibold" variant="small" className="mb-3">
                   Add field
                 </Typography>
                 <div className="flex flex-col gap-2">
                   <Select
                     value={fieldForm.fieldSource}
-                    onValueChange={(v: string) =>
-                      setFieldForm((f) => ({ ...f, fieldSource: v }))
-                    }
+                    onValueChange={(v: string) => setFieldForm((f) => ({ ...f, fieldSource: v }))}
                     options={FIELD_SOURCE_OPTIONS}
                   />
                   {fieldForm.fieldSource === FormFieldSource.CustomField ? (
@@ -272,17 +290,19 @@ export function FormBuilderView() {
                           requiredOnForm: false,
                         })
                       )
-                    } icon={<Plus size={16} />}>
+                    }
+                    icon={<Plus size={16} />}
+                  >
                     Add field
                   </Button>
                 </div>
-              </div>
+              </Card>
             </div>
           ) : (
             <div className="border border-dashed border-neutral-300 bg-neutral-50 p-4 text-center">
               <Typography tone="muted" variant="small">
-                This version is {selectedVersion.status.toLowerCase()} and cannot be edited. Create a
-                new version to make changes.
+                This version is {selectedVersion.status.toLowerCase()} and cannot be edited. Create
+                a new version to make changes.
               </Typography>
             </div>
           )}

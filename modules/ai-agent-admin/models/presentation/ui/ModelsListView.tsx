@@ -13,6 +13,7 @@ import {
   Select,
   Stack,
   Typography,
+  DataTable,
 } from '@/shared/ui'
 import { useCanManageAiConfig } from '../../../presentation/hooks/useCanManageAiConfig'
 import { AiLifecycleStatusBadge } from '../../../presentation/ui/AiLifecycleStatusBadge'
@@ -150,110 +151,119 @@ export function ModelsListView() {
       {error ? <Typography tone="error">{error}</Typography> : null}
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-neutral-200 bg-neutral-50 text-left">
-            <tr>
-              <th className="px-4 py-3 font-medium">Provider</th>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Code</th>
-              <th className="px-4 py-3 font-medium">Provider model ID</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-neutral-500">
-                  No models found.
-                </td>
-              </tr>
-            ) : (
-              items.map((m) => (
-                <tr key={m.id} className="border-b border-neutral-100">
-                  <td className="px-4 py-3">
-                    {providerNameById.get(m.providerId) ?? m.providerId.slice(0, 8)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Typography weight="medium">{m.name}</Typography>
-                    {m.description ? (
-                      <Typography variant="caption" tone="muted" className="block">
-                        {m.description}
-                      </Typography>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs">{m.code}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{m.providerModelId || '—'}</td>
-                  <td className="px-4 py-3">{m.type}</td>
-                  <td className="px-4 py-3">
-                    <AiLifecycleStatusBadge status={m.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      <Button
-                        as={NextLink}
-                        href={ADMIN_ROUTES.aiControlModel(m.id)}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Open
-                      </Button>
-                      {canManage ? (
-                        <>
+        <DataTable
+          ariaLabel="Models List"
+          rows={items}
+          rowKey={(m) => String(m.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'provider',
+              header: 'Provider',
+              cell: (m) => <>{providerNameById.get(m.providerId) ?? '—'}</>,
+            },
+            {
+              id: 'name',
+              header: 'Name',
+              cell: (m) => (
+                <>
+                  <Typography weight="medium">{m.name}</Typography>
+                  {m.description ? (
+                    <Typography variant="caption" tone="muted" className="block">
+                      {m.description}
+                    </Typography>
+                  ) : null}
+                </>
+              ),
+            },
+            {
+              id: 'code',
+              header: 'Code',
+              accessor: 'code',
+              kind: 'code',
+              cellClassName: 'text-xs',
+            },
+            {
+              id: 'provider-model-id',
+              header: 'Provider model ID',
+              accessor: () => '—',
+              kind: 'reference',
+              cellClassName: 'text-xs',
+            },
+            { id: 'type', header: 'Type', accessor: 'type' },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (m) => (
+                <>
+                  <AiLifecycleStatusBadge status={m.status} />
+                </>
+              ),
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (m) => (
+                <>
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      as={NextLink}
+                      href={ADMIN_ROUTES.aiControlModel(m.id)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Open
+                    </Button>
+                    {canManage ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditing(m)
+                            setFormOpen(true)
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        {m.status !== ModelStatus.Active ? (
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => {
-                              setEditing(m)
-                              setFormOpen(true)
-                            }}
+                            disabled={saving}
+                            onClick={() => void activate(m.id)}
                           >
-                            Edit
+                            Activate
                           </Button>
-                          {m.status !== ModelStatus.Active ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={saving}
-                              onClick={() => void activate(m.id)}
-                            >
-                              Activate
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setDeactivateTarget(m)}
-                            >
-                              Deactivate
-                            </Button>
-                          )}
-                        </>
-                      ) : null}
-                      <Button
-                        as={NextLink}
-                        href={`${ADMIN_ROUTES.aiControlDeployments}?modelId=${m.id}`}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Deployments
-                      </Button>
-                      <Button
-                        as={NextLink}
-                        href={`${ADMIN_ROUTES.aiControlParameterCapabilities}?modelId=${m.id}`}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Capabilities
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                        ) : (
+                          <Button size="sm" variant="ghost" onClick={() => setDeactivateTarget(m)}>
+                            Deactivate
+                          </Button>
+                        )}
+                      </>
+                    ) : null}
+                    <Button
+                      as={NextLink}
+                      href={`${ADMIN_ROUTES.aiControlDeployments}?modelId=${m.id}`}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Deployments
+                    </Button>
+                    <Button
+                      as={NextLink}
+                      href={`${ADMIN_ROUTES.aiControlParameterCapabilities}?modelId=${m.id}`}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Capabilities
+                    </Button>
+                  </div>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
 
       {totalElements > PAGE_SIZE ? (

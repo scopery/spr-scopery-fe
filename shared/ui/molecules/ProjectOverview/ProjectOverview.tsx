@@ -1,6 +1,7 @@
 import React from 'react'
 import { cn } from '@/utils/cn'
 import { Box } from '@/shared/ui/atoms/Box'
+import { Card } from '@/shared/ui/atoms/Card'
 import { Stack } from '@/shared/ui/atoms/Stack'
 import { Typography } from '@/shared/ui/atoms/Typography'
 import { Select } from '@/shared/ui/atoms/Select'
@@ -23,14 +24,11 @@ export const ProjectOverview = React.forwardRef(
       steps = [],
       currentStepNote,
       metrics,
-      cardBorderRadius = 'lg',
-      cardShadow = 'sm',
       className,
       ...props
     }: ProjectOverviewProps<C>,
     ref?: React.Ref<HTMLDivElement>
   ) => {
-    const Component = as || 'div'
     const clampedProgress = Math.min(Math.max(progress, 0), 1)
 
     const calculateLineHeight = (
@@ -96,139 +94,134 @@ export const ProjectOverview = React.forwardRef(
     }
 
     return (
-      <Component ref={ref} {...props}>
-        <Box
-          background="transparent"
-          radius={cardBorderRadius}
-          shadow={cardShadow}
-          className={cn('flex flex-col gap-[10px] bg-[#15543d] p-[20px]', className)}
-        >
-          {/* Header */}
-          <Stack direction="horizontal" justify="between" align="center" className="w-full">
-            <Stack direction="vertical" spacing="xs" className="gap-[4px]">
-              <Typography variant="h6" weight="semibold" className="leading-snug text-white">
-                {title}
+      <Card
+        as={as}
+        ref={ref}
+        className={cn('flex flex-col gap-[10px] bg-[#15543d] p-[20px]', className)}
+        {...props}
+      >
+        {/* Header */}
+        <Stack direction="horizontal" justify="between" align="center" className="w-full">
+          <Stack direction="vertical" spacing="xs" className="gap-[4px]">
+            <Typography variant="h6" weight="semibold" className="leading-snug text-white">
+              {title}
+            </Typography>
+            {description && (
+              <Typography variant="small" className="max-w-[520px] leading-relaxed text-[#bfdacc]">
+                {description}
               </Typography>
-              {description && (
-                <Typography
-                  variant="small"
-                  className="max-w-[520px] leading-relaxed text-[#bfdacc]"
-                >
-                  {description}
-                </Typography>
-              )}
-            </Stack>
-            {(selectOptions || badgeText) && (
-              <Box display="block" className="flex-shrink-0">
-                <Select
-                  options={
-                    selectOptions || (badgeText ? [{ value: badgeText, label: badgeText }] : [])
-                  }
-                  value={selectedValue || badgeText}
-                  onValueChange={onSelectChange}
-                  className="h-auto rounded-full border border-[#a3cf5b] bg-[rgba(213,245,160,0.49)] px-[12px] py-[8px] text-white shadow-[0px_2px_4px_rgba(0,0,0,0.05)] [&_button]:border-0 [&_button]:bg-transparent [&_button]:px-0 [&_button]:py-0 [&_button]:text-white [&_button]:shadow-none"
-                />
-              </Box>
             )}
           </Stack>
+          {(selectOptions || badgeText) && (
+            <Box display="block" className="flex-shrink-0">
+              <Select
+                options={
+                  selectOptions || (badgeText ? [{ value: badgeText, label: badgeText }] : [])
+                }
+                value={selectedValue || badgeText}
+                onValueChange={onSelectChange}
+                className="h-auto rounded-full border border-[#a3cf5b] bg-[rgba(213,245,160,0.49)] px-[12px] py-[8px] text-white shadow-[0px_2px_4px_rgba(0,0,0,0.05)] [&_button]:border-0 [&_button]:bg-transparent [&_button]:px-0 [&_button]:py-0 [&_button]:text-white [&_button]:shadow-none"
+              />
+            </Box>
+          )}
+        </Stack>
 
-          {/* Timeline */}
-          <Box display="block" className="relative min-h-[220px] w-full">
-            {/* Step labels */}
-            {steps.length > 0 && (
-              <Stack
-                direction="horizontal"
-                justify="between"
-                className="px-[10px] pb-[6px] text-[#bfdacc]"
-              >
-                {steps.map((step) => (
-                  <Box
-                    key={step.id}
-                    display="block"
-                    className="flex w-full -translate-x-8 justify-center"
+        {/* Timeline */}
+        <Box display="block" className="relative min-h-[220px] w-full">
+          {/* Step labels */}
+          {steps.length > 0 && (
+            <Stack
+              direction="horizontal"
+              justify="between"
+              className="px-[10px] pb-[6px] text-[#bfdacc]"
+            >
+              {steps.map((step) => (
+                <Box
+                  key={step.id}
+                  display="block"
+                  className="flex w-full -translate-x-8 justify-center"
+                >
+                  <Typography
+                    key={`label-${step.id}`}
+                    variant="small"
+                    className="text-xs text-[#bfdacc]"
                   >
-                    <Typography
-                      key={`label-${step.id}`}
-                      variant="small"
-                      className="text-xs text-[#bfdacc]"
-                    >
-                      {step.label}
-                    </Typography>
-                  </Box>
-                ))}
-              </Stack>
-            )}
+                    {step.label}
+                  </Typography>
+                </Box>
+              ))}
+            </Stack>
+          )}
 
-            {/* Track */}
+          {/* Track */}
+          <Box
+            display="block"
+            className="relative h-[63px] w-full rounded-[10px]"
+            style={{ backgroundColor: '#D3D3D338' }}
+            data-testid="project-track"
+          >
             <Box
               display="block"
-              className="relative h-[63px] w-full rounded-[10px]"
-              style={{ backgroundColor: '#D3D3D338' }}
-              data-testid="project-track"
-            >
-              <Box
-                display="block"
-                className="absolute inset-y-0 left-0 rounded-[10px]"
-                style={{
-                  width: `${clampedProgress * 100}%`,
-                  background: 'linear-gradient(90deg, #d5f5a0 0%, #eaffca 60%, #EAFFCA 100%)',
-                }}
-                data-testid="progress-bar"
-              />
+              className="absolute inset-y-0 left-0 rounded-[10px]"
+              style={{
+                width: `${clampedProgress * 100}%`,
+                background: 'linear-gradient(90deg, #d5f5a0 0%, #eaffca 60%, #EAFFCA 100%)',
+              }}
+              data-testid="progress-bar"
+            />
 
-              {/* Step markers */}
-              <Box display="block" className="absolute inset-0">
-                <Box display="flex" className="relative h-full w-full justify-between">
-                  {steps.map((step, index) => (
-                    <Box key={step.id} display="block" className="flex w-full justify-center">
-                      {renderStep(step, index)}
-                    </Box>
-                  ))}
-                </Box>
+            {/* Step markers */}
+            <Box display="block" className="absolute inset-0">
+              <Box display="flex" className="relative h-full w-full justify-between">
+                {steps.map((step, index) => (
+                  <Box key={step.id} display="block" className="flex w-full justify-center">
+                    {renderStep(step, index)}
+                  </Box>
+                ))}
               </Box>
             </Box>
           </Box>
-
-          {/* Current Step Note and Metrics */}
-          <Stack direction="horizontal" spacing="lg" className="mt-[16px] w-full" align="end">
-            <Box display="block" className="flex-1 leading-relaxed text-[#bfdacc]">
-              <Typography variant="small" className=" mb-[6px] text-[#bfdacc]">
-                Current Step:
-              </Typography>
-              {currentStepNote && (
-                <Typography variant="small" className=" whitespace-pre-wrap text-[#bfdacc]">
-                  {currentStepNote}
-                </Typography>
-              )}
-            </Box>
-
-            {metrics && (metrics.failsValue || metrics.dueValue) && (
-              <Box
-                display="flex"
-                className="min-w-[96px] flex-col rounded-[10px] border border-[rgba(255,255,255,0.33)] text-[#bfdacc]"
-              >
-                <Box display="block" className="p-[10px]">
-                  <Typography variant="small" className="text-[#bfdacc]">
-                    {metrics.failsLabel || 'FAILS'}
-                  </Typography>
-                  <Typography variant="h6" weight="semibold" className=" text-white">
-                    {metrics.failsValue || '0'}
-                  </Typography>
-                </Box>
-                <Box display="block" className="h-px w-full bg-[rgba(255,255,255,0.33)]" />
-                <Box display="block" className="p-[10px]">
-                  <Typography variant="small" className=" text-[#bfdacc]">
-                    {metrics.dueLabel || 'DUE'}
-                  </Typography>
-                  <Typography variant="h6" weight="semibold" className=" text-white">
-                    {metrics.dueValue || 'Apr 28th'}
-                  </Typography>
-                </Box>
-              </Box>
-            )}
-          </Stack>
         </Box>
-      </Component>
+
+        {/* Current Step Note and Metrics */}
+        <Stack direction="horizontal" spacing="lg" className="mt-[16px] w-full" align="end">
+          <Box display="block" className="flex-1 leading-relaxed text-[#bfdacc]">
+            <Typography variant="small" className=" mb-[6px] text-[#bfdacc]">
+              Current Step:
+            </Typography>
+            {currentStepNote && (
+              <Typography variant="small" className=" whitespace-pre-wrap text-[#bfdacc]">
+                {currentStepNote}
+              </Typography>
+            )}
+          </Box>
+
+          {metrics && (metrics.failsValue || metrics.dueValue) && (
+            <Card
+              hasShadow={false}
+              className="flex min-w-[96px] flex-col border-[rgba(255,255,255,0.33)] bg-transparent text-[#bfdacc]"
+            >
+              <Box display="block" className="p-[10px]">
+                <Typography variant="small" className="text-[#bfdacc]">
+                  {metrics.failsLabel || 'FAILS'}
+                </Typography>
+                <Typography variant="h6" weight="semibold" className=" text-white">
+                  {metrics.failsValue || '0'}
+                </Typography>
+              </Box>
+              <Box display="block" className="h-px w-full bg-[rgba(255,255,255,0.33)]" />
+              <Box display="block" className="p-[10px]">
+                <Typography variant="small" className=" text-[#bfdacc]">
+                  {metrics.dueLabel || 'DUE'}
+                </Typography>
+                <Typography variant="h6" weight="semibold" className=" text-white">
+                  {metrics.dueValue || 'Apr 28th'}
+                </Typography>
+              </Box>
+            </Card>
+          )}
+        </Stack>
+      </Card>
     )
   }
 )

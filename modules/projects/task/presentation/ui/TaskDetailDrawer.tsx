@@ -6,9 +6,8 @@ import { X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge, Button, Input, Select, Stack, Textarea, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
-import { useAuth } from '@/modules/auth'
-import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
-import { useWorkspaceMembers } from '@/modules/org/workspace/hooks/useWorkspaceMembers'
+import { UserSearchSelect, useResolveUsers, type PersonIdentity } from '@/modules/platform'
+import { useWorkspaceMembers } from '@/modules/org/workspace'
 import { useProjectWbs, WbsNodeStatus, type WbsTreeNode } from '@/modules/projects/wbs'
 import type { ProjectPhase } from '../../../phase/domain/model/phase'
 import type { ProjectTask, UpdateTaskPayload } from '../../domain/model/task'
@@ -88,14 +87,6 @@ export function TaskDetailDrawer({
   onSave,
 }: TaskDetailDrawerProps) {
   const router = useRouter()
-  const { session, profile } = useAuth()
-  const currentUserId = session?.user?.id ?? profile?.user_id ?? ''
-  const currentUserLabel =
-    profile?.display_name ||
-    session?.user?.fullName ||
-    session?.user?.email ||
-    session?.user?.username ||
-    'You'
 
   const [tab, setTab] = useState<DrawerTab>('details')
   const [title, setTitle] = useState('')
@@ -111,7 +102,15 @@ export function TaskDetailDrawer({
   const { members } = useWorkspaceMembers(open ? workspaceId : null)
   const { tree: wbsTree } = useProjectWbs(open ? projectId : null)
   const memberUserIds = useMemo(() => members.map((m) => m.userId), [members])
-  const { labelFor } = useResolveUsers(memberUserIds)
+  const { personFor } = useResolveUsers(memberUserIds)
+  const assigneePeople = useMemo(
+    () =>
+      members
+        .filter((member) => isActiveMember(member.status))
+        .map((member) => personFor(member.userId))
+        .filter((person): person is PersonIdentity => Boolean(person)),
+    [members, personFor]
+  )
 
   useEffect(() => {
     if (!task) return
@@ -136,40 +135,6 @@ export function TaskDetailDrawer({
     ],
     [phases]
   )
-
-  const assigneeOptions = useMemo(() => {
-    const active = members.filter((m) => isActiveMember(m.status))
-    const seen = new Set<string>()
-    const options: { value: string; label: string }[] = [{ value: '', label: 'Unassigned' }]
-
-    if (currentUserId) {
-      seen.add(currentUserId)
-      options.push({
-        value: currentUserId,
-        label: `You — ${currentUserLabel}`,
-      })
-    }
-
-    // Keep current assignee selectable even if not in active members
-    if (assigneeId && !seen.has(assigneeId)) {
-      seen.add(assigneeId)
-      options.push({
-        value: assigneeId,
-        label: labelFor(assigneeId, { currentUserId, youLabel: currentUserLabel }),
-      })
-    }
-
-    for (const m of active) {
-      if (seen.has(m.userId)) continue
-      seen.add(m.userId)
-      options.push({
-        value: m.userId,
-        label: labelFor(m.userId, { currentUserId, youLabel: currentUserLabel }),
-      })
-    }
-
-    return options
-  }, [members, currentUserId, currentUserLabel, labelFor, assigneeId])
 
   const wbsOptions = useMemo(
     () => [
@@ -224,12 +189,12 @@ export function TaskDetailDrawer({
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-neutral-900/[0.18] motion-drawer-backdrop"
+        className="bg-neutral-900/[0.18] motion-drawer-backdrop fixed inset-0 z-40"
         aria-hidden
         onClick={handleClose}
       />
       <aside
-        className="drawer fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-neutral-200 bg-white shadow-xl motion-drawer-panel"
+        className="drawer motion-drawer-panel fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-neutral-200 bg-white shadow-xl"
         role="dialog"
         aria-label="Task detail"
       >
@@ -251,7 +216,14 @@ export function TaskDetailDrawer({
               <Badge tone="neutral">{taskPriorityLabel(priority)}</Badge>
             </Stack>
           </div>
-          <Button variant="ghost" size="sm" iconOnly aria-label="Close" onClick={handleClose} icon={<X size={16} />} />
+          <Button
+            variant="ghost"
+            size="sm"
+            iconOnly
+            aria-label="Close"
+            onClick={handleClose}
+            icon={<X size={16} />}
+          />
         </div>
 
         <nav className="flex gap-1 border-b border-neutral-200 px-5">
@@ -300,16 +272,13 @@ export function TaskDetailDrawer({
                 </Typography>
                 <Select value={phaseId} onValueChange={setPhaseId} options={phaseOptions} />
               </div>
-              <div>
-                <Typography variant="small" className="mb-1.5">
-                  Assignee
-                </Typography>
-                <Select
-                  value={assigneeId}
-                  onValueChange={setAssigneeId}
-                  options={assigneeOptions}
-                />
-              </div>
+              <UserSearchSelect
+                label="Assignee"
+                value={assigneeId}
+                onChange={setAssigneeId}
+                seedPeople={assigneePeople}
+                allowRemoteSearch={false}
+              />
               <div>
                 <Typography variant="small" className="mb-1.5">
                   WBS node
@@ -343,11 +312,7 @@ export function TaskDetailDrawer({
               currentTaskTitle={task.title}
             />
           ) : tab === 'resources' ? (
-            <TaskResourcesPanel
-              workspaceId={workspaceId}
-              projectId={projectId}
-              taskId={task.id}
-            />
+            <TaskResourcesPanel workspaceId={workspaceId} projectId={projectId} taskId={task.id} />
           ) : (
             <CommentThreadsPanel projectId={projectId} targetType="TASK" targetId={task.id} />
           )}

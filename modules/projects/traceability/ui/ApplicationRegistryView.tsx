@@ -3,15 +3,8 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Plus } from 'lucide-react'
-import {
-  Button,
-  Input,
-  Modal,
-  PageSkeleton,
-  Stack,
-  Typography,
-} from '@/shared/ui'
+import { Plus, Search } from 'lucide-react'
+import { Button, Input, Modal, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
 import { ROUTES } from '@/constants/routes'
 import { useApplicationRegistry } from '../hooks/useTraceability'
@@ -55,9 +48,7 @@ export function ApplicationRegistryView() {
       })
       .catch((err: unknown) => {
         if (err instanceof ApiError && err.status === 409) {
-          setFormError(
-            'This application code may already exist. Use a unique code and try again.'
-          )
+          setFormError('This application code may already exist. Use a unique code and try again.')
           return
         }
         setFormError(err instanceof Error ? err.message : 'Failed to register application')
@@ -65,10 +56,10 @@ export function ApplicationRegistryView() {
       .finally(() => setSubmitting(false))
   }
 
-  if (loading) return <PageSkeleton variant="list" className="p-lg" />
+  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4" />
   if (error) {
     return (
-      <Stack direction="vertical" spacing="md" className="p-lg">
+      <Stack direction="vertical" spacing="sm" className="px-3 py-3 lg:px-4">
         <Typography tone="error">{error}</Typography>
       </Stack>
     )
@@ -97,6 +88,7 @@ export function ApplicationRegistryView() {
               placeholder="Search applications…"
               aria-label="Search applications"
               fullWidth
+              prefix={<Search size={14} />}
             />
           </div>
           <Button size="sm" variant="secondary" onClick={() => setAddOpen(true)}>
@@ -129,7 +121,7 @@ export function ApplicationRegistryView() {
                       {index + 1}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate font-calsans text-neutral-900">{app.name}</div>
+                      <div className="font-calsans truncate text-neutral-900">{app.name}</div>
                       <div className="truncate text-xs text-neutral-500">
                         {[app.code, app.status].filter(Boolean).join(' · ')}
                       </div>

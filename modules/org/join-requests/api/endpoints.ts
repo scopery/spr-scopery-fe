@@ -11,8 +11,7 @@ function withQuery(base: string, params?: Record<string, string | number | boole
 }
 
 export const JOIN_REQUEST_ENDPOINTS = {
-  submitDirect: (workspaceId: string) =>
-    apiPath(`/workspaces/${workspaceId}/join-requests`),
+  submitDirect: (workspaceId: string) => apiPath(`/workspaces/${workspaceId}/join-requests`),
   submitByCode: () => apiPath('/workspace-join-requests'),
   list: (workspaceId: string, params?: { status?: string }) =>
     withQuery(

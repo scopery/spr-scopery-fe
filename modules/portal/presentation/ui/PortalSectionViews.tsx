@@ -7,12 +7,16 @@ import { Stack, Typography } from '@/shared/ui'
 function PortalSimpleSection({ title, note }: { title: string; note: string }) {
   const { projectId } = useParams<{ projectId: string }>()
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
+    <Stack direction="vertical" spacing="sm" className="px-3 py-3 lg:px-4">
       <Link href={`/portal/projects/${projectId}`} className="text-sm underline">
         ← Project home
       </Link>
-      <Typography variant="h2">{title}</Typography>
-      <Typography tone="muted">{note}</Typography>
+      <Typography as="h1" size="md" weight="medium">
+        {title}
+      </Typography>
+      <Typography variant="small" tone="muted">
+        {note}
+      </Typography>
     </Stack>
   )
 }
@@ -27,19 +31,11 @@ export function PortalMeetingsView() {
 }
 
 export function PortalFormsView() {
-  return (
-    <PortalSimpleSection
-      title="Forms"
-      note="External forms shared with portal accounts."
-    />
-  )
+  return <PortalSimpleSection title="Forms" note="External forms shared with portal accounts." />
 }
 
 export function PortalFeedbackView() {
   return (
-    <PortalSimpleSection
-      title="Feedback"
-      note="Client feedback with explicit visibility rules."
-    />
+    <PortalSimpleSection title="Feedback" note="Client feedback with explicit visibility rules." />
   )
 }

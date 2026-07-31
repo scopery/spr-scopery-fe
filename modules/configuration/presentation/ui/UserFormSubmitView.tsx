@@ -4,7 +4,7 @@ import { Send } from 'lucide-react'
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Button, Typography, PageSkeleton } from '@/shared/ui'
+import { Button, Typography, PageSkeleton, Card } from '@/shared/ui'
 import { useFormBuilder } from '../hooks/useFormBuilder'
 import { useFormSubmission } from '../hooks/useFormSubmission'
 import { DynamicFieldRenderer } from './DynamicFieldRenderer'
@@ -21,9 +21,7 @@ export function UserFormSubmitView() {
   const [values, setValues] = useState<Record<string, unknown>>({})
 
   if (loading) {
-    return (
-      <PageSkeleton variant="form" />
-    )
+    return <PageSkeleton variant="form" />
   }
 
   if (!form || !selectedVersion) {
@@ -57,8 +55,8 @@ export function UserFormSubmitView() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <div className="mb-6">
-        <Typography as="h1" size="lg" weight="semibold">
+      <div className="mb-2">
+        <Typography as="h1" size="md" weight="medium">
           {form.name}
         </Typography>
         <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -68,7 +66,9 @@ export function UserFormSubmitView() {
 
       <div className="space-y-6">
         {fieldGroups.map((group, idx) => (
-          <div key={group.section?.id ?? `unsectioned-${idx}`} className="border border-neutral-200 bg-white p-4">
+          <Card
+            key={group.section?.id ?? `unsectioned-${idx}`}
+            className="p-4">
             {group.section ? (
               <Typography weight="semibold" className="mb-4">
                 {group.section.title}
@@ -88,7 +88,7 @@ export function UserFormSubmitView() {
                 )
               })}
             </div>
-          </div>
+          </Card>
         ))}
         {fieldGroups.length === 0 ? (
           <Typography tone="muted" variant="small">
@@ -98,7 +98,12 @@ export function UserFormSubmitView() {
       </div>
 
       <div className="mt-6">
-        <Button variant="primary" disabled={submitting} onClick={() => void handleSubmit()} icon={<Send size={16} />}>
+        <Button
+          variant="primary"
+          disabled={submitting}
+          onClick={() => void handleSubmit()}
+          icon={<Send size={16} />}
+        >
           {submitting ? 'Submitting…' : 'Submit'}
         </Button>
       </div>

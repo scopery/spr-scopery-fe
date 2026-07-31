@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   Badge,
   Button,
+  Card,
   Checkbox,
   CurrencyAmount,
   Input,
@@ -33,6 +34,7 @@ import {
   changeItemTargetLabel,
   affectedAreaLabel,
   changeTypeLabel,
+  crStatusBadgeVariant,
   crStatusLabel,
   crStatusTone,
   getCrNextStepHint,
@@ -41,6 +43,7 @@ import {
   isCrReadyToSubmit,
   priorityLabel,
   shouldShowImplementationPlan,
+  changeOrderStatusLabel,
   type CrWorkflowPhase,
 } from '../../domain/rules/project-control.rules'
 import { ChangePriority } from '../../domain/enums/project-control.enum'
@@ -131,14 +134,14 @@ export function ChangeRequestWorkbenchView() {
   if (h.loading && !h.cr) return <PageSkeleton variant="list" />
   if (h.forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="border border-neutral-200 bg-white p-8 text-center">
         <Typography weight="medium">You don’t have access to this change request</Typography>
-      </div>
+      </Card>
     )
   }
   if (h.error || !h.cr) {
     return (
-      <div className="border border-error/30 bg-error/5 p-4">
+      <div className="border-error/30 bg-error/5 border p-4">
         <Typography variant="small" tone="error">
           {h.error ?? 'Change request not found'}
         </Typography>
@@ -161,9 +164,7 @@ export function ChangeRequestWorkbenchView() {
   const nextHint = getCrNextStepHint(cr, h.items, h.impact)
   const showPlan = shouldShowImplementationPlan(cr)
   const currency = h.impact?.currencyCode ?? 'USD'
-  const selectedCount = [...selectedItemIds].filter((id) =>
-    h.items.some((i) => i.id === id)
-  ).length
+  const selectedCount = [...selectedItemIds].filter((id) => h.items.some((i) => i.id === id)).length
 
   const dirty =
     editable &&
@@ -195,14 +196,14 @@ export function ChangeRequestWorkbenchView() {
   }
 
   return (
-    <div className="pb-24">
+    <div className="px-3 pb-24 pt-3 lg:px-4 lg:pt-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
         current={cr.code}
       />
 
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-2 mt-1 flex flex-wrap items-start justify-between gap-4 border-b border-neutral-200 pb-2">
         <div className="min-w-0">
           <NextLink
             href={listHref}
@@ -210,14 +211,17 @@ export function ChangeRequestWorkbenchView() {
           >
             ← Change Requests
           </NextLink>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             {cr.title}
           </Typography>
           <Typography variant="small" tone="muted" className="mt-1 font-mono">
             {cr.code}
           </Typography>
           <div className="mt-2 flex flex-wrap items-center gap-sm">
-            <Badge variant="solid" tone={crStatusTone(cr.status)}>
+            <Badge
+              variant={crStatusBadgeVariant(cr.status)}
+              tone={crStatusTone(cr.status)}
+            >
               {crStatusLabel(cr.status)}
             </Badge>
             <Typography variant="small" tone="muted">
@@ -367,17 +371,16 @@ export function ChangeRequestWorkbenchView() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-8">
-          <section id="cr-request-details" className="scroll-mt-4 border border-neutral-200 bg-white p-5">
+          <section
+            id="cr-request-details"
+            className="scroll-mt-4 border border-neutral-200 bg-white p-5"
+          >
             <Typography as="h2" weight="semibold" className="mb-4">
               1. Request details
             </Typography>
             {editable ? (
               <div className="space-y-4">
-                <Input
-                  label="Title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
+                <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
                 <Textarea
                   label="Reason for change"
                   value={reason}
@@ -428,21 +431,22 @@ export function ChangeRequestWorkbenchView() {
               </div>
             )}
             <details className="mt-4 border-t border-neutral-100 pt-3">
-              <summary className="cursor-pointer text-sm text-neutral-500">
-                More details
-              </summary>
+              <summary className="cursor-pointer text-sm text-neutral-500">More details</summary>
               <div className="mt-2 space-y-1">
-                <Typography variant="caption" tone="muted" className="font-mono block">
-                  Baseline ID: {cr.baselineId}
+                <Typography variant="caption" tone="muted" className="block">
+                  Baseline: Linked
                 </Typography>
-                <Typography variant="caption" tone="muted" className="font-mono block">
-                  CR ID: {cr.id}
+                <Typography variant="caption" tone="muted" className="block">
+                  Request reference: {cr.code}
                 </Typography>
               </div>
             </details>
           </section>
 
-          <section id="cr-proposed-changes" className="scroll-mt-4 border border-neutral-200 bg-white p-5">
+          <section
+            id="cr-proposed-changes"
+            className="scroll-mt-4 border border-neutral-200 bg-white p-5"
+          >
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <Typography as="h2" weight="semibold">
                 2. Proposed changes
@@ -486,23 +490,22 @@ export function ChangeRequestWorkbenchView() {
                     key={item.id}
                     item={item}
                     editable={editable}
-                    onRemove={() =>
-                      void run('Change removed', () => h.removeItem(item.id))
-                    }
+                    onRemove={() => void run('Change removed', () => h.removeItem(item.id))}
                   />
                 ))}
               </ul>
             )}
           </section>
 
-          <section id="cr-impact-analysis" className="scroll-mt-4 border border-neutral-200 bg-white p-5">
+          <section
+            id="cr-impact-analysis"
+            className="scroll-mt-4 border border-neutral-200 bg-white p-5"
+          >
             <Typography as="h2" weight="semibold" className="mb-4">
               3. Impact analysis
             </Typography>
 
-            {h.analyzingImpact ? (
-              <ImpactProgress activeIndex={impactTick} />
-            ) : null}
+            {h.analyzingImpact ? <ImpactProgress activeIndex={impactTick} /> : null}
 
             {!h.analyzingImpact && !h.impact ? (
               <div className="space-y-4">
@@ -533,9 +536,7 @@ export function ChangeRequestWorkbenchView() {
                     </ul>
                     <Button
                       variant="primary"
-                      onClick={() =>
-                        void run('Impact analyzed', () => h.calculateImpact())
-                      }
+                      onClick={() => void run('Impact analyzed', () => h.calculateImpact())}
                     >
                       Analyze impact
                     </Button>
@@ -554,9 +555,7 @@ export function ChangeRequestWorkbenchView() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() =>
-                        void run('Impact recalculated', () => h.calculateImpact())
-                      }
+                      onClick={() => void run('Impact recalculated', () => h.calculateImpact())}
                     >
                       Recalculate
                     </Button>
@@ -569,9 +568,8 @@ export function ChangeRequestWorkbenchView() {
                     Suggested change review ({selectedCount} of {h.items.length} selected)
                   </Typography>
                   <Typography variant="caption" tone="muted" className="mb-3 block">
-                    Confirm which proposed changes should stay in this request before
-                    submitting. Detailed Task-level suggestions appear here when the
-                    analysis returns them.
+                    Confirm which proposed changes should stay in this request before submitting.
+                    Detailed Task-level suggestions appear here when the analysis returns them.
                   </Typography>
                   <ul className="divide-y divide-neutral-100 border border-neutral-100">
                     {h.items.map((item) => {
@@ -604,7 +602,10 @@ export function ChangeRequestWorkbenchView() {
             ) : null}
           </section>
 
-          <section id="cr-review-submit" className="scroll-mt-4 border border-neutral-200 bg-white p-5">
+          <section
+            id="cr-review-submit"
+            className="scroll-mt-4 border border-neutral-200 bg-white p-5"
+          >
             <Typography as="h2" weight="semibold" className="mb-4">
               4. Review and submit
             </Typography>
@@ -617,7 +618,7 @@ export function ChangeRequestWorkbenchView() {
             {canSubmitChangeRequest(cr) ? (
               <div className="mt-4 space-y-2">
                 {!readyToSubmit ? (
-                  <div className="border border-warning/40 bg-warning/5 px-3 py-2">
+                  <div className="border-warning/40 bg-warning/5 border px-3 py-2">
                     <Typography variant="small" weight="medium">
                       Submit for review is disabled
                     </Typography>
@@ -631,32 +632,32 @@ export function ChangeRequestWorkbenchView() {
                 <Button
                   variant="primary"
                   disabled={!readyToSubmit}
-                  onClick={() =>
-                    void run('Submitted for review', () => h.lifecycle('submit'))
-                  }
+                  onClick={() => void run('Submitted for review', () => h.lifecycle('submit'))}
                 >
                   Submit for review
                 </Button>
               </div>
             ) : (
               <Typography variant="small" tone="muted" className="mt-2">
-                Status: {crStatusLabel(cr.status)}. Use header actions for the next
-                lifecycle step.
+                Status: {crStatusLabel(cr.status)}. Use header actions for the next lifecycle step.
               </Typography>
             )}
           </section>
 
           {showPlan ? (
-            <section className="border border-neutral-200 bg-white p-5">
+            <Card as="section" className="border border-neutral-200 bg-white p-5">
               <Typography as="h2" weight="semibold" className="mb-4">
                 Implementation plan
               </Typography>
               <ImplementationPlan orders={h.orders} />
-            </section>
+            </Card>
           ) : null}
         </div>
 
-        <aside className="h-fit border border-neutral-200 bg-white p-4 lg:sticky lg:top-4">
+        <Card
+          as="aside"
+          className="h-fit border border-neutral-200 bg-white p-4 lg:sticky lg:top-4"
+        >
           <Typography variant="overline" tone="muted" className="mb-3 block">
             Request summary
           </Typography>
@@ -673,10 +674,7 @@ export function ChangeRequestWorkbenchView() {
                   : '—'
               }
             />
-            <SummaryRow
-              label="Risk"
-              value={h.impact ? String(h.impact.riskImpact) : '—'}
-            />
+            <SummaryRow label="Risk" value={h.impact ? String(h.impact.riskImpact) : '—'} />
           </dl>
           {blockers.length > 0 && canSubmitChangeRequest(cr) ? (
             <div className="mt-4 border-t border-neutral-100 pt-3">
@@ -690,7 +688,7 @@ export function ChangeRequestWorkbenchView() {
               </ul>
             </div>
           ) : null}
-        </aside>
+        </Card>
       </div>
 
       {editable ? (
@@ -700,22 +698,14 @@ export function ChangeRequestWorkbenchView() {
               Close
             </Button>
             <div className="flex flex-wrap gap-2">
-              <Button
-                variant="secondary"
-                loading={saving}
-                onClick={() => void saveDraft()}
-              >
+              <Button variant="secondary" loading={saving} onClick={() => void saveDraft()}>
                 Save draft
               </Button>
               <Button
                 variant="primary"
                 disabled={!readyToSubmit}
-                title={
-                  readyToSubmit ? undefined : `Missing: ${blockers.join(', ')}`
-                }
-                onClick={() =>
-                  void run('Submitted for review', () => h.lifecycle('submit'))
-                }
+                title={readyToSubmit ? undefined : `Missing: ${blockers.join(', ')}`}
+                onClick={() => void run('Submitted for review', () => h.lifecycle('submit'))}
               >
                 Submit for review
               </Button>
@@ -726,6 +716,7 @@ export function ChangeRequestWorkbenchView() {
 
       <AddChangeDrawer
         open={drawerOpen}
+        projectId={projectId}
         onClose={() => setDrawerOpen(false)}
         onSubmit={async (payload) => {
           await run('Change added', () => h.addItem(payload))
@@ -755,23 +746,15 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-function EmptyState({
-  title,
-  body,
-  action,
-}: {
-  title: string
-  body: string
-  action?: ReactNode
-}) {
+function EmptyState({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
   return (
-    <div className="border border-dashed border-neutral-200 bg-neutral-50 px-4 py-8 text-center">
+    <Card className="border border-dashed border-neutral-200 bg-neutral-50 px-4 py-8 text-center">
       <Typography weight="medium">{title}</Typography>
       <Typography variant="small" tone="muted" className="mt-1">
         {body}
       </Typography>
       {action ? <div className="mt-4 flex justify-center">{action}</div> : null}
-    </div>
+    </Card>
   )
 }
 
@@ -788,20 +771,15 @@ function ProposedChangeRow({
     <li className="px-4 py-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <Typography
-            variant="caption"
-            className="uppercase tracking-wide text-neutral-500"
-          >
-            {changeItemOperationLabel(item.operation)}{' '}
-            {changeItemTargetLabel(item.targetType)}
+          <Typography variant="caption" className="uppercase tracking-wide text-neutral-500">
+            {changeItemOperationLabel(item.operation)} {changeItemTargetLabel(item.targetType)}
           </Typography>
           <Typography variant="small" className="mt-1">
             {item.summary}
           </Typography>
           {item.affectedAreas && item.affectedAreas.length > 0 ? (
             <Typography variant="caption" tone="muted" className="mt-2 block">
-              Changed areas ·{' '}
-              {item.affectedAreas.map(affectedAreaLabel).join(' · ')}
+              Changed areas · {item.affectedAreas.map(affectedAreaLabel).join(' · ')}
             </Typography>
           ) : null}
         </div>
@@ -846,13 +824,7 @@ function ImpactProgress({ activeIndex }: { activeIndex: number }) {
   )
 }
 
-function ImpactSummary({
-  impact,
-  currency,
-}: {
-  impact: ChangeImpact
-  currency: string
-}) {
+function ImpactSummary({ impact, currency }: { impact: ChangeImpact; currency: string }) {
   const cards: { label: string; value: ReactNode }[] = [
     { label: 'Scope', value: String(impact.scopeImpact) },
     {
@@ -864,10 +836,7 @@ function ImpactSummary({
     },
     {
       label: 'Hours',
-      value:
-        impact.estimateHoursImpact != null
-          ? String(impact.estimateHoursImpact)
-          : '—',
+      value: impact.estimateHoursImpact != null ? String(impact.estimateHoursImpact) : '—',
     },
     {
       label: 'Labor cost',
@@ -893,12 +862,12 @@ function ImpactSummary({
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((c) => (
-        <div key={c.label} className="border border-neutral-200 p-3">
+        <Card key={c.label} className="border border-neutral-200 p-3">
           <Typography variant="overline" tone="muted">
             {c.label}
           </Typography>
           <div className="mt-1">{c.value}</div>
-        </div>
+        </Card>
       ))}
     </div>
   )
@@ -963,7 +932,7 @@ function ImplementationPlan({ orders }: { orders: ChangeOrder[] }) {
             ) : null}
           </div>
           <Badge size="sm" variant="solid" tone="info">
-            {o.status}
+            {changeOrderStatusLabel(o.status)}
           </Badge>
         </li>
       ))}

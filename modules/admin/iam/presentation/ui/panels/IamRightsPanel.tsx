@@ -3,7 +3,7 @@
 import { Search } from 'lucide-react'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Stack, Skeleton, Typography } from '@/shared/ui'
+import { Button, Stack, Skeleton, Typography, DataTable } from '@/shared/ui'
 import { IamStatusBadge } from '../IamStatusBadge'
 import { IamSearchField } from '../IamSearchField'
 import { iamRightsApi } from '@/modules/auth/iam'
@@ -60,37 +60,32 @@ export function IamRightsPanel() {
         <Skeleton variant="rectangular" width="100%" height={120} />
       ) : (
         <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-3 py-2 font-medium">Code</th>
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Module</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((right) => (
-                <tr key={right.id} className="border-t border-neutral-100">
-                  <td className="px-3 py-2 font-mono text-xs">{right.code}</td>
-                  <td className="px-3 py-2">{right.name}</td>
-                  <td className="px-3 py-2">{right.module ?? '—'}</td>
-                  <td className="px-3 py-2">
+          <DataTable
+            ariaLabel="Iam Rights Panel"
+            rows={items}
+            rowKey={(right) => String(right.id)}
+            emptyMessage="No items."
+            columns={[
+              {
+                id: 'code',
+                header: 'Code',
+                accessor: 'code',
+                kind: 'code',
+                cellClassName: 'text-xs',
+              },
+              { id: 'name', header: 'Name', accessor: 'name' },
+              { id: 'module', header: 'Module', cell: (right) => <>{right.module ?? '—'}</> },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (right) => (
+                  <>
                     <IamStatusBadge status={right.status} />
-                  </td>
-                </tr>
-              ))}
-              {!items.length && (
-                <tr>
-                  <td colSpan={4} className="px-3 py-6 text-center">
-                    <Typography variant="small" tone="muted">
-                      No rights found
-                    </Typography>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
     </Stack>

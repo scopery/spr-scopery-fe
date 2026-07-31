@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { PhaseDefinitionScope } from '../../domain/enums/phase-definition.enum'
 import type { CreatePhaseDefinitionPayload } from '../../domain/model/phase-definition'
+import { AdminWorkspaceSearchSelect } from '@/modules/admin/workspaces'
 
 const SCOPE_OPTIONS = [
   { value: PhaseDefinitionScope.System, label: 'System' },
@@ -16,7 +17,10 @@ const SCOPE_OPTIONS = [
 interface Props {
   open: boolean
   onClose: () => void
-  onCreate: (scope: string, body: CreatePhaseDefinitionPayload & { workspaceId?: string }) => Promise<void>
+  onCreate: (
+    scope: string,
+    body: CreatePhaseDefinitionPayload & { workspaceId?: string }
+  ) => Promise<void>
 }
 
 export function CreatePhaseDefinitionModal({ open, onClose, onCreate }: Props) {
@@ -100,13 +104,7 @@ export function CreatePhaseDefinitionModal({ open, onClose, onCreate }: Props) {
           />
         </div>
         {scope === PhaseDefinitionScope.Workspace && (
-          <Input
-            label="Workspace ID"
-            fullWidth
-            placeholder="e.g. ws-abc123"
-            value={workspaceId}
-            onChange={(e) => setWorkspaceId(e.target.value)}
-          />
+          <AdminWorkspaceSearchSelect value={workspaceId} onChange={setWorkspaceId} />
         )}
         <Input
           label="Display order"

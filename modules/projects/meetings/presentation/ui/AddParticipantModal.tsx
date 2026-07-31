@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useParams } from 'next/navigation'
 import { Input, Modal, Select, Typography } from '@/shared/ui'
+import { UserSearchSelect } from '@/modules/platform'
+import { useWorkspaceMemberPeople } from '@/modules/org/workspace'
 import type { AddParticipantPayload } from '../../domain/model/meeting'
 
 interface AddParticipantModalProps {
@@ -18,6 +21,8 @@ const ROLE_OPTIONS = [
 ]
 
 export function AddParticipantModal({ open, onClose, onSubmit }: AddParticipantModalProps) {
+  const { workspaceId } = useParams<{ workspaceId: string }>()
+  const { people: participantPeople } = useWorkspaceMemberPeople(open ? workspaceId : null)
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [targetId, setTargetId] = useState('')
@@ -27,8 +32,8 @@ export function AddParticipantModal({ open, onClose, onSubmit }: AddParticipantM
 
   const handleSubmit = async () => {
     const name = displayName.trim()
-    if (!name && !targetId.trim()) {
-      setFormError('Display name or user id is required')
+    if (!targetId.trim()) {
+      setFormError('Select a user')
       return
     }
     setFormError(null)
@@ -36,7 +41,7 @@ export function AddParticipantModal({ open, onClose, onSubmit }: AddParticipantM
     try {
       await onSubmit({
         targetType: 'USER',
-        targetId: targetId.trim() || crypto.randomUUID(),
+        targetId: targetId.trim(),
         displayName: name || null,
         email: email.trim() || null,
         participantRole: role,
@@ -77,12 +82,18 @@ export function AddParticipantModal({ open, onClose, onSubmit }: AddParticipantM
           onChange={(e) => setEmail(e.target.value)}
           placeholder="linh@example.com"
         />
-        <Input
-          label="User id (optional)"
-          fullWidth
+        <UserSearchSelect
+          label="User"
           value={targetId}
-          onChange={(e) => setTargetId(e.target.value)}
-          placeholder="uuid — leave blank to invite by name"
+          seedPeople={participantPeople}
+          allowRemoteSearch={false}
+          onChange={(userId, person) => {
+            setTargetId(userId)
+            if (person) {
+              setDisplayName(person.fullName)
+              setEmail(person.email ?? '')
+            }
+          }}
         />
         <div>
           <Typography variant="small" weight="medium" className="mb-1">
@@ -95,9 +106,6 @@ export function AddParticipantModal({ open, onClose, onSubmit }: AddParticipantM
             {formError}
           </Typography>
         ) : null}
-        <Typography variant="small" tone="muted">
-          Member picker will replace free-text user id when the directory search API is available.
-        </Typography>
       </div>
     </Modal>
   )

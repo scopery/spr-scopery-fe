@@ -3,13 +3,21 @@
 import { Ban, Check, Search, UserPlus } from 'lucide-react'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Input, Stack, Typography, Skeleton } from '@/shared/ui'
+import { Button, Select, Stack, Typography, Skeleton, DataTable } from '@/shared/ui'
+import { UserSearchSelect } from '@/modules/platform'
+import { AdminWorkspaceSearchSelect } from '@/modules/admin/workspaces'
 import { IamStatusBadge } from '../IamStatusBadge'
-import { IamSearchField } from '../IamSearchField'
 import { iamRoleAssignmentsApi } from '@/modules/auth/iam'
 import type { IamRoleAssignment } from '@/modules/auth/iam'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
+import { IamRoleSearchSelect } from '../IamRoleSearchSelect'
+import { useIamIdentityDirectory } from '../../hooks/useIamIdentityDirectory'
+
+const ASSIGNEE_TYPE_OPTIONS = [
+  { value: 'USER', label: 'User' },
+  { value: 'ROLE', label: 'Role' },
+]
 
 export function IamAssignmentsPanel() {
   const [assigneeId, setAssigneeId] = useState('')
@@ -25,6 +33,14 @@ export function IamAssignmentsPanel() {
     workspaceId: '',
   })
   const [creating, setCreating] = useState(false)
+  const { usersById, rolesById, workspacesById } = useIamIdentityDirectory({
+    userIds: items.filter((item) => item.assigneeType === 'USER').map((item) => item.assigneeId),
+    roleIds: [
+      ...items.map((item) => item.roleId),
+      ...items.filter((item) => item.assigneeType === 'ROLE').map((item) => item.assigneeId),
+    ],
+    workspaceIds: items.map((item) => item.workspaceId),
+  })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -63,7 +79,7 @@ export function IamAssignmentsPanel() {
 
   const create = async () => {
     if (!form.assigneeId.trim() || !form.roleId.trim()) {
-      toast.error('Assignee ID and role ID are required')
+      toast.error('Assignee and role are required')
       return
     }
     setCreating(true)
@@ -87,20 +103,25 @@ export function IamAssignmentsPanel() {
   return (
     <Stack direction="vertical" spacing="md">
       <Stack direction="horizontal" spacing="sm" className="flex-wrap items-center">
-        <IamSearchField
-          placeholder="Assignee ID"
-          value={assigneeId}
-          onChange={(e) => setAssigneeId(e.target.value)}
-        />
-        <IamSearchField
-          placeholder="Role ID"
-          value={roleId}
-          onChange={(e) => setRoleId(e.target.value)}
-        />
+        <div className="min-w-56">
+          <UserSearchSelect label="Filter by user" value={assigneeId} onChange={setAssigneeId} />
+        </div>
+        <div className="min-w-56">
+          <IamRoleSearchSelect
+            label="Filter by role"
+            optional
+            value={roleId}
+            onChange={setRoleId}
+          />
+        </div>
         <Button variant="primary" onClick={() => void load()} icon={<Search size={16} />}>
           Search
         </Button>
-        <Button variant="neutral-flat" onClick={() => setShowCreate((v) => !v)} icon={!showCreate ? <UserPlus size={16} /> : undefined}>
+        <Button
+          variant="neutral-flat"
+          onClick={() => setShowCreate((v) => !v)}
+          icon={!showCreate ? <UserPlus size={16} /> : undefined}
+        >
           {showCreate ? 'Cancel' : 'Assign role'}
         </Button>
       </Stack>
@@ -110,27 +131,41 @@ export function IamAssignmentsPanel() {
             Assign role
           </Typography>
           <Stack direction="vertical" spacing="sm" className="max-w-lg">
-            <Input
-              label="Assignee type"
+            <Select
               value={form.assigneeType}
-              onChange={(e) => setForm((f) => ({ ...f, assigneeType: e.target.value }))}
+              onValueChange={(assigneeType: string) =>
+                setForm((current) => ({ ...current, assigneeType, assigneeId: '' }))
+              }
+              options={ASSIGNEE_TYPE_OPTIONS}
             />
-            <Input
-              label="Assignee ID"
-              value={form.assigneeId}
-              onChange={(e) => setForm((f) => ({ ...f, assigneeId: e.target.value }))}
-            />
-            <Input
-              label="Role ID"
+            {form.assigneeType === 'USER' ? (
+              <UserSearchSelect
+                label="User"
+                value={form.assigneeId}
+                onChange={(assigneeId) => setForm((current) => ({ ...current, assigneeId }))}
+              />
+            ) : (
+              <IamRoleSearchSelect
+                label="Assignee role"
+                value={form.assigneeId}
+                onChange={(assigneeId) => setForm((current) => ({ ...current, assigneeId }))}
+              />
+            )}
+            <IamRoleSearchSelect
               value={form.roleId}
-              onChange={(e) => setForm((f) => ({ ...f, roleId: e.target.value }))}
+              onChange={(roleId) => setForm((current) => ({ ...current, roleId }))}
             />
-            <Input
-              label="Workspace ID (optional)"
+            <AdminWorkspaceSearchSelect
+              optional
               value={form.workspaceId}
-              onChange={(e) => setForm((f) => ({ ...f, workspaceId: e.target.value }))}
+              onChange={(workspaceId) => setForm((current) => ({ ...current, workspaceId }))}
             />
-            <Button variant="primary" disabled={creating} onClick={() => void create()} icon={<UserPlus size={16} />}>
+            <Button
+              variant="primary"
+              disabled={creating}
+              onClick={() => void create()}
+              icon={<UserPlus size={16} />}
+            >
               Assign
             </Button>
           </Stack>
@@ -140,62 +175,82 @@ export function IamAssignmentsPanel() {
         <Skeleton variant="rectangular" width="100%" height={80} />
       ) : (
         <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-3 py-2 font-medium">Assignee</th>
-                <th className="px-3 py-2 font-medium">Role ID</th>
-                <th className="px-3 py-2 font-medium">Workspace</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-                <th className="min-w-[12rem] whitespace-nowrap px-3 py-2 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id} className="border-t border-neutral-100">
-                  <td className="px-3 py-2">
-                    <Typography as="span" variant="small" tone="muted">
-                      {item.assigneeType}
-                    </Typography>
-                    <br />
-                    <Typography as="span" variant="small" className="font-mono">
-                      {item.assigneeId}
-                    </Typography>
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs">{item.roleId}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{item.workspaceId ?? '—'}</td>
-                  <td className="px-3 py-2">
+          <DataTable
+            ariaLabel="Iam Assignments Panel"
+            rows={items}
+            rowKey={(item) => String(item.id)}
+            emptyMessage="No items."
+            columns={[
+              {
+                id: 'assignee',
+                header: 'Assignee',
+                accessor: (item) => {
+                  if (item.assigneeType === 'USER') {
+                    const user = usersById[item.assigneeId]
+                    return user?.fullName || user?.username || user?.email || '—'
+                  }
+                  if (item.assigneeType === 'ROLE') {
+                    return rolesById[item.assigneeId]?.name ?? '—'
+                  }
+                  return '—'
+                },
+                kind: 'reference',
+              },
+              {
+                id: 'role',
+                header: 'Role',
+                accessor: (item) =>
+                  rolesById[item.roleId]?.name ?? rolesById[item.roleId]?.code ?? '—',
+                kind: 'reference',
+              },
+              {
+                id: 'workspace',
+                header: 'Workspace',
+                accessor: (item) =>
+                  item.workspaceId
+                    ? (workspacesById[item.workspaceId]?.name ??
+                      workspacesById[item.workspaceId]?.code ??
+                      '—')
+                    : 'System',
+                kind: 'reference',
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (item) => (
+                  <>
                     <IamStatusBadge status={item.status} />
-                  </td>
-                  <td className="px-3 py-2">
+                  </>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (item) => (
+                  <>
                     <Stack direction="horizontal" spacing="xs">
                       <Button
                         variant="ghost"
                         disabled={actingId === item.id}
-                        onClick={() => void runAction(item.id, 'activate')} icon={<Check size={16} />}>
+                        onClick={() => void runAction(item.id, 'activate')}
+                        icon={<Check size={16} />}
+                      >
                         Activate
                       </Button>
                       <Button
                         variant="ghost"
                         disabled={actingId === item.id}
-                        onClick={() => void runAction(item.id, 'deactivate')} icon={<Ban size={16} />}>
+                        onClick={() => void runAction(item.id, 'deactivate')}
+                        icon={<Ban size={16} />}
+                      >
                         Deactivate
                       </Button>
                     </Stack>
-                  </td>
-                </tr>
-              ))}
-              {!items.length && (
-                <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center">
-                    <Typography variant="small" tone="muted">
-                      No assignments found
-                    </Typography>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
     </Stack>

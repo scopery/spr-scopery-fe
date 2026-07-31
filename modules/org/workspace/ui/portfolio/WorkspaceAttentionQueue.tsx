@@ -1,7 +1,7 @@
 'use client'
 
 import NextLink from 'next/link'
-import { Badge, Button, Typography } from '@/shared/ui'
+import { Badge, Button, Card, Typography } from '@/shared/ui'
 import type { PortfolioAttentionItem } from '../../domain/rules/portfolio.rules'
 import { portfolioSeverityTone } from './portfolioStatusTones'
 
@@ -11,7 +11,7 @@ interface WorkspaceAttentionQueueProps {
 
 export function WorkspaceAttentionQueue({ items }: WorkspaceAttentionQueueProps) {
   return (
-    <section className="border border-neutral-200 bg-white">
+    <Card as="section">
       <header className="flex items-center justify-between gap-2 border-b border-neutral-200 px-4 py-3">
         <Typography as="h2" size="sm" weight="semibold">
           Needs your attention
@@ -59,6 +59,6 @@ export function WorkspaceAttentionQueue({ items }: WorkspaceAttentionQueueProps)
           ))}
         </ul>
       )}
-    </section>
+    </Card>
   )
 }

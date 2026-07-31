@@ -15,8 +15,11 @@ import { useArchitectureNodeCatalog } from '../hooks/useArchitectureNodeCatalog'
 import { labelArchitectureNode } from '../model/anchor-mapping'
 import { ScreenStructureEditor } from './ScreenStructureEditor'
 import { FunctionalItemCustomPropertiesPanel } from './FunctionalItemCustomPropertiesPanel'
+import { useUseCaseCatalog } from '../hooks/useUseCaseCatalog'
+import { UseCaseStatusBadge } from './UseCaseStatusBadge'
+import { UseCaseCompletenessBadge } from './UseCaseCompletenessBadge'
 
-type DetailTab = 'anchors' | 'properties' | 'rules'
+type DetailTab = 'anchors' | 'properties' | 'rules' | 'use-cases'
 
 interface FunctionalItemDetailPanelProps {
   projectId: string
@@ -156,6 +159,11 @@ export function FunctionalItemDetailPanel({
   const { nodeById } = useArchitectureNodeCatalog(
     workspaceId,
     preferredApplicationId || null
+  )
+
+  const { useCases: functionUseCases } = useUseCaseCatalog(
+    tab === 'use-cases' ? projectId : null,
+    tab === 'use-cases' ? item.id : null
   )
 
   useEffect(() => {
@@ -362,6 +370,7 @@ export function FunctionalItemDetailPanel({
                 { id: 'anchors', label: `Anchors (${anchors.length})` },
                 { id: 'properties', label: `Fields (${properties.length})` },
                 { id: 'rules', label: `Rules (${rules.length})` },
+                { id: 'use-cases', label: `Use Cases (${functionUseCases.length})` },
               ] as const
             ).map((t) => {
               const active = tab === t.id
@@ -417,9 +426,9 @@ export function FunctionalItemDetailPanel({
                           {a.nodeType}
                           {resolved ? ` · ${labelArchitectureNode(resolved)}` : ''}
                         </Typography>
-                        {!resolved || a.note ? (
+                        {a.note ? (
                           <Typography variant="caption" tone="muted" className="truncate">
-                            {[resolved ? null : a.nodeId, a.note].filter(Boolean).join(' · ')}
+                            {a.note}
                           </Typography>
                         ) : null}
                       </li>
@@ -468,6 +477,40 @@ export function FunctionalItemDetailPanel({
               }}
               onDelete={removeRule}
             />
+          ) : null}
+
+          {tab === 'use-cases' ? (
+            <Stack direction="vertical" spacing="sm">
+              {functionUseCases.length === 0 ? (
+                <Typography tone="muted" variant="small">
+                  No use cases linked to this function yet.
+                </Typography>
+              ) : (
+                <ul className="divide-y divide-neutral-100">
+                  {functionUseCases.map((uc) => (
+                    <li key={uc.id} className="py-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-xs text-neutral-400">{uc.key}</span>
+                            <UseCaseStatusBadge status={uc.status} />
+                            <UseCaseCompletenessBadge completenessStatus={uc.completenessStatus} />
+                          </div>
+                          <Typography variant="small" weight="medium" className="truncate">
+                            {uc.name}
+                          </Typography>
+                          {uc.primaryActorName && (
+                            <Typography variant="caption" tone="muted">
+                              Actor: {uc.primaryActorName}
+                            </Typography>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Stack>
           ) : null}
         </Stack>
       </div>

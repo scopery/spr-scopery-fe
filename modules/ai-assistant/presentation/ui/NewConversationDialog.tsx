@@ -115,7 +115,7 @@ export function NewConversationDialog({
             onValueChange={setProjectId}
             options={projects.map((p) => ({
               value: p.id,
-              label: p.name || p.code || p.id,
+              label: p.name || p.code || 'Unnamed project',
             }))}
             placeholder="Select project"
           />

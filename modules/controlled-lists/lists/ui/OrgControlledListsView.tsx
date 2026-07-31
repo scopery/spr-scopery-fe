@@ -6,7 +6,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { Box, Button, Input, Typography, Stack, Select, Badge, Modal, Textarea, PageSkeleton } from '@/shared/ui'
+import {
+  Box,
+  Button,
+  Card,
+  DataTable,
+  Input,
+  Typography,
+  Stack,
+  Select,
+  Badge,
+  Modal,
+  Textarea,
+  PageSkeleton,
+} from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { useProjects } from '@/modules/projects/project/hooks/useProjects'
 import { useControlledLists } from '@/modules/controlled-lists'
@@ -164,7 +177,7 @@ export function OrgControlledListsView() {
 
   return (
     <main className="min-h-screen p-8">
-      <Box padding="xl" background="white" radius="lg" shadow="md" className="mx-auto max-w-5xl">
+      <Card className="mx-auto max-w-5xl p-xl">
         <Stack direction="vertical" spacing="lg">
           <Stack
             direction="horizontal"
@@ -187,7 +200,9 @@ export function OrgControlledListsView() {
               variant="primary"
               onClick={() => setCreateModalOpen(true)}
               disabled={createDisabled}
-              aria-label="Create controlled list" icon={<Plus size={16} />}>
+              aria-label="Create controlled list"
+              icon={<Plus size={16} />}
+            >
               Create list
             </Button>
           </Stack>
@@ -224,10 +239,7 @@ export function OrgControlledListsView() {
             )}
 
             {!hasProjectContext && !projectsLoading && (
-              <Box
-                padding="lg"
-                className="rounded-lg border border-neutral-200 bg-neutral-50 text-center"
-              >
+              <Card className="border border-neutral-200 bg-neutral-50 p-lg text-center">
                 <Typography tone="muted" className="mb-sm">
                   Select a project to manage controlled lists.
                 </Typography>
@@ -235,94 +247,79 @@ export function OrgControlledListsView() {
                   Once backend endpoints are available, lists for the selected project will appear
                   here.
                 </Typography>
-              </Box>
+              </Card>
             )}
 
             {hasProjectContext && (
               <>
-                {filteredLists.length === 0 ? (
-                  <Box
-                    padding="lg"
-                    className="rounded-lg border border-dashed border-neutral-200 bg-neutral-50 text-center"
-                  >
-                    <Typography tone="muted" className="mb-sm">
-                      No controlled lists to display yet.
-                    </Typography>
-                    <Typography variant="small" tone="muted">
-                      Create the first controlled list for this project.
-                    </Typography>
-                  </Box>
-                ) : (
-                  <div className="overflow-x-auto rounded-lg border border-neutral-200">
-                    <table className="w-full border-collapse text-left">
-                      <thead>
-                        <tr className="border-b border-neutral-200 bg-neutral-50">
-                          <th className="p-md text-sm font-semibold text-neutral-700">Key</th>
-                          <th className="p-md text-sm font-semibold text-neutral-700">Name</th>
-                          <th className="p-md text-sm font-semibold text-neutral-700">Locked</th>
-                          <th className="p-md text-sm font-semibold text-neutral-700">Updated</th>
-                          <th className="min-w-[12rem] whitespace-nowrap p-md text-sm font-semibold text-neutral-700">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredLists.map((l) => {
-                          const locked =
-                            (typeof l.locked === 'boolean' && l.locked) ||
-                            (typeof l.is_locked === 'boolean' && l.is_locked)
-                          const detailHref = ROUTES.workspace.settingsControlledListDetail(
+                <DataTable
+                  ariaLabel="Controlled lists"
+                  rows={filteredLists}
+                  rowKey={(list) => list.id}
+                  emptyMessage="No controlled lists to display yet. Create the first controlled list for this project."
+                  columns={[
+                    {
+                      id: 'key',
+                      header: 'Key',
+                      accessor: (list) => list.list_key || '—',
+                      kind: 'code',
+                    },
+                    {
+                      id: 'name',
+                      header: 'Name',
+                      cell: (list) => (
+                        <>
+                          <Typography>{list.name ?? '—'}</Typography>
+                          {list.description ? (
+                            <Typography variant="small" tone="muted" className="mt-0.5">
+                              {list.description}
+                            </Typography>
+                          ) : null}
+                        </>
+                      ),
+                    },
+                    {
+                      id: 'locked',
+                      header: 'Locked',
+                      cell: (list) => {
+                        const locked =
+                          (typeof list.locked === 'boolean' && list.locked) ||
+                          (typeof list.is_locked === 'boolean' && list.is_locked)
+                        return (
+                          <Badge tone={locked ? 'warning' : 'success'} variant="soft">
+                            {locked ? 'Locked' : 'Unlocked'}
+                          </Badge>
+                        )
+                      },
+                    },
+                    {
+                      id: 'updated',
+                      header: 'Updated',
+                      accessor: (list) => formatUpdatedAt(list.updated_at),
+                    },
+                    {
+                      id: 'actions',
+                      header: 'Actions',
+                      cell: (list) => (
+                        <Link
+                          href={ROUTES.workspace.settingsControlledListDetail(
                             orgId,
-                            l.id,
+                            list.id,
                             projectId ?? undefined
-                          )
-                          return (
-                            <tr
-                              key={l.id}
-                              className="border-b border-neutral-100 hover:bg-neutral-50"
-                            >
-                              <td className="p-md">
-                                <Typography weight="medium">{l.list_key}</Typography>
-                              </td>
-                              <td className="p-md">
-                                <Typography>{l.name ?? '—'}</Typography>
-                                {l.description && (
-                                  <Typography variant="small" tone="muted" className="mt-0.5">
-                                    {l.description}
-                                  </Typography>
-                                )}
-                              </td>
-                              <td className="p-md">
-                                <Badge
-                                  tone={locked ? 'warning' : 'success'}
-                                  variant="soft"
-                                >
-                                  {locked ? 'Locked' : 'Unlocked'}
-                                </Badge>
-                              </td>
-                              <td className="p-md">
-                                <Typography variant="small" tone="muted">
-                                  {formatUpdatedAt(l.updated_at)}
-                                </Typography>
-                              </td>
-                              <td className="p-md">
-                                <Link
-                                  href={detailHref}
-                                  className="text-sm font-medium text-primary hover:underline"
-                                >
-                                  View
-                                </Link>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                          )}
+                          className="text-sm font-medium text-primary hover:underline"
+                        >
+                          View
+                        </Link>
+                      ),
+                    },
+                  ]}
+                />
               </>
             )}
           </Stack>
         </Stack>
-      </Box>
+      </Card>
 
       <Modal
         open={createModalOpen}
@@ -387,7 +384,9 @@ export function OrgControlledListsView() {
             <Button
               variant="outline"
               onClick={() => setCreateLocked((v) => !v)}
-              aria-pressed={createLocked} icon={<Eye size={16} />}>
+              aria-pressed={createLocked}
+              icon={<Eye size={16} />}
+            >
               Toggle locked
             </Button>
           </Stack>

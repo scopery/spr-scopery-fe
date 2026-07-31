@@ -1,27 +1,24 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import {
-  GovernedObjectBadge,
-  PageSkeleton,
-  Stack,
-  Typography
-} from '@/shared/ui'
+import { GovernedObjectBadge, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useAiPlanning } from '../hooks/useAiPlanning'
 
 export function AiPlanningCenterView() {
   const { projectId } = useParams<{ projectId: string }>()
   const { items, loading, error } = useAiPlanning(projectId)
 
-  if (loading) return <PageSkeleton variant="list" className="p-lg" />
+  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">AI Planning Center</Typography>
-      <Typography tone="muted">
-        Review suggestions as suggested / accepted / applied. Baseline-guarded projects may
-        require a Change Request before apply.
+    <Stack direction="vertical" spacing="sm" className="px-3 py-3 lg:px-4">
+      <Typography as="h1" size="md" weight="medium">
+        AI Planning Center
+      </Typography>
+      <Typography variant="small" tone="muted">
+        Review suggestions as suggested / accepted / applied. Baseline-guarded projects may require
+        a Change Request before apply.
       </Typography>
       {items.length === 0 ? (
         <Typography tone="muted">No planning runs yet.</Typography>
@@ -31,7 +28,7 @@ export function AiPlanningCenterView() {
             <li key={run.id} className="flex items-center justify-between gap-md p-md">
               <div>
                 <Typography variant="small" weight="medium">
-                  {run.title ?? run.id}
+                  {run.title ?? 'Planning run'}
                 </Typography>
                 <Typography variant="caption" tone="muted">
                   {run.status}

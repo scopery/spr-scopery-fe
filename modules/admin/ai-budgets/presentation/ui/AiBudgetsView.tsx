@@ -4,7 +4,14 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Ban, CircleArrowOutUpLeft, Pencil, Plus, Save } from 'lucide-react'
-import { Typography, Button, Input, ConfirmDialog, PageSkeleton } from '@/shared/ui'
+import {
+  Typography,
+  Button,
+  DataTable,
+  Input,
+  ConfirmDialog,
+  PageSkeleton, Card,
+} from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { FEATURES } from '@/config/features'
 import { useAuth } from '@/modules/auth/auth/context/AuthContext'
@@ -165,9 +172,9 @@ export function AiBudgetsView() {
       </div>
 
       {!orgId ? (
-        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-8 text-center">
+        <Card className="bg-neutral-50 p-8 text-center">
           <Typography tone="muted">Select a default organization to manage AI budgets.</Typography>
-        </div>
+        </Card>
       ) : (
         <>
           {overview && (
@@ -181,14 +188,14 @@ export function AiBudgetsView() {
                   value: formatBudgetAmount(overview.totalCurrentEstimatedCost, overview.currency),
                 },
               ].map((card) => (
-                <div key={card.label} className="rounded-lg border border-neutral-200 bg-white p-4">
+                <Card key={card.label} className="p-4">
                   <Typography variant="xs" className="mb-1 uppercase text-neutral-500">
                     {card.label}
                   </Typography>
                   <Typography variant="lg" className="font-semibold">
                     {typeof card.value === 'number' ? card.value.toLocaleString() : card.value}
                   </Typography>
-                </div>
+                </Card>
               ))}
             </div>
           )}
@@ -205,30 +212,21 @@ export function AiBudgetsView() {
           </div>
 
           {items.length === 0 ? (
-            <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-8 text-center">
+            <Card className="bg-neutral-50 p-8 text-center">
               <Typography tone="muted">No AI budgets configured yet.</Typography>
-            </div>
+            </Card>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
-              <table className="min-w-full text-sm">
-                <thead className="border-b border-neutral-200 bg-neutral-50 text-left">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Scope</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium">Est. cost / limit</th>
-                    <th className="px-4 py-3 font-medium">Tokens / quota</th>
-                    <th className="px-4 py-3 font-medium">Threshold</th>
-                    <th className="px-4 py-3 font-medium">Hard limit</th>
-                    <th className="px-4 py-3 font-medium" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr
-                      key={item.budgetId}
-                      className="border-b border-neutral-100 hover:bg-neutral-50"
-                    >
-                      <td className="px-4 py-3">
+              <DataTable
+                ariaLabel="AI budgets"
+                rows={items}
+                rowKey={(item) => item.budgetId}
+                columns={[
+                  {
+                    id: 'scope',
+                    header: 'Scope',
+                    cell: (item) => (
+                      <>
                         <Typography weight="medium">{item.scope.label}</Typography>
                         {item.scope.projectName ? (
                           <Typography variant="xs" tone="muted">
@@ -240,50 +238,78 @@ export function AiBudgetsView() {
                             {item.scope.agentName}
                           </Typography>
                         ) : null}
-                      </td>
-                      <td className="px-4 py-3">
-                        <AIBudgetStatusBadge status={item.statusLabel} />
-                      </td>
-                      <td className="px-4 py-3">
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'status',
+                    header: 'Status',
+                    cell: (item) => <AIBudgetStatusBadge status={item.statusLabel} />,
+                  },
+                  {
+                    id: 'cost',
+                    header: 'Est. cost / limit',
+                    cell: (item) => (
+                      <>
                         {formatBudgetAmount(item.currentMonthCost)} /{' '}
                         {formatBudgetAmount(item.monthlyLimitAmount)}
                         <Typography variant="xs" tone="muted" className="block">
                           {formatUsagePercent(item.costUsagePercent)}
                         </Typography>
-                      </td>
-                      <td className="px-4 py-3">
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'tokens',
+                    header: 'Tokens / quota',
+                    cell: (item) => (
+                      <>
                         {item.currentMonthTokens.toLocaleString()} /{' '}
                         {item.monthlyLimitTokens?.toLocaleString() ?? '—'}
                         <Typography variant="xs" tone="muted" className="block">
                           {formatUsagePercent(item.tokenUsagePercent)}
                         </Typography>
-                      </td>
-                      <td className="px-4 py-3">{item.warningThresholdPercent}%</td>
-                      <td className="px-4 py-3">{item.hardLimitEnabled ? 'Yes' : 'No'}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-2">
-                          {item.active ? (
-                            <>
-                              <Button variant="outline" onClick={() => openEdit(item)}>
-                                <Pencil size={14} />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                onClick={() => setDeactivateTarget(item)} icon={<Ban size={16} />}>
-                                Deactivate
-                              </Button>
-                            </>
-                          ) : (
-                            <Typography variant="xs" tone="muted">
-                              Inactive
-                            </Typography>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'threshold',
+                    header: 'Threshold',
+                    accessor: (item) => `${item.warningThresholdPercent}%`,
+                  },
+                  {
+                    id: 'hard-limit',
+                    header: 'Hard limit',
+                    accessor: (item) => (item.hardLimitEnabled ? 'Yes' : 'No'),
+                  },
+                  {
+                    id: 'actions',
+                    header: 'Actions',
+                    cell: (item) => (
+                      <div className="flex gap-2">
+                        {item.active ? (
+                          <>
+                            <Button variant="outline" onClick={() => openEdit(item)}>
+                              <Pencil size={14} />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => setDeactivateTarget(item)}
+                              icon={<Ban size={16} />}
+                            >
+                              Deactivate
+                            </Button>
+                          </>
+                        ) : (
+                          <Typography variant="xs" tone="muted">
+                            Inactive
+                          </Typography>
+                        )}
+                      </div>
+                    ),
+                  },
+                ]}
+              />
             </div>
           )}
         </>

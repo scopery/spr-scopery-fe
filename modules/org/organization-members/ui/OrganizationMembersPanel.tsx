@@ -3,7 +3,18 @@
 import { Ban, Check, Eye, Plus, UserMinus } from 'lucide-react'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Badge, Button, ConfirmDialog, Modal, Stack, Typography, Skeleton, Select } from '@/shared/ui'
+import {
+  Badge,
+  Button,
+  Card,
+  ConfirmDialog,
+  DataTable,
+  Modal,
+  Stack,
+  Typography,
+  Skeleton,
+  Select,
+} from '@/shared/ui'
 import { UserIdentity } from '@/modules/platform/identity/presentation/ui/UserIdentity'
 import { UserSearchSelect } from '@/modules/platform/identity/presentation/ui/UserSearchSelect'
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
@@ -122,9 +133,9 @@ export function OrganizationMembersPanel({
   return (
     <div>
       {!embedded && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <Typography as="h1" size="lg" weight="semibold">
+            <Typography as="h1" size="md" weight="medium">
               Organization members
             </Typography>
             <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -164,95 +175,112 @@ export function OrganizationMembersPanel({
         </Typography>
       )}
 
-      <div className="overflow-hidden border border-neutral-200 bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-neutral-200 bg-neutral-50">
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">User</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Type</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Status</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Joined</th>
-              <th className="min-w-[16rem] whitespace-nowrap px-4 py-3 text-left font-medium text-neutral-600">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center">
-                  <Skeleton variant="rectangular" width="100%" height={80} />
-                </td>
-              </tr>
-            ) : items.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-neutral-500">
-                  No members
-                </td>
-              </tr>
-            ) : (
-              items.map((m) => (
-                <tr key={m.id} className="border-b border-neutral-100 last:border-0">
-                  <td className="px-4 py-3">
-                    <UserIdentity userId={m.userId} person={peopleById[m.userId]} showEmail size="sm" />
-                  </td>
-                  <td className="px-4 py-3">{m.membershipType}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant="solid" tone={statusTone(m.status)}>
-                      {m.status === OrgMemberStatus.Removed
-                        ? 'Kicked'
-                        : String(m.status)
-                            .replace(/_/g, ' ')
-                            .toLowerCase()
-                            .replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600">
-                    {new Date(m.joinedAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-nowrap items-center gap-1">
+      <div className="border border-neutral-200 bg-white">
+        {loading ? (
+          <div className="p-4">
+            <Skeleton variant="rectangular" width="100%" height={80} />
+          </div>
+        ) : (
+          <DataTable
+            ariaLabel="Organization members"
+            rows={items}
+            rowKey={(member) => member.id}
+            emptyMessage="No members"
+            columns={[
+              {
+                id: 'user',
+                header: 'User',
+                kind: 'reference',
+                cell: (member) =>
+                  peopleById[member.userId] ? (
+                    <UserIdentity
+                      userId={member.userId}
+                      person={peopleById[member.userId]}
+                      showEmail
+                      size="sm"
+                    />
+                  ) : (
+                    '—'
+                  ),
+              },
+              { id: 'type', header: 'Type', accessor: 'membershipType' },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (member) => (
+                  <Badge variant="solid" tone={statusTone(member.status)}>
+                    {member.status === OrgMemberStatus.Removed
+                      ? 'Kicked'
+                      : String(member.status)
+                          .replace(/_/g, ' ')
+                          .toLowerCase()
+                          .replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'joined',
+                header: 'Joined',
+                accessor: (member) => new Date(member.joinedAt).toLocaleDateString(),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                width: '16rem',
+                cell: (member) => (
+                  <div className="flex flex-nowrap items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      onClick={() => void openAccess(member)}
+                      icon={<Eye size={16} />}
+                    >
+                      Access
+                    </Button>
+                    {member.status === OrgMemberStatus.Active &&
+                    member.membershipType !== 'OWNER' ? (
                       <Button
                         variant="ghost"
-                        onClick={() => void openAccess(m)}
-                        icon={<Eye size={16} />}
+                        onClick={() => setConfirm({ type: 'suspend', member })}
+                        icon={<Ban size={16} />}
                       >
-                        Access
+                        Suspend
                       </Button>
-                      {m.status === OrgMemberStatus.Active && m.membershipType !== 'OWNER' && (
-                        <Button
-                          variant="ghost"
-                          onClick={() => setConfirm({ type: 'suspend', member: m })} icon={<Ban size={16} />}>
-                          Suspend
-                        </Button>
-                      )}
-                      {m.status === OrgMemberStatus.Suspended && (
-                        <Button
-                          variant="ghost"
-                          onClick={() => setConfirm({ type: 'activate', member: m })} icon={<Check size={16} />}>
-                          Activate
-                        </Button>
-                      )}
-                      {m.status === OrgMemberStatus.Removed && (
-                        <Button
-                          variant="ghost"
-                          onClick={() => setConfirm({ type: 'activate', member: m })} icon={<Check size={16} />}>
-                          Reinstate
-                        </Button>
-                      )}
-                      {m.membershipType !== 'OWNER' && m.status === OrgMemberStatus.Active && (
-                        <Button
-                          variant="ghost"
-                          tone="error"
-                          onClick={() => setConfirm({ type: 'kick', member: m })} icon={<UserMinus size={16} />}>
-                          Kick
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                    ) : null}
+                    {member.status === OrgMemberStatus.Suspended ? (
+                      <Button
+                        variant="ghost"
+                        onClick={() => setConfirm({ type: 'activate', member })}
+                        icon={<Check size={16} />}
+                      >
+                        Activate
+                      </Button>
+                    ) : null}
+                    {member.status === OrgMemberStatus.Removed ? (
+                      <Button
+                        variant="ghost"
+                        onClick={() => setConfirm({ type: 'activate', member })}
+                        icon={<Check size={16} />}
+                      >
+                        Reinstate
+                      </Button>
+                    ) : null}
+                    {member.membershipType !== 'OWNER' &&
+                    member.status === OrgMemberStatus.Active ? (
+                      <Button
+                        variant="ghost"
+                        tone="error"
+                        onClick={() => setConfirm({ type: 'kick', member })}
+                        icon={<UserMinus size={16} />}
+                      >
+                        Kick
+                      </Button>
+                    ) : null}
+                  </div>
+                ),
+              },
+            ]}
+          />
+        )}
       </div>
 
       <Modal
@@ -282,7 +310,6 @@ export function OrganizationMembersPanel({
       >
         <Stack direction="vertical" spacing="md">
           <UserSearchSelect
-            label="User"
             value={userId}
             onChange={(id) => setUserId(id)}
             placeholder="Search by name or email…"
@@ -335,12 +362,15 @@ export function OrganizationMembersPanel({
         ) : (
           <Stack direction="vertical" spacing="md">
             {access.workspaces.map((ws) => (
-              <div key={ws.workspaceId} className="border border-neutral-200 p-3">
+              <Card key={ws.workspaceId} className="p-3">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <Typography size="sm" weight="semibold">
                     {ws.workspaceName}
                   </Typography>
-                  <Badge variant="soft" tone={ws.membershipStatus === 'ACTIVE' ? 'success' : 'neutral'}>
+                  <Badge
+                    variant="soft"
+                    tone={ws.membershipStatus === 'ACTIVE' ? 'success' : 'neutral'}
+                  >
                     {ws.membershipStatus}
                   </Badge>
                 </div>
@@ -376,7 +406,7 @@ export function OrganizationMembersPanel({
                     }}
                   />
                 ) : null}
-              </div>
+              </Card>
             ))}
           </Stack>
         )}

@@ -6,7 +6,5 @@ export async function getWorkspaceDailySummary(
   workspaceId: string,
   date?: string
 ): Promise<WorkspaceDailySummary> {
-  return apiClient.get<WorkspaceDailySummary>(
-    WORKSPACE_ENDPOINTS.dailySummary(workspaceId, date)
-  )
+  return apiClient.get<WorkspaceDailySummary>(WORKSPACE_ENDPOINTS.dailySummary(workspaceId, date))
 }

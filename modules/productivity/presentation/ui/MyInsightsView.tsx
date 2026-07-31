@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Flame, RefreshCw, Settings } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button, Checkbox, Select, Typography } from '@/shared/ui'
+import { Button, Card, Checkbox, Select, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
@@ -174,14 +174,28 @@ function filterTasks(tasks: MyInsightsTaskRow[], chip: string | null, attention:
       return status === 'TODO' || status === 'NOT_STARTED' || status === 'OPEN'
     }
     if (chip === MyInsightsWorkChip.Unscheduled) return t.chips.includes('unscheduled')
-    if (chip === MyInsightsWorkChip.Blocked) return t.chips.includes('blocked') || status === 'BLOCKED'
+    if (chip === MyInsightsWorkChip.Blocked)
+      return t.chips.includes('blocked') || status === 'BLOCKED'
     if (chip === MyInsightsWorkChip.Overdue) return t.chips.includes('overdue')
     return true
   })
 }
 
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
-const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const
+const MONTH_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const
 
 /** Monday = 0 … Sunday = 6 */
 function mondayBasedDow(date: Date) {
@@ -261,7 +275,10 @@ function Heatmap({
     <div className="overflow-x-auto">
       <div className="inline-block min-w-max">
         {/* Month labels */}
-        <div className="relative mb-1" style={{ height: monthRowHeight, marginLeft: dayLabelWidth }}>
+        <div
+          className="relative mb-1"
+          style={{ height: monthRowHeight, marginLeft: dayLabelWidth }}
+        >
           {monthLabels.map((m) => (
             <Typography
               key={`${m.label}-${m.weekIndex}`}
@@ -284,12 +301,13 @@ function Heatmap({
             aria-hidden
           >
             {WEEKDAY_LABELS.map((label) => (
-              <div
-                key={label}
-                className="flex items-center"
-                style={{ height: cell }}
-              >
-                <Typography as="span" variant="small" tone="muted" className="text-[10px] leading-none">
+              <div key={label} className="flex items-center" style={{ height: cell }}>
+                <Typography
+                  as="span"
+                  variant="small"
+                  tone="muted"
+                  className="text-[10px] leading-none"
+                >
                   {label}
                 </Typography>
               </div>
@@ -315,7 +333,7 @@ function Heatmap({
                       onClick={() => !pad && onSelect(day)}
                       className={cn(
                         'rounded-none border-0 p-0',
-                        pad ? 'bg-transparent' : HEAT_LEVEL[day.level] ?? 'bg-neutral-100',
+                        pad ? 'bg-transparent' : (HEAT_LEVEL[day.level] ?? 'bg-neutral-100'),
                         !pad && 'hover:ring-1 hover:ring-neutral-400'
                       )}
                       style={{ width: cell, height: cell }}
@@ -328,7 +346,10 @@ function Heatmap({
           </div>
         </div>
 
-        <div className="mt-3 flex items-center gap-1.5 text-neutral-500" style={{ marginLeft: dayLabelWidth }}>
+        <div
+          className="mt-3 flex items-center gap-1.5 text-neutral-500"
+          style={{ marginLeft: dayLabelWidth }}
+        >
           <Typography as="span" variant="small" tone="muted">
             Less
           </Typography>
@@ -359,11 +380,36 @@ function PlannedCompletedChart({ points }: { points: MyInsightsTrendPoint[] }) {
   const completed = points.map((p, i) => `${toX(i)},${toY(p.completedHours)}`).join(' ')
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="h-44 w-full" role="img" aria-label="Planned vs completed">
-      <polyline fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 3" className="text-blue-400" points={planned} />
-      <polyline fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-500" points={completed} />
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      className="h-44 w-full"
+      role="img"
+      aria-label="Planned vs completed"
+    >
+      <polyline
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeDasharray="4 3"
+        className="text-blue-400"
+        points={planned}
+      />
+      <polyline
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className="text-emerald-500"
+        points={completed}
+      />
       {points.map((p, i) => (
-        <text key={p.weekLabel} x={toX(i)} y={h - 6} textAnchor="middle" className="fill-neutral-500" fontSize="10">
+        <text
+          key={p.weekLabel}
+          x={toX(i)}
+          y={h - 6}
+          textAnchor="middle"
+          className="fill-neutral-500"
+          fontSize="10"
+        >
           {p.weekLabel}
         </text>
       ))}
@@ -432,7 +478,7 @@ function SummaryStrip({
     { key: 'completed', label: 'Completed', value: summary.completed },
   ]
   return (
-    <div className="grid grid-cols-2 gap-px border border-neutral-200 bg-neutral-200 md:grid-cols-4">
+    <Card className="grid grid-cols-2 gap-px bg-neutral-200 md:grid-cols-4">
       {items.map((item) => (
         <button
           key={item.key}
@@ -462,7 +508,7 @@ function SummaryStrip({
           </Typography>
         </button>
       ))}
-    </div>
+    </Card>
   )
 }
 
@@ -574,14 +620,16 @@ export function MyInsightsView() {
   )
 
   const scrollToCurrentWork = () => {
-    document.getElementById('my-insights-current-work')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    document
+      .getElementById('my-insights-current-work')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   return (
     <div className="space-y-4 p-lg">
       <header className="flex flex-wrap items-start justify-between gap-4 border-b border-neutral-200 pb-4">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             My Insights
           </Typography>
           <Typography variant="small" tone="muted" className="mt-1">
@@ -652,7 +700,7 @@ export function MyInsightsView() {
       ) : null}
 
       {customizeOpen ? (
-        <div className="rounded-none border border-neutral-200 bg-white p-4">
+        <Card className="p-4">
           <Typography size="sm" weight="semibold" className="mb-3">
             Customize dashboard
           </Typography>
@@ -668,9 +716,7 @@ export function MyInsightsView() {
               <label key={w.key} className="flex items-center gap-2 text-sm text-neutral-800">
                 <Checkbox
                   checked={!hidden[w.key]}
-                  onChange={(e) =>
-                    setHidden((prev) => ({ ...prev, [w.key]: !e.target.checked }))
-                  }
+                  onChange={(e) => setHidden((prev) => ({ ...prev, [w.key]: !e.target.checked }))}
                 />
                 {w.label}
               </label>
@@ -679,7 +725,7 @@ export function MyInsightsView() {
           <Typography variant="small" tone="muted" className="mt-3">
             Summary, Current work, and Phase Watch stay visible.
           </Typography>
-        </div>
+        </Card>
       ) : null}
 
       <SummaryStrip
@@ -717,7 +763,7 @@ export function MyInsightsView() {
 
         <InsightWidgetShell
           title="Current work"
-          className="scroll-mt-4 min-h-full"
+          className="min-h-full scroll-mt-4"
           loading={loading && !data}
           empty={tasks.length === 0 ? 'No work found for this filter.' : null}
           action={
@@ -791,7 +837,11 @@ export function MyInsightsView() {
                       href={ROUTES.workspace.projectWorkTask(workspaceId, t.projectId, t.taskId)}
                       className="block"
                     >
-                      <Typography size="sm" weight="medium" className="text-neutral-900 hover:underline">
+                      <Typography
+                        size="sm"
+                        weight="medium"
+                        className="text-neutral-900 hover:underline"
+                      >
                         {t.title}
                       </Typography>
                     </Link>
@@ -884,12 +934,9 @@ export function MyInsightsView() {
           subtitle="Last 12 months"
           loading={loading && !data}
         >
-          <Heatmap
-            days={data?.heatmap.days ?? []}
-            onSelect={(day) => setSelectedDay(day)}
-          />
+          <Heatmap days={data?.heatmap.days ?? []} onSelect={(day) => setSelectedDay(day)} />
           {selectedDay ? (
-            <div className="mt-4 rounded-none border border-sky-600/20 bg-blue-400/5 p-3">
+            <Card hasShadow={false} className="mt-4 border-sky-600/20 bg-blue-400/5 p-3">
               <Typography size="sm" weight="semibold">
                 {formatDateLabel(selectedDay.date)}
               </Typography>
@@ -922,7 +969,7 @@ export function MyInsightsView() {
                   No completed tasks on this day.
                 </Typography>
               ) : null}
-            </div>
+            </Card>
           ) : null}
         </InsightWidgetShell>
       ) : null}
@@ -952,7 +999,10 @@ export function MyInsightsView() {
         >
           <ul className="space-y-3">
             {(data?.health.metrics ?? []).map((m) => (
-              <li key={m.key} className="flex items-baseline justify-between gap-3 border-b border-neutral-100 pb-2 last:border-0">
+              <li
+                key={m.key}
+                className="flex items-baseline justify-between gap-3 border-b border-neutral-100 pb-2 last:border-0"
+              >
                 <Typography variant="small" className="text-neutral-700">
                   {m.label}
                 </Typography>
@@ -961,7 +1011,12 @@ export function MyInsightsView() {
                     {m.valuePercent == null ? '—' : `${m.valuePercent}%`}
                   </Typography>
                   {m.trendPercent != null ? (
-                    <Typography as="span" variant="small" tone="muted" className="ml-2 tabular-nums">
+                    <Typography
+                      as="span"
+                      variant="small"
+                      tone="muted"
+                      className="ml-2 tabular-nums"
+                    >
                       {m.trendPercent > 0 ? '+' : ''}
                       {m.trendPercent}%
                     </Typography>
@@ -975,7 +1030,11 @@ export function MyInsightsView() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {!hidden.planned ? (
-          <InsightWidgetShell title="Planned vs completed" subtitle="Weekly effort · Last 8 weeks" loading={loading && !data}>
+          <InsightWidgetShell
+            title="Planned vs completed"
+            subtitle="Weekly effort · Last 8 weeks"
+            loading={loading && !data}
+          >
             <div className="mb-2 flex gap-4">
               <Typography variant="small" className="text-blue-400">
                 — Planned
@@ -989,7 +1048,11 @@ export function MyInsightsView() {
         ) : null}
 
         {!hidden.distribution ? (
-          <InsightWidgetShell title="Work distribution" subtitle="Completed effort by project" loading={loading && !data}>
+          <InsightWidgetShell
+            title="Work distribution"
+            subtitle="Completed effort by project"
+            loading={loading && !data}
+          >
             <DistributionBars slices={data?.distribution ?? []} />
           </InsightWidgetShell>
         ) : null}
@@ -1031,11 +1094,17 @@ export function MyInsightsView() {
                     label: 'Active days',
                     value: `${data?.consistency.activeDays ?? 0}/${data?.consistency.workingDays ?? 0}`,
                   },
-                  { label: 'Current streak', value: `${data?.consistency.currentStreak ?? 0} days` },
-                  { label: 'Longest streak', value: `${data?.consistency.longestStreak ?? 0} days` },
+                  {
+                    label: 'Current streak',
+                    value: `${data?.consistency.currentStreak ?? 0} days`,
+                  },
+                  {
+                    label: 'Longest streak',
+                    value: `${data?.consistency.longestStreak ?? 0} days`,
+                  },
                   { label: 'No-overdue days', value: `${data?.consistency.noOverdueDays ?? 0}` },
                 ].map((item) => (
-                  <div key={item.label} className="rounded-none border border-neutral-200 p-3">
+                  <Card key={item.label} hasShadow={false} className="p-3">
                     <Typography variant="small" tone="muted">
                       {item.label}
                     </Typography>
@@ -1051,7 +1120,7 @@ export function MyInsightsView() {
                         />
                       ) : null}
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </dl>
             </div>
@@ -1060,7 +1129,11 @@ export function MyInsightsView() {
       ) : null}
 
       {!hidden.ai && data?.aiReview.available ? (
-        <InsightWidgetShell title="AI personal review" loading={loading && !data} className="border-sky-600/20">
+        <InsightWidgetShell
+          title="AI personal review"
+          loading={loading && !data}
+          className="border-sky-600/20"
+        >
           <Typography size="sm" className="text-neutral-800">
             {data.aiReview.summary}
           </Typography>

@@ -9,15 +9,17 @@ export function PortalSupportView() {
   const { projectId } = useParams<{ projectId: string }>()
   const { items, loading, error } = usePortalSupport(projectId)
 
-  if (loading) return <PageSkeleton variant="list" className="p-lg" />
+  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
       <Link href={`/portal/projects/${projectId}`} className="text-sm underline">
         ← Project home
       </Link>
-      <Typography variant="h2">Support</Typography>
+      <Typography as="h1" size="md" weight="medium">
+        Support
+      </Typography>
       {items.length === 0 ? (
         <Typography tone="muted">No support cases.</Typography>
       ) : (

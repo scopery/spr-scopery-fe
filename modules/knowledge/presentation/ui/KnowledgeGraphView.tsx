@@ -33,9 +33,11 @@ export function KnowledgeGraphView() {
   }, [seed?.id, clear])
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Knowledge Graph Explorer</Typography>
-      <Typography tone="muted">
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <Typography as="h1" size="md" weight="medium">
+        Knowledge Graph Explorer
+      </Typography>
+      <Typography variant="small" tone="muted">
         Select a seed from known document types, then load related entities.
       </Typography>
       <EntityReferencePicker options={options} value={seed} onChange={setSeed} />

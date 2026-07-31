@@ -1,9 +1,6 @@
 import { apiClient } from '@/shared/lib/apiClient'
 import { WORKSPACE_INVITATION_ENDPOINTS } from './endpoints'
-import type {
-  WorkspaceInvitation,
-  CreateWorkspaceInvitationPayload,
-} from '../model'
+import type { WorkspaceInvitation, CreateWorkspaceInvitationPayload } from '../model'
 
 export async function listWorkspaceInvitations(
   workspaceId: string

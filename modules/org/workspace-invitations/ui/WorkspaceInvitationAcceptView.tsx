@@ -47,7 +47,10 @@ export function WorkspaceInvitationAcceptView() {
         setStatus('error')
         if (err instanceof ApiError) {
           const problemCode = getProblemCode(err)
-          if (problemCode === 'WORKSPACE_INVITATION_EXPIRED' || /expired/i.test(err.problem.detail || '')) {
+          if (
+            problemCode === 'WORKSPACE_INVITATION_EXPIRED' ||
+            /expired/i.test(err.problem.detail || '')
+          ) {
             setErrorMessage('This invitation has expired.')
           } else if (/already|member/i.test(err.problem.detail || '')) {
             setErrorMessage('You are already a member of this workspace.')
@@ -80,7 +83,7 @@ export function WorkspaceInvitationAcceptView() {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="max-w-md text-center">
-          <Typography as="h1" size="lg" weight="bold" className="mb-2">
+          <Typography as="h1" size="md" weight="medium" className="mb-1">
             Could not accept invitation
           </Typography>
           <Typography tone="muted" className="mb-6">

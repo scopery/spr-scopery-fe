@@ -4,13 +4,7 @@ import { useState } from 'react'
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { ADMIN_ROUTES } from '@/modules/admin'
-import {
-  Button,
-  ConfirmDialog,
-  PageSkeleton,
-  Stack,
-  Typography,
-} from '@/shared/ui'
+import { Button, ConfirmDialog, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useCanManageAiConfig } from '../../../presentation/hooks/useCanManageAiConfig'
 import { AiLifecycleStatusBadge } from '../../../presentation/ui/AiLifecycleStatusBadge'
 import { useProviders } from '@/modules/ai-agent-admin/providers'
@@ -29,6 +23,7 @@ export function ModelDetailView() {
     value: p.id,
     label: `${p.name} (${p.code})`,
   }))
+  const provider = providers.find((item) => item.id === model?.providerId)
   const [editOpen, setEditOpen] = useState(false)
   const [deactivateOpen, setDeactivateOpen] = useState(false)
 
@@ -111,15 +106,17 @@ export function ModelDetailView() {
         </div>
         <div>
           <Typography variant="caption" tone="muted">
-            Provider model ID
+            Provider model key
           </Typography>
           <Typography className="mt-1 font-mono">{model.providerModelId || '—'}</Typography>
         </div>
         <div>
           <Typography variant="caption" tone="muted">
-            Provider ID
+            Provider
           </Typography>
-          <Typography className="mt-1 font-mono text-xs">{model.providerId}</Typography>
+          <Typography className="mt-1">
+            {provider ? `${provider.name} (${provider.code})` : '—'}
+          </Typography>
         </div>
         <div className="sm:col-span-2">
           <Typography variant="caption" tone="muted">

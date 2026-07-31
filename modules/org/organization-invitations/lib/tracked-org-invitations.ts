@@ -1,4 +1,7 @@
-import type { MyOrgInvitationRecord, OrganizationInvitation } from '../model/organization-invitation'
+import type {
+  MyOrgInvitationRecord,
+  OrganizationInvitation,
+} from '../model/organization-invitation'
 
 const STORAGE_KEY = 'scopery_org_invitations'
 
@@ -50,9 +53,7 @@ export function updateTrackedOrgInvitationStatus(invitationId: string, status: s
 /** Mark accepted/cancelled/expired without requiring the invite id in the accept page (match raw token). */
 export function markTrackedOrgInvitationAcceptedByToken(token: string) {
   writeAll(
-    readAll().map((r) =>
-      r.token === token ? { ...r, status: 'ACCEPTED', token: null } : r
-    )
+    readAll().map((r) => (r.token === token ? { ...r, status: 'ACCEPTED', token: null } : r))
   )
 }
 

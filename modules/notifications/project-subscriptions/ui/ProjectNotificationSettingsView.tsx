@@ -1,12 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import {
-  Button,
-  PageSkeleton,
-  Stack,
-  Typography
-} from '@/shared/ui'
+import { Button, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useProjectNotifications } from '../hooks/useProjectNotifications'
 
 export function ProjectNotificationSettingsView() {
@@ -24,12 +19,14 @@ export function ProjectNotificationSettingsView() {
     togglePreference,
   } = useProjectNotifications(projectId)
 
-  if (loading) return <PageSkeleton variant="list" className="p-lg" />
+  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Project notifications</Typography>
+    <Stack direction="vertical" spacing="sm" className="px-3 py-3 lg:px-4">
+      <Typography as="h1" size="md" weight="medium">
+        Project notifications
+      </Typography>
       {actionError ? <Typography tone="error">{actionError}</Typography> : null}
 
       <div className="flex items-center justify-between gap-md">
@@ -83,7 +80,10 @@ export function ProjectNotificationSettingsView() {
               { eventCode: 'TASK_ASSIGNED', channel: 'EMAIL', enabled: false, muted: false },
             ]
         ).map((p) => (
-          <li key={`${p.eventCode}-${p.channel}`} className="flex items-center justify-between p-md">
+          <li
+            key={`${p.eventCode}-${p.channel}`}
+            className="flex items-center justify-between p-md"
+          >
             <div>
               <Typography variant="small" weight="medium">
                 {p.eventCode}

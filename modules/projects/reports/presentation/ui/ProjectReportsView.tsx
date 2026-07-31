@@ -31,19 +31,19 @@ export function ProjectReportsView() {
   const selectedOption = PROJECT_REPORT_OPTIONS.find((o) => o.key === reportKey)
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
-        className="mb-4"
+        className="mb-1"
       />
 
-      <div className="mb-6 border-b border-neutral-200 pb-6">
-        <Typography as="h1" size="lg" weight="semibold">
+      <div className="mb-2 border-b border-neutral-200 pb-2">
+        <Typography as="h1" size="md" weight="medium">
           Reports
         </Typography>
         {project ? (
-          <Typography variant="small" tone="muted" className="mt-1">
+          <Typography variant="caption" tone="muted" className="mt-0.5">
             {project.code} · {project.name}
           </Typography>
         ) : null}
@@ -57,7 +57,10 @@ export function ProjectReportsView() {
           <Select
             value={reportKey}
             onValueChange={(v: string) => setReportKey(v as ProjectReportKey)}
-            options={PROJECT_REPORT_OPTIONS.map((o) => ({ value: o.key, label: `${o.group} · ${o.label}` }))}
+            options={PROJECT_REPORT_OPTIONS.map((o) => ({
+              value: o.key,
+              label: `${o.group} · ${o.label}`,
+            }))}
           />
         </div>
         <Button variant="secondary" onClick={() => void refetch()} disabled={loading}>

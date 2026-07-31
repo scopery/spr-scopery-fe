@@ -31,7 +31,9 @@ export function JoinOrgPanel({ initialValue = '' }: JoinOrgPanelProps) {
           fullWidth
           loading={loading}
           disabled={!token.trim()}
-          className="h-12 border-0 bg-neutral-900 text-white hover:bg-neutral-800 disabled:bg-neutral-400" icon={<UserPlus size={16} />}>
+          className="h-12 border-0 bg-neutral-900 text-white hover:bg-neutral-800 disabled:bg-neutral-400"
+          icon={<UserPlus size={16} />}
+        >
           Join organization
         </Button>
         <Typography tone="muted" variant="small">

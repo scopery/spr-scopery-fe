@@ -7,7 +7,9 @@ import { toast } from 'sonner'
 import {
   Badge,
   Button,
+  Card,
   CurrencyAmount,
+  DataTable,
   FinancialKpiStrip,
   Input,
   LongRunningJobState,
@@ -21,10 +23,7 @@ import {
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import { useProject } from '@/modules/projects/project/hooks/useProject'
-import {
-  useProfitabilityCenter,
-  type ProfitabilityTab,
-} from '../hooks/useProfitabilityCenter'
+import { useProfitabilityCenter, type ProfitabilityTab } from '../hooks/useProfitabilityCenter'
 import { BillingRateCardsView } from './BillingRateCardsView'
 import {
   formatPercent,
@@ -98,9 +97,9 @@ export function ProfitabilityCenterView() {
 
   if (h.forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="border border-neutral-200 bg-white p-8 text-center">
         <Typography weight="medium">You don’t have access to profitability</Typography>
-      </div>
+      </Card>
     )
   }
 
@@ -132,16 +131,16 @@ export function ProfitabilityCenterView() {
     : []
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
         current="Profitability"
       />
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Profitability Center
           </Typography>
           {project ? (
@@ -160,9 +159,7 @@ export function ProfitabilityCenterView() {
               />
               <Button
                 variant="primary"
-                onClick={() =>
-                  void run('Profile initialized', () => h.initProfile(currencyInit))
-                }
+                onClick={() => void run('Profile initialized', () => h.initProfile(currencyInit))}
               >
                 Initialize
               </Button>
@@ -271,7 +268,7 @@ export function ProfitabilityCenterView() {
         <div className="space-y-8">
           <section>
             <div className="mb-3 flex flex-wrap items-end gap-2">
-              <Typography as="h2" size="lg" weight="semibold" className="mr-auto">
+              <Typography as="h2" size="md" weight="medium" className="mr-auto">
                 Cost sources
               </Typography>
               <Select
@@ -322,7 +319,7 @@ export function ProfitabilityCenterView() {
           </section>
           <section>
             <div className="mb-3 flex flex-wrap items-end gap-2">
-              <Typography as="h2" size="lg" weight="semibold" className="mr-auto">
+              <Typography as="h2" size="md" weight="medium" className="mr-auto">
                 Revenue sources
               </Typography>
               <Select
@@ -366,10 +363,7 @@ export function ProfitabilityCenterView() {
                 type: s.sourceType,
                 amount: s.amount,
                 currency: s.currency,
-                extra:
-                  s.confidence != null
-                    ? `${Math.round(s.confidence * 100)}% conf`
-                    : '—',
+                extra: s.confidence != null ? `${Math.round(s.confidence * 100)}% conf` : '—',
                 status: s.status,
               }))}
               onArchive={(id) => void run('Archived', () => h.archiveRevenue(id))}
@@ -382,7 +376,7 @@ export function ProfitabilityCenterView() {
         <div className="space-y-8">
           <section>
             <div className="mb-3 flex flex-wrap items-end gap-2">
-              <Typography as="h2" size="lg" weight="semibold" className="mr-auto">
+              <Typography as="h2" size="md" weight="medium" className="mr-auto">
                 Cost forecasts
               </Typography>
               <Input
@@ -412,7 +406,7 @@ export function ProfitabilityCenterView() {
           </section>
           <section>
             <div className="mb-3 flex flex-wrap items-end gap-2">
-              <Typography as="h2" size="lg" weight="semibold" className="mr-auto">
+              <Typography as="h2" size="md" weight="medium" className="mr-auto">
                 Revenue forecasts
               </Typography>
               <Input
@@ -452,11 +446,7 @@ export function ProfitabilityCenterView() {
               onChange={(e) => setPlanCode(e.target.value)}
               placeholder="PP-2026-Q3"
             />
-            <Input
-              label="Name"
-              value={planName}
-              onChange={(e) => setPlanName(e.target.value)}
-            />
+            <Input label="Name" value={planName} onChange={(e) => setPlanName(e.target.value)} />
             <Button
               size="sm"
               variant="primary"
@@ -479,51 +469,39 @@ export function ProfitabilityCenterView() {
               Create plan
             </Button>
           </div>
-          <div className="mb-4 overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Plan</th>
-                  <th className="px-4 py-3 font-medium">Type</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {h.plans.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="px-4 py-8 text-center">
-                      <Typography variant="small" tone="muted">
-                        No plans yet
-                      </Typography>
-                    </td>
-                  </tr>
-                ) : (
-                  h.plans.map((p) => (
-                    <tr
-                      key={p.id}
-                      className={`cursor-pointer border-t border-neutral-100 hover:bg-neutral-50 ${
-                        h.selectedPlanId === p.id ? 'bg-primary/5' : ''
-                      }`}
-                      onClick={() => h.setSelectedPlanId(p.id)}
-                    >
-                      <td className="px-4 py-3">
-                        <Typography weight="medium">{p.name}</Typography>
-                        <Typography variant="caption" tone="muted" className="block">
-                          {p.planCode}
-                        </Typography>
-                      </td>
-                      <td className="px-4 py-3">{p.planType}</td>
-                      <td className="px-4 py-3">
-                        <Badge size="sm" tone="info">
-                          {p.status}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            ariaLabel="Profit plans"
+            rows={h.plans}
+            rowKey={(plan) => plan.id}
+            emptyMessage="No plans yet"
+            selectedRowKey={h.selectedPlanId}
+            onRowClick={(plan) => h.setSelectedPlanId(plan.id)}
+            columns={[
+              {
+                id: 'plan',
+                header: 'Plan',
+                kind: 'code',
+                cell: (p) => (
+                  <>
+                    <Typography>{p.name || '—'}</Typography>
+                    <Typography variant="caption" tone="muted" className="block">
+                      {p.planCode || '—'}
+                    </Typography>
+                  </>
+                ),
+              },
+              { id: 'type', header: 'Type', accessor: 'planType' },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (p) => (
+                  <Badge size="sm" tone="info">
+                    {p.status}
+                  </Badge>
+                ),
+              },
+            ]}
+          />
           {h.selectedPlanId && h.planVersions.length > 0 ? (
             <div className="space-y-3">
               <VersionRail
@@ -590,45 +568,41 @@ export function ProfitabilityCenterView() {
               Create
             </Button>
           </div>
-          <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Type</th>
-                  <th className="px-4 py-3 font-medium">Amount</th>
-                  <th className="px-4 py-3 font-medium">Reason</th>
-                  <th className="px-4 py-3 font-medium">Applied</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {h.adjustments.map((a) => (
-                  <tr key={a.id} className="border-t border-neutral-100">
-                    <td className="px-4 py-3">{a.adjustmentType}</td>
-                    <td className="px-4 py-3">
-                      <CurrencyAmount amount={a.amount} currency={currency} size="sm" />
-                    </td>
-                    <td className="px-4 py-3">{a.reason}</td>
-                    <td className="px-4 py-3">{a.applied ? 'Yes' : 'No'}</td>
-                    <td className="px-4 py-3">
-                      {!a.applied ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            if (!window.confirm('Apply this adjustment?')) return
-                            void run('Adjustment applied', () => h.applyAdj(a.id))
-                          }}
-                        >
-                          Apply
-                        </Button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            ariaLabel="Profit adjustments"
+            rows={h.adjustments}
+            rowKey={(adjustment) => adjustment.id}
+            emptyMessage="No adjustments"
+            columns={[
+              { id: 'type', header: 'Type', accessor: 'adjustmentType' },
+              {
+                id: 'amount',
+                header: 'Amount',
+                cell: (a) => <CurrencyAmount amount={a.amount} currency={currency} size="sm" />,
+              },
+              { id: 'reason', header: 'Reason', accessor: (a) => a.reason || '—' },
+              { id: 'applied', header: 'Applied', accessor: (a) => (a.applied ? 'Yes' : 'No') },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (a) =>
+                  !a.applied ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        if (!window.confirm('Apply this adjustment?')) return
+                        void run('Adjustment applied', () => h.applyAdj(a.id))
+                      }}
+                    >
+                      Apply
+                    </Button>
+                  ) : (
+                    '—'
+                  ),
+              },
+            ]}
+          />
         </div>
       ) : null}
 
@@ -669,40 +643,35 @@ export function ProfitabilityCenterView() {
               Record
             </Button>
           </div>
-          <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Type</th>
-                  <th className="px-4 py-3 font-medium">From</th>
-                  <th className="px-4 py-3 font-medium">To</th>
-                  <th className="px-4 py-3 font-medium">Delta</th>
-                  <th className="px-4 py-3 font-medium">%</th>
-                </tr>
-              </thead>
-              <tbody>
-                {h.variances.map((v) => (
-                  <tr key={v.id} className="border-t border-neutral-100">
-                    <td className="px-4 py-3">{v.varianceType}</td>
-                    <td className="px-4 py-3">
-                      <CurrencyAmount amount={v.fromAmount} currency={v.currency} size="sm" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <CurrencyAmount amount={v.toAmount} currency={v.currency} size="sm" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <CurrencyAmount
-                        amount={v.varianceAmount}
-                        currency={v.currency}
-                        size="sm"
-                      />
-                    </td>
-                    <td className="px-4 py-3">{formatPercent(v.variancePercent)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            ariaLabel="Profit variances"
+            rows={h.variances}
+            rowKey={(variance) => variance.id}
+            emptyMessage="No variances"
+            columns={[
+              { id: 'type', header: 'Type', accessor: 'varianceType' },
+              {
+                id: 'from',
+                header: 'From',
+                cell: (v) => (
+                  <CurrencyAmount amount={v.fromAmount} currency={v.currency} size="sm" />
+                ),
+              },
+              {
+                id: 'to',
+                header: 'To',
+                cell: (v) => <CurrencyAmount amount={v.toAmount} currency={v.currency} size="sm" />,
+              },
+              {
+                id: 'delta',
+                header: 'Delta',
+                cell: (v) => (
+                  <CurrencyAmount amount={v.varianceAmount} currency={v.currency} size="sm" />
+                ),
+              },
+              { id: 'percent', header: '%', accessor: (v) => formatPercent(v.variancePercent) },
+            ]}
+          />
         </div>
       ) : null}
 
@@ -741,53 +710,54 @@ export function ProfitabilityCenterView() {
               Flag
             </Button>
           </div>
-          <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Reason</th>
-                  <th className="px-4 py-3 font-medium">Impact</th>
-                  <th className="px-4 py-3 font-medium">At risk</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {h.riskFlags.map((r) => (
-                  <tr key={r.id} className="border-t border-neutral-100">
-                    <td className="px-4 py-3">{r.reason}</td>
-                    <td className="px-4 py-3">{r.impactType}</td>
-                    <td className="px-4 py-3">
-                      <CurrencyAmount amount={r.amountAtRisk} currency={currency} size="sm" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge size="sm" tone="warning">
-                        {r.status}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => void run('Mitigated', () => h.mitigateRisk(r.id))}
-                        >
-                          Mitigate
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => void run('Closed', () => h.closeRisk(r.id))}
-                        >
-                          Close
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            ariaLabel="Profit risk flags"
+            rows={h.riskFlags}
+            rowKey={(risk) => risk.id}
+            emptyMessage="No risk flags"
+            columns={[
+              { id: 'reason', header: 'Reason', accessor: (r) => r.reason || '—' },
+              { id: 'impact', header: 'Impact', accessor: 'impactType' },
+              {
+                id: 'atRisk',
+                header: 'At risk',
+                cell: (r) => (
+                  <CurrencyAmount amount={r.amountAtRisk} currency={currency} size="sm" />
+                ),
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (r) => (
+                  <Badge size="sm" tone="warning">
+                    {r.status}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (r) => (
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => void run('Mitigated', () => h.mitigateRisk(r.id))}
+                    >
+                      Mitigate
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => void run('Closed', () => h.closeRisk(r.id))}
+                    >
+                      Close
+                    </Button>
+                  </div>
+                ),
+              },
+            ]}
+          />
         </div>
       ) : null}
 
@@ -883,48 +853,34 @@ function SourceTable({
   onArchive: (id: string) => void
 }) {
   return (
-    <div className="overflow-x-auto border border-neutral-200 bg-white">
-      <table className="min-w-full text-left text-sm">
-        <thead className="bg-neutral-50 text-neutral-600">
-          <tr>
-            <th className="px-4 py-3 font-medium">Type</th>
-            <th className="px-4 py-3 font-medium">Amount</th>
-            <th className="px-4 py-3 font-medium">Detail</th>
-            <th className="px-4 py-3 font-medium">Status</th>
-            <th className="px-4 py-3 font-medium">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="px-4 py-8 text-center">
-                <Typography variant="small" tone="muted">
-                  No rows
-                </Typography>
-              </td>
-            </tr>
-          ) : (
-            rows.map((r) => (
-              <tr key={r.id} className="border-t border-neutral-100">
-                <td className="px-4 py-3">{r.type}</td>
-                <td className="px-4 py-3">
-                  <CurrencyAmount amount={r.amount} currency={r.currency} size="sm" />
-                </td>
-                <td className="px-4 py-3">{r.extra}</td>
-                <td className="px-4 py-3">{r.status}</td>
-                <td className="px-4 py-3">
-                  {r.status !== 'ARCHIVED' ? (
-                    <Button size="sm" variant="ghost" onClick={() => onArchive(r.id)}>
-                      Archive
-                    </Button>
-                  ) : null}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      ariaLabel="Profitability costs"
+      rows={rows}
+      rowKey={(row) => row.id}
+      emptyMessage="No rows"
+      columns={[
+        { id: 'type', header: 'Type', accessor: 'type' },
+        {
+          id: 'amount',
+          header: 'Amount',
+          cell: (row) => <CurrencyAmount amount={row.amount} currency={row.currency} size="sm" />,
+        },
+        { id: 'detail', header: 'Detail', accessor: (row) => row.extra || '—' },
+        { id: 'status', header: 'Status', accessor: 'status' },
+        {
+          id: 'actions',
+          header: 'Actions',
+          cell: (row) =>
+            row.status !== 'ARCHIVED' ? (
+              <Button size="sm" variant="ghost" onClick={() => onArchive(row.id)}>
+                Archive
+              </Button>
+            ) : (
+              '—'
+            ),
+        },
+      ]}
+    />
   )
 }
 
@@ -942,47 +898,28 @@ function ForecastTable({
   }>
 }) {
   return (
-    <div className="overflow-x-auto border border-neutral-200 bg-white">
-      <table className="min-w-full text-left text-sm">
-        <thead className="bg-neutral-50 text-neutral-600">
-          <tr>
-            <th className="px-4 py-3 font-medium">Type</th>
-            <th className="px-4 py-3 font-medium">Amount</th>
-            <th className="px-4 py-3 font-medium">Confidence</th>
-            <th className="px-4 py-3 font-medium">Date</th>
-            <th className="px-4 py-3 font-medium">Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="px-4 py-8 text-center">
-                <Typography variant="small" tone="muted">
-                  No forecasts
-                </Typography>
-              </td>
-            </tr>
-          ) : (
-            rows.map((r) => (
-              <tr key={r.id} className="border-t border-neutral-100">
-                <td className="px-4 py-3">{r.forecastType}</td>
-                <td className="px-4 py-3">
-                  <CurrencyAmount
-                    amount={r.forecastAmount}
-                    currency={r.currency}
-                    size="sm"
-                  />
-                </td>
-                <td className="px-4 py-3">
-                  {r.confidencePercent != null ? `${r.confidencePercent}%` : '—'}
-                </td>
-                <td className="px-4 py-3">{r.forecastDate ?? '—'}</td>
-                <td className="px-4 py-3">{r.assumptionNotes ?? '—'}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      ariaLabel="Profitability forecasts"
+      rows={rows}
+      rowKey={(row) => row.id}
+      emptyMessage="No forecasts"
+      columns={[
+        { id: 'type', header: 'Type', accessor: 'forecastType' },
+        {
+          id: 'amount',
+          header: 'Amount',
+          cell: (row) => (
+            <CurrencyAmount amount={row.forecastAmount} currency={row.currency} size="sm" />
+          ),
+        },
+        {
+          id: 'confidence',
+          header: 'Confidence',
+          accessor: (row) => (row.confidencePercent != null ? `${row.confidencePercent}%` : '—'),
+        },
+        { id: 'date', header: 'Date', accessor: (row) => row.forecastDate ?? '—' },
+        { id: 'notes', header: 'Notes', accessor: (row) => row.assumptionNotes ?? '—' },
+      ]}
+    />
   )
 }

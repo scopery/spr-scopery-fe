@@ -230,7 +230,7 @@ export function AiAssistantView() {
         setDocuments(
           res.items.map((d) => ({
             id: d.id,
-            title: d.title || d.code || d.id,
+            title: d.title || d.code || 'Untitled document',
           }))
         )
       })
@@ -307,7 +307,7 @@ export function AiAssistantView() {
     () =>
       projects.map((p) => ({
         id: p.id,
-        label: p.name || p.code || p.id,
+        label: p.name || p.code || 'Unnamed project',
       })),
     [projects]
   )

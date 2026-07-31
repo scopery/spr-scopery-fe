@@ -5,18 +5,12 @@ import NextLink from 'next/link'
 import { ADMIN_ROUTES } from '@/modules/admin'
 import { useAgents } from '@/modules/ai-agent-admin/agents'
 import { useEventConfigs } from '@/modules/ai-agent-admin/event-configs'
+import { EventDefinitionSearchSelect } from '@/modules/admin/event-definitions'
 import {
   EVENT_ENVIRONMENT_OPTIONS,
   type EventConfigEnvironment,
 } from '@/modules/ai-agent-admin/event-configs'
-import {
-  Button,
-  Input,
-  PageSkeleton,
-  Select,
-  Stack,
-  Typography,
-} from '@/shared/ui'
+import { Button, Input, PageSkeleton, Select, Stack, Typography, DataTable, Card } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
 import { AiLifecycleStatusBadge } from '../../../presentation/ui/AiLifecycleStatusBadge'
 import {
@@ -32,10 +26,7 @@ import {
 } from '../../domain/rules/execution.rules'
 import { useExecutionLogs } from '../hooks/useExecutionLogs'
 import { useExecutionTriggers } from '../hooks/useExecutionTriggers'
-import {
-  useCanRunExecutions,
-  useCanViewExecutionLogs,
-} from '../hooks/useExecutionPermissions'
+import { useCanRunExecutions, useCanViewExecutionLogs } from '../hooks/useExecutionPermissions'
 
 const PAGE_SIZE = 20
 
@@ -180,7 +171,7 @@ export function ExecutionsMonitorView() {
       </div>
 
       {canRun ? (
-        <div className="border border-neutral-200 bg-neutral-50 p-md">
+        <Card className="bg-neutral-50 p-md">
           <Typography variant="h3" className="mb-sm">
             Manual run
           </Typography>
@@ -208,7 +199,7 @@ export function ExecutionsMonitorView() {
                 variant={idMode === 'definition' ? 'primary' : 'outline'}
                 onClick={() => setIdMode('definition')}
               >
-                Definition ID
+                Event definition
               </Button>
               <Button
                 size="sm"
@@ -233,19 +224,12 @@ export function ExecutionsMonitorView() {
                 <Select
                   value={runConfigId}
                   onValueChange={setRunConfigId}
-                  options={[
-                    { value: '', label: 'Select event config' },
-                    ...eventConfigOptions,
-                  ]}
+                  options={[{ value: '', label: 'Select event config' }, ...eventConfigOptions]}
                 />
               </div>
             ) : idMode === 'definition' ? (
               <div className="min-w-[200px] flex-1">
-                <Input
-                  placeholder="Event definition ID"
-                  value={runDefId}
-                  onChange={(e) => setRunDefId(e.target.value)}
-                />
+                <EventDefinitionSearchSelect value={runDefId} onChange={setRunDefId} />
               </div>
             ) : idMode === 'code' ? (
               <div className="min-w-[160px] flex-1">
@@ -277,9 +261,7 @@ export function ExecutionsMonitorView() {
               <div className="w-32">
                 <Select
                   value={runEnv}
-                  onValueChange={(v: string) =>
-                    setRunEnv((v || '') as EventConfigEnvironment | '')
-                  }
+                  onValueChange={(v: string) => setRunEnv((v || '') as EventConfigEnvironment | '')}
                   options={[
                     { value: '', label: 'Env' },
                     ...EVENT_ENVIRONMENT_OPTIONS.map((o) => ({
@@ -292,7 +274,7 @@ export function ExecutionsMonitorView() {
             ) : null}
             <div className="min-w-[140px] flex-1">
               <Input
-                placeholder="Idempotency requestId (optional)"
+                placeholder="Deduplication key (optional)"
                 value={runRequestId}
                 onChange={(e) => setRunRequestId(e.target.value)}
               />
@@ -306,7 +288,7 @@ export function ExecutionsMonitorView() {
               inputVariables (JSON object)
             </Typography>
             <textarea
-              className="min-h-[80px] w-full border border-neutral-200 bg-white p-sm font-mono text-sm"
+              className="min-h-[80px] w-full border border-neutral-200 bg-white p-sm text-sm font-normal"
               value={inputVariablesRaw}
               onChange={(e) => setInputVariablesRaw(e.target.value)}
             />
@@ -317,16 +299,16 @@ export function ExecutionsMonitorView() {
             </Typography>
           ) : null}
           {lastResult ? (
-            <div className="mt-md border border-neutral-200 bg-white p-md">
+            <Card className="mt-md p-md">
               <div className="flex flex-wrap items-center gap-sm">
                 <AiLifecycleStatusBadge status={lastResult.status} />
-                <Typography variant="caption" className="font-mono">
+                <Typography variant="caption" className="font-normal">
                   {lastResult.executionId}
                 </Typography>
               </div>
               <Typography variant="caption" tone="muted" className="mt-1 block">
-                requestId: {lastResult.requestId} · tokens:{' '}
-                {lastResult.totalTokenCount ?? '—'} · {lastResult.durationMs ?? '—'}ms
+                requestId: {lastResult.requestId} · tokens: {lastResult.totalTokenCount ?? '—'} ·{' '}
+                {lastResult.durationMs ?? '—'}ms
               </Typography>
               {lastResult.errorMessage ? (
                 <Typography tone="error" variant="small" className="mt-1">
@@ -344,15 +326,15 @@ export function ExecutionsMonitorView() {
                   Open log detail
                 </Button>
               ) : null}
-            </div>
+            </Card>
           ) : null}
-        </div>
+        </Card>
       ) : null}
 
       <div className="flex flex-wrap gap-sm">
         <div className="min-w-[140px] flex-1">
           <Input
-            placeholder="Request ID"
+            placeholder="Request reference"
             value={requestId}
             onChange={(e) => {
               setRequestId(e.target.value)
@@ -371,11 +353,11 @@ export function ExecutionsMonitorView() {
           />
         </div>
         <div className="min-w-[140px] flex-1">
-          <Input
-            placeholder="Event definition ID"
+          <EventDefinitionSearchSelect
+            optional
             value={eventDefinitionId}
-            onChange={(e) => {
-              setEventDefinitionId(e.target.value)
+            onChange={(value) => {
+              setEventDefinitionId(value)
               setPage(0)
             }}
           />
@@ -447,80 +429,85 @@ export function ExecutionsMonitorView() {
       {error ? <Typography tone="error">{error}</Typography> : null}
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-neutral-200 bg-neutral-50 text-left">
-            <tr>
-              <th className="px-4 py-3 font-medium">Request ID</th>
-              <th className="px-4 py-3 font-medium">Trigger</th>
-              <th className="px-4 py-3 font-medium">Event config</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Tokens</th>
-              <th className="px-4 py-3 font-medium">Cost</th>
-              <th className="px-4 py-3 font-medium">Duration</th>
-              <th className="px-4 py-3 font-medium">Created</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-neutral-500">
-                  No execution logs found.
-                </td>
-              </tr>
-            ) : (
-              items.map((log) => (
-                <tr key={log.id} className="border-b border-neutral-100">
-                  <td className="px-4 py-3 font-mono text-xs">{log.requestId}</td>
-                  <td className="px-4 py-3">{log.triggerSource || '—'}</td>
-                  <td className="px-4 py-3 font-mono text-xs">
-                    {log.eventConfigId ? `${log.eventConfigId.slice(0, 8)}…` : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <AiLifecycleStatusBadge status={log.status} />
-                  </td>
-                  <td className="px-4 py-3">{log.totalTokenCount ?? '—'}</td>
-                  <td className="px-4 py-3">{log.estimatedCost ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    {log.durationMs != null ? `${log.durationMs}ms` : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-neutral-500">
-                    {log.createdAt ? new Date(log.createdAt).toLocaleString() : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
+        <DataTable
+          ariaLabel="Executions Monitor"
+          rows={items}
+          rowKey={(log) => String(log.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'request-id',
+              header: 'Request ID',
+              accessor: () => '—',
+              kind: 'reference',
+              cellClassName: 'text-xs',
+            },
+            { id: 'trigger', header: 'Trigger', cell: (log) => <>{log.triggerSource || '—'}</> },
+            {
+              id: 'event-config',
+              header: 'Event config',
+              cell: (log) => <>—</>,
+              cellClassName: 'text-xs',
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (log) => (
+                <>
+                  <AiLifecycleStatusBadge status={log.status} />
+                </>
+              ),
+            },
+            { id: 'tokens', header: 'Tokens', cell: (log) => <>{log.totalTokenCount ?? '—'}</> },
+            { id: 'cost', header: 'Cost', cell: (log) => <>{log.estimatedCost ?? '—'}</> },
+            {
+              id: 'duration',
+              header: 'Duration',
+              cell: (log) => <>{log.durationMs != null ? `${log.durationMs}ms` : '—'}</>,
+            },
+            {
+              id: 'created',
+              header: 'Created',
+              cell: (log) => <>{log.createdAt ? new Date(log.createdAt).toLocaleString() : '—'}</>,
+              cellClassName: 'text-xs text-neutral-500',
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (log) => (
+                <>
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      as={NextLink}
+                      href={ADMIN_ROUTES.aiControlExecution(log.id)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Open
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => void copyRequestId(log.requestId)}
+                    >
+                      Copy ID
+                    </Button>
+                    {log.eventConfigId ? (
                       <Button
                         as={NextLink}
-                        href={ADMIN_ROUTES.aiControlExecution(log.id)}
+                        href={ADMIN_ROUTES.aiControlEventConfig(log.eventConfigId)}
                         size="sm"
                         variant="ghost"
                       >
-                        Open
+                        Config
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => void copyRequestId(log.requestId)}
-                      >
-                        Copy ID
-                      </Button>
-                      {log.eventConfigId ? (
-                        <Button
-                          as={NextLink}
-                          href={ADMIN_ROUTES.aiControlEventConfig(log.eventConfigId)}
-                          size="sm"
-                          variant="ghost"
-                        >
-                          Config
-                        </Button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                    ) : null}
+                  </div>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
 
       {totalElements > PAGE_SIZE ? (

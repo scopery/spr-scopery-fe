@@ -8,6 +8,8 @@ import { useParams, useSearchParams } from 'next/navigation'
 import {
   Box,
   Button,
+  Card,
+  DataTable,
   Input,
   Typography,
   Stack,
@@ -103,7 +105,7 @@ export function ControlledListDetailView() {
 
   return (
     <main className="min-h-screen bg-neutral-50 p-8">
-      <Box padding="xl" background="white" shadow="sm" className="border-b border-neutral-200">
+      <Card className="border-b border-neutral-200 p-xl">
         <Stack direction="vertical" spacing="md">
           <Stack
             direction="horizontal"
@@ -152,16 +154,10 @@ export function ControlledListDetailView() {
             </Box>
           )}
         </Stack>
-      </Box>
+      </Card>
 
       <Box padding="xl" className="mx-auto max-w-5xl space-y-xl">
-        <Box
-          padding="lg"
-          background="white"
-          radius="lg"
-          shadow="sm"
-          className="border border-neutral-200"
-        >
+        <Card className="border border-neutral-200 p-lg">
           <Stack direction="vertical" spacing="md">
             <Typography as="h2" size="base" weight="semibold">
               List info
@@ -181,15 +177,9 @@ export function ControlledListDetailView() {
               </>
             )}
           </Stack>
-        </Box>
+        </Card>
 
-        <Box
-          padding="lg"
-          background="white"
-          radius="lg"
-          shadow="sm"
-          className="border border-neutral-200"
-        >
+        <Card className="border border-neutral-200 p-lg">
           <Stack direction="vertical" spacing="md">
             <Stack direction="horizontal" justify="between" align="center">
               <Typography as="h2" size="base" weight="semibold">
@@ -254,103 +244,59 @@ export function ControlledListDetailView() {
                 variant="primary"
                 onClick={handleSubmit}
                 disabled={locked}
-                aria-label="Add value" icon={<Plus size={16} />}>
+                aria-label="Add value"
+                icon={<Plus size={16} />}
+              >
                 Add value
               </Button>
             </Stack>
           </Stack>
-        </Box>
+        </Card>
 
-        <Box
-          padding="lg"
-          background="white"
-          radius="lg"
-          shadow="sm"
-          className="border border-neutral-200"
-        >
+        <Card className="border border-neutral-200 p-lg">
           <Stack direction="vertical" spacing="md">
             <Typography as="h2" size="base" weight="semibold">
               Values
             </Typography>
             {valuesLoading && values.length === 0 ? (
-              <Box
-                padding="lg"
-                className="rounded-lg border border-neutral-200 bg-neutral-50 text-center"
-              >
+              <Card className="border border-neutral-200 bg-neutral-50 p-lg text-center">
                 <Spinner size="sm" />
-              </Box>
-            ) : values.length === 0 ? (
-              <Box
-                padding="lg"
-                className="rounded-lg border border-dashed border-neutral-200 bg-neutral-50 text-center"
-              >
-                <Typography tone="muted" className="mb-sm">
-                  No values to display yet.
-                </Typography>
-                <Typography variant="small" tone="muted">
-                  Listing endpoint is not available; values shown here are only those created in
-                  this session via this form.
-                </Typography>
-              </Box>
+              </Card>
             ) : (
-              <div className="overflow-x-auto rounded-lg border border-neutral-200">
-                <table className="w-full border-collapse text-left">
-                  <thead>
-                    <tr className="border-b border-neutral-200 bg-neutral-50">
-                      <th className="p-md text-sm font-semibold text-neutral-700">Key</th>
-                      <th className="p-md text-sm font-semibold text-neutral-700">Label</th>
-                      <th className="p-md text-sm font-semibold text-neutral-700">Description</th>
-                      <th className="p-md text-sm font-semibold text-neutral-700">Sort</th>
-                      <th className="p-md text-sm font-semibold text-neutral-700">Active</th>
-                      <th className="p-md text-sm font-semibold text-neutral-700">Updated</th>
-                      <th className="min-w-[12rem] whitespace-nowrap p-md text-sm font-semibold text-neutral-700">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {values.map((v) => (
-                      <tr key={v.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                        <td className="p-md">
-                          <Typography weight="medium">{v.value_key}</Typography>
-                        </td>
-                        <td className="p-md">
-                          <Typography>{v.label}</Typography>
-                        </td>
-                        <td className="p-md">
-                          <Typography variant="small" tone="muted">
-                            {v.description ?? '—'}
-                          </Typography>
-                        </td>
-                        <td className="p-md">
-                          <Typography variant="small" tone="muted">
-                            {v.sort_order ?? '—'}
-                          </Typography>
-                        </td>
-                        <td className="p-md">
-                          <Badge
-                            tone={v.is_active === false ? 'warning' : 'success'}
-                            variant="soft"
-                          >
-                            {v.is_active === false ? 'Inactive' : 'Active'}
-                          </Badge>
-                        </td>
-                        <td className="p-md">
-                          <Typography variant="small" tone="muted">
-                            {formatDate(v.updated_at)}
-                          </Typography>
-                        </td>
-                        <td className="p-md">
-                          <Typography variant="small" tone="muted">
-                            Edit / Delete coming in later phase
-                          </Typography>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                ariaLabel="Controlled list values"
+                rows={values}
+                rowKey={(value) => value.id}
+                emptyMessage="No values to display yet. Listing endpoint is not available; values shown here are only those created in this session."
+                columns={[
+                  { id: 'key', header: 'Key', accessor: (v) => v.value_key || '—', kind: 'code' },
+                  { id: 'label', header: 'Label', accessor: (v) => v.label || '—' },
+                  {
+                    id: 'description',
+                    header: 'Description',
+                    accessor: (v) => v.description ?? '—',
+                  },
+                  { id: 'sort', header: 'Sort', accessor: (v) => v.sort_order ?? '—' },
+                  {
+                    id: 'active',
+                    header: 'Active',
+                    cell: (v) => (
+                      <Badge tone={v.is_active === false ? 'warning' : 'success'} variant="soft">
+                        {v.is_active === false ? 'Inactive' : 'Active'}
+                      </Badge>
+                    ),
+                  },
+                  { id: 'updated', header: 'Updated', accessor: (v) => formatDate(v.updated_at) },
+                  {
+                    id: 'actions',
+                    header: 'Actions',
+                    accessor: () => 'Edit / Delete coming in later phase',
+                  },
+                ]}
+              />
             )}
           </Stack>
-        </Box>
+        </Card>
       </Box>
     </main>
   )

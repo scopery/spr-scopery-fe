@@ -11,6 +11,7 @@ import {
   Select,
   Stack,
   Typography,
+  DataTable,
 } from '@/shared/ui'
 import { useCanManageAiConfig } from '../../../presentation/hooks/useCanManageAiConfig'
 import { AiLifecycleStatusBadge } from '../../../presentation/ui/AiLifecycleStatusBadge'
@@ -42,9 +43,7 @@ export function ParameterCapabilitiesListView() {
   const [page, setPage] = useState(0)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<AiParameterCapability | null>(null)
-  const [deactivateTarget, setDeactivateTarget] = useState<AiParameterCapability | null>(
-    null
-  )
+  const [deactivateTarget, setDeactivateTarget] = useState<AiParameterCapability | null>(null)
 
   const { items: models } = useModels({ page: 0, size: 100 })
   const modelOptions = useMemo(
@@ -167,93 +166,107 @@ export function ParameterCapabilitiesListView() {
       {error ? <Typography tone="error">{error}</Typography> : null}
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-neutral-200 bg-neutral-50 text-left">
-            <tr>
-              <th className="px-4 py-3 font-medium">Model</th>
-              <th className="px-4 py-3 font-medium">Parameter</th>
-              <th className="px-4 py-3 font-medium">API key</th>
-              <th className="px-4 py-3 font-medium">Support</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Min / Def / Max</th>
-              <th className="px-4 py-3 font-medium">Nullable</th>
-              <th className="px-4 py-3 font-medium">If null</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-neutral-500">
-                  No capabilities found.
-                </td>
-              </tr>
-            ) : (
-              items.map((c) => (
-                <tr key={c.id} className="border-b border-neutral-100">
-                  <td className="px-4 py-3">
-                    {modelNameById.get(c.modelId) ?? c.modelId.slice(0, 8)}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs">{c.parameterName}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{c.apiParameterKey || '—'}</td>
-                  <td className="px-4 py-3">{c.supportStatus}</td>
-                  <td className="px-4 py-3">
-                    {c.supportStatus === SupportStatus.No ? '—' : c.valueType || '—'}
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    {c.supportStatus === SupportStatus.No
-                      ? '—'
-                      : `${c.minValue ?? '—'} / ${c.defaultValue ?? '—'} / ${c.maxValue ?? '—'}`}
-                  </td>
-                  <td className="px-4 py-3">
-                    {c.nullable == null ? '—' : c.nullable ? 'Yes' : 'No'}
-                  </td>
-                  <td className="max-w-[120px] truncate px-4 py-3 text-xs">
-                    {c.ifNullBehavior || '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <AiLifecycleStatusBadge status={c.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    {canManage ? (
-                      <div className="flex flex-wrap gap-1">
+        <DataTable
+          ariaLabel="Parameter Capabilities List"
+          rows={items}
+          rowKey={(c) => String(c.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'model',
+              header: 'Model',
+              kind: 'reference',
+              cell: (c) => <>{modelNameById.get(c.modelId) ?? '—'}</>,
+            },
+            {
+              id: 'parameter',
+              header: 'Parameter',
+              accessor: 'parameterName',
+              cellClassName: 'text-xs',
+            },
+            {
+              id: 'api-key',
+              header: 'API key',
+              cell: (c) => <>{c.apiParameterKey || '—'}</>,
+              kind: 'code',
+              cellClassName: 'text-xs',
+            },
+            { id: 'support', header: 'Support', accessor: 'supportStatus' },
+            {
+              id: 'type',
+              header: 'Type',
+              cell: (c) => <>{c.supportStatus === SupportStatus.No ? '—' : c.valueType || '—'}</>,
+            },
+            {
+              id: 'min-def-max',
+              header: 'Min / Def / Max',
+              cell: (c) => (
+                <>
+                  {c.supportStatus === SupportStatus.No
+                    ? '—'
+                    : `${c.minValue ?? '—'} / ${c.defaultValue ?? '—'} / ${c.maxValue ?? '—'}`}
+                </>
+              ),
+              cellClassName: 'text-xs',
+            },
+            {
+              id: 'nullable',
+              header: 'Nullable',
+              cell: (c) => <>{c.nullable == null ? '—' : c.nullable ? 'Yes' : 'No'}</>,
+            },
+            {
+              id: 'if-null',
+              header: 'If null',
+              cell: (c) => <>{c.ifNullBehavior || '—'}</>,
+              cellClassName: 'max-w-[120px] truncate text-xs',
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (c) => (
+                <>
+                  <AiLifecycleStatusBadge status={c.status} />
+                </>
+              ),
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (c) => (
+                <>
+                  {canManage ? (
+                    <div className="flex flex-wrap gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditing(c)
+                          setFormOpen(true)
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      {c.status !== CapabilityStatus.Active ? (
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => {
-                            setEditing(c)
-                            setFormOpen(true)
-                          }}
+                          disabled={saving}
+                          onClick={() => void activate(c.id)}
                         >
-                          Edit
+                          Activate
                         </Button>
-                        {c.status !== CapabilityStatus.Active ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={saving}
-                            onClick={() => void activate(c.id)}
-                          >
-                            Activate
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setDeactivateTarget(c)}
-                          >
-                            Deactivate
-                          </Button>
-                        )}
-                      </div>
-                    ) : null}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                      ) : (
+                        <Button size="sm" variant="ghost" onClick={() => setDeactivateTarget(c)}>
+                          Deactivate
+                        </Button>
+                      )}
+                    </div>
+                  ) : null}
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
 
       {totalElements > PAGE_SIZE ? (
@@ -296,9 +309,7 @@ export function ParameterCapabilitiesListView() {
         onClose={() => setDeactivateTarget(null)}
         title="Deactivate capability"
         message={
-          deactivateTarget
-            ? `Deactivate parameter “${deactivateTarget.parameterName}”?`
-            : ''
+          deactivateTarget ? `Deactivate parameter “${deactivateTarget.parameterName}”?` : ''
         }
         confirmLabel="Deactivate"
         variant="danger"

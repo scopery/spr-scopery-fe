@@ -3,12 +3,18 @@
 import { Shield } from 'lucide-react'
 
 import { useState } from 'react'
-import { Button, Stack, Typography, Badge } from '@/shared/ui'
+import { Button, Stack, Typography, Badge, Select } from '@/shared/ui'
 import { IamSearchField } from '../IamSearchField'
 import { iamAuthorizationApi } from '@/modules/auth/iam'
 import type { AuthorizationCheckResult } from '@/modules/auth/iam'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
+import { IamScopeReferenceSelect } from '../IamScopeReferenceSelect'
+
+const RESOURCE_TYPE_OPTIONS = ['GLOBAL', 'ORGANIZATION', 'WORKSPACE', 'PROJECT'].map((value) => ({
+  value,
+  label: value,
+}))
 
 export function IamAuthCheckPanel() {
   const [permissionCode, setPermissionCode] = useState('SYSTEM_IAM_MANAGEMENT')
@@ -62,19 +68,26 @@ export function IamAuthCheckPanel() {
         onChange={(e) => setActionCode(e.target.value)}
         className="w-full max-w-md"
       />
-      <IamSearchField
-        placeholder="resourceType"
+      <Select
         value={resourceType}
-        onChange={(e) => setResourceType(e.target.value)}
-        className="w-full max-w-md"
+        options={RESOURCE_TYPE_OPTIONS}
+        onValueChange={(next: string) => {
+          setResourceType(next)
+          setResourceRefId('')
+        }}
       />
-      <IamSearchField
-        placeholder="resourceRefId (omit for GLOBAL)"
+      <IamScopeReferenceSelect
+        resourceType={resourceType}
         value={resourceRefId}
-        onChange={(e) => setResourceRefId(e.target.value)}
-        className="w-full max-w-md"
+        optional
+        onChange={setResourceRefId}
       />
-      <Button variant="primary" disabled={checking} onClick={() => void check()} icon={<Shield size={16} />}>
+      <Button
+        variant="primary"
+        disabled={checking}
+        onClick={() => void check()}
+        icon={<Shield size={16} />}
+      >
         Check authorization
       </Button>
       {result && (

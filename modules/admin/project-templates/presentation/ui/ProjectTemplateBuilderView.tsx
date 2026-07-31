@@ -14,6 +14,7 @@ import {
   PageSkeleton,
   Select,
   Typography,
+  DataTable, Card,
 } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
@@ -112,7 +113,7 @@ export function ProjectTemplateBuilderView() {
             {template ? `${template.name} — Builder` : 'Template builder'}
           </Typography>
           {template ? (
-            <Typography variant="small" tone="muted" className="mt-1 font-mono">
+            <Typography variant="small" tone="muted" className="mt-1 font-normal">
               {template.code}
             </Typography>
           ) : null}
@@ -181,7 +182,10 @@ export function ProjectTemplateBuilderView() {
         </div>
       ) : null}
 
-      <nav aria-label="Builder sections" className="mb-6 flex flex-wrap gap-1 border-b border-neutral-200">
+      <nav
+        aria-label="Builder sections"
+        className="mb-6 flex flex-wrap gap-1 border-b border-neutral-200"
+      >
         {TABS.map((t) => {
           const active = t.id === tab
           return (
@@ -217,43 +221,33 @@ export function ProjectTemplateBuilderView() {
             </Button>
           </div>
           <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Order</th>
-                  <th className="px-4 py-3 font-medium">Code</th>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Duration (days)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {phases.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center">
-                      <Typography variant="small" tone="muted">
-                        No phases
+            <DataTable
+              ariaLabel="Project Template Builder"
+              rows={phases.slice().sort((a, b) => a.displayOrder - b.displayOrder)}
+              rowKey={(p) => String(p.id)}
+              emptyMessage="No items."
+              columns={[
+                { id: 'order', header: 'Order', accessor: 'displayOrder' },
+                {
+                  id: 'code',
+                  header: 'Code',
+                  cell: (p) => (
+                    <>
+                      <Typography as="span" variant="small" className="font-normal">
+                        {p.code}
                       </Typography>
-                    </td>
-                  </tr>
-                ) : (
-                  phases
-                    .slice()
-                    .sort((a, b) => a.displayOrder - b.displayOrder)
-                    .map((p) => (
-                      <tr key={p.id} className="border-t border-neutral-100">
-                        <td className="px-4 py-3">{p.displayOrder}</td>
-                        <td className="px-4 py-3">
-                          <Typography as="span" variant="small" className="font-mono">
-                            {p.code}
-                          </Typography>
-                        </td>
-                        <td className="px-4 py-3">{p.name}</td>
-                        <td className="px-4 py-3">{p.defaultDurationDays ?? '—'}</td>
-                      </tr>
-                    ))
-                )}
-              </tbody>
-            </table>
+                    </>
+                  ),
+                  kind: 'code',
+                },
+                { id: 'name', header: 'Name', accessor: 'name' },
+                {
+                  id: 'duration-days-',
+                  header: 'Duration (days)',
+                  cell: (p) => <>{p.defaultDurationDays ?? '—'}</>,
+                },
+              ]}
+            />
           </div>
         </div>
       ) : null}
@@ -276,40 +270,37 @@ export function ProjectTemplateBuilderView() {
             </Typography>
           ) : null}
           <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Code</th>
-                  <th className="px-4 py-3 font-medium">Title</th>
-                  <th className="px-4 py-3 font-medium">Phase</th>
-                  <th className="px-4 py-3 font-medium">Estimate (h)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center">
-                      <Typography variant="small" tone="muted">
-                        No tasks
+            <DataTable
+              ariaLabel="Project Template Builder"
+              rows={tasks}
+              rowKey={(t) => String(t.id)}
+              emptyMessage="No items."
+              columns={[
+                {
+                  id: 'code',
+                  header: 'Code',
+                  cell: (t) => (
+                    <>
+                      <Typography as="span" variant="small" className="font-normal">
+                        {t.code}
                       </Typography>
-                    </td>
-                  </tr>
-                ) : (
-                  tasks.map((t) => (
-                    <tr key={t.id} className="border-t border-neutral-100">
-                      <td className="px-4 py-3">
-                        <Typography as="span" variant="small" className="font-mono">
-                          {t.code}
-                        </Typography>
-                      </td>
-                      <td className="px-4 py-3">{t.title}</td>
-                      <td className="px-4 py-3">{phaseById(t.templatePhaseId)?.name ?? '—'}</td>
-                      <td className="px-4 py-3">{t.estimateHours ?? '—'}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                    </>
+                  ),
+                  kind: 'code',
+                },
+                { id: 'title', header: 'Title', accessor: 'title' },
+                {
+                  id: 'phase',
+                  header: 'Phase',
+                  cell: (t) => <>{phaseById(t.templatePhaseId)?.name ?? '—'}</>,
+                },
+                {
+                  id: 'estimate-h-',
+                  header: 'Estimate (h)',
+                  cell: (t) => <>{t.estimateHours ?? '—'}</>,
+                },
+              ]}
+            />
           </div>
         </div>
       ) : null}
@@ -332,41 +323,26 @@ export function ProjectTemplateBuilderView() {
             </Typography>
           ) : null}
           <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Predecessor</th>
-                  <th className="px-4 py-3 font-medium">Successor</th>
-                  <th className="px-4 py-3 font-medium">Type</th>
-                  <th className="px-4 py-3 font-medium">Lag (days)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dependencies.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center">
-                      <Typography variant="small" tone="muted">
-                        No dependencies
-                      </Typography>
-                    </td>
-                  </tr>
-                ) : (
-                  dependencies.map((d) => (
-                    <tr key={d.id} className="border-t border-neutral-100">
-                      <td className="px-4 py-3">
-                        {taskById(d.predecessorTemplateTaskId)?.title ??
-                          d.predecessorTemplateTaskId}
-                      </td>
-                      <td className="px-4 py-3">
-                        {taskById(d.successorTemplateTaskId)?.title ?? d.successorTemplateTaskId}
-                      </td>
-                      <td className="px-4 py-3">{d.dependencyType}</td>
-                      <td className="px-4 py-3">{d.lagDays}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <DataTable
+              ariaLabel="Project Template Builder"
+              rows={dependencies}
+              rowKey={(d) => String(d.id)}
+              emptyMessage="No items."
+              columns={[
+                {
+                  id: 'predecessor',
+                  header: 'Predecessor',
+                  cell: (d) => <>{taskById(d.predecessorTemplateTaskId)?.title ?? '—'}</>,
+                },
+                {
+                  id: 'successor',
+                  header: 'Successor',
+                  cell: (d) => <>{taskById(d.successorTemplateTaskId)?.title ?? '—'}</>,
+                },
+                { id: 'type', header: 'Type', accessor: 'dependencyType' },
+                { id: 'lag-days-', header: 'Lag (days)', accessor: 'lagDays' },
+              ]}
+            />
           </div>
         </div>
       ) : null}
@@ -374,16 +350,17 @@ export function ProjectTemplateBuilderView() {
       {!detailLoading && tab === 'preview' ? (
         <div className="space-y-6">
           <Typography variant="small" tone="muted">
-            Read-only summary of {selectedVersion ? `v${selectedVersion.versionNumber}` : 'this version'}.
+            Read-only summary of{' '}
+            {selectedVersion ? `v${selectedVersion.versionNumber}` : 'this version'}.
           </Typography>
           {phases
             .slice()
             .sort((a, b) => a.displayOrder - b.displayOrder)
             .map((p) => (
-              <div key={p.id} className="border border-neutral-200 bg-white p-4">
+              <Card key={p.id} className="p-4">
                 <Typography weight="semibold">
                   {p.displayOrder}. {p.name}{' '}
-                  <Typography as="span" variant="small" tone="muted" className="font-mono">
+                  <Typography as="span" variant="small" tone="muted" className="font-normal">
                     ({p.code})
                   </Typography>
                 </Typography>
@@ -394,7 +371,12 @@ export function ProjectTemplateBuilderView() {
                       <li key={t.id} className="flex items-center justify-between">
                         <Typography as="span" variant="small">
                           {t.title}{' '}
-                          <Typography as="span" variant="small" tone="muted" className="font-mono">
+                          <Typography
+                            as="span"
+                            variant="small"
+                            tone="muted"
+                            className="font-normal"
+                          >
                             ({t.code})
                           </Typography>
                         </Typography>
@@ -411,7 +393,7 @@ export function ProjectTemplateBuilderView() {
                     </li>
                   ) : null}
                 </ul>
-              </div>
+              </Card>
             ))}
           {phases.length === 0 ? (
             <div className="border border-neutral-200 bg-neutral-50 p-4">
@@ -421,7 +403,7 @@ export function ProjectTemplateBuilderView() {
             </div>
           ) : null}
           {dependencies.length > 0 ? (
-            <div className="border border-neutral-200 bg-white p-4">
+            <Card className="p-4">
               <Typography weight="semibold" className="mb-3">
                 Dependencies
               </Typography>
@@ -429,14 +411,14 @@ export function ProjectTemplateBuilderView() {
                 {dependencies.map((d) => (
                   <li key={d.id}>
                     <Typography variant="small">
-                      {taskById(d.predecessorTemplateTaskId)?.title ?? d.predecessorTemplateTaskId} →{' '}
-                      {taskById(d.successorTemplateTaskId)?.title ?? d.successorTemplateTaskId} (
-                      {d.dependencyType}, lag {d.lagDays}d)
+                      {taskById(d.predecessorTemplateTaskId)?.title ?? '—'} →{' '}
+                      {taskById(d.successorTemplateTaskId)?.title ?? '—'} ({d.dependencyType}, lag{' '}
+                      {d.lagDays}d)
                     </Typography>
                   </li>
                 ))}
               </ul>
-            </div>
+            </Card>
           ) : null}
         </div>
       ) : null}

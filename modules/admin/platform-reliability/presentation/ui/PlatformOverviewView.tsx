@@ -3,7 +3,7 @@
 import { RefreshCw } from 'lucide-react'
 
 import NextLink from 'next/link'
-import { Badge, Button, Typography, PageSkeleton } from '@/shared/ui'
+import { Badge, Button, Card, Typography, PageSkeleton } from '@/shared/ui'
 import { usePlatformOverview } from '../hooks/usePlatformOverview'
 import type { PlatformHealthStatus } from '../../domain/model/platform-reliability'
 
@@ -55,10 +55,11 @@ export function PlatformOverviewView() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {metrics.map((m) => (
-            <NextLink
+            <Card
+              as={NextLink}
               key={m.id}
               href={m.href}
-              className="border border-neutral-200 bg-white p-5 transition-colors hover:border-neutral-400"
+              className="p-5 transition-colors hover:border-neutral-400"
             >
               <Typography variant="small" tone="muted" className="mb-2">
                 {m.label}
@@ -71,7 +72,7 @@ export function PlatformOverviewView() {
                   {m.note}
                 </Typography>
               )}
-            </NextLink>
+            </Card>
           ))}
         </div>
       )}

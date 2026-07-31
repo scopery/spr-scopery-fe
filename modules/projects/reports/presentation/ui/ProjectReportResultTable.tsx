@@ -1,6 +1,6 @@
 'use client'
 
-import { Typography } from '@/shared/ui'
+import { DataTable, Typography, type DataTableColumn } from '@/shared/ui'
 import { reportResultColumns, reportResultToRows } from '../../domain/rules/reports.rules'
 
 function formatCell(value: unknown): string {
@@ -30,30 +30,21 @@ export function ProjectReportResultTable({ result }: { result: unknown }) {
 
   const columns = reportResultColumns(rows)
 
+  const tableRows = rows.map((values, index) => ({ key: String(index), values }))
+  const tableColumns: DataTableColumn<(typeof tableRows)[number]>[] = columns.map((column) => ({
+    id: column,
+    header: column,
+    accessor: (row) => (/(^id$|_id$|Id$)/.test(column) ? '—' : formatCell(row.values[column])),
+  }))
+
   return (
-    <div className="overflow-x-auto border border-neutral-200 bg-white">
-      <table className="min-w-full text-left text-sm">
-        <thead className="bg-neutral-50 text-neutral-600">
-          <tr>
-            {columns.map((col) => (
-              <th key={col} className="px-4 py-3 font-medium">
-                {col}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, index) => (
-            <tr key={index} className="border-t border-neutral-100">
-              {columns.map((col) => (
-                <td key={col} className="px-4 py-3">
-                  {formatCell(row[col])}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="border border-neutral-200 bg-white">
+      <DataTable
+        ariaLabel="Project report results"
+        rows={tableRows}
+        rowKey={(row) => row.key}
+        columns={tableColumns}
+      />
     </div>
   )
 }

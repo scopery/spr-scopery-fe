@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { Avatar } from './Avatar'
 
 describe('Avatar', () => {
@@ -24,14 +24,10 @@ describe('Avatar', () => {
     })
 
     it('shows fallback when image fails to load', async () => {
-      render(<Avatar src="/invalid.jpg" fallback="JD" />)
-      const img = screen.getByRole('img')
-
-      // Simulate image error
-      await new Promise((resolve) => {
-        img.addEventListener('error', resolve)
-        img.dispatchEvent(new Event('error'))
-      })
+      const { container } = render(<Avatar src="/invalid.jpg" fallback="JD" />)
+      const img = container.querySelector('img')
+      expect(img).not.toBeNull()
+      fireEvent.error(img!)
 
       // After error, fallback should appear
       await screen.findByText('JD')

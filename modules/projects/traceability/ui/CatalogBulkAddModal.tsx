@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { Button, Input, Modal, Stack, Typography } from '@/shared/ui'
+import { Button, DataTable, Input, Modal, Stack, Typography } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
 import { cn } from '@/utils/cn'
 import type { ArchitectureNodeType } from '../model/architecture-workbench'
@@ -88,10 +88,7 @@ function looksLikeHeader(cells: string[], columns: ColumnDef[]): boolean {
 }
 
 /** Parse Excel / Sheets TSV (or CSV) clipboard into draft rows. */
-export function parseClipboardToRows(
-  text: string,
-  columns: ColumnDef[]
-): DraftRow[] {
+export function parseClipboardToRows(text: string, columns: ColumnDef[]): DraftRow[] {
   const raw = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
   if (!raw) return []
 
@@ -169,8 +166,7 @@ export function CatalogBulkAddModal({
       const pasted = parseClipboardToRows(text, columns)
       if (pasted.length === 0) return
       setRows((prev) => {
-        const onlyBlank =
-          prev.length === 1 && !prev[0].code && !prev[0].name && !prev[0].extra
+        const onlyBlank = prev.length === 1 && !prev[0].code && !prev[0].name && !prev[0].extra
         return onlyBlank ? pasted : [...prev, ...pasted]
       })
       setPasteHint(true)
@@ -186,8 +182,7 @@ export function CatalogBulkAddModal({
       // Allow normal paste into a focused input (single cell). Only intercept
       // when pasting multi-line / multi-column spreadsheet data.
       const text = e.clipboardData?.getData('text/plain') ?? ''
-      const multi =
-        text.includes('\n') || (text.includes('\t') && text.trim().length > 0)
+      const multi = text.includes('\n') || (text.includes('\t') && text.trim().length > 0)
       if (!multi) return
       // If user is in an input and paste is single-cell-ish, skip — handled above.
       if (target?.closest('input, textarea') && !text.includes('\n') && !text.includes('\t')) {
@@ -299,59 +294,47 @@ export function CatalogBulkAddModal({
           </Typography>
         ) : null}
 
-        <div className="overflow-x-auto border border-neutral-200">
-          <table className="w-full min-w-[520px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-neutral-200 bg-neutral-50 text-xs text-neutral-500">
-                <th className="w-8 px-2 py-2">#</th>
-                {columns.map((col) => (
-                  <th key={col.key} className="px-2 py-2">
-                    {col.label}
-                    {col.required ? ' *' : ''}
-                  </th>
-                ))}
-                <th className="w-10 px-2 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, index) => (
-                <tr
-                  key={row.id}
-                  className={cn(
-                    'border-b border-neutral-100',
-                    row.error && 'bg-red-50/60'
-                  )}
+        <DataTable
+          className="border border-neutral-200"
+          tableClassName="min-w-[520px]"
+          ariaLabel={`Bulk add ${title}`}
+          rows={rows}
+          rowKey={(row) => row.id}
+          rowClassName={(row) => cn(row.error && 'bg-red-50/60')}
+          columns={[
+            { id: 'index', header: '#', cell: (_row, index) => index + 1, width: '48px' },
+            ...columns.map((col) => ({
+              id: col.key,
+              header: `${col.label}${col.required ? ' *' : ''}`,
+              kind: col.key === 'code' ? ('code' as const) : undefined,
+              cell: (row: DraftRow, index: number) => (
+                <Input
+                  value={row[col.key]}
+                  onChange={(event) => updateRow(row.id, { [col.key]: event.target.value })}
+                  placeholder={col.placeholder}
+                  aria-label={`${col.label} row ${index + 1}`}
+                  fullWidth
+                  size="sm"
+                />
+              ),
+            })),
+            {
+              id: 'remove',
+              header: '',
+              width: '48px',
+              cell: (row, index) => (
+                <button
+                  type="button"
+                  className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
+                  onClick={() => removeRow(row.id)}
+                  aria-label={`Remove row ${index + 1}`}
                 >
-                  <td className="px-2 py-1.5 align-middle text-xs text-neutral-400">
-                    {index + 1}
-                  </td>
-                  {columns.map((col) => (
-                    <td key={col.key} className="px-2 py-1.5 align-middle">
-                      <Input
-                        value={row[col.key]}
-                        onChange={(e) => updateRow(row.id, { [col.key]: e.target.value })}
-                        placeholder={col.placeholder}
-                        aria-label={`${col.label} row ${index + 1}`}
-                        fullWidth
-                        size="sm"
-                      />
-                    </td>
-                  ))}
-                  <td className="px-1 py-1.5 align-middle">
-                    <button
-                      type="button"
-                      className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
-                      onClick={() => removeRow(row.id)}
-                      aria-label={`Remove row ${index + 1}`}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  <Trash2 size={14} />
+                </button>
+              ),
+            },
+          ]}
+        />
 
         {rows.some((r) => r.error) ? (
           <ul className="space-y-1">

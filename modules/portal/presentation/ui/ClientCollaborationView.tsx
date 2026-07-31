@@ -30,15 +30,17 @@ export function ClientCollaborationView() {
   } = useClientCollaboration(workspaceId, projectId)
   const [email, setEmail] = useState('')
 
-  if (loading) return <PageSkeleton variant="list" className="p-lg" />
+  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Client Collaboration</Typography>
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <Typography as="h1" size="md" weight="medium">
+        Client Collaboration
+      </Typography>
       <Typography tone="muted">
-        Staff console to invite portal clients, manage access grants, and decide client
-        reviews. Client-facing portal lives under <code className="text-xs">/portal</code>.
+        Staff console to invite portal clients, manage access grants, and decide client reviews.
+        Client-facing portal lives under <code className="text-xs">/portal</code>.
       </Typography>
       {actionError ? <Typography tone="error">{actionError}</Typography> : null}
 
@@ -87,9 +89,7 @@ export function ClientCollaborationView() {
           {grants.map((g) => (
             <li key={g.id} className="flex items-center justify-between gap-md p-md">
               <Typography variant="small">
-                {[g.portalAccountId, g.permissionPolicyCode, g.status]
-                  .filter(Boolean)
-                  .join(' · ')}
+                {[g.permissionPolicyCode, g.status].filter(Boolean).join(' · ') || 'Access grant'}
               </Typography>
               <div className="flex gap-xs">
                 {g.portalAccountId ? (
@@ -130,7 +130,7 @@ export function ClientCollaborationView() {
             <li key={r.id} className="flex items-center justify-between gap-md p-md">
               <div>
                 <Typography variant="small" weight="medium">
-                  {r.title ?? r.id}
+                  {r.title ?? 'Untitled review'}
                 </Typography>
                 <Typography variant="caption" tone="muted">
                   {r.status}
@@ -168,7 +168,7 @@ export function ClientCollaborationView() {
       <ul className="divide-y divide-neutral-200 border border-neutral-200">
         {feedback.map((f) => (
           <li key={f.id} className="p-md text-sm">
-            {f.body ?? f.id}
+            {f.body ?? 'No feedback text'}
           </li>
         ))}
       </ul>
@@ -177,7 +177,7 @@ export function ClientCollaborationView() {
       <ul className="divide-y divide-neutral-200 border border-neutral-200">
         {comments.map((c) => (
           <li key={c.id} className="p-md text-sm">
-            {c.body ?? c.id}
+            {c.body ?? 'No comment text'}
           </li>
         ))}
       </ul>

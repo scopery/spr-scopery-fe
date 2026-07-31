@@ -3,11 +3,7 @@
 import { Avatar, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import type { PersonIdentity, UserIdentityIdMode } from '../../domain/model/person-identity'
-import {
-  formatPersonLabel,
-  personInitials,
-  shortUserId,
-} from '../../domain/rules/person-identity.rules'
+import { formatPersonLabel, personInitials } from '../../domain/rules/person-identity.rules'
 
 export interface UserIdentityProps {
   userId: string | null | undefined
@@ -18,7 +14,7 @@ export interface UserIdentityProps {
   size?: 'xs' | 'sm' | 'md'
   /** Show email under the name when available. */
   showEmail?: boolean
-  /** How to show the raw id. Default: never (name only). */
+  /** @deprecated Kept for compatibility. Raw IDs are never rendered. */
   showId?: UserIdentityIdMode
   className?: string
   /** Compact: avatar + name on one line, no email. */
@@ -34,7 +30,6 @@ export function UserIdentity({
   fallbackName,
   size = 'sm',
   showEmail = false,
-  showId = 'never',
   className,
   compact = false,
 }: UserIdentityProps) {
@@ -50,16 +45,18 @@ export function UserIdentity({
     person?.fullName?.trim() ||
     fallbackName?.trim() ||
     person?.email?.trim() ||
-    person?.username?.trim() ||
-    shortUserId(userId)
+    person?.username?.trim()
+
+  if (!name) {
+    return (
+      <Typography variant="small" tone="muted" className={className}>
+        —
+      </Typography>
+    )
+  }
 
   const email = person?.email?.trim()
-  const subtitle =
-    showEmail && email && email !== name
-      ? email
-      : showId === 'secondary'
-        ? shortUserId(userId)
-        : null
+  const subtitle = showEmail && email && email !== name ? email : null
 
   return (
     <div className={cn('flex min-w-0 items-center gap-2', className)}>
@@ -88,15 +85,6 @@ export function UserIdentity({
         {subtitle && !compact ? (
           <Typography variant="caption" tone="muted" className="truncate" title={subtitle}>
             {subtitle}
-          </Typography>
-        ) : null}
-        {showId === 'mono' ? (
-          <Typography
-            variant="caption"
-            className="block truncate font-mono text-[11px] text-neutral-500"
-            title={userId}
-          >
-            {userId}
           </Typography>
         ) : null}
       </div>

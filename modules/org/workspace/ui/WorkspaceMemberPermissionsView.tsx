@@ -3,10 +3,10 @@
 import { useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { PageSkeleton, Typography } from '@/shared/ui'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { MemberPermissionsPanel } from '@/modules/auth/iam/presentation/ui/MemberPermissionsPanel'
-import { useWorkspaceMembers } from '@/modules/org/workspace/hooks/useWorkspaceMembers'
 import { useAuth } from '@/modules/auth'
+import { useWorkspaceMembers } from '../hooks/useWorkspaceMembers'
 
 function isActive(status: string) {
   return status.toUpperCase() === 'ACTIVE'
@@ -19,10 +19,7 @@ export function WorkspaceMemberPermissionsView() {
   const { members, loading } = useWorkspaceMembers(workspaceId)
 
   const memberUserIds = useMemo(
-    () =>
-      members
-        .filter((m) => isActive(m.status) && m.userId !== selfId)
-        .map((m) => m.userId),
+    () => members.filter((m) => isActive(m.status) && m.userId !== selfId).map((m) => m.userId),
     [members, selfId]
   )
 
@@ -35,7 +32,7 @@ export function WorkspaceMemberPermissionsView() {
         current="Member permissions"
         className="mb-4"
       />
-      <Typography as="h1" size="lg" weight="semibold" className="mb-2">
+      <Typography as="h1" size="md" weight="medium" className="mb-1">
         Member permissions
       </Typography>
       <Typography variant="small" tone="muted" className="mb-4">

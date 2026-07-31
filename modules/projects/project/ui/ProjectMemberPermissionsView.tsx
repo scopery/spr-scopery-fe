@@ -21,31 +21,30 @@ export function ProjectMemberPermissionsView() {
   const { members, loading: membersLoading } = useWorkspaceMembers(workspaceId)
 
   const memberUserIds = useMemo(
-    () =>
-      members
-        .filter((m) => isActive(m.status) && m.userId !== selfId)
-        .map((m) => m.userId),
+    () => members.filter((m) => isActive(m.status) && m.userId !== selfId).map((m) => m.userId),
     [members, selfId]
   )
 
   if (projectLoading || membersLoading) return <PageSkeleton variant="list" />
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={{ id: projectId, name: project?.name ?? 'Project' }}
         current="Member permissions"
-        className="mb-4"
+        className="mb-1"
       />
-      <Typography as="h1" size="lg" weight="semibold" className="mb-2">
-        Project member permissions
-      </Typography>
-      <Typography variant="small" tone="muted" className="mb-4">
-        Permissions for this project only (tasks, documents, finance, quality…). Workspace shell
-        permissions are managed under Workspace settings. Members still need project access
-        (Members → Access) to enter the project.
-      </Typography>
+      <div className="mb-2 border-b border-neutral-200 pb-2">
+        <Typography as="h1" size="md" weight="medium">
+          Project member permissions
+        </Typography>
+        <Typography variant="caption" tone="muted" className="mt-0.5">
+          Permissions for this project only (tasks, documents, finance, quality…). Workspace shell
+          permissions are managed under Workspace settings. Members still need project access
+          (Members → Access) to enter the project.
+        </Typography>
+      </div>
       <MemberPermissionsPanel
         scope={{ kind: 'project', projectId }}
         memberUserIds={memberUserIds}

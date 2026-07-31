@@ -46,8 +46,8 @@ export function MentionAccessBanner({
       <ul className="text-xs text-neutral-700">
         {revoked.slice(0, 5).map((r) => (
           <li key={`${r.resourceType}-${r.resourceId}`}>
-            [{r.status === 'NOT_FOUND' ? 'Not Found' : 'Access Revoked'}] {r.resourceType}:
-            {r.resourceId.slice(0, 8)}…
+            [{r.status === 'NOT_FOUND' ? 'Not Found' : 'Access Revoked'}]{' '}
+            {r.displayName ?? r.resourceType}
           </li>
         ))}
       </ul>

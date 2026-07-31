@@ -1,7 +1,11 @@
 'use client'
 
-import { DefectCenterView } from '@/modules/quality/presentation/ui/DefectCenterView'
+import { LegacyQualityRedirect, DefectCenterView } from '@/modules/quality'
 
 export default function Page() {
-  return <DefectCenterView />
+  return (
+    <LegacyQualityRedirect target="defects">
+      <DefectCenterView />
+    </LegacyQualityRedirect>
+  )
 }

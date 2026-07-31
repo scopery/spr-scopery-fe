@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Typography, Stack, PageSkeleton } from '@/shared/ui'
+import { Typography, Stack, PageSkeleton, DataTable, Card } from '@/shared/ui'
 import { IamStatusBadge } from './IamStatusBadge'
 import { IamSearchField } from './IamSearchField'
 import { useIamPermissions } from '../hooks/useIamPermissions'
@@ -52,7 +52,7 @@ export function AdminIamPermissionsView() {
       {loading ? (
         <PageSkeleton variant="list" />
       ) : error ? (
-        <div className="border border-error-200 bg-error-50 p-4">
+        <div className="border-error-200 bg-error-50 border p-4">
           <Typography tone="error" variant="small">
             {error}
           </Typography>
@@ -66,41 +66,46 @@ export function AdminIamPermissionsView() {
       ) : (
         <div className="space-y-6">
           {grouped.map(([module, rights]) => (
-            <div key={module} className="border border-neutral-200 bg-white">
+            <Card key={module}>
               <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-2.5">
                 <Typography as="h2" size="sm" weight="semibold" className="uppercase tracking-wide">
                   {module}
                 </Typography>
               </div>
               <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="text-neutral-500">
-                    <tr>
-                      <th className="px-4 py-2 font-medium">Code</th>
-                      <th className="px-4 py-2 font-medium">Name</th>
-                      <th className="px-4 py-2 font-medium">Description</th>
-                      <th className="px-4 py-2 font-medium">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rights.map((right) => (
-                      <tr key={right.id} className="border-t border-neutral-50">
-                        <td className="px-4 py-2 font-mono text-xs text-neutral-700">
-                          {right.code}
-                        </td>
-                        <td className="px-4 py-2">{right.name}</td>
-                        <td className="px-4 py-2 text-neutral-500">
-                          {right.description ?? '—'}
-                        </td>
-                        <td className="px-4 py-2">
+                <DataTable
+                  ariaLabel="Admin Iam Permissions"
+                  rows={rights}
+                  rowKey={(right) => String(right.id)}
+                  emptyMessage="No items."
+                  columns={[
+                    {
+                      id: 'code',
+                      header: 'Code',
+                      accessor: 'code',
+                      kind: 'code',
+                      cellClassName: 'text-xs text-neutral-700',
+                    },
+                    { id: 'name', header: 'Name', accessor: 'name' },
+                    {
+                      id: 'description',
+                      header: 'Description',
+                      cell: (right) => <>{right.description ?? '—'}</>,
+                      cellClassName: 'text-neutral-500',
+                    },
+                    {
+                      id: 'status',
+                      header: 'Status',
+                      cell: (right) => (
+                        <>
                           <IamStatusBadge status={right.status} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </>
+                      ),
+                    },
+                  ]}
+                />
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}

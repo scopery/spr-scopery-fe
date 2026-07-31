@@ -33,13 +33,15 @@ export function SupportConfigurationView() {
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
 
-  if (loading) return <PageSkeleton variant="list" className="p-lg" />
+  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Support Configuration</Typography>
-      <Typography tone="muted">
+    <Stack direction="vertical" spacing="sm" className="px-3 py-3 lg:px-4">
+      <Typography as="h1" size="md" weight="medium">
+        Support Configuration
+      </Typography>
+      <Typography variant="small" tone="muted">
         Queues, request types, SLA policies, escalation rules, service profiles and warranties.
       </Typography>
       {actionError ? <Typography tone="error">{actionError}</Typography> : null}
@@ -78,7 +80,11 @@ export function SupportConfigurationView() {
               {p.name}
             </Typography>
             <Typography variant="caption" tone="muted">
-              {[p.policyCode, p.firstResponseMinutes && `${p.firstResponseMinutes}m first`, p.resolveMinutes && `${p.resolveMinutes}m resolve`]
+              {[
+                p.policyCode,
+                p.firstResponseMinutes && `${p.firstResponseMinutes}m first`,
+                p.resolveMinutes && `${p.resolveMinutes}m resolve`,
+              ]
                 .filter(Boolean)
                 .join(' · ')}
             </Typography>
@@ -158,7 +164,7 @@ export function SupportConfigurationView() {
             <li key={w.id} className="flex items-center justify-between gap-md p-md">
               <div>
                 <Typography variant="small" weight="medium">
-                  {w.name ?? w.id}
+                  {w.name ?? 'Unnamed warranty'}
                 </Typography>
                 <Typography variant="caption" tone="muted">
                   {[w.status, w.expiresAt].filter(Boolean).join(' · ')}
@@ -183,7 +189,7 @@ export function SupportConfigurationView() {
             <li key={h.id} className="flex items-center justify-between gap-md p-md">
               <div>
                 <Typography variant="small" weight="medium">
-                  {h.name ?? h.id}
+                  {h.name ?? 'Unnamed handover package'}
                 </Typography>
                 <Typography variant="caption" tone="muted">
                   {h.status}
@@ -216,7 +222,9 @@ export function SupportConfigurationView() {
           {costInputs.map((c) => (
             <li key={c.id} className="flex items-center justify-between gap-md p-md">
               <Typography variant="small">
-                {[c.name ?? c.id, c.status, c.amount].filter((x) => x != null).join(' · ')}
+                {[c.name ?? 'Unnamed cost input', c.status, c.amount]
+                  .filter((x) => x != null)
+                  .join(' · ')}
               </Typography>
               <Button size="sm" variant="outline" onClick={() => void approveCost(c.id)}>
                 Approve

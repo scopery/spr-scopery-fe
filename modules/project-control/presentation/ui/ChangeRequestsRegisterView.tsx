@@ -8,6 +8,8 @@ import { toast } from 'sonner'
 import {
   Badge,
   Button,
+  Card,
+  DataTable,
   Input,
   Modal,
   PageSkeleton,
@@ -23,8 +25,10 @@ import { useChangeRequests } from '../hooks/useChangeRequests'
 import * as api from '../../infrastructure/api/project-control.api'
 import {
   changeTypeLabel,
+  crStatusBadgeVariant,
   crStatusLabel,
   crStatusTone,
+  priorityLabel,
   priorityTone,
 } from '../../domain/rules/project-control.rules'
 import {
@@ -82,26 +86,26 @@ export function ChangeRequestsRegisterView() {
   if (loading && allItems.length === 0) return <PageSkeleton variant="list" />
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="border border-neutral-200 bg-white p-8 text-center">
         <Typography weight="medium">You don’t have access to change requests</Typography>
-      </div>
+      </Card>
     )
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
         current="Change Requests"
       />
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
+      <div className="mb-2 mt-1 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Change Requests
           </Typography>
-          <Typography variant="small" tone="muted" className="mt-1">
+          <Typography variant="caption" tone="muted" className="mt-0.5">
             Draft → submit → approve → apply against a baseline
           </Typography>
         </div>
@@ -120,11 +124,7 @@ export function ChangeRequestsRegisterView() {
           >
             Board
           </Button>
-          <Button
-            variant="primary"
-            icon={<Plus size={16} />}
-            onClick={() => setCreateOpen(true)}
-          >
+          <Button variant="primary" icon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>
             Create CR
           </Button>
         </div>
@@ -153,82 +153,70 @@ export function ChangeRequestsRegisterView() {
               ]}
             />
           </div>
-          <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Code / Title</th>
-                  <th className="px-4 py-3 font-medium">Type</th>
-                  <th className="px-4 py-3 font-medium">Priority</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Updated</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center">
-                      <Typography variant="small" tone="muted">
-                        No change requests
-                      </Typography>
-                    </td>
-                  </tr>
-                ) : (
-                  items.map((cr) => (
-                    <tr key={cr.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                      <td className="px-4 py-3">
-                        <NextLink
-                          href={ROUTES.workspace.projectChangeRequest(
-                            workspaceId,
-                            projectId,
-                            cr.id
-                          )}
-                          className="font-medium text-primary underline-offset-2 hover:underline"
-                        >
-                          {cr.code} · {cr.title}
-                        </NextLink>
-                      </td>
-                      <td className="px-4 py-3">{changeTypeLabel(cr.changeType)}</td>
-                      <td className="px-4 py-3">
-                        <Badge size="sm" variant="solid" tone={priorityTone(cr.priority)}>
-                          {cr.priority}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant="solid" tone={crStatusTone(cr.status)}>
-                          {crStatusLabel(cr.status)}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Typography variant="small" tone="muted">
-                          {new Date(cr.updatedAt).toLocaleString()}
-                        </Typography>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            ariaLabel="Change requests"
+            rows={items}
+            rowKey={(request) => request.id}
+            emptyMessage="No change requests"
+            columns={[
+              {
+                id: 'codeTitle',
+                header: 'Code / Title',
+                kind: 'code',
+                cell: (cr) => (
+                  <NextLink
+                    href={ROUTES.workspace.projectChangeRequest(workspaceId, projectId, cr.id)}
+                    className="text-primary underline-offset-2 hover:underline"
+                  >
+                    {cr.code} · {cr.title}
+                  </NextLink>
+                ),
+              },
+              { id: 'type', header: 'Type', accessor: (cr) => changeTypeLabel(cr.changeType) },
+              {
+                id: 'priority',
+                header: 'Priority',
+                cell: (cr) => (
+                  <Badge size="sm" variant="solid" tone={priorityTone(cr.priority)}>
+                    {cr.priority}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (cr) => (
+                  <Badge
+                    variant={crStatusBadgeVariant(cr.status)}
+                    tone={crStatusTone(cr.status)}
+                  >
+                    {crStatusLabel(cr.status)}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'updated',
+                header: 'Updated',
+                accessor: (cr) => new Date(cr.updatedAt).toLocaleString(),
+              },
+            ]}
+          />
         </>
       ) : (
         <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
           {BOARD_COLUMNS.map((col) => {
             const colItems = allItems.filter((i) => i.status === col)
             return (
-              <div key={col} className="border border-neutral-200 bg-neutral-50 p-2">
+              <Card key={col} className="border border-neutral-200 bg-neutral-50 p-2">
                 <Typography variant="small" weight="semibold" className="mb-2 px-1">
                   {crStatusLabel(col)} ({colItems.length})
                 </Typography>
                 <div className="space-y-2">
                   {colItems.map((cr) => (
-                    <NextLink
+                    <Card
+                      as={NextLink}
                       key={cr.id}
-                      href={ROUTES.workspace.projectChangeRequest(
-                        workspaceId,
-                        projectId,
-                        cr.id
-                      )}
+                      href={ROUTES.workspace.projectChangeRequest(workspaceId, projectId, cr.id)}
                       className="block border border-neutral-200 bg-white p-2 hover:border-primary"
                     >
                       <Typography variant="small" weight="medium">
@@ -237,10 +225,10 @@ export function ChangeRequestsRegisterView() {
                       <Typography variant="caption" tone="muted" className="block">
                         {cr.title}
                       </Typography>
-                    </NextLink>
+                    </Card>
                   ))}
                 </div>
-              </div>
+              </Card>
             )
           })}
         </div>
@@ -255,9 +243,7 @@ export function ChangeRequestsRegisterView() {
             const created = await create(body)
             toast.success('Change request created')
             if (created) {
-              router.push(
-                ROUTES.workspace.projectChangeRequest(workspaceId, projectId, created.id)
-              )
+              router.push(ROUTES.workspace.projectChangeRequest(workspaceId, projectId, created.id))
             }
           } catch (err) {
             toast.error(getProblemToastMessage(err))
@@ -285,7 +271,7 @@ function CreateChangeRequestModal({
   const [description, setDescription] = useState('')
   const [reason, setReason] = useState('')
   const [baselineId, setBaselineId] = useState('')
-  const [changeType, setChangeType] = useState<string>(ChangeType.ScopeAddition)
+  const [changeType, setChangeType] = useState<string>(ChangeType.ScopeChange)
   const [priority, setPriority] = useState<string>(ChangePriority.Medium)
   const [loading, setLoading] = useState(false)
 
@@ -296,7 +282,7 @@ function CreateChangeRequestModal({
     setDescription('')
     setReason('')
     setBaselineId(baselines[0]?.id ?? '')
-    setChangeType(ChangeType.ScopeAddition)
+    setChangeType(ChangeType.ScopeChange)
     setPriority(ChangePriority.Medium)
   }, [open, baselines])
 
@@ -389,7 +375,7 @@ function CreateChangeRequestModal({
               onValueChange={setPriority}
               options={Object.values(ChangePriority).map((p) => ({
                 value: p,
-                label: p,
+                label: priorityLabel(p),
               }))}
             />
           </div>

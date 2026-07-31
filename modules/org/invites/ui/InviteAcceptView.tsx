@@ -15,7 +15,10 @@ import { useOrgInviteActions } from '@/modules/org/invites/hooks/useOrgInviteAct
 import { useOrgActions } from '@/modules/org/org/hooks/useOrgActions'
 import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import { ApiError, getProblemCode } from '@/shared/lib/api-types'
-import { clearPendingInviteToken, setPendingInviteToken } from '@/modules/org/invites/lib/invite-token'
+import {
+  clearPendingInviteToken,
+  setPendingInviteToken,
+} from '@/modules/org/invites/lib/invite-token'
 import { toast } from 'sonner'
 
 export function InviteAcceptView() {
@@ -110,10 +113,10 @@ export function InviteAcceptView() {
           <Button
             variant="primary"
             onClick={() =>
-              router.push(
-                currentWorkspaceId ? ROUTES.workspace.projects(currentWorkspaceId) : '/'
-              )
-            } icon={<ArrowRight size={16} />}>
+              router.push(currentWorkspaceId ? ROUTES.workspace.projects(currentWorkspaceId) : '/')
+            }
+            icon={<ArrowRight size={16} />}
+          >
             Go to projects
           </Button>
         </div>

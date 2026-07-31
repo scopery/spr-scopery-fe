@@ -4,7 +4,7 @@ import { Archive, Check, Plus } from 'lucide-react'
 
 import React from 'react'
 import NextLink from 'next/link'
-import { Typography, Button, Stack, Select, Input, PageSkeleton } from '@/shared/ui'
+import { Typography, Button, DataTable, Stack, Select, Input, PageSkeleton } from '@/shared/ui'
 import { useAdminOrganizations } from '../hooks/useAdminOrganizations'
 import { AdminOrganizationStatusBadge } from './AdminOrganizationStatusBadge'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
@@ -89,71 +89,68 @@ export function AdminOrganizationsListView() {
           </Typography>
         </div>
       ) : (
-        <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Code</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Created</th>
-                <th className="min-w-[12rem] whitespace-nowrap px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-neutral-500">
-                    No organizations found
-                  </td>
-                </tr>
-              ) : (
-                items.map((org) => (
-                  <tr key={org.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                    <td className="px-4 py-3">
-                      <NextLink
-                        href={ADMIN_ROUTES.organization(org.id)}
-                        className="font-medium text-neutral-900 hover:underline"
-                      >
-                        {org.name}
-                      </NextLink>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-neutral-600">{org.code}</td>
-                    <td className="px-4 py-3">
-                      <AdminOrganizationStatusBadge status={org.status} />
-                    </td>
-                    <td className="px-4 py-3 text-neutral-600">{formatDate(org.createdAt)}</td>
-                    <td className="px-4 py-3">
-                      <Stack direction="horizontal" spacing="sm" className="items-center">
-                        <NextLink
-                          href={ADMIN_ROUTES.organization(org.id)}
-                          className="text-sm text-primary hover:underline"
-                        >
-                          View
-                        </NextLink>
-                        {org.status === OrganizationStatus.Archived ? (
-                          <Button
-                            variant="ghost"
-                            disabled={actingId === org.id}
-                            onClick={() => void runAction(org.id, 'activate')} icon={<Check size={16} />}>
-                            Activate
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            disabled={actingId === org.id}
-                            onClick={() => void runAction(org.id, 'archive')} icon={<Archive size={16} />}>
-                            Archive
-                          </Button>
-                        )}
-                      </Stack>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          className="border border-neutral-200"
+          ariaLabel="Organizations"
+          rows={items}
+          rowKey={(org) => org.id}
+          emptyMessage="No organizations found"
+          columns={[
+            {
+              id: 'name',
+              header: 'Name',
+              cell: (org) => (
+                <NextLink
+                  href={ADMIN_ROUTES.organization(org.id)}
+                  className="font-medium text-neutral-900 hover:underline"
+                >
+                  {org.name}
+                </NextLink>
+              ),
+            },
+            { id: 'code', header: 'Code', accessor: 'code', kind: 'code' },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (org) => <AdminOrganizationStatusBadge status={org.status} />,
+            },
+            { id: 'created', header: 'Created', accessor: (org) => formatDate(org.createdAt) },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cellClassName: 'min-w-[12rem] whitespace-nowrap',
+              cell: (org) => (
+                <Stack direction="horizontal" spacing="sm" className="items-center">
+                  <NextLink
+                    href={ADMIN_ROUTES.organization(org.id)}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    View
+                  </NextLink>
+                  {org.status === OrganizationStatus.Archived ? (
+                    <Button
+                      variant="ghost"
+                      disabled={actingId === org.id}
+                      onClick={() => void runAction(org.id, 'activate')}
+                      icon={<Check size={16} />}
+                    >
+                      Activate
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      disabled={actingId === org.id}
+                      onClick={() => void runAction(org.id, 'archive')}
+                      icon={<Archive size={16} />}
+                    >
+                      Archive
+                    </Button>
+                  )}
+                </Stack>
+              ),
+            },
+          ]}
+        />
       )}
     </div>
   )

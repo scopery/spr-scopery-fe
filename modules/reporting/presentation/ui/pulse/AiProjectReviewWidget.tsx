@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Button, Checkbox, Stack, Typography } from '@/shared/ui'
+import { Button, Card, Checkbox, Stack, Typography } from '@/shared/ui'
 import type { AiProjectReviewInsight } from '../../../domain/model/project-pulse'
 import { PulsePanel, PulseTextAction } from './PulseWidget'
 
@@ -14,7 +14,9 @@ export function AiProjectReviewWidget({
 }) {
   const initial = useMemo(
     () =>
-      new Set(insight.actions.filter((action) => action.defaultSelected).map((action) => action.id)),
+      new Set(
+        insight.actions.filter((action) => action.defaultSelected).map((action) => action.id)
+      ),
     [insight.actions]
   )
   const [selected, setSelected] = useState<Set<string>>(initial)
@@ -62,9 +64,11 @@ export function AiProjectReviewWidget({
           </Typography>
           <Stack direction="vertical" spacing="sm">
             {insight.actions.map((action) => (
-              <label
+              <Card
+                as="label"
                 key={action.id}
-                className="flex cursor-pointer items-start gap-sm border border-neutral-200 bg-neutral-50 p-sm"
+                hasShadow={false}
+                className="flex cursor-pointer items-start gap-sm bg-neutral-50 p-sm"
               >
                 <Checkbox
                   checked={selected.has(action.id)}
@@ -90,7 +94,7 @@ export function AiProjectReviewWidget({
                     <PulseTextAction href={action.href}>Open related screen</PulseTextAction>
                   ) : null}
                 </span>
-              </label>
+              </Card>
             ))}
           </Stack>
         </div>
@@ -108,4 +112,3 @@ export function AiProjectReviewWidget({
     </PulsePanel>
   )
 }
-

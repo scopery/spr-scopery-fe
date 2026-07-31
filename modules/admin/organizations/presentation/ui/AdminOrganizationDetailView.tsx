@@ -5,14 +5,17 @@ import { Archive, Check, Save } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
-import { Typography, Button, Stack, Input, PageSkeleton } from '@/shared/ui'
+import { Typography, Button, Stack, Input, PageSkeleton, Card } from '@/shared/ui'
+import { UserIdentity, useResolveUsers } from '@/modules/platform/identity'
 import { useAdminOrganizationDetail } from '../hooks/useAdminOrganizationDetail'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 import { OrganizationStatus } from '../../domain/enums/organization.enum'
 
 export function AdminOrganizationDetailView() {
   const { orgId } = useParams<{ orgId: string }>()
-  const { data, loading, error, acting, saving, save, runAction } = useAdminOrganizationDetail(orgId)
+  const { data, loading, error, acting, saving, save, runAction } =
+    useAdminOrganizationDetail(orgId)
+  const { peopleById } = useResolveUsers([data?.ownerUserId])
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
 
@@ -23,9 +26,7 @@ export function AdminOrganizationDetailView() {
   }, [data])
 
   if (loading) {
-    return (
-      <PageSkeleton variant="detail" />
-    )
+    return <PageSkeleton variant="detail" />
   }
 
   if (error || !data) {
@@ -38,8 +39,7 @@ export function AdminOrganizationDetailView() {
     )
   }
 
-  const dirty =
-    name.trim() !== data.name || (description.trim() || '') !== (data.description ?? '')
+  const dirty = name.trim() !== data.name || (description.trim() || '') !== (data.description ?? '')
 
   return (
     <div>
@@ -48,14 +48,18 @@ export function AdminOrganizationDetailView() {
           <Button
             variant="outline"
             disabled={acting}
-            onClick={() => void runAction('activate')} icon={<Check size={16} />}>
+            onClick={() => void runAction('activate')}
+            icon={<Check size={16} />}
+          >
             Activate
           </Button>
         ) : (
           <Button
             variant="outline"
             disabled={acting}
-            onClick={() => void runAction('archive')} icon={<Archive size={16} />}>
+            onClick={() => void runAction('archive')}
+            icon={<Archive size={16} />}
+          >
             Archive
           </Button>
         )}
@@ -68,7 +72,7 @@ export function AdminOrganizationDetailView() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="border border-neutral-200 bg-white p-6">
+        <Card className="p-6">
           <Typography as="h2" size="lg" weight="semibold" className="mb-4">
             Overview
           </Typography>
@@ -87,24 +91,29 @@ export function AdminOrganizationDetailView() {
                   name: name.trim(),
                   description: description.trim() || undefined,
                 })
-              } icon={<Save size={16} />}>
+              }
+              icon={<Save size={16} />}
+            >
               {saving ? 'Saving…' : 'Save changes'}
             </Button>
           </Stack>
-        </div>
+        </Card>
 
-        <div className="border border-neutral-200 bg-white p-6">
+        <Card className="p-6">
           <Typography as="h2" size="lg" weight="semibold" className="mb-4">
             Metadata
           </Typography>
           <dl className="space-y-3 text-sm">
             <div>
-              <dt className="text-neutral-500">Organization ID</dt>
-              <dd className="mt-0.5 font-mono text-xs">{data.id}</dd>
-            </div>
-            <div>
-              <dt className="text-neutral-500">Owner user ID</dt>
-              <dd className="mt-0.5 font-mono text-xs">{data.ownerUserId ?? '—'}</dd>
+              <dt className="text-neutral-500">Owner</dt>
+              <dd className="mt-0.5">
+                <UserIdentity
+                  userId={data.ownerUserId}
+                  person={data.ownerUserId ? peopleById[data.ownerUserId] : null}
+                  size="xs"
+                  compact
+                />
+              </dd>
             </div>
             <div>
               <dt className="text-neutral-500">Created</dt>
@@ -115,7 +124,7 @@ export function AdminOrganizationDetailView() {
               <dd className="mt-0.5">{new Date(data.updatedAt).toLocaleDateString()}</dd>
             </div>
           </dl>
-        </div>
+        </Card>
       </div>
     </div>
   )

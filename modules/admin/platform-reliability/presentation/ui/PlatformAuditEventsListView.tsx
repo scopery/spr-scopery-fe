@@ -4,7 +4,7 @@ import { Play, RefreshCw } from 'lucide-react'
 
 import { useState } from 'react'
 import NextLink from 'next/link'
-import { Badge, Button, Input, Typography, Skeleton } from '@/shared/ui'
+import { Badge, Button, Input, Typography, Skeleton, DataTable } from '@/shared/ui'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 import { usePlatformAuditEvents } from '../hooks/usePlatformAuditEvents'
 
@@ -61,7 +61,9 @@ export function PlatformAuditEventsListView() {
               eventType: eventType.trim() || undefined,
               severity: severity.trim() || undefined,
             })
-          } icon={<Play size={16} />}>
+          }
+          icon={<Play size={16} />}
+        >
           Apply
         </Button>
         <Button variant="secondary" onClick={() => void refetch()} icon={<RefreshCw size={16} />}>
@@ -76,64 +78,59 @@ export function PlatformAuditEventsListView() {
       )}
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">When</th>
-              <th className="px-4 py-3 font-medium">Event</th>
-              <th className="px-4 py-3 font-medium">Severity</th>
-              <th className="px-4 py-3 font-medium">Actor</th>
-              <th className="px-4 py-3 font-medium">Resource</th>
-              <th className="px-4 py-3 font-medium">Trace</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-10 text-center">
-                  <Skeleton variant="rectangular" width="100%" height={80} />
-                </td>
-              </tr>
-            ) : items.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-neutral-500">
-                  No audit events
-                </td>
-              </tr>
-            ) : (
-              items.map((event) => (
-                <tr key={event.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="whitespace-nowrap px-4 py-3 text-neutral-600">
-                    {formatDate(event.occurredAt)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <NextLink
-                      href={ADMIN_ROUTES.platformAuditEvent(event.id)}
-                      className="font-mono text-xs text-primary hover:underline"
-                    >
-                      {event.eventType}
-                    </NextLink>
-                  </td>
-                  <td className="px-4 py-3">
-                    {event.severity ? (
-                      <Badge variant="soft">
-                        {event.severity}
-                      </Badge>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs">{event.actorId ?? '—'}</td>
-                  <td className="px-4 py-3 font-mono text-xs">
-                    {event.resourceType ?? '—'}
-                    {event.resourceRefId ? ` · ${event.resourceRefId.slice(0, 8)}…` : ''}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs">{event.traceId ?? '—'}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        <DataTable
+          ariaLabel="Platform Audit Events List"
+          rows={items}
+          rowKey={(event) => String(event.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'when',
+              header: 'When',
+              cell: (event) => <>{formatDate(event.occurredAt)}</>,
+              cellClassName: 'whitespace-nowrap text-neutral-600',
+            },
+            {
+              id: 'event',
+              header: 'Event',
+              cell: (event) => (
+                <>
+                  <NextLink
+                    href={ADMIN_ROUTES.platformAuditEvent(event.id)}
+                    className="text-xs font-normal text-primary hover:underline"
+                  >
+                    {event.eventType}
+                  </NextLink>
+                </>
+              ),
+            },
+            {
+              id: 'severity',
+              header: 'Severity',
+              cell: (event) => (
+                <>{event.severity ? <Badge variant="soft">{event.severity}</Badge> : '—'}</>
+              ),
+            },
+            {
+              id: 'actor',
+              header: 'Actor',
+              cell: (event) => <>{event.actorId ?? '—'}</>,
+              cellClassName: 'text-xs',
+            },
+            {
+              id: 'resource',
+              header: 'Resource',
+              cell: (event) => <>{event.resourceType ?? '—'}</>,
+              cellClassName: 'text-xs',
+            },
+            {
+              id: 'trace',
+              header: 'Trace',
+              cell: (event) => <>{event.traceId ?? '—'}</>,
+              cellClassName: 'text-xs',
+            },
+          ]}
+        />
       </div>
     </div>
   )

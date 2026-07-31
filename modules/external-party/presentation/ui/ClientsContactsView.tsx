@@ -4,7 +4,17 @@ import { Plus } from 'lucide-react'
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Badge, Button, Input, Select, Stack, Typography, PageSkeleton } from '@/shared/ui'
+import {
+  Badge,
+  Button,
+  Card,
+  DataTable,
+  Input,
+  Select,
+  Stack,
+  Typography,
+  PageSkeleton,
+} from '@/shared/ui'
 import { useClientsContacts } from '../hooks/useClientsContacts'
 import { ExternalOrganizationType } from '../../domain/enums/external-party.enum'
 import { contactDisplayName, isPrimaryContact } from '../../domain/rules/external-party.rules'
@@ -67,9 +77,7 @@ export function ClientsContactsView({
   })
 
   if (loading) {
-    return (
-      <PageSkeleton variant="split" />
-    )
+    return <PageSkeleton variant="split" />
   }
 
   if (error) {
@@ -83,10 +91,10 @@ export function ClientsContactsView({
   }
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             {title}
           </Typography>
           <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -94,7 +102,11 @@ export function ClientsContactsView({
           </Typography>
         </div>
         {canManage ? (
-          <Button variant="primary" onClick={() => setShowCreateOrg(true)} icon={<Plus size={16} />}>
+          <Button
+            variant="primary"
+            onClick={() => setShowCreateOrg(true)}
+            icon={<Plus size={16} />}
+          >
             Add organization
           </Button>
         ) : null}
@@ -118,7 +130,7 @@ export function ClientsContactsView({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
-        <div className="border border-neutral-200 bg-white">
+        <Card className="border border-neutral-200 bg-white">
           <div className="border-b border-neutral-100 px-4 py-3">
             <Typography weight="semibold" variant="small">
               Organizations ({organizations.length})
@@ -146,9 +158,7 @@ export function ClientsContactsView({
                       <Typography weight="medium" variant="small">
                         {org.name}
                       </Typography>
-                      <Badge tone="neutral">
-                        {org.organizationType}
-                      </Badge>
+                      <Badge tone="neutral">{org.organizationType}</Badge>
                     </div>
                     <Typography variant="small" tone="muted" className="font-mono text-xs">
                       {org.code}
@@ -158,9 +168,9 @@ export function ClientsContactsView({
               ))}
             </ul>
           )}
-        </div>
+        </Card>
 
-        <div className="border border-neutral-200 bg-white">
+        <Card className="border border-neutral-200 bg-white">
           {!selectedOrganization ? (
             <div className="px-4 py-16 text-center">
               <Typography tone="muted" variant="small">
@@ -171,7 +181,7 @@ export function ClientsContactsView({
             <>
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-neutral-100 px-4 py-4">
                 <div>
-                  <Typography as="h2" size="lg" weight="semibold">
+                  <Typography as="h2" size="md" weight="medium">
                     {selectedOrganization.name}
                   </Typography>
                   <Typography variant="small" tone="muted" className="mt-1 font-mono text-xs">
@@ -179,7 +189,11 @@ export function ClientsContactsView({
                   </Typography>
                 </div>
                 {canManage ? (
-                  <Button variant="outline" onClick={() => setShowCreateContact(true)} icon={<Plus size={16} />}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowCreateContact(true)}
+                    icon={<Plus size={16} />}
+                  >
                     Add contact
                   </Button>
                 ) : null}
@@ -189,54 +203,37 @@ export function ClientsContactsView({
                 <Typography weight="semibold" variant="small" className="mb-3">
                   Contacts
                 </Typography>
-                {selectedContacts.length === 0 ? (
-                  <div className="border border-dashed border-neutral-300 bg-neutral-50 px-4 py-10 text-center">
-                    <Typography tone="muted" variant="small">
-                      This organization has no contacts yet.
-                    </Typography>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-sm">
-                      <thead className="bg-neutral-50 text-neutral-600">
-                        <tr>
-                          <th className="px-3 py-2 font-medium">Name</th>
-                          <th className="px-3 py-2 font-medium">Email</th>
-                          <th className="px-3 py-2 font-medium">Status</th>
-                          <th className="px-3 py-2 font-medium">Primary</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedContacts.map((contact) => (
-                          <tr key={contact.id} className="border-t border-neutral-100">
-                            <td className="px-3 py-2">{contactDisplayName(contact)}</td>
-                            <td className="px-3 py-2">{contact.email ?? '—'}</td>
-                            <td className="px-3 py-2">{contact.status}</td>
-                            <td className="px-3 py-2">
-                              {isPrimaryContact(contact) ? (
-                                <Badge tone="success">
-                                  Primary
-                                </Badge>
-                              ) : (
-                                '—'
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                <DataTable
+                  ariaLabel="Organization contacts"
+                  rows={selectedContacts}
+                  rowKey={(contact) => contact.id}
+                  emptyMessage="This organization has no contacts yet."
+                  columns={[
+                    {
+                      id: 'name',
+                      header: 'Name',
+                      accessor: (contact) => contactDisplayName(contact) || '—',
+                    },
+                    { id: 'email', header: 'Email', accessor: (contact) => contact.email ?? '—' },
+                    { id: 'status', header: 'Status', accessor: 'status' },
+                    {
+                      id: 'primary',
+                      header: 'Primary',
+                      cell: (contact) =>
+                        isPrimaryContact(contact) ? <Badge tone="success">Primary</Badge> : '—',
+                    },
+                  ]}
+                />
               </div>
             </>
           )}
-        </div>
+        </Card>
       </div>
 
       {canManage && showCreateOrg ? (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/30">
           <div className="h-full w-full max-w-md bg-white p-6 shadow-lg">
-            <Typography as="h2" size="lg" weight="semibold" className="mb-4">
+            <Typography as="h2" size="md" weight="medium" className="mb-4">
               Add organization
             </Typography>
             <Stack direction="vertical" spacing="md">
@@ -295,7 +292,7 @@ export function ClientsContactsView({
       {canManage && showCreateContact && selectedOrganization ? (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/30">
           <div className="h-full w-full max-w-md bg-white p-6 shadow-lg">
-            <Typography as="h2" size="lg" weight="semibold" className="mb-1">
+            <Typography as="h2" size="md" weight="medium" className="mb-1">
               Add contact
             </Typography>
             <Typography variant="small" tone="muted" className="mb-4">
@@ -322,9 +319,7 @@ export function ClientsContactsView({
                 <input
                   type="checkbox"
                   checked={contactForm.primaryFlag}
-                  onChange={(e) =>
-                    setContactForm((f) => ({ ...f, primaryFlag: e.target.checked }))
-                  }
+                  onChange={(e) => setContactForm((f) => ({ ...f, primaryFlag: e.target.checked }))}
                 />
                 Primary contact
               </label>
@@ -332,9 +327,7 @@ export function ClientsContactsView({
                 <Button
                   variant="primary"
                   disabled={
-                    creatingContact ||
-                    !contactForm.firstName.trim() ||
-                    !contactForm.lastName.trim()
+                    creatingContact || !contactForm.firstName.trim() || !contactForm.lastName.trim()
                   }
                   onClick={() =>
                     void createContact({

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { PageSkeleton, Typography } from '@/shared/ui'
+import { Card, PageSkeleton, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import { ROUTES } from '@/constants/routes'
@@ -147,10 +147,7 @@ export function MeetingWorkspaceView() {
       setAutosaveState('saving')
       void (async () => {
         try {
-          await saveMinutesRef.current(
-            { summary: localSummary || null },
-            { quiet: true }
-          )
+          await saveMinutesRef.current({ summary: localSummary || null }, { quiet: true })
           if (generation !== saveGenerationRef.current) return
           setAutosaveState('saved')
         } catch {
@@ -214,7 +211,7 @@ export function MeetingWorkspaceView() {
             title,
             code: `DEC_${slug || 'MTG'}_${suffix}`,
             category: DecisionCategory.Other,
-            rationale: `Captured from meeting ${meetingId}`,
+            rationale: `Captured from ${meeting?.title || 'meeting'}`,
           })
           toast.success('Decision created')
           return
@@ -226,7 +223,7 @@ export function MeetingWorkspaceView() {
             type,
             title,
             code: `${type === 'RISK' ? 'RSK' : 'ISS'}_${slug || 'MTG'}_${suffix}`,
-            description: `Captured from meeting ${meetingId}`,
+            description: `Captured from ${meeting?.title || 'meeting'}`,
           })
           toast.success(capture.kind === 'risk' ? 'Risk created' : 'Issue created')
           return
@@ -240,7 +237,7 @@ export function MeetingWorkspaceView() {
         throw err
       }
     },
-    [createActionItem, projectId, meetingId]
+    [createActionItem, meeting?.title, projectId]
   )
 
   const handleCompleteActionItem = async (actionItemId: string) => {
@@ -294,17 +291,17 @@ export function MeetingWorkspaceView() {
 
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="p-8 text-center">
         <Typography weight="medium">You don’t have access to this meeting</Typography>
-      </div>
+      </Card>
     )
   }
 
   if (!meeting) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="p-8 text-center">
         <Typography weight="medium">Meeting not found</Typography>
-      </div>
+      </Card>
     )
   }
 
@@ -327,11 +324,7 @@ export function MeetingWorkspaceView() {
       />
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <MeetingLifecycleStepper
-          mode={mode}
-          autoMode={autoMode}
-          onChange={setManualMode}
-        />
+        <MeetingLifecycleStepper mode={mode} autoMode={autoMode} onChange={setManualMode} />
         {mode === 'during' && meeting.status === 'IN_PROGRESS' ? (
           <div className="inline-flex items-center gap-2 bg-warning px-3 py-1.5 text-sm text-white">
             <span className="h-1.5 w-1.5 shrink-0 bg-white" aria-hidden />

@@ -4,7 +4,18 @@ import { Archive, Ban, Check, Plus, UserPlus } from 'lucide-react'
 
 import { useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Badge, Button, Input, Modal, Select, Stack, Typography, PageSkeleton } from '@/shared/ui'
+import {
+  Badge,
+  Button,
+  Card,
+  DataTable,
+  Input,
+  Modal,
+  Select,
+  Stack,
+  Typography,
+  PageSkeleton,
+} from '@/shared/ui'
 import { useCostingSetup } from '../hooks/useCostingSetup'
 import { CompoundFrequency, RateCardEntityStatus } from '../../domain/enums/rate-card.enum'
 import {
@@ -12,6 +23,8 @@ import {
   isInflationPolicyActive,
   isMemberCostRoleActive,
 } from '../../domain/rules/rate-card.rules'
+import { useWorkspaceMembers } from '@/modules/admin/workspaces'
+import { PersonReferenceSelect, useResolveUsers } from '@/modules/platform'
 
 type SetupTab = 'cost-roles' | 'member-assignments' | 'inflation-policies'
 
@@ -26,16 +39,6 @@ const COMPOUND_FREQUENCY_OPTIONS = [
   { value: CompoundFrequency.Monthly, label: 'Monthly' },
   { value: CompoundFrequency.None, label: 'None' },
 ]
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="px-4 py-10 text-center">
-      <Typography tone="muted" variant="small">
-        {message}
-      </Typography>
-    </div>
-  )
-}
 
 export function CostingSetupView() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
@@ -91,11 +94,23 @@ export function CostingSetupView() {
     () => costRoles.map((role) => ({ value: role.id, label: `${role.name} (${role.code})` })),
     [costRoles]
   )
+  const { items: workspaceMembers } = useWorkspaceMembers(workspaceId, {
+    status: 'ACTIVE',
+    page: 0,
+    size: 200,
+  })
+  const { personFor } = useResolveUsers(workspaceMembers.map((member) => member.userId))
+  const memberOptions = useMemo(
+    () =>
+      workspaceMembers.flatMap((member) => {
+        const person = personFor(member.userId)
+        return person ? [{ value: member.id, person }] : []
+      }),
+    [personFor, workspaceMembers]
+  )
 
   if (loading) {
-    return (
-      <PageSkeleton variant="list" />
-    )
+    return <PageSkeleton variant="list" />
   }
 
   if (error) {
@@ -109,9 +124,9 @@ export function CostingSetupView() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <Typography as="h1" size="lg" weight="semibold">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2">
+        <Typography as="h1" size="md" weight="medium">
           Costing Setup
         </Typography>
         <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -130,88 +145,83 @@ export function CostingSetupView() {
       </div>
 
       {tab === 'cost-roles' && (
-        <div className="border border-neutral-200 bg-white">
+        <Card className="border border-neutral-200 bg-white">
           <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
             <Typography weight="semibold" variant="small">
               Cost Roles ({costRoles.length})
             </Typography>
-            <Button variant="primary" onClick={() => setShowCostRoleModal(true)} icon={<Plus size={16} />}>
+            <Button
+              variant="primary"
+              onClick={() => setShowCostRoleModal(true)}
+              icon={<Plus size={16} />}
+            >
               Add cost role
             </Button>
           </div>
-          {costRoles.length === 0 ? (
-            <EmptyState message="No cost roles yet." />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-neutral-50 text-neutral-600">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">Code</th>
-                    <th className="px-3 py-2 font-medium">Name</th>
-                    <th className="px-3 py-2 font-medium">Category</th>
-                    <th className="px-3 py-2 font-medium">Status</th>
-                    <th className="min-w-[16rem] whitespace-nowrap px-3 py-2 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {costRoles.map((role) => (
-                    <tr key={role.id} className="border-t border-neutral-100">
-                      <td className="px-3 py-2 font-mono text-xs">{role.code}</td>
-                      <td className="px-3 py-2">{role.name}</td>
-                      <td className="px-3 py-2">{role.category ?? '—'}</td>
-                      <td className="px-3 py-2">
-                        <Badge
-                          variant="solid"
-                          tone={isCostRoleActive(role) ? 'success' : 'neutral'}
+          <DataTable
+            ariaLabel="Cost roles"
+            rows={costRoles}
+            rowKey={(role) => role.id}
+            emptyMessage="No cost roles yet."
+            columns={[
+              { id: 'code', header: 'Code', accessor: (role) => role.code || '—', kind: 'code' },
+              { id: 'name', header: 'Name', accessor: (role) => role.name || '—' },
+              { id: 'category', header: 'Category', accessor: (role) => role.category ?? '—' },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (role) => (
+                  <Badge variant="solid" tone={isCostRoleActive(role) ? 'success' : 'neutral'}>
+                    {role.status === RateCardEntityStatus.Active
+                      ? 'Active'
+                      : role.status === RateCardEntityStatus.Inactive
+                        ? 'Inactive'
+                        : 'Archived'}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                align: 'right',
+                cell: (role) => (
+                  <div className="flex flex-nowrap items-center justify-end gap-1">
+                    {isCostRoleActive(role) ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          onClick={() => void deactivateCostRole(role.id)}
+                          icon={<Ban size={16} />}
                         >
-                          {role.status === RateCardEntityStatus.Active
-                            ? 'Active'
-                            : role.status === RateCardEntityStatus.Inactive
-                              ? 'Inactive'
-                              : 'Archived'}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        <div className="flex flex-nowrap items-center justify-end gap-1">
-                          {isCostRoleActive(role) ? (
-                            <>
-                              <Button
-                                variant="ghost"
-                                onClick={() => void deactivateCostRole(role.id)}
-                                icon={<Ban size={16} />}
-                              >
-                                Deactivate
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                onClick={() => void archiveCostRole(role.id)}
-                                icon={<Archive size={16} />}
-                              >
-                                Archive
-                              </Button>
-                            </>
-                          ) : (
-                            <Button
-                              variant="ghost"
-                              onClick={() => void activateCostRole(role.id)}
-                              icon={<Check size={16} />}
-                            >
-                              Activate
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                          Deactivate
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => void archiveCostRole(role.id)}
+                          icon={<Archive size={16} />}
+                        >
+                          Archive
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        onClick={() => void activateCostRole(role.id)}
+                        icon={<Check size={16} />}
+                      >
+                        Activate
+                      </Button>
+                    )}
+                  </div>
+                ),
+              },
+            ]}
+          />
+        </Card>
       )}
 
       {tab === 'member-assignments' && (
-        <div className="border border-neutral-200 bg-white">
+        <Card className="border border-neutral-200 bg-white">
           <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
             <Typography weight="semibold" variant="small">
               Member Assignments ({memberCostRoles.length})
@@ -219,152 +229,168 @@ export function CostingSetupView() {
             <Button
               variant="primary"
               disabled={costRoles.length === 0}
-              onClick={() => setShowMemberModal(true)} icon={<UserPlus size={16} />}>
+              onClick={() => setShowMemberModal(true)}
+              icon={<UserPlus size={16} />}
+            >
               Assign cost role
             </Button>
           </div>
-          {memberCostRoles.length === 0 ? (
-            <EmptyState message="No member cost role assignments yet." />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-neutral-50 text-neutral-600">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">Member</th>
-                    <th className="px-3 py-2 font-medium">Cost Role</th>
-                    <th className="px-3 py-2 font-medium">Effective</th>
-                    <th className="px-3 py-2 font-medium">Default</th>
-                    <th className="px-3 py-2 font-medium">Status</th>
-                    <th className="px-3 py-2 font-medium" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {memberCostRoles.map((assignment) => {
-                    const role = costRoles.find((r) => r.id === assignment.costRoleId)
-                    return (
-                      <tr key={assignment.id} className="border-t border-neutral-100">
-                        <td className="px-3 py-2 font-mono text-xs">
-                          {assignment.workspaceMemberId}
-                        </td>
-                        <td className="px-3 py-2">
-                          {role ? `${role.name} (${role.code})` : assignment.costRoleId}
-                        </td>
-                        <td className="px-3 py-2 text-xs">
-                          {assignment.effectiveFrom} → {assignment.effectiveTo ?? '∞'}
-                        </td>
-                        <td className="px-3 py-2">{assignment.isDefault ? 'Yes' : '—'}</td>
-                        <td className="px-3 py-2">
-                          <Badge
-                            variant="solid"
-                            tone={isMemberCostRoleActive(assignment) ? 'success' : 'neutral'}
-                          >
-                            {isMemberCostRoleActive(assignment) ? 'Active' : 'Archived'}
-                          </Badge>
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          {isMemberCostRoleActive(assignment) ? (
-                            <Button
-                              variant="ghost"
-                              onClick={() => void archiveMemberCostRole(assignment.id)} icon={<Archive size={16} />}>
-                              Archive
-                            </Button>
-                          ) : null}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+          <DataTable
+            ariaLabel="Member cost role assignments"
+            rows={memberCostRoles}
+            rowKey={(assignment) => assignment.id}
+            emptyMessage="No member cost role assignments yet."
+            columns={[
+              {
+                id: 'member',
+                header: 'Member',
+                accessor: (assignment) =>
+                  memberOptions.find((member) => member.value === assignment.workspaceMemberId)
+                    ?.person.fullName ?? '—',
+                kind: 'reference',
+              },
+              {
+                id: 'role',
+                header: 'Cost Role',
+                accessor: (assignment) => {
+                  const role = costRoles.find((item) => item.id === assignment.costRoleId)
+                  return role ? `${role.name} (${role.code})` : '—'
+                },
+                kind: 'reference',
+              },
+              {
+                id: 'effective',
+                header: 'Effective',
+                accessor: (assignment) =>
+                  `${assignment.effectiveFrom} → ${assignment.effectiveTo ?? '∞'}`,
+              },
+              {
+                id: 'default',
+                header: 'Default',
+                accessor: (assignment) => (assignment.isDefault ? 'Yes' : '—'),
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (assignment) => (
+                  <Badge
+                    variant="solid"
+                    tone={isMemberCostRoleActive(assignment) ? 'success' : 'neutral'}
+                  >
+                    {isMemberCostRoleActive(assignment) ? 'Active' : 'Archived'}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                align: 'right',
+                cell: (assignment) =>
+                  isMemberCostRoleActive(assignment) ? (
+                    <Button
+                      variant="ghost"
+                      onClick={() => void archiveMemberCostRole(assignment.id)}
+                      icon={<Archive size={16} />}
+                    >
+                      Archive
+                    </Button>
+                  ) : (
+                    '—'
+                  ),
+              },
+            ]}
+          />
+        </Card>
       )}
 
       {tab === 'inflation-policies' && (
-        <div className="border border-neutral-200 bg-white">
+        <Card className="border border-neutral-200 bg-white">
           <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
             <Typography weight="semibold" variant="small">
               Inflation Policies ({inflationPolicies.length})
             </Typography>
-            <Button variant="primary" onClick={() => setShowInflationModal(true)} icon={<Plus size={16} />}>
+            <Button
+              variant="primary"
+              onClick={() => setShowInflationModal(true)}
+              icon={<Plus size={16} />}
+            >
               Add inflation policy
             </Button>
           </div>
-          {inflationPolicies.length === 0 ? (
-            <EmptyState message="No inflation policies yet." />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-neutral-50 text-neutral-600">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">Code</th>
-                    <th className="px-3 py-2 font-medium">Name</th>
-                    <th className="px-3 py-2 font-medium">Rate</th>
-                    <th className="px-3 py-2 font-medium">Frequency</th>
-                    <th className="px-3 py-2 font-medium">Effective</th>
-                    <th className="px-3 py-2 font-medium">Status</th>
-                    <th className="min-w-[16rem] whitespace-nowrap px-3 py-2 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {inflationPolicies.map((policy) => (
-                    <tr key={policy.id} className="border-t border-neutral-100">
-                      <td className="px-3 py-2 font-mono text-xs">{policy.code}</td>
-                      <td className="px-3 py-2">{policy.name}</td>
-                      <td className="px-3 py-2">{policy.inflationPercent}%</td>
-                      <td className="px-3 py-2">{policy.compoundFrequency}</td>
-                      <td className="px-3 py-2 text-xs">
-                        {policy.effectiveFrom} → {policy.effectiveTo ?? '∞'}
-                      </td>
-                      <td className="px-3 py-2">
-                        <Badge
-                          variant="solid"
-                          tone={isInflationPolicyActive(policy) ? 'success' : 'neutral'}
+          <DataTable
+            ariaLabel="Inflation policies"
+            rows={inflationPolicies}
+            rowKey={(policy) => policy.id}
+            emptyMessage="No inflation policies yet."
+            columns={[
+              {
+                id: 'code',
+                header: 'Code',
+                accessor: (policy) => policy.code || '—',
+                kind: 'code',
+              },
+              { id: 'name', header: 'Name', accessor: (policy) => policy.name || '—' },
+              { id: 'rate', header: 'Rate', accessor: (policy) => `${policy.inflationPercent}%` },
+              { id: 'frequency', header: 'Frequency', accessor: 'compoundFrequency' },
+              {
+                id: 'effective',
+                header: 'Effective',
+                accessor: (policy) => `${policy.effectiveFrom} → ${policy.effectiveTo ?? '∞'}`,
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (policy) => (
+                  <Badge
+                    variant="solid"
+                    tone={isInflationPolicyActive(policy) ? 'success' : 'neutral'}
+                  >
+                    {policy.status === RateCardEntityStatus.Active
+                      ? 'Active'
+                      : policy.status === RateCardEntityStatus.Inactive
+                        ? 'Inactive'
+                        : 'Archived'}
+                  </Badge>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                align: 'right',
+                cell: (policy) => (
+                  <div className="flex flex-nowrap items-center justify-end gap-1">
+                    {isInflationPolicyActive(policy) ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          onClick={() => void deactivateInflationPolicy(policy.id)}
+                          icon={<Ban size={16} />}
                         >
-                          {policy.status === RateCardEntityStatus.Active
-                            ? 'Active'
-                            : policy.status === RateCardEntityStatus.Inactive
-                              ? 'Inactive'
-                              : 'Archived'}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        <div className="flex flex-nowrap items-center justify-end gap-1">
-                          {isInflationPolicyActive(policy) ? (
-                            <>
-                              <Button
-                                variant="ghost"
-                                onClick={() => void deactivateInflationPolicy(policy.id)}
-                                icon={<Ban size={16} />}
-                              >
-                                Deactivate
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                onClick={() => void archiveInflationPolicy(policy.id)}
-                                icon={<Archive size={16} />}
-                              >
-                                Archive
-                              </Button>
-                            </>
-                          ) : (
-                            <Button
-                              variant="ghost"
-                              onClick={() => void activateInflationPolicy(policy.id)}
-                              icon={<Check size={16} />}
-                            >
-                              Activate
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                          Deactivate
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => void archiveInflationPolicy(policy.id)}
+                          icon={<Archive size={16} />}
+                        >
+                          Archive
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        onClick={() => void activateInflationPolicy(policy.id)}
+                        icon={<Check size={16} />}
+                      >
+                        Activate
+                      </Button>
+                    )}
+                  </div>
+                ),
+              },
+            ]}
+          />
+        </Card>
       )}
 
       <Modal
@@ -535,13 +561,13 @@ export function CostingSetupView() {
         ]}
       >
         <Stack direction="vertical" spacing="md">
-          <Input
-            label="Workspace member ID"
+          <PersonReferenceSelect
+            label="Workspace member"
             value={memberForm.workspaceMemberId}
-            onChange={(e) =>
-              setMemberForm((f) => ({ ...f, workspaceMemberId: e.target.value }))
+            options={memberOptions}
+            onChange={(workspaceMemberId) =>
+              setMemberForm((current) => ({ ...current, workspaceMemberId }))
             }
-            helperText="UUID of the workspace member to assign a cost role to."
           />
           <div>
             <Typography variant="small" tone="muted" className="mb-1.5">

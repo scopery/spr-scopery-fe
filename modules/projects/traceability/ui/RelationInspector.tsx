@@ -29,7 +29,7 @@ function labelFor(
       subtitle: `${ARCHITECTURE_NODE_TYPE_LABEL[node.type]} · ${labelArchitectureNode(node)}`,
     }
   }
-  return { title: nodeId.slice(0, 8) + '…', subtitle: nodeType }
+  return { title: 'Unavailable node', subtitle: nodeType }
 }
 
 export function RelationInspector({

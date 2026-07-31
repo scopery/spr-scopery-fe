@@ -15,6 +15,7 @@ import {
   Select,
   Stack,
   Typography,
+  DataTable,
 } from '@/shared/ui'
 import { useProviders } from '@/modules/ai-agent-admin/providers'
 import {
@@ -45,9 +46,7 @@ export function ProviderSecretsListView() {
   const canManage = useMemo(() => {
     if (!permissions) return true
     if (hasPermission(permissions, PERMISSIONS.AI_PROVIDER_SECRET_MANAGE)) return true
-    const hasWave5 = permissions.permissions.some((p) =>
-      p.startsWith('AI_PROVIDER_SECRET')
-    )
+    const hasWave5 = permissions.permissions.some((p) => p.startsWith('AI_PROVIDER_SECRET'))
     return !hasWave5
   }, [permissions])
 
@@ -152,78 +151,85 @@ export function ProviderSecretsListView() {
       {error ? <Typography tone="error">{error}</Typography> : null}
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-neutral-200 bg-neutral-50 text-left">
-            <tr>
-              <th className="px-4 py-3 font-medium">Provider</th>
-              <th className="px-4 py-3 font-medium">Secret type</th>
-              <th className="px-4 py-3 font-medium">Masked value</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Key version</th>
-              <th className="px-4 py-3 font-medium">Created</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-neutral-500">
-                  No secrets found.
-                </td>
-              </tr>
-            ) : (
-              items.map((s) => (
-                <tr key={s.id} className="border-b border-neutral-100">
-                  <td className="px-4 py-3">
-                    {providerNameById.get(s.providerId) ?? s.providerId.slice(0, 8)}
-                  </td>
-                  <td className="px-4 py-3">{s.secretType}</td>
-                  <td className="px-4 py-3">
-                    <MaskedValue masked maskLabel={s.maskedValue || '••••••'} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <ProviderSecretStatusBadge status={s.status} />
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs">{s.keyVersion}</td>
-                  <td className="px-4 py-3 text-xs text-neutral-500">
-                    {s.createdAt ? new Date(s.createdAt).toLocaleString() : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      <Button
-                        as={NextLink}
-                        href={ADMIN_ROUTES.aiControlProviderSecret(s.id)}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Open
-                      </Button>
-                      {canManage && s.status === ProviderSecretStatus.Active ? (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setRotateTarget(s)}
-                          >
-                            Rotate
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={saving}
-                            onClick={() => setDeactivateTarget(s)}
-                          >
-                            Deactivate
-                          </Button>
-                        </>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        <DataTable
+          ariaLabel="Provider Secrets List"
+          rows={items}
+          rowKey={(s) => String(s.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'provider',
+              header: 'Provider',
+              kind: 'reference',
+              cell: (s) => <>{providerNameById.get(s.providerId) ?? '—'}</>,
+            },
+            { id: 'secret-type', header: 'Secret type', accessor: 'secretType' },
+            {
+              id: 'masked-value',
+              header: 'Masked value',
+              cell: (s) => (
+                <>
+                  <MaskedValue masked maskLabel={s.maskedValue || '••••••'} />
+                </>
+              ),
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (s) => (
+                <>
+                  <ProviderSecretStatusBadge status={s.status} />
+                </>
+              ),
+            },
+            {
+              id: 'key-version',
+              header: 'Key version',
+              accessor: 'keyVersion',
+              kind: 'code',
+              cellClassName: 'text-xs',
+            },
+            {
+              id: 'created',
+              header: 'Created',
+              cell: (s) => <>{s.createdAt ? new Date(s.createdAt).toLocaleString() : '—'}</>,
+              cellClassName: 'text-xs text-neutral-500',
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (s) => (
+                <>
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      as={NextLink}
+                      href={ADMIN_ROUTES.aiControlProviderSecret(s.id)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Open
+                    </Button>
+                    {canManage && s.status === ProviderSecretStatus.Active ? (
+                      <>
+                        <Button size="sm" variant="ghost" onClick={() => setRotateTarget(s)}>
+                          Rotate
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={saving}
+                          onClick={() => setDeactivateTarget(s)}
+                        >
+                          Deactivate
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
 
       {totalElements > PAGE_SIZE ? (

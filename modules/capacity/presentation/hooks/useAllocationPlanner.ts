@@ -4,9 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as allocationsApi from '../../infrastructure/api/allocations.api'
 import * as calcApi from '../../infrastructure/api/capacity-calculation.api'
 import * as resourcesApi from '../../infrastructure/api/resources.api'
-import * as projectsApi from '@/modules/projects/project/api/projects.api'
-import * as workspaceMembersApi from '@/modules/org/workspace/api/workspace-members.api'
-import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
+import { projectsApi } from '@/modules/projects/project'
+import { listWorkspaceMembers } from '@/modules/org/workspace'
+import { useResolveUsers } from '@/modules/platform'
 import {
   isAllocationPercentValid,
   isAllocationRangeValid,
@@ -45,7 +45,15 @@ export function useAllocationPlanner(workspaceId: string | null) {
   const [members, setMembers] = useState<{ id: string; userId: string }[]>([])
 
   const memberUserIds = useMemo(() => members.map((m) => m.userId), [members])
-  const { labelFor } = useResolveUsers(memberUserIds)
+  const { labelFor, personFor } = useResolveUsers(memberUserIds)
+  const memberOptions = useMemo(
+    () =>
+      members.flatMap((member) => {
+        const person = personFor(member.userId)
+        return person ? [{ value: member.id, person }] : []
+      }),
+    [members, personFor]
+  )
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -61,15 +69,14 @@ export function useAllocationPlanner(workspaceId: string | null) {
         allocationsApi.listProjectAllocations({
           workspaceId,
           projectId: projectFilter === 'ALL' ? undefined : projectFilter,
-          status:
-            statusFilter === 'ALL' ? undefined : (statusFilter as CapacityEntityStatus),
+          status: statusFilter === 'ALL' ? undefined : (statusFilter as CapacityEntityStatus),
           page: 0,
           size: 200,
         }),
         calcApi.listOverAllocations({ workspaceId, fromDate, toDate }),
         resourcesApi.listResourceProfiles(workspaceId),
         projectsApi.listProjects(workspaceId, { page: 0, size: 100 }),
-        workspaceMembersApi.listWorkspaceMembers(workspaceId, { page: 0, size: 100 }),
+        listWorkspaceMembers(workspaceId, { page: 0, size: 100 }),
       ])
       setAllocations(allocRes.items)
       setOverAllocations(over)
@@ -118,7 +125,7 @@ export function useAllocationPlanner(workspaceId: string | null) {
   const projectName = useCallback(
     (projectId: string) => {
       const p = projects.find((x) => x.id === projectId)
-      return p ? `${p.name} (${p.code})` : projectId.slice(0, 8)
+      return p ? `${p.name} (${p.code})` : 'Project'
     },
     [projects]
   )
@@ -128,7 +135,7 @@ export function useAllocationPlanner(workspaceId: string | null) {
       const resource = resources.find((r) => r.linkedWorkspaceMemberId === memberId)
       if (resource) return resource.displayName
       const member = members.find((m) => m.id === memberId)
-      return member ? labelFor(member.userId) : memberId.slice(0, 8)
+      return member ? labelFor(member.userId) : 'Resource'
     },
     [resources, members, labelFor]
   )
@@ -222,6 +229,7 @@ export function useAllocationPlanner(workspaceId: string | null) {
     overAllocations,
     projects,
     members,
+    memberOptions,
     resources,
     selected,
     selectedId,

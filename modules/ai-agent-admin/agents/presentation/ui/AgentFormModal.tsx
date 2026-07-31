@@ -16,6 +16,8 @@ import {
 import { sanitizeAgentScopeFields } from '../../domain/rules/agent.rules'
 import type { AiAgent } from '../../domain/model/agent'
 import { useAgentMutations } from '../hooks/useAgentMutations'
+import { AdminOrganizationSearchSelect } from '@/modules/admin/organizations'
+import { AdminWorkspaceSearchSelect } from '@/modules/admin/workspaces'
 
 interface AgentFormModalProps {
   open: boolean
@@ -73,11 +75,11 @@ export function AgentFormModal({
       workspaceId,
     })
     if (scope === AgentScope.Organization && !scopeFields.organizationId) {
-      setFieldError('Organization ID is required for ORGANIZATION scope')
+      setFieldError('Organization is required for ORGANIZATION scope')
       return
     }
     if (scope === AgentScope.Workspace && !scopeFields.workspaceId) {
-      setFieldError('Workspace ID is required for WORKSPACE scope')
+      setFieldError('Workspace is required for WORKSPACE scope')
       return
     }
 
@@ -156,10 +158,7 @@ export function AgentFormModal({
           <Select
             value={defaultModelDeploymentId}
             onValueChange={setDefaultModelDeploymentId}
-            options={[
-              { value: '', label: 'None' },
-              ...deploymentOptions,
-            ]}
+            options={[{ value: '', label: 'None' }, ...deploymentOptions]}
           />
         </div>
         <div className="grid gap-md sm:grid-cols-2">
@@ -207,18 +206,10 @@ export function AgentFormModal({
           />
         </div>
         {scope === AgentScope.Organization || scope === AgentScope.Workspace ? (
-          <Input
-            label="Organization ID"
-            value={organizationId}
-            onChange={(e) => setOrganizationId(e.target.value)}
-          />
+          <AdminOrganizationSearchSelect value={organizationId} onChange={setOrganizationId} />
         ) : null}
         {scope === AgentScope.Workspace ? (
-          <Input
-            label="Workspace ID"
-            value={workspaceId}
-            onChange={(e) => setWorkspaceId(e.target.value)}
-          />
+          <AdminWorkspaceSearchSelect value={workspaceId} onChange={setWorkspaceId} />
         ) : null}
         {scope === AgentScope.Global ? (
           <Typography variant="caption" tone="muted">

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Eye, RefreshCw } from 'lucide-react'
-import { Typography, Button, Badge, Skeleton } from '@/shared/ui'
+import { Typography, Button, Badge, Card, Skeleton } from '@/shared/ui'
 import { DocumentTypeBadge } from '@/modules/documents/document/ui/DocumentTypeBadge'
 import { WorkflowStatusBadge } from '@/modules/documents/document/ui/WorkflowStatusBadge'
 import { DeliverableReadinessBadge } from './DeliverableReadinessBadge'
@@ -22,9 +22,9 @@ export function DocumentDeliverableMetadataPanelView({
 }: DocumentDeliverableMetadataPanelViewProps) {
   if (loading) {
     return (
-      <div className="rounded-md border border-neutral-200 bg-white p-4">
+      <Card className="p-4">
         <Skeleton variant="rectangular" width="100%" height={80} />
-      </div>
+      </Card>
     )
   }
 
@@ -35,7 +35,7 @@ export function DocumentDeliverableMetadataPanelView({
   const { readiness } = metadata
 
   return (
-    <div className="space-y-3 rounded-md border border-neutral-200 bg-white p-4">
+    <Card className="space-y-3 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Typography variant="small" className="font-medium">
           Generated deliverable
@@ -147,6 +147,6 @@ export function DocumentDeliverableMetadataPanelView({
           Refresh readiness
         </Button>
       ) : null}
-    </div>
+    </Card>
   )
 }

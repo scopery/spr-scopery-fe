@@ -23,10 +23,12 @@ export function QualityCenterView() {
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-neutral-200 pb-2">
         <div>
-          <Typography variant="h2">Quality Center</Typography>
+          <Typography as="h1" size="md" weight="medium">
+            Quality Center
+          </Typography>
           <Typography tone="muted" variant="caption">
             Quality plans — create single or paste bulk from Excel.
           </Typography>

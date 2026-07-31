@@ -54,9 +54,6 @@ export function IamEntityIdentityCard({
             {meta}
           </Typography>
         ) : null}
-        <Typography variant="small" className="font-mono text-[11px] text-neutral-500">
-          {id}
-        </Typography>
       </div>
     </div>
   )

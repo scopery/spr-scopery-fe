@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowUpRight } from 'lucide-react'
-import { Badge, Button, DetailDrawer, Input, Select, Typography } from '@/shared/ui'
+import { Badge, Button, Card, DetailDrawer, Input, Select, Typography } from '@/shared/ui'
 import type { PhaseWatchProjectRow } from '@/modules/projects/phase/domain/model/phase-watch'
 import { WORKSPACE_ROUTES } from '@/modules/org/lib/routes'
 import {
@@ -73,7 +73,8 @@ function ProjectProgressRow({
             {active ? (
               <>
                 <Typography variant="small" weight="medium">
-                  {active.code ? `${active.code} · ` : ''}{active.name}
+                  {active.code ? `${active.code} · ` : ''}
+                  {active.name}
                 </Typography>
                 <Typography variant="small" tone="muted">
                   {active.progressPercent != null ? `${active.progressPercent}%` : '—'}
@@ -81,7 +82,9 @@ function ProjectProgressRow({
                 </Typography>
               </>
             ) : (
-              <Typography variant="small" tone="muted">No active phase</Typography>
+              <Typography variant="small" tone="muted">
+                No active phase
+              </Typography>
             )}
           </div>
           <div>
@@ -91,7 +94,8 @@ function ProjectProgressRow({
             {next ? (
               <>
                 <Typography variant="small" weight="medium">
-                  {next.code ? `${next.code} · ` : ''}{next.name}
+                  {next.code ? `${next.code} · ` : ''}
+                  {next.name}
                 </Typography>
                 <Typography variant="small" tone="muted">
                   {next.plannedStartDate
@@ -101,7 +105,9 @@ function ProjectProgressRow({
                 </Typography>
               </>
             ) : (
-              <Typography variant="small" tone="muted">No next phase</Typography>
+              <Typography variant="small" tone="muted">
+                No next phase
+              </Typography>
             )}
           </div>
           <div>
@@ -115,7 +121,9 @@ function ProjectProgressRow({
                 </Badge>
               ))}
               {row.followUpLabels.length === 0 ? (
-                <Typography variant="small" tone="muted">—</Typography>
+                <Typography variant="small" tone="muted">
+                  —
+                </Typography>
               ) : null}
             </div>
           </div>
@@ -139,7 +147,7 @@ export function WorkspaceProjectProgress({
     router.push(WORKSPACE_ROUTES.projectDashboard(workspaceId, projectId))
 
   return (
-    <section id="project-progress" className="border border-neutral-200 bg-white">
+    <Card as="section" id="project-progress">
       <header className="flex items-center justify-between gap-3 border-b border-neutral-200 px-4 py-3">
         <div>
           <Typography as="h2" size="sm" weight="semibold">
@@ -205,7 +213,7 @@ export function WorkspaceProjectProgress({
         rows={rows}
         workspaceId={workspaceId}
       />
-    </section>
+    </Card>
   )
 }
 

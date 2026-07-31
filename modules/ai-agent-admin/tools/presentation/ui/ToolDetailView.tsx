@@ -9,6 +9,7 @@ import { AgentStatus } from '@/modules/ai-agent-admin/agents'
 import {
   Badge,
   Button,
+  Card,
   ConfirmDialog,
   Input,
   PageSkeleton,
@@ -16,6 +17,7 @@ import {
   Stack,
   Textarea,
   Typography,
+  DataTable,
 } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
 import { parseInputVariablesJson } from '@/modules/ai-agent-admin/executions'
@@ -74,10 +76,7 @@ export function ToolDetailView() {
     void refetchBindings()
   })
 
-  const boundIds = useMemo(
-    () => new Set(bindings.map((b) => b.agentId)),
-    [bindings]
-  )
+  const boundIds = useMemo(() => new Set(bindings.map((b) => b.agentId)), [bindings])
   const agentOptions = useMemo(
     () =>
       agents
@@ -174,7 +173,7 @@ export function ToolDetailView() {
           <Typography variant="h2" className="mt-sm">
             {tool.name}
           </Typography>
-          <Typography variant="caption" tone="muted" className="mt-1 block font-mono">
+          <Typography variant="caption" tone="muted" className="mt-1 block font-normal">
             {tool.code}
           </Typography>
         </div>
@@ -282,7 +281,7 @@ export function ToolDetailView() {
             permission code string (uppercase + underscores).
           </Typography>
           {canManage ? (
-            <div className="border border-neutral-200 bg-neutral-50 p-md">
+            <Card className="bg-neutral-50 p-md">
               <Stack direction="vertical" spacing="sm">
                 <Input
                   label="Permission code"
@@ -304,44 +303,42 @@ export function ToolDetailView() {
                   Add permission
                 </Button>
               </Stack>
-            </div>
+            </Card>
           ) : null}
           <div className="overflow-x-auto border border-neutral-200">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-md py-sm font-medium">Code</th>
-                  <th className="px-md py-sm font-medium">Description</th>
-                  <th className="px-md py-sm font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {permissions.map((p) => (
-                  <tr key={p.id} className="border-t border-neutral-100">
-                    <td className="px-md py-sm font-mono text-xs">{p.permissionCode}</td>
-                    <td className="px-md py-sm">{p.description || '—'}</td>
-                    <td className="px-md py-sm">
+            <DataTable
+              ariaLabel="Tool Detail"
+              rows={permissions}
+              rowKey={(p) => String(p.id)}
+              emptyMessage="No items."
+              columns={[
+                {
+                  id: 'code',
+                  header: 'Code',
+                  accessor: 'permissionCode',
+                  kind: 'code',
+                  cellClassName: 'text-xs',
+                },
+                {
+                  id: 'description',
+                  header: 'Description',
+                  cell: (p) => <>{p.description || '—'}</>,
+                },
+                {
+                  id: 'actions',
+                  header: 'Actions',
+                  cell: (p) => (
+                    <>
                       {canManage ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setRemovePerm(p)}
-                        >
+                        <Button size="sm" variant="ghost" onClick={() => setRemovePerm(p)}>
                           Remove
                         </Button>
                       ) : null}
-                    </td>
-                  </tr>
-                ))}
-                {permissions.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="px-md py-lg text-center text-neutral-500">
-                      No permissions bound
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+                    </>
+                  ),
+                },
+              ]}
+            />
           </div>
         </Stack>
       ) : null}
@@ -349,16 +346,13 @@ export function ToolDetailView() {
       {tab === 'bindings' ? (
         <Stack direction="vertical" spacing="md">
           {canManage ? (
-            <div className="border border-neutral-200 bg-neutral-50 p-md">
+            <Card className="bg-neutral-50 p-md">
               <Stack direction="vertical" spacing="sm">
                 <Typography variant="caption">Bind active agent</Typography>
                 <Select
                   value={bindAgentId}
                   onValueChange={setBindAgentId}
-                  options={[
-                    { value: '', label: 'Select agent…' },
-                    ...agentOptions,
-                  ]}
+                  options={[{ value: '', label: 'Select agent…' }, ...agentOptions]}
                 />
                 {bindError ? (
                   <Typography tone="error" variant="small">
@@ -369,21 +363,20 @@ export function ToolDetailView() {
                   Bind agent
                 </Button>
               </Stack>
-            </div>
+            </Card>
           ) : null}
           <div className="overflow-x-auto border border-neutral-200">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-md py-sm font-medium">Agent</th>
-                  <th className="px-md py-sm font-medium">Status</th>
-                  <th className="px-md py-sm font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bindings.map((b) => (
-                  <tr key={b.agentId} className="border-t border-neutral-100">
-                    <td className="px-md py-sm">
+            <DataTable
+              ariaLabel="Tool Detail"
+              rows={bindings}
+              rowKey={(b) => String(b.agentId)}
+              emptyMessage="No items."
+              columns={[
+                {
+                  id: 'agent',
+                  header: 'Agent',
+                  cell: (b) => (
+                    <>
                       <Button
                         as={NextLink}
                         href={ADMIN_ROUTES.aiControlAgent(b.agentId)}
@@ -391,18 +384,26 @@ export function ToolDetailView() {
                         variant="ghost"
                         className="px-0"
                       >
-                        {b.agentName || b.agentCode || b.agentId}
+                        {b.agentName || b.agentCode || '—'}
                       </Button>
                       {b.agentCode ? (
-                        <Typography variant="caption" tone="muted" className="block font-mono">
+                        <Typography variant="caption" tone="muted" className="block font-normal">
                           {b.agentCode}
                         </Typography>
                       ) : null}
-                    </td>
-                    <td className="px-md py-sm">
-                      {b.status ? <AiLifecycleStatusBadge status={b.status} /> : '—'}
-                    </td>
-                    <td className="px-md py-sm">
+                    </>
+                  ),
+                },
+                {
+                  id: 'status',
+                  header: 'Status',
+                  cell: (b) => <>{b.status ? <AiLifecycleStatusBadge status={b.status} /> : '—'}</>,
+                },
+                {
+                  id: 'actions',
+                  header: 'Actions',
+                  cell: (b) => (
+                    <>
                       {canManage ? (
                         <Button
                           size="sm"
@@ -412,18 +413,11 @@ export function ToolDetailView() {
                           Unbind
                         </Button>
                       ) : null}
-                    </td>
-                  </tr>
-                ))}
-                {bindings.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="px-md py-lg text-center text-neutral-500">
-                      No agents bound
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+                    </>
+                  ),
+                },
+              ]}
+            />
           </div>
         </Stack>
       ) : null}
@@ -446,7 +440,7 @@ export function ToolDetailView() {
                   value={debugInputRaw}
                   onChange={(e) => setDebugInputRaw(e.target.value)}
                   rows={6}
-                  className="font-mono text-sm"
+                  className="text-sm font-normal"
                 />
               </div>
               {debugError ? (
@@ -462,14 +456,14 @@ export function ToolDetailView() {
             <Typography tone="muted">Manage permission required to debug execute.</Typography>
           )}
           {lastDebug ? (
-            <div className="border border-neutral-200 p-md">
+            <Card className="p-md">
               <Typography variant="h3" className="mb-sm">
                 Last debug result
               </Typography>
-              <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-mono text-sm">
+              <pre className="max-h-64 overflow-auto whitespace-pre-wrap text-sm font-normal">
                 {JSON.stringify(lastDebug, null, 2)}
               </pre>
-            </div>
+            </Card>
           ) : null}
         </Stack>
       ) : null}
@@ -485,21 +479,16 @@ export function ToolDetailView() {
               <Typography variant="caption" tone="muted">
                 Created
               </Typography>
-              <Typography className="mt-1 font-mono text-sm">{tool.createdAt}</Typography>
+              <Typography className="mt-1 text-sm font-normal">{tool.createdAt}</Typography>
             </div>
             <div>
               <Typography variant="caption" tone="muted">
                 Updated
               </Typography>
-              <Typography className="mt-1 font-mono text-sm">{tool.updatedAt}</Typography>
+              <Typography className="mt-1 text-sm font-normal">{tool.updatedAt}</Typography>
             </div>
           </dl>
-          <Button
-            as={NextLink}
-            href={ADMIN_ROUTES.aiControlExecutions}
-            size="sm"
-            variant="outline"
-          >
+          <Button as={NextLink} href={ADMIN_ROUTES.aiControlExecutions} size="sm" variant="outline">
             Open execution logs
           </Button>
         </Stack>

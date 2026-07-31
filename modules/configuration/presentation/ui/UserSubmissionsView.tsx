@@ -1,6 +1,6 @@
 'use client'
 
-import { Badge, Typography, PageSkeleton } from '@/shared/ui'
+import { Badge, Typography, PageSkeleton, DataTable } from '@/shared/ui'
 import { useParams } from 'next/navigation'
 import { useUserSubmissions } from '../hooks/useUserSubmissions'
 
@@ -9,9 +9,7 @@ export function UserSubmissionsView() {
   const { submissions, formNameById, loading, error } = useUserSubmissions(workspaceId)
 
   if (loading) {
-    return (
-      <PageSkeleton variant="list" />
-    )
+    return <PageSkeleton variant="list" />
   }
 
   if (error) {
@@ -25,9 +23,9 @@ export function UserSubmissionsView() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <Typography as="h1" size="lg" weight="semibold">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2">
+        <Typography as="h1" size="md" weight="medium">
           Submissions
         </Typography>
         <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -36,48 +34,54 @@ export function UserSubmissionsView() {
       </div>
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-3 py-2 font-medium">Form</th>
-              <th className="px-3 py-2 font-medium">Validation</th>
-              <th className="px-3 py-2 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {submissions.map((submission) => (
-              <tr key={submission.id} className="border-t border-neutral-100">
-                <td className="px-3 py-2">{formNameById(submission.formDefinitionId)}</td>
-                <td className="px-3 py-2">
+        <DataTable
+          ariaLabel="User Submissions"
+          rows={submissions}
+          rowKey={(submission) => String(submission.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'form',
+              header: 'Form',
+              cell: (submission) => <>{formNameById(submission.formDefinitionId)}</>,
+            },
+            {
+              id: 'validation',
+              header: 'Validation',
+              cell: (submission) => (
+                <>
                   <Badge
                     variant="solid"
                     tone={submission.validationStatus === 'VALID' ? 'success' : 'warning'}
                   >
-                    {submission.validationStatus === 'VALID' ? 'Valid' : submission.validationStatus}
+                    {submission.validationStatus === 'VALID'
+                      ? 'Valid'
+                      : submission.validationStatus}
                   </Badge>
-                </td>
-                <td className="px-3 py-2">
+                </>
+              ),
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (submission) => (
+                <>
                   <Badge
                     variant="solid"
-                    tone={String(submission.status).toUpperCase() === 'ACTIVE' ? 'success' : 'neutral'}
+                    tone={
+                      String(submission.status).toUpperCase() === 'ACTIVE' ? 'success' : 'neutral'
+                    }
                   >
                     {String(submission.status)
                       .replace(/_/g, ' ')
                       .toLowerCase()
                       .replace(/\b\w/g, (c) => c.toUpperCase())}
                   </Badge>
-                </td>
-              </tr>
-            ))}
-            {submissions.length === 0 ? (
-              <tr>
-                <td colSpan={3} className="px-3 py-10 text-center text-neutral-500">
-                  No submissions yet.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
     </div>
   )

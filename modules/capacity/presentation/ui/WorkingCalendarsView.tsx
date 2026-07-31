@@ -4,14 +4,7 @@ import { useState } from 'react'
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { Archive, Ban, Check, Plus, Star } from 'lucide-react'
-import {
-  Badge,
-  Button,
-  Input,
-  Modal,
-  PageSkeleton,
-  Typography,
-} from '@/shared/ui'
+import { Badge, Button, Card, DataTable, Input, Modal, PageSkeleton, Typography } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { useWorkingCalendars } from '../hooks/useWorkingCalendars'
 import { CapacityEntityStatus } from '../../domain/enums/capacity.enum'
@@ -53,7 +46,7 @@ export function WorkingCalendarsView() {
   if (loading) return <PageSkeleton variant="list" />
   if (error) {
     return (
-      <div className="border border-error/30 bg-error/5 p-4">
+      <div className="border-error/30 bg-error/5 border p-4">
         <Typography variant="small" tone="error">
           {error}
         </Typography>
@@ -62,119 +55,110 @@ export function WorkingCalendarsView() {
   }
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-md">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-md">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Working Calendars
           </Typography>
           <Typography as="p" variant="small" tone="muted" className="mt-1">
             Define schedules and exceptions used by capacity profiles.
           </Typography>
         </div>
-        <Button
-          variant="primary"
-          icon={<Plus size={16} />}
-          onClick={() => setShowCreate(true)}
-        >
+        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setShowCreate(true)}>
           Add calendar
         </Button>
       </div>
 
-      <div className="border border-neutral-200 bg-white">
-        {items.length === 0 ? (
-          <div className="px-4 py-10 text-center">
-            <Typography tone="muted" variant="small">
-              No working calendars yet.
-            </Typography>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Calendar</th>
-                  <th className="px-3 py-2 font-medium">Code</th>
-                  <th className="px-3 py-2 font-medium">Timezone</th>
-                  <th className="px-3 py-2 font-medium">Default</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
-                  <th className="px-3 py-2 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((cal) => (
-                  <tr key={cal.id} className="border-t border-neutral-100">
-                    <td className="px-3 py-2">
-                      <NextLink
-                        href={ROUTES.workspace.settingsCapacityCalendar(workspaceId, cal.id)}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        {cal.name}
-                      </NextLink>
-                    </td>
-                    <td className="px-3 py-2 text-neutral-600">{cal.code}</td>
-                    <td className="px-3 py-2 text-neutral-600">{cal.timezone}</td>
-                    <td className="px-3 py-2">
-                      {cal.isDefault ? (
-                        <Badge size="sm" tone="primary">
-                          Default
-                        </Badge>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      <Badge size="sm" tone={statusTone(cal.status)}>
-                        {cal.status}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-wrap gap-1">
-                        {canEditCalendar(cal) && !cal.isDefault ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            icon={<Star size={14} />}
-                            onClick={() => void setDefault(cal.id)}
-                            title="Set as default"
-                          />
-                        ) : null}
-                        {canEditCalendar(cal) && !isCalendarActive(cal) ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            icon={<Check size={14} />}
-                            onClick={() => void activate(cal.id)}
-                            title="Activate"
-                          />
-                        ) : null}
-                        {isCalendarActive(cal) ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            icon={<Ban size={14} />}
-                            onClick={() => void deactivate(cal.id)}
-                            title="Deactivate"
-                          />
-                        ) : null}
-                        {!isCalendarArchived(cal) ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            icon={<Archive size={14} />}
-                            onClick={() => void archive(cal.id)}
-                            title="Archive"
-                          />
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <Card className="border border-neutral-200 bg-white">
+        <DataTable
+          ariaLabel="Working calendars"
+          rows={items}
+          rowKey={(cal) => cal.id}
+          emptyMessage="No working calendars yet."
+          columns={[
+            {
+              id: 'calendar',
+              header: 'Calendar',
+              cell: (cal) => (
+                <NextLink
+                  href={ROUTES.workspace.settingsCapacityCalendar(workspaceId, cal.id)}
+                  className="font-medium text-primary hover:underline"
+                >
+                  {cal.name}
+                </NextLink>
+              ),
+            },
+            { id: 'code', header: 'Code', accessor: (cal) => cal.code || '—', kind: 'code' },
+            { id: 'timezone', header: 'Timezone', accessor: (cal) => cal.timezone || '—' },
+            {
+              id: 'default',
+              header: 'Default',
+              cell: (cal) =>
+                cal.isDefault ? (
+                  <Badge size="sm" tone="primary">
+                    Default
+                  </Badge>
+                ) : (
+                  '—'
+                ),
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (cal) => (
+                <Badge size="sm" tone={statusTone(cal.status)}>
+                  {cal.status}
+                </Badge>
+              ),
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (cal) => (
+                <div className="flex flex-wrap gap-1">
+                  {canEditCalendar(cal) && !cal.isDefault ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={<Star size={14} />}
+                      onClick={() => void setDefault(cal.id)}
+                      title="Set as default"
+                    />
+                  ) : null}
+                  {canEditCalendar(cal) && !isCalendarActive(cal) ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={<Check size={14} />}
+                      onClick={() => void activate(cal.id)}
+                      title="Activate"
+                    />
+                  ) : null}
+                  {isCalendarActive(cal) ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={<Ban size={14} />}
+                      onClick={() => void deactivate(cal.id)}
+                      title="Deactivate"
+                    />
+                  ) : null}
+                  {!isCalendarArchived(cal) ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={<Archive size={14} />}
+                      onClick={() => void archive(cal.id)}
+                      title="Archive"
+                    />
+                  ) : null}
+                </div>
+              ),
+            },
+          ]}
+        />
+      </Card>
 
       <Modal
         open={showCreate}

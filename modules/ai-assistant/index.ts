@@ -12,3 +12,5 @@ export type {
   AiConversationListResponse,
 } from './domain/model/conversation'
 export * as aiAssistantApi from './infrastructure/api/ai-assistant.api'
+export { AI_ASSISTANT_ENDPOINTS } from './infrastructure/api/endpoints'
+export { WAVE5_AI_PERMISSIONS } from './domain/enums/wave5-permissions.enum'

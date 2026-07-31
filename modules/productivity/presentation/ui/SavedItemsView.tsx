@@ -2,32 +2,22 @@
 
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import {
-  PageSkeleton,
-  Stack,
-  Typography
-} from '@/shared/ui'
+import { PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useSavedItems } from '../hooks/useSavedItems'
 
 export function SavedItemsView() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
-  const {
-    favorites,
-    recent,
-    savedViews,
-    savedSearches,
-    pins,
-    navPrefs,
-    loading,
-    error,
-  } = useSavedItems(workspaceId)
+  const { favorites, recent, savedViews, savedSearches, pins, navPrefs, loading, error } =
+    useSavedItems(workspaceId)
 
-  if (loading) return <PageSkeleton variant="list" className="p-lg" />
+  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="lg" className="p-lg">
-      <Typography variant="h2">Saved Items</Typography>
+    <Stack direction="vertical" spacing="lg" className="px-3 py-3 lg:px-4 lg:py-3">
+      <Typography as="h1" size="md" weight="medium">
+        Saved Items
+      </Typography>
 
       <section>
         <Typography variant="h4" className="mb-sm">
@@ -121,7 +111,7 @@ export function SavedItemsView() {
           <ul className="space-y-xs">
             {pins.map((p) => (
               <li key={p.id}>
-                <Typography variant="small">{p.title ?? p.id}</Typography>
+                <Typography variant="small">{p.title ?? 'Untitled pin'}</Typography>
               </li>
             ))}
           </ul>

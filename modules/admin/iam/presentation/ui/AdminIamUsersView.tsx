@@ -3,7 +3,7 @@
 import React from 'react'
 import NextLink from 'next/link'
 import { Ban, Check, CheckCircle2, CircleArrowRight, MinusCircle } from 'lucide-react'
-import { Typography, Button, Stack, Select, PageSkeleton } from '@/shared/ui'
+import { Typography, Button, Stack, Select, PageSkeleton, DataTable } from '@/shared/ui'
 import { IamStatusBadge } from './IamStatusBadge'
 import { IamSearchField } from './IamSearchField'
 import { useIamUsers } from '../hooks/useIamUsers'
@@ -17,8 +17,17 @@ const STATUS_OPTIONS = [
 ]
 
 export function AdminIamUsersView() {
-  const { items, loading, error, keyword, setKeyword, statusFilter, setStatusFilter, actingId, runAction } =
-    useIamUsers()
+  const {
+    items,
+    loading,
+    error,
+    keyword,
+    setKeyword,
+    statusFilter,
+    setStatusFilter,
+    actingId,
+    runAction,
+  } = useIamUsers()
 
   return (
     <div>
@@ -64,40 +73,61 @@ export function AdminIamUsersView() {
         </div>
       ) : (
         <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Username</th>
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="min-w-[12rem] whitespace-nowrap px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((user) => (
-                <tr key={user.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-4 py-3 font-medium">
+          <DataTable
+            ariaLabel="Admin Iam Users"
+            rows={items}
+            rowKey={(user) => String(user.id)}
+            emptyMessage="No items."
+            columns={[
+              {
+                id: 'name',
+                header: 'Name',
+                cell: (user) => (
+                  <>
                     <NextLink
                       href={ADMIN_ROUTES.iamUser(user.id)}
                       className="text-primary hover:underline"
                     >
                       {user.fullName || '—'}
                     </NextLink>
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600">{user.username}</td>
-                  <td className="px-4 py-3 text-neutral-600">{user.email}</td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              {
+                id: 'username',
+                header: 'Username',
+                accessor: 'username',
+                cellClassName: 'text-neutral-600',
+              },
+              {
+                id: 'email',
+                header: 'Email',
+                accessor: 'email',
+                cellClassName: 'text-neutral-600',
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (user) => (
+                  <>
                     <IamStatusBadge status={user.status} />
-                  </td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (user) => (
+                  <>
                     <Stack direction="horizontal" spacing="xs" className="flex-wrap">
                       {user.status.toUpperCase() !== 'ACTIVE' && (
                         <Button
                           variant="ghost"
                           disabled={actingId === user.id}
                           onClick={() => void runAction(user.id, 'activate')}
-                          className="gap-1 text-emerald-600 hover:text-emerald-700" icon={<Check size={16} />}>
+                          className="gap-1 text-emerald-600 hover:text-emerald-700"
+                          icon={<Check size={16} />}
+                        >
                           <CheckCircle2 size={14} />
                           Activate
                         </Button>
@@ -107,7 +137,9 @@ export function AdminIamUsersView() {
                           variant="ghost"
                           disabled={actingId === user.id}
                           onClick={() => void runAction(user.id, 'deactivate')}
-                          className="gap-1 text-amber-600 hover:text-amber-700" icon={<Ban size={16} />}>
+                          className="gap-1 text-amber-600 hover:text-amber-700"
+                          icon={<Ban size={16} />}
+                        >
                           <MinusCircle size={14} />
                           Deactivate
                         </Button>
@@ -131,18 +163,11 @@ export function AdminIamUsersView() {
                         View
                       </NextLink>
                     </Stack>
-                  </td>
-                </tr>
-              ))}
-              {!items.length && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-neutral-400">
-                    No users found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
     </div>

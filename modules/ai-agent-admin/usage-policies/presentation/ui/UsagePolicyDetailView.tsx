@@ -4,27 +4,28 @@ import { useState } from 'react'
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { ADMIN_ROUTES } from '@/modules/admin'
-import {
-  Button,
-  ConfirmDialog,
-  PageSkeleton,
-  Stack,
-  Typography,
-} from '@/shared/ui'
+import { Button, ConfirmDialog, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useCanManageAiConfig } from '../../../presentation/hooks/useCanManageAiConfig'
 import { AiLifecycleStatusBadge } from '../../../presentation/ui/AiLifecycleStatusBadge'
-import { UsagePolicyStatus } from '../../domain/enums/usage-policy.enum'
+import { UsagePolicyStatus, UsagePolicyTargetType } from '../../domain/enums/usage-policy.enum'
 import { useUsagePolicyDetail } from '../hooks/useUsagePolicies'
 import { useUsagePolicyMutations } from '../hooks/useUsagePolicyMutations'
 import { UsagePolicyFormModal } from './UsagePolicyFormModal'
+import { useUsagePolicyTargetOptions } from '../hooks/useUsagePolicyTargetOptions'
 
 export function UsagePolicyDetailView() {
   const { policyId } = useParams<{ policyId: string }>()
   const canManage = useCanManageAiConfig()
   const { policy, loading, error, refetch } = useUsagePolicyDetail(policyId)
+  const { options: targetOptions } = useUsagePolicyTargetOptions(
+    policy?.targetType ?? UsagePolicyTargetType.Global
+  )
   const { saving, activate, deactivate } = useUsagePolicyMutations(refetch)
   const [editOpen, setEditOpen] = useState(false)
   const [deactivateOpen, setDeactivateOpen] = useState(false)
+  const targetLabel = policy?.targetId
+    ? (targetOptions.find((option) => option.value === policy.targetId)?.label ?? '—')
+    : null
 
   if (loading && !policy) return <PageSkeleton variant="detail" className="p-lg" />
   if (error || !policy) {
@@ -97,7 +98,7 @@ export function UsagePolicyDetailView() {
           </Typography>
           <Typography className="mt-1">
             {policy.targetType}
-            {policy.targetId ? ` · ${policy.targetId}` : ''}
+            {policy.targetId ? ` · ${targetLabel}` : ''}
           </Typography>
         </div>
         <div>

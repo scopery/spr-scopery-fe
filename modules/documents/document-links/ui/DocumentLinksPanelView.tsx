@@ -1,7 +1,7 @@
 'use client'
 
 import { Eye, Link2, Plus, RotateCcw, Trash2 } from 'lucide-react'
-import { Typography, Button, Badge, ConfirmDialog, Skeleton } from '@/shared/ui'
+import { Typography, Button, Badge, Card, ConfirmDialog, Skeleton } from '@/shared/ui'
 import {
   DOCUMENT_LINKED_ENTITY_LABELS,
   DOCUMENT_RELATION_LABELS,
@@ -35,7 +35,7 @@ export function DocumentLinksPanelView({
   const displayLinks = showArchived ? links : activeLinks
 
   return (
-    <div className="space-y-4 border border-neutral-200 bg-white p-4">
+    <Card className="space-y-4 p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Link2 size={18} className="text-neutral-600" />
@@ -69,17 +69,17 @@ export function DocumentLinksPanelView({
           <Skeleton variant="rectangular" width="100%" height={80} />
         </div>
       ) : displayLinks.length === 0 ? (
-        <div className="rounded border border-dashed border-neutral-200 px-4 py-8 text-center">
+        <Card className="border-dashed bg-transparent px-4 py-8 text-center">
           <Typography variant="small" tone="muted">
             {showArchived ? 'No archived evidence links.' : 'No evidence links yet.'}
           </Typography>
-        </div>
+        </Card>
       ) : (
         <ul className="space-y-3">
           {displayLinks.map((link) => {
             const isArchived = link.archived_at != null
             return (
-              <li key={link.id} className="rounded border border-neutral-100 p-3">
+              <Card as="li" key={link.id} className="border-neutral-100 p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="mb-1 flex flex-wrap gap-2">
@@ -123,7 +123,7 @@ export function DocumentLinksPanelView({
                     )}
                   </div>
                 </div>
-              </li>
+              </Card>
             )
           })}
         </ul>
@@ -161,6 +161,6 @@ export function DocumentLinksPanelView({
         loading={restoring}
         onConfirm={onRestore}
       />
-    </div>
+    </Card>
   )
 }

@@ -4,7 +4,7 @@ import { Search } from 'lucide-react'
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Button, Input, Stack, Typography, Skeleton } from '@/shared/ui'
+import { Button, Input, Stack, Typography, Skeleton, Card } from '@/shared/ui'
 import { useRateResolution } from '../hooks/useRateResolution'
 
 function todayIso(): string {
@@ -48,8 +48,8 @@ export function RateLookupView() {
 
   return (
     <div className="mx-auto max-w-lg">
-      <div className="mb-6">
-        <Typography as="h1" size="lg" weight="semibold">
+      <div className="mb-2">
+        <Typography as="h1" size="md" weight="medium">
           Rate Lookup
         </Typography>
         <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -57,7 +57,7 @@ export function RateLookupView() {
         </Typography>
       </div>
 
-      <div className="border border-neutral-200 bg-white p-5">
+      <Card className="border border-neutral-200 bg-white p-5">
         <Stack direction="vertical" spacing="md">
           <Input
             label="Role code"
@@ -81,11 +81,13 @@ export function RateLookupView() {
             variant="primary"
             onClick={() => void handleSubmit()}
             disabled={!canSubmit || loading}
-            loading={loading} icon={<Search size={16} />}>
+            loading={loading}
+            icon={<Search size={16} />}
+          >
             Look up rate
           </Button>
         </Stack>
-      </div>
+      </Card>
 
       {loading ? (
         <div className="mt-6 flex justify-center">
@@ -98,7 +100,7 @@ export function RateLookupView() {
           </Typography>
         </div>
       ) : result ? (
-        <div className="mt-6 border border-neutral-200 bg-white p-5">
+        <Card className="mt-6 border border-neutral-200 bg-white p-5">
           <Typography weight="semibold" variant="small" className="mb-3">
             {result.costRoleCode}
           </Typography>
@@ -107,7 +109,7 @@ export function RateLookupView() {
               <Typography variant="small" tone="muted">
                 Cost rate / hour
               </Typography>
-              <Typography size="lg" weight="bold">
+              <Typography size="md" weight="medium">
                 {formatMoney(result.adjustedCostRate, result.currencyCode)}
               </Typography>
             </div>
@@ -115,7 +117,7 @@ export function RateLookupView() {
               <Typography variant="small" tone="muted">
                 Billing rate / hour
               </Typography>
-              <Typography size="lg" weight="bold">
+              <Typography size="md" weight="medium">
                 {formatMoney(result.adjustedBillingRate, result.currencyCode)}
               </Typography>
             </div>
@@ -126,7 +128,7 @@ export function RateLookupView() {
               ? ` · ${result.inflationPercent}% inflation applied`
               : ''}
           </Typography>
-        </div>
+        </Card>
       ) : null}
     </div>
   )

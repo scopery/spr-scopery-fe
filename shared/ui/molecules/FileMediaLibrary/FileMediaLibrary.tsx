@@ -4,6 +4,7 @@ import { Box } from '@/shared/ui/atoms/Box'
 import { Stack } from '@/shared/ui/atoms/Stack'
 import { Typography } from '@/shared/ui/atoms/Typography'
 import { Button } from '@/shared/ui/atoms/Button'
+import { Card } from '@/shared/ui/atoms/Card'
 import { Plus, Share2, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { FileMediaLibraryProps } from './FileMediaLibrary.types'
 
@@ -37,129 +38,118 @@ export const FileMediaLibrary = React.forwardRef(
       onAction,
       onPrevious,
       onNext,
-      cardBorderRadius = 'lg',
-      cardShadow = 'md',
       className,
       ...props
     }: FileMediaLibraryProps<C>,
     ref?: React.Ref<HTMLDivElement>
   ) => {
-    const Component = as || 'div'
-
     return (
-      <Component ref={ref} {...props}>
-        <Box
-          background="white"
-          radius={cardBorderRadius}
-          shadow={cardShadow}
-          className={cn('w-full p-5', className)}
-        >
-          {/* Header */}
-          <Stack direction="horizontal" justify="between" align="center" className="mb-6">
-            <Typography variant="h6" weight="semibold" className="text-neutral-900">
-              {title}
-            </Typography>
-            <Stack direction="horizontal" spacing="sm" align="center">
-              {onAdd && (
-                <Button
-                  variant="ghost"
-                  iconOnly
-                  icon={<Plus size={20} />}
-                  onClick={onAdd}
-                  className="text-neutral-600 hover:text-neutral-900"
-                  aria-label="Add file"
-                />
-              )}
-              {onShare && (
-                <Button
-                  variant="ghost"
-                  iconOnly
-                  icon={<Share2 size={20} />}
-                  onClick={onShare}
-                  className="text-neutral-600 hover:text-neutral-900"
-                  aria-label="Share"
-                />
-              )}
-            </Stack>
-          </Stack>
-
-          {/* Folder Preview Section */}
-          <Box display="block" className="relative mb-6">
-            <Stack
-              direction="horizontal"
-              spacing="none"
-              align="center"
-              justify="center"
-              className="relative"
-            >
-              {/* Previous Button */}
-              {onPrevious && (
-                <Button
-                  variant="ghost"
-                  iconOnly
-                  icon={<ChevronLeft size={20} />}
-                  onClick={onPrevious}
-                  className="absolute left-0 z-10 rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-                  aria-label="Previous"
-                />
-              )}
-
-              {/* Folder with SVG Illustration */}
-              <Box display="block" className="relative mx-8">
-                <Box display="block" className="relative h-[200px] w-[280px] rounded-lg">
-                  <img
-                    src="/illustrations/media-folder.svg"
-                    alt="Media folder"
-                    className="h-full w-full object-contain"
-                  />
-                </Box>
-              </Box>
-
-              {/* Next Button */}
-              {onNext && (
-                <Button
-                  variant="ghost"
-                  iconOnly
-                  icon={<ChevronRight size={20} />}
-                  onClick={onNext}
-                  className="absolute right-0 z-10 rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-                  aria-label="Next"
-                />
-              )}
-            </Stack>
-          </Box>
-
-          {/* Folder Info */}
-          <Stack direction="vertical" spacing="sm" className="mb-6 text-center">
-            <Typography variant="h6" weight="semibold" className="text-[#2d5016]">
-              {folder.name}
-            </Typography>
-            {folder.fileCount > 0 && (
-              <Typography variant="small" tone="muted">
-                {folder.fileCount} files
-              </Typography>
-            )}
-            {folder.description && (
-              <Typography variant="body" className="text-sm leading-relaxed text-neutral-700">
-                {folder.description}
-              </Typography>
-            )}
-          </Stack>
-
-          {/* Action Button */}
-          {onAction && (
-            <Box display="block" className="text-center">
+      <Card as={as} ref={ref} className={cn('w-full p-5', className)} {...props}>
+        {/* Header */}
+        <Stack direction="horizontal" justify="between" align="center" className="mb-6">
+          <Typography variant="h6" weight="semibold" className="text-neutral-900">
+            {title}
+          </Typography>
+          <Stack direction="horizontal" spacing="sm" align="center">
+            {onAdd && (
               <Button
-                variant="primary"
-                onClick={onAction}
-                className="rounded-full bg-lime-800 px-6 py-2 text-white hover:bg-lime-700"
-              >
-                {actionLabel}
-              </Button>
+                variant="ghost"
+                iconOnly
+                icon={<Plus size={20} />}
+                onClick={onAdd}
+                className="text-neutral-600 hover:text-neutral-900"
+                aria-label="Add file"
+              />
+            )}
+            {onShare && (
+              <Button
+                variant="ghost"
+                iconOnly
+                icon={<Share2 size={20} />}
+                onClick={onShare}
+                className="text-neutral-600 hover:text-neutral-900"
+                aria-label="Share"
+              />
+            )}
+          </Stack>
+        </Stack>
+
+        {/* Folder Preview Section */}
+        <Box display="block" className="relative mb-6">
+          <Stack
+            direction="horizontal"
+            spacing="none"
+            align="center"
+            justify="center"
+            className="relative"
+          >
+            {/* Previous Button */}
+            {onPrevious && (
+              <Button
+                variant="ghost"
+                iconOnly
+                icon={<ChevronLeft size={20} />}
+                onClick={onPrevious}
+                className="absolute left-0 z-10 rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                aria-label="Previous"
+              />
+            )}
+
+            {/* Folder with SVG Illustration */}
+            <Box display="block" className="relative mx-8">
+              <Box display="block" className="relative h-[200px] w-[280px] rounded-lg">
+                <img
+                  src="/illustrations/media-folder.svg"
+                  alt="Media folder"
+                  className="h-full w-full object-contain"
+                />
+              </Box>
             </Box>
-          )}
+
+            {/* Next Button */}
+            {onNext && (
+              <Button
+                variant="ghost"
+                iconOnly
+                icon={<ChevronRight size={20} />}
+                onClick={onNext}
+                className="absolute right-0 z-10 rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                aria-label="Next"
+              />
+            )}
+          </Stack>
         </Box>
-      </Component>
+
+        {/* Folder Info */}
+        <Stack direction="vertical" spacing="sm" className="mb-6 text-center">
+          <Typography variant="h6" weight="semibold" className="text-[#2d5016]">
+            {folder.name}
+          </Typography>
+          {folder.fileCount > 0 && (
+            <Typography variant="small" tone="muted">
+              {folder.fileCount} files
+            </Typography>
+          )}
+          {folder.description && (
+            <Typography variant="body" className="text-sm leading-relaxed text-neutral-700">
+              {folder.description}
+            </Typography>
+          )}
+        </Stack>
+
+        {/* Action Button */}
+        {onAction && (
+          <Box display="block" className="text-center">
+            <Button
+              variant="primary"
+              onClick={onAction}
+              className="rounded-full bg-lime-800 px-6 py-2 text-white hover:bg-lime-700"
+            >
+              {actionLabel}
+            </Button>
+          </Box>
+        )}
+      </Card>
     )
   }
 )

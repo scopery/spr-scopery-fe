@@ -8,7 +8,9 @@ import { toast } from 'sonner'
 import {
   Badge,
   Button,
+  Card,
   CurrencyAmount,
+  DataTable,
   FinancialKpiStrip,
   PageSkeleton,
   Typography,
@@ -45,9 +47,9 @@ export function FinanceScenariosView() {
   const projectId = params.projectId as string
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [estimationOptions, setEstimationOptions] = useState<
-    Array<{ id: string; label: string }>
-  >([])
+  const [estimationOptions, setEstimationOptions] = useState<Array<{ id: string; label: string }>>(
+    []
+  )
 
   const { project } = useProject(workspaceId, projectId)
   const {
@@ -80,10 +82,7 @@ export function FinanceScenariosView() {
       .catch(() => setEstimationOptions([]))
   }, [projectId])
 
-  const runAction = async (
-    label: string,
-    fn: () => Promise<unknown>
-  ) => {
+  const runAction = async (label: string, fn: () => Promise<unknown>) => {
     try {
       await fn()
       toast.success(label)
@@ -96,9 +95,9 @@ export function FinanceScenariosView() {
 
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="border border-neutral-200 bg-white p-8 text-center">
         <Typography weight="medium">You don’t have access to financials</Typography>
-      </div>
+      </Card>
     )
   }
 
@@ -108,23 +107,17 @@ export function FinanceScenariosView() {
         {
           id: 'revenue',
           label: 'Planned revenue',
-          value: (
-            <CurrencyAmount amount={currentSummary.plannedRevenue} currency={currency} />
-          ),
+          value: <CurrencyAmount amount={currentSummary.plannedRevenue} currency={currency} />,
         },
         {
           id: 'budget',
           label: 'Budget of costs',
-          value: (
-            <CurrencyAmount amount={currentSummary.budgetOfCosts} currency={currency} />
-          ),
+          value: <CurrencyAmount amount={currentSummary.budgetOfCosts} currency={currency} />,
         },
         {
           id: 'margin',
           label: 'Gross margin',
-          value: (
-            <CurrencyAmount amount={currentSummary.grossMargin} currency={currency} />
-          ),
+          value: <CurrencyAmount amount={currentSummary.grossMargin} currency={currency} />,
         },
         {
           id: 'marginPct',
@@ -139,16 +132,16 @@ export function FinanceScenariosView() {
     : []
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
         current="Financials"
       />
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Finance Scenarios
           </Typography>
           {project ? (
@@ -158,9 +151,7 @@ export function FinanceScenariosView() {
           ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
-          <NextLink
-            href={ROUTES.workspace.projectFinancialsCompare(workspaceId, projectId)}
-          >
+          <NextLink href={ROUTES.workspace.projectFinancialsCompare(workspaceId, projectId)}>
             <Button variant="ghost" icon={<GitCompareArrows size={16} />}>
               Compare
             </Button>
@@ -184,7 +175,7 @@ export function FinanceScenariosView() {
         </div>
       ) : null}
 
-      <Typography as="h2" size="lg" weight="semibold" className="mb-3">
+      <Typography as="h2" size="md" weight="medium" className="mb-3">
         Current finance
       </Typography>
       {currentSummary && currentScenario ? (
@@ -213,150 +204,113 @@ export function FinanceScenariosView() {
           <FinancialKpiStrip items={kpiItems} mode="compact" />
         </div>
       ) : (
-        <div className="mb-8 border border-neutral-200 bg-neutral-50 p-4">
+        <Card className="mb-8 border border-neutral-200 bg-neutral-50 p-4">
           <Typography variant="small" tone="muted">
             No current finance scenario yet. Create one and mark it as current.
           </Typography>
-        </div>
+        </Card>
       )}
 
-      <Typography as="h2" size="lg" weight="semibold" className="mb-3">
+      <Typography as="h2" size="md" weight="medium" className="mb-3">
         Scenarios
       </Typography>
-      <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">Scenario</th>
-              <th className="px-4 py-3 font-medium">Code</th>
-              <th className="px-4 py-3 font-medium">Version</th>
-              <th className="px-4 py-3 font-medium">Currency</th>
-              <th className="px-4 py-3 font-medium">Revenue</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Current</th>
-              <th className="px-4 py-3 font-medium">Updated</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {scenarios.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="px-4 py-8 text-center">
-                  <Typography variant="small" tone="muted">
-                    No finance scenarios yet
-                  </Typography>
-                </td>
-              </tr>
-            ) : (
-              scenarios.map((s: FinanceScenario) => (
-                <tr key={s.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-4 py-3">
-                    <NextLink
-                      href={ROUTES.workspace.projectFinancialsScenario(
-                        workspaceId,
-                        projectId,
-                        s.id
-                      )}
-                      className="font-medium text-primary underline-offset-2 hover:underline"
-                    >
-                      {s.name}
-                    </NextLink>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Typography variant="small" tone="muted">
-                      {s.code}
-                    </Typography>
-                  </td>
-                  <td className="px-4 py-3">v{s.scenarioVersion}</td>
-                  <td className="px-4 py-3">{s.currencyCode}</td>
-                  <td className="px-4 py-3">
-                    <CurrencyAmount
-                      amount={s.plannedRevenue}
-                      currency={s.currencyCode}
-                      size="sm"
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={financeStatusTone(s.status)}>
-                      {financeStatusLabel(s.status)}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    {s.currentFlag || currentScenario?.id === s.id ? (
-                      <Badge tone="success" size="sm">
-                        Yes
-                      </Badge>
-                    ) : (
-                      <Typography variant="small" tone="muted">
-                        —
-                      </Typography>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Typography variant="small" tone="muted">
-                      {formatUpdated(s.updatedAt)}
-                    </Typography>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {canApproveFinanceScenario(s) ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            void runAction('Scenario approved', () =>
-                              approveScenario(s.id)
-                            )
-                          }
-                        >
-                          Approve
-                        </Button>
-                      ) : null}
-                      {canMarkFinanceCurrent(s) &&
-                      !(s.currentFlag || currentScenario?.id === s.id) ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            void runAction('Marked as current', () => markCurrent(s.id))
-                          }
-                        >
-                          Mark current
-                        </Button>
-                      ) : null}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          void runAction('Scenario duplicated', () =>
-                            duplicateScenario(s.id)
-                          )
-                        }
-                      >
-                        Duplicate
-                      </Button>
-                      {canArchiveFinanceScenario(s) ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            if (!window.confirm(`Archive “${s.name}”?`)) return
-                            void runAction('Scenario archived', () =>
-                              archiveScenario(s.id)
-                            )
-                          }}
-                        >
-                          Archive
-                        </Button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable<FinanceScenario>
+        ariaLabel="Finance scenarios"
+        rows={scenarios}
+        rowKey={(scenario) => scenario.id}
+        emptyMessage="No finance scenarios yet"
+        columns={[
+          {
+            id: 'scenario',
+            header: 'Scenario',
+            cell: (s) => (
+              <NextLink
+                href={ROUTES.workspace.projectFinancialsScenario(workspaceId, projectId, s.id)}
+                className="font-medium text-primary underline-offset-2 hover:underline"
+              >
+                {s.name}
+              </NextLink>
+            ),
+          },
+          { id: 'code', header: 'Code', accessor: (s) => s.code || '—', kind: 'code' },
+          { id: 'version', header: 'Version', accessor: (s) => `v${s.scenarioVersion}` },
+          { id: 'currency', header: 'Currency', accessor: 'currencyCode' },
+          {
+            id: 'revenue',
+            header: 'Revenue',
+            cell: (s) => (
+              <CurrencyAmount amount={s.plannedRevenue} currency={s.currencyCode} size="sm" />
+            ),
+          },
+          {
+            id: 'status',
+            header: 'Status',
+            cell: (s) => (
+              <Badge tone={financeStatusTone(s.status)}>{financeStatusLabel(s.status)}</Badge>
+            ),
+          },
+          {
+            id: 'current',
+            header: 'Current',
+            cell: (s) =>
+              s.currentFlag || currentScenario?.id === s.id ? (
+                <Badge tone="success" size="sm">
+                  Yes
+                </Badge>
+              ) : (
+                '—'
+              ),
+          },
+          { id: 'updated', header: 'Updated', accessor: (s) => formatUpdated(s.updatedAt) },
+          {
+            id: 'actions',
+            header: 'Actions',
+            cell: (s) => (
+              <div className="flex flex-wrap gap-1">
+                {canApproveFinanceScenario(s) ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void runAction('Scenario approved', () => approveScenario(s.id))}
+                  >
+                    Approve
+                  </Button>
+                ) : null}
+                {canMarkFinanceCurrent(s) && !(s.currentFlag || currentScenario?.id === s.id) ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void runAction('Marked as current', () => markCurrent(s.id))}
+                  >
+                    Mark current
+                  </Button>
+                ) : null}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    void runAction('Scenario duplicated', () => duplicateScenario(s.id))
+                  }
+                >
+                  Duplicate
+                </Button>
+                {canArchiveFinanceScenario(s) ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      if (!window.confirm(`Archive “${s.name}”?`)) return
+                      void runAction('Scenario archived', () => archiveScenario(s.id))
+                    }}
+                  >
+                    Archive
+                  </Button>
+                ) : null}
+              </div>
+            ),
+          },
+        ]}
+      />
 
       <CreateFinanceScenarioModal
         open={createOpen}

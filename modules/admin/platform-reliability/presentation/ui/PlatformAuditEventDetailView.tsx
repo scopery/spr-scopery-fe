@@ -3,7 +3,7 @@
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
-import { Badge, Typography, PageSkeleton } from '@/shared/ui'
+import { Badge, Typography, PageSkeleton, Card } from '@/shared/ui'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 import { usePlatformAuditEventDetail } from '../hooks/usePlatformAuditEventDetail'
 
@@ -110,22 +110,22 @@ export function PlatformAuditEventDetailView() {
 
           {(event.beforeState || event.afterState) && (
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
-              <div className="border border-neutral-200 bg-white p-5">
+              <Card className="p-5">
                 <Typography weight="semibold" className="mb-2">
                   Before
                 </Typography>
                 <pre className="overflow-x-auto whitespace-pre-wrap break-all text-xs text-neutral-700">
                   {event.beforeState || '—'}
                 </pre>
-              </div>
-              <div className="border border-neutral-200 bg-white p-5">
+              </Card>
+              <Card className="p-5">
                 <Typography weight="semibold" className="mb-2">
                   After
                 </Typography>
                 <pre className="overflow-x-auto whitespace-pre-wrap break-all text-xs text-neutral-700">
                   {event.afterState || '—'}
                 </pre>
-              </div>
+              </Card>
             </div>
           )}
         </>

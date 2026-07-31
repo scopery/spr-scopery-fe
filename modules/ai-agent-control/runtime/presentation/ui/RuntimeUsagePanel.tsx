@@ -2,7 +2,7 @@
 
 import { Eye } from 'lucide-react'
 
-import { Box, Button, Input, Select, Typography, Badge } from '@/shared/ui'
+import { Box, Button, Card, Input, Select, Typography, Badge } from '@/shared/ui'
 import { useRuntimeUsagePanel } from '../hooks/useRuntimeUsagePanel'
 
 type Props = {
@@ -35,19 +35,20 @@ export function RuntimeUsagePanel({ orgId, canViewRuntime, canViewUsage, canView
       </Typography>
 
       {panel.metadata ? (
-        <div className="border-border rounded border p-3 text-sm">
+        <Card className="border-border p-3 text-sm">
           <Typography variant="small" weight="medium">
             Runtime status
           </Typography>
           <Typography variant="small" tone="muted">
-            Org runtime: {panel.metadata.org_runtime_enabled ? 'enabled' : 'disabled'} · Strict mode:{' '}
-            {panel.metadata.org_runtime_strict ? 'on' : 'off'} · Budget: {panel.metadata.budget_enforcement}
+            Org runtime: {panel.metadata.org_runtime_enabled ? 'enabled' : 'disabled'} · Strict
+            mode: {panel.metadata.org_runtime_strict ? 'on' : 'off'} · Budget:{' '}
+            {panel.metadata.budget_enforcement}
           </Typography>
-        </div>
+        </Card>
       ) : null}
 
       {canViewRuntime ? (
-        <div className="border-border space-y-3 rounded-md border p-4">
+        <Card className="border-border space-y-3 p-4">
           <Typography variant="small" weight="medium">
             Resolution preview
           </Typography>
@@ -73,18 +74,18 @@ export function RuntimeUsagePanel({ orgId, canViewRuntime, canViewUsage, canView
           <Button
             variant="outline"
             loading={panel.previewLoading}
-            onClick={() => void panel.handlePreview()} icon={<Eye size={16} />}>
+            onClick={() => void panel.handlePreview()}
+            icon={<Eye size={16} />}
+          >
             Preview resolution
           </Button>
           {panel.preview ? (
-            <div className="border-border space-y-1 rounded border p-3 text-sm">
+            <Card className="border-border space-y-1 p-3 text-sm">
               <div>
                 <Typography as="span" variant="small">
                   Source:{' '}
                 </Typography>
-                <Badge variant="soft">
-                  {panel.preview.resolution_source}
-                </Badge>
+                <Badge variant="soft">{panel.preview.resolution_source}</Badge>
               </div>
               <Typography variant="small" tone="muted">
                 Provider/model: {panel.preview.provider}/{panel.preview.model_name} · mode{' '}
@@ -109,39 +110,39 @@ export function RuntimeUsagePanel({ orgId, canViewRuntime, canViewUsage, canView
                   Prompt content redacted — requires prompt_registry.view
                 </Typography>
               ) : null}
-            </div>
+            </Card>
           ) : null}
-        </div>
+        </Card>
       ) : null}
 
       {canViewUsage ? (
         <>
           {panel.summary ? (
             <div className="grid gap-3 md:grid-cols-3">
-              <div className="border-border rounded border p-3">
+              <Card className="border-border p-3">
                 <Typography variant="small" tone="muted">
                   Total runs
                 </Typography>
                 <Typography variant="small" weight="medium">
                   {panel.summary.total_runs}
                 </Typography>
-              </div>
-              <div className="border-border rounded border p-3">
+              </Card>
+              <Card className="border-border p-3">
                 <Typography variant="small" tone="muted">
                   Total tokens
                 </Typography>
                 <Typography variant="small" weight="medium">
                   {panel.summary.total_tokens}
                 </Typography>
-              </div>
-              <div className="border-border rounded border p-3">
+              </Card>
+              <Card className="border-border p-3">
                 <Typography variant="small" tone="muted">
                   Est. cost ({panel.summary.currency})
                 </Typography>
                 <Typography variant="small" weight="medium">
                   {panel.summary.estimated_cost_total ?? '—'}
                 </Typography>
-              </div>
+              </Card>
             </div>
           ) : null}
 
@@ -167,14 +168,12 @@ export function RuntimeUsagePanel({ orgId, canViewRuntime, canViewUsage, canView
           ) : (
             <ul className="space-y-2">
               {panel.runs.map((run) => (
-                <li key={run.id} className="border-border rounded border p-3 text-sm">
+                <Card as="li" key={run.id} className="border-border p-3 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <Typography as="span" variant="small">
                       {run.feature_key}
                     </Typography>
-                    <Badge variant="soft">
-                      {run.status}
-                    </Badge>
+                    <Badge variant="soft">{run.status}</Badge>
                   </div>
                   <Typography variant="small" tone="muted">
                     {new Date(run.created_at).toLocaleString()} · {run.provider}/{run.model_name} ·
@@ -186,7 +185,7 @@ export function RuntimeUsagePanel({ orgId, canViewRuntime, canViewUsage, canView
                       Fallback: {run.fallback_reason}
                     </Typography>
                   ) : null}
-                </li>
+                </Card>
               ))}
             </ul>
           )}

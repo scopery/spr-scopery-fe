@@ -1,10 +1,12 @@
 'use client'
 
+import { useMemo } from 'react'
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { ArrowLeft, Ban, Check } from 'lucide-react'
-import { Badge, Button, PageSkeleton, Typography } from '@/shared/ui'
+import { Badge, Button, PageSkeleton, Typography, DataTable } from '@/shared/ui'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
+import { UserIdentity, useResolveUsers } from '@/modules/platform/identity'
 import { useWorkspaceMembers } from '../hooks/useWorkspacesV1'
 
 function formatStatusLabel(status: string) {
@@ -26,6 +28,8 @@ export function AdminWorkspaceMembersView() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
   const { items, totalElements, loading, error, actingId, activateMember, deactivateMember } =
     useWorkspaceMembers(workspaceId)
+  const userIds = useMemo(() => items.map((item) => item.userId), [items])
+  const { peopleById } = useResolveUsers(userIds)
 
   if (loading) {
     return <PageSkeleton variant="list" />
@@ -64,62 +68,82 @@ export function AdminWorkspaceMembersView() {
       </div>
 
       <div className="overflow-hidden border border-neutral-200 bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-neutral-200 bg-neutral-50">
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">User ID</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Status</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Joined</th>
-              <th className="min-w-[12rem] whitespace-nowrap px-4 py-3 text-right font-medium text-neutral-600">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-neutral-500">
-                  No members
-                </td>
-              </tr>
-            ) : (
-              items.map((m) => {
+        <DataTable
+          ariaLabel="Admin Workspace Members"
+          rows={items}
+          rowKey={(m) => String(m.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'user',
+              header: 'User',
+              cell: (member) => (
+                <UserIdentity
+                  userId={member.userId}
+                  person={peopleById[member.userId]}
+                  size="xs"
+                  compact
+                />
+              ),
+              kind: 'reference',
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (m) => {
                 const active = m.status === 'ACTIVE'
                 return (
-                  <tr key={m.id} className="border-b border-neutral-100 last:border-0">
-                    <td className="px-4 py-3 font-mono text-xs">{m.userId}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant="solid" tone={active ? 'success' : 'neutral'}>
-                        {formatStatusLabel(m.status)}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-neutral-600">{formatDate(m.joinedAt)}</td>
-                    <td className="px-4 py-3 text-right">
-                      {active ? (
-                        <Button
-                          variant="ghost"
-                          tone="error"
-                          disabled={actingId === m.id}
-                          onClick={() => void deactivateMember(m.id)}
-                          icon={<Ban size={16} />}
-                        >
-                          Deactivate
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          disabled={actingId === m.id}
-                          onClick={() => void activateMember(m.id)}
-                          icon={<Check size={16} />}
-                        >
-                          Activate
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
+                  <>
+                    <Badge variant="solid" tone={active ? 'success' : 'neutral'}>
+                      {formatStatusLabel(m.status)}
+                    </Badge>
+                  </>
                 )
-              })
-            )}
-          </tbody>
-        </table>
+              },
+            },
+            {
+              id: 'joined',
+              header: 'Joined',
+              cell: (m) => {
+                const active = m.status === 'ACTIVE'
+                return <>{formatDate(m.joinedAt)}</>
+              },
+              cellClassName: 'text-neutral-600',
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (m) => {
+                const active = m.status === 'ACTIVE'
+                return (
+                  <>
+                    {active ? (
+                      <Button
+                        variant="ghost"
+                        tone="error"
+                        disabled={actingId === m.id}
+                        onClick={() => void deactivateMember(m.id)}
+                        icon={<Ban size={16} />}
+                      >
+                        Deactivate
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        disabled={actingId === m.id}
+                        onClick={() => void activateMember(m.id)}
+                        icon={<Check size={16} />}
+                      >
+                        Activate
+                      </Button>
+                    )}
+                  </>
+                )
+              },
+              cellClassName: 'text-right',
+            },
+          ]}
+        />
       </div>
     </div>
   )

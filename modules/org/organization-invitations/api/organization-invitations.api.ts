@@ -33,10 +33,6 @@ export async function cancelOrganizationInvitation(
   )
 }
 
-export async function acceptOrganizationInvitation(
-  token: string
-): Promise<OrganizationInvitation> {
-  return apiClient.post<OrganizationInvitation>(
-    ORGANIZATION_INVITATION_ENDPOINTS.accept(token)
-  )
+export async function acceptOrganizationInvitation(token: string): Promise<OrganizationInvitation> {
+  return apiClient.post<OrganizationInvitation>(ORGANIZATION_INVITATION_ENDPOINTS.accept(token))
 }

@@ -3,7 +3,7 @@
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { Calendar, Gauge, Layers, Users } from 'lucide-react'
-import { Link as DesignLink, Typography } from '@/shared/ui'
+import { Card, Typography } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 
 const SECTIONS = [
@@ -32,7 +32,8 @@ const SECTIONS = [
   {
     id: 'policies',
     title: 'Utilization Policies',
-    description: 'Workspace thresholds for under-allocated, healthy, watch, overloaded, and critical.',
+    description:
+      'Workspace thresholds for under-allocated, healthy, watch, overloaded, and critical.',
     href: (ws: string) => ROUTES.workspace.settingsCapacityPolicies(ws),
     icon: Gauge,
   },
@@ -42,9 +43,9 @@ export function CapacitySetupView() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
 
   return (
-    <div>
-      <div className="mb-6">
-        <Typography as="h1" size="lg" weight="semibold">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2">
+        <Typography as="h1" size="md" weight="medium">
           Capacity Setup
         </Typography>
         <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -58,7 +59,7 @@ export function CapacitySetupView() {
           const Icon = section.icon
           return (
             <li key={section.id}>
-              <DesignLink
+              <Card
                 as={NextLink}
                 href={section.href(workspaceId)}
                 className="flex h-full flex-col gap-sm border border-neutral-200 bg-white p-md no-underline transition-colors hover:border-neutral-400 hover:bg-neutral-50"
@@ -72,7 +73,7 @@ export function CapacitySetupView() {
                 <Typography as="span" variant="small" tone="muted">
                   {section.description}
                 </Typography>
-              </DesignLink>
+              </Card>
             </li>
           )
         })}

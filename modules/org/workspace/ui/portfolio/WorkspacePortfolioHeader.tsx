@@ -44,11 +44,11 @@ export function WorkspacePortfolioHeader({
   const join = String(workspace.joinPolicy).replace(/_/g, ' ')
 
   return (
-    <header className="mb-4 border-b border-neutral-200 py-4">
+    <header className="mb-2 border-b border-neutral-200 pb-2">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <Typography as="h1" size="lg" weight="semibold" className="text-neutral-900">
+            <Typography as="h1" size="md" weight="medium" className="text-neutral-900">
               {workspace.name}
             </Typography>
             <Badge
@@ -125,15 +125,7 @@ export function WorkspacePortfolioHeader({
   )
 }
 
-function MenuLink({
-  href,
-  label,
-  icon,
-}: {
-  href: string
-  label: string
-  icon?: ReactNode
-}) {
+function MenuLink({ href, label, icon }: { href: string; label: string; icon?: ReactNode }) {
   return (
     <NextLink
       href={href}

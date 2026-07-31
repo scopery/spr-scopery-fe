@@ -8,7 +8,7 @@ import {
   GovernedObjectBadge,
   PageSkeleton,
   Stack,
-  Typography
+  Typography,
 } from '@/shared/ui'
 
 import { usePlanningSuggestions } from '../hooks/usePlanningSuggestions'
@@ -24,13 +24,15 @@ export function PlanningSuggestionReviewView() {
     requiresChangeRequest?: boolean
   } | null>(null)
 
-  if (loading) return <PageSkeleton variant="detail" className="p-lg" />
+  if (loading) return <PageSkeleton variant="detail" className="px-3 py-3 lg:px-4" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Planning suggestion review</Typography>
-      <Typography tone="muted">
+    <Stack direction="vertical" spacing="sm" className="px-3 py-3 lg:px-4">
+      <Typography as="h1" size="md" weight="medium">
+        Planning suggestion review
+      </Typography>
+      <Typography variant="small" tone="muted">
         States: suggested → accepted → applied. Baseline-guarded projects may require a Change
         Request before apply.
       </Typography>

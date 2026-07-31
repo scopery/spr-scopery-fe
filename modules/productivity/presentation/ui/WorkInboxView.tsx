@@ -1,12 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import {
-  Button,
-  PageSkeleton,
-  Stack,
-  Typography,
-} from '@/shared/ui'
+import { Button, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useWorkInbox } from '../hooks/useWorkInbox'
 
 export function WorkInboxView() {
@@ -23,20 +18,20 @@ export function WorkInboxView() {
     reviewJoinRequest,
   } = useWorkInbox(workspaceId)
 
-  if (loading) return <PageSkeleton variant="list" className="p-lg" />
+  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   const inviteIdsFromInbox = new Set(
-    items
-      .filter((i) => i.sourceType === 'ORG_INVITATION' && i.sourceId)
-      .map((i) => i.sourceId)
+    items.filter((i) => i.sourceType === 'ORG_INVITATION' && i.sourceId).map((i) => i.sourceId)
   )
   const standaloneInvites = pendingInvites.filter((inv) => !inviteIdsFromInbox.has(inv.id))
   const hasContent = items.length > 0 || standaloneInvites.length > 0
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Work Inbox</Typography>
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <Typography as="h1" size="md" weight="medium">
+        Work Inbox
+      </Typography>
       {!hasContent ? (
         <Typography tone="muted">You are all caught up.</Typography>
       ) : (

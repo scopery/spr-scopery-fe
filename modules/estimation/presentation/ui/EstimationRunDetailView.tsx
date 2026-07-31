@@ -7,7 +7,9 @@ import { toast } from 'sonner'
 import {
   Badge,
   Button,
+  Card,
   CurrencyAmount,
+  DataTable,
   FinancialKpiStrip,
   LongRunningJobState,
   LongRunningJobStatus,
@@ -73,10 +75,7 @@ function toJobStatus(status: string): LongRunningJobStatus {
   }
 }
 
-function money(
-  amount: number | null | undefined,
-  currency: string | null | undefined
-) {
+function money(amount: number | null | undefined, currency: string | null | undefined) {
   if (amount == null) {
     return (
       <Typography as="span" variant="small" tone="muted">
@@ -140,15 +139,15 @@ export function EstimationRunDetailView() {
 
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="border border-neutral-200 bg-white p-8 text-center">
         <Typography weight="medium">You don’t have access to this estimation run</Typography>
-      </div>
+      </Card>
     )
   }
 
   if (error || !run) {
     return (
-      <div className="border border-error/30 bg-error/5 p-4">
+      <div className="border-error/30 bg-error/5 border p-4">
         <Typography variant="small" tone="error">
           {error ?? 'Estimation run not found'}
         </Typography>
@@ -180,9 +179,7 @@ export function EstimationRunDetailView() {
         {
           id: 'billing',
           label: 'Billing preview',
-          value: (
-            <CurrencyAmount amount={summary.totalBillingPreview} currency={currency} />
-          ),
+          value: <CurrencyAmount amount={summary.totalBillingPreview} currency={currency} />,
         },
         {
           id: 'avgCost',
@@ -192,22 +189,20 @@ export function EstimationRunDetailView() {
         {
           id: 'avgBill',
           label: 'Avg billing rate',
-          value: (
-            <CurrencyAmount amount={summary.averageBillingRate} currency={currency} />
-          ),
+          value: <CurrencyAmount amount={summary.averageBillingRate} currency={currency} />,
         },
       ]
     : []
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
         current={run.name}
       />
 
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-2 mt-1 flex flex-wrap items-start justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
           <NextLink
             href={ROUTES.workspace.projectEstimation(workspaceId, projectId)}
@@ -215,7 +210,7 @@ export function EstimationRunDetailView() {
           >
             ← Estimation Center
           </NextLink>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             {run.name}
           </Typography>
           <div className="mt-2 flex flex-wrap items-center gap-sm">
@@ -257,14 +252,14 @@ export function EstimationRunDetailView() {
       ) : null}
 
       {run.status === EstimationRunStatus.Failed ? (
-        <div className="mb-4 border border-error/30 bg-error/5 p-3">
+        <div className="border-error/30 bg-error/5 mb-4 border p-3">
           <Typography variant="small" tone="error">
             {run.errorCode ? `${run.errorCode}: ` : ''}
             {run.errorMessage ?? 'Estimation failed'}
           </Typography>
           {run.traceId ? (
             <Typography variant="caption" tone="muted" className="mt-1 block">
-              Trace: {run.traceId}
+              Diagnostic reference available
             </Typography>
           ) : null}
         </div>
@@ -338,235 +333,192 @@ export function EstimationRunDetailView() {
               </Button>
             ))}
           </div>
-          <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Task</th>
-                  <th className="px-3 py-2 font-medium">Role</th>
-                  <th className="px-3 py-2 font-medium">Hours</th>
-                  <th className="px-3 py-2 font-medium">Base rate</th>
-                  <th className="px-3 py-2 font-medium">Adjusted</th>
-                  <th className="px-3 py-2 font-medium">Inflation</th>
-                  <th className="px-3 py-2 font-medium">Labor cost</th>
-                  <th className="px-3 py-2 font-medium">Billing</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
-                  <th className="px-3 py-2 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.length === 0 ? (
-                  <tr>
-                    <td colSpan={10} className="px-3 py-8 text-center">
-                      <Typography variant="small" tone="muted">
-                        No task snapshots
+          <DataTable<TaskEstimateSnapshot>
+            ariaLabel="Task estimates"
+            rows={tasks}
+            rowKey={(task) => task.id}
+            emptyMessage="No task snapshots"
+            columns={[
+              {
+                id: 'task',
+                header: 'Task',
+                kind: 'code',
+                cell: (t) => (
+                  <>
+                    <Typography variant="small">{t.taskCode || '—'}</Typography>
+                    <Typography variant="caption" tone="muted" className="block">
+                      {t.taskTitle || '—'}
+                    </Typography>
+                  </>
+                ),
+              },
+              {
+                id: 'role',
+                header: 'Role',
+                accessor: (t) => t.costRoleCode ?? '—',
+                kind: 'reference',
+              },
+              { id: 'hours', header: 'Hours', accessor: (t) => formatHours(t.estimateHours) },
+              {
+                id: 'base',
+                header: 'Base rate',
+                cell: (t) => money(t.baseCostRate, t.currencyCode),
+              },
+              {
+                id: 'adjusted',
+                header: 'Adjusted',
+                cell: (t) => money(t.adjustedCostRate, t.currencyCode),
+              },
+              {
+                id: 'inflation',
+                header: 'Inflation',
+                accessor: (t) => (t.inflationPercent != null ? `${t.inflationPercent}%` : '—'),
+              },
+              {
+                id: 'labor',
+                header: 'Labor cost',
+                cell: (t) => money(t.estimatedLaborCost, t.currencyCode),
+              },
+              {
+                id: 'billing',
+                header: 'Billing',
+                cell: (t) => money(t.estimatedBillingPreview, t.currencyCode),
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (t) => (
+                  <>
+                    <Badge size="sm" tone={taskEstimateStatusTone(t.status)}>
+                      {taskEstimateStatusLabel(t.status)}
+                    </Badge>
+                    {t.issueCode ? (
+                      <Typography variant="caption" tone="error" className="mt-0.5 block">
+                        {t.issueCode}
                       </Typography>
-                    </td>
-                  </tr>
-                ) : (
-                  tasks.map((t) => (
-                    <tr key={t.id} className="border-t border-neutral-100">
-                      <td className="px-3 py-2">
-                        <Typography variant="small" weight="medium">
-                          {t.taskCode}
-                        </Typography>
-                        <Typography variant="caption" tone="muted" className="block">
-                          {t.taskTitle}
-                        </Typography>
-                      </td>
-                      <td className="px-3 py-2">
-                        <Typography variant="small" tone="muted">
-                          {t.costRoleCode ?? '—'}
-                        </Typography>
-                      </td>
-                      <td className="px-3 py-2">{formatHours(t.estimateHours)}</td>
-                      <td className="px-3 py-2">{money(t.baseCostRate, t.currencyCode)}</td>
-                      <td className="px-3 py-2">
-                        {money(t.adjustedCostRate, t.currencyCode)}
-                      </td>
-                      <td className="px-3 py-2">
-                        <Typography variant="small" tone="muted">
-                          {t.inflationPercent != null ? `${t.inflationPercent}%` : '—'}
-                        </Typography>
-                      </td>
-                      <td className="px-3 py-2">
-                        {money(t.estimatedLaborCost, t.currencyCode)}
-                      </td>
-                      <td className="px-3 py-2">
-                        {money(t.estimatedBillingPreview, t.currencyCode)}
-                      </td>
-                      <td className="px-3 py-2">
-                        <Badge size="sm" tone={taskEstimateStatusTone(t.status)}>
-                          {taskEstimateStatusLabel(t.status)}
-                        </Badge>
-                        {t.issueCode ? (
-                          <Typography variant="caption" tone="error" className="mt-0.5 block">
-                            {t.issueCode}
-                          </Typography>
-                        ) : null}
-                      </td>
-                      <td className="px-3 py-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setPreviewTask(t)}
-                        >
-                          Rate preview
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                    ) : null}
+                  </>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (t) => (
+                  <Button size="sm" variant="ghost" onClick={() => setPreviewTask(t)}>
+                    Rate preview
+                  </Button>
+                ),
+              },
+            ]}
+          />
         </div>
       ) : null}
 
       {tab === 'wbs' ? (
-        <div className="overflow-x-auto border border-neutral-200 bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">WBS</th>
-                <th className="px-4 py-3 font-medium">Tasks</th>
-                <th className="px-4 py-3 font-medium">Hours</th>
-                <th className="px-4 py-3 font-medium">Labor cost</th>
-                <th className="px-4 py-3 font-medium">Billing</th>
-                <th className="px-4 py-3 font-medium">Warnings</th>
-              </tr>
-            </thead>
-            <tbody>
-              {wbsRollups.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center">
-                    <Typography variant="small" tone="muted">
-                      No WBS rollups
+        <DataTable
+          ariaLabel="WBS rollups"
+          rows={wbsRollups}
+          rowKey={(row) => row.id ?? row.wbsNodeId}
+          emptyMessage="No WBS rollups"
+          columns={[
+            {
+              id: 'wbs',
+              header: 'WBS',
+              kind: 'code',
+              cell: (row) => (
+                <>
+                  <Typography variant="small">{row.wbsCode ?? '—'}</Typography>
+                  {row.wbsTitle ? (
+                    <Typography variant="caption" tone="muted" className="block">
+                      {row.wbsTitle}
                     </Typography>
-                  </td>
-                </tr>
-              ) : (
-                wbsRollups.map((row) => (
-                  <tr
-                    key={row.id ?? row.wbsNodeId}
-                    className="border-t border-neutral-100"
-                  >
-                    <td className="px-4 py-3">
-                      <Typography variant="small" weight="medium">
-                        {row.wbsCode ?? row.wbsNodeId}
-                      </Typography>
-                      {row.wbsTitle ? (
-                        <Typography variant="caption" tone="muted" className="block">
-                          {row.wbsTitle}
-                        </Typography>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3">{row.taskCount}</td>
-                    <td className="px-4 py-3">{formatHours(row.totalEstimateHours)}</td>
-                    <td className="px-4 py-3">{money(row.totalLaborCost, currency)}</td>
-                    <td className="px-4 py-3">
-                      {money(row.totalBillingPreview, currency)}
-                    </td>
-                    <td className="px-4 py-3">{row.warningCount ?? 0}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                  ) : null}
+                </>
+              ),
+            },
+            { id: 'tasks', header: 'Tasks', accessor: 'taskCount' },
+            {
+              id: 'hours',
+              header: 'Hours',
+              accessor: (row) => formatHours(row.totalEstimateHours),
+            },
+            {
+              id: 'labor',
+              header: 'Labor cost',
+              cell: (row) => money(row.totalLaborCost, currency),
+            },
+            {
+              id: 'billing',
+              header: 'Billing',
+              cell: (row) => money(row.totalBillingPreview, currency),
+            },
+            { id: 'warnings', header: 'Warnings', accessor: (row) => row.warningCount ?? 0 },
+          ]}
+        />
       ) : null}
 
       {tab === 'phase' ? (
-        <div className="overflow-x-auto border border-neutral-200 bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Phase</th>
-                <th className="px-4 py-3 font-medium">Hours</th>
-                <th className="px-4 py-3 font-medium">Labor cost</th>
-                <th className="px-4 py-3 font-medium">Billing</th>
-                <th className="px-4 py-3 font-medium">Warnings</th>
-              </tr>
-            </thead>
-            <tbody>
-              {phaseRollups.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center">
-                    <Typography variant="small" tone="muted">
-                      No phase rollups
-                    </Typography>
-                  </td>
-                </tr>
-              ) : (
-                phaseRollups.map((row) => (
-                  <tr
-                    key={row.id ?? row.phaseId}
-                    className="border-t border-neutral-100"
-                  >
-                    <td className="px-4 py-3">
-                      <Typography variant="small" weight="medium">
-                        {row.phaseName ?? row.phaseId}
-                      </Typography>
-                    </td>
-                    <td className="px-4 py-3">{formatHours(row.totalEstimateHours)}</td>
-                    <td className="px-4 py-3">{money(row.totalLaborCost, currency)}</td>
-                    <td className="px-4 py-3">
-                      {money(row.totalBillingPreview, currency)}
-                    </td>
-                    <td className="px-4 py-3">{row.warningCount ?? 0}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          ariaLabel="Phase rollups"
+          rows={phaseRollups}
+          rowKey={(row) => row.id ?? row.phaseId}
+          emptyMessage="No phase rollups"
+          columns={[
+            {
+              id: 'phase',
+              header: 'Phase',
+              accessor: (row) => row.phaseName ?? '—',
+              kind: 'reference',
+            },
+            {
+              id: 'hours',
+              header: 'Hours',
+              accessor: (row) => formatHours(row.totalEstimateHours),
+            },
+            {
+              id: 'labor',
+              header: 'Labor cost',
+              cell: (row) => money(row.totalLaborCost, currency),
+            },
+            {
+              id: 'billing',
+              header: 'Billing',
+              cell: (row) => money(row.totalBillingPreview, currency),
+            },
+            { id: 'warnings', header: 'Warnings', accessor: (row) => row.warningCount ?? 0 },
+          ]}
+        />
       ) : null}
 
       {tab === 'issues' ? (
-        <div className="overflow-x-auto border border-neutral-200 bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Task</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Issue</th>
-              </tr>
-            </thead>
-            <tbody>
-              {issueTasks.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center">
-                    <Typography variant="small" tone="muted">
-                      No issues in this run
-                    </Typography>
-                  </td>
-                </tr>
-              ) : (
-                issueTasks.map((t) => (
-                  <tr key={t.id} className="border-t border-neutral-100">
-                    <td className="px-4 py-3">
-                      {t.taskCode} · {t.taskTitle}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge size="sm" tone={taskEstimateStatusTone(t.status)}>
-                        {taskEstimateStatusLabel(t.status)}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Typography variant="small" tone="error">
-                        {t.issueCode ?? '—'}
-                      </Typography>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable<TaskEstimateSnapshot>
+          ariaLabel="Estimation issues"
+          rows={issueTasks}
+          rowKey={(task) => task.id}
+          emptyMessage="No issues in this run"
+          columns={[
+            {
+              id: 'task',
+              header: 'Task',
+              accessor: (t) => `${t.taskCode || '—'} · ${t.taskTitle || '—'}`,
+              kind: 'code',
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (t) => (
+                <Badge size="sm" tone={taskEstimateStatusTone(t.status)}>
+                  {taskEstimateStatusLabel(t.status)}
+                </Badge>
+              ),
+            },
+            { id: 'issue', header: 'Issue', accessor: (t) => t.issueCode ?? '—' },
+          ]}
+        />
       ) : null}
 
       {tab === 'assumptions' ? (
-        <div className="border border-neutral-200 bg-neutral-50 p-4">
+        <Card className="border border-neutral-200 bg-neutral-50 p-4">
           {run.assumptionsJson == null ? (
             <Typography variant="small" tone="muted">
               No assumptions recorded for this run.
@@ -576,7 +528,7 @@ export function EstimationRunDetailView() {
               {JSON.stringify(run.assumptionsJson, null, 2)}
             </pre>
           )}
-        </div>
+        </Card>
       ) : null}
 
       <RateImpactPreviewModal

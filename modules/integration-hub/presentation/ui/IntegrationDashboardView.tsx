@@ -44,12 +44,14 @@ export function IntegrationDashboardView() {
   const credentialList = credentials ?? []
 
   if (loading && connections.length === 0 && credentialList.length === 0) {
-    return <PageSkeleton variant="list" className="p-lg" />
+    return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
   }
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Integration Hub</Typography>
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <Typography as="h1" size="md" weight="medium">
+        Integration Hub
+      </Typography>
       <Typography tone="muted">
         Flow: validate → dry-run → execute → row-level results. Never execute without dry-run
         confirmation.
@@ -138,7 +140,7 @@ export function IntegrationDashboardView() {
             <li key={cred.id} className="flex items-center justify-between gap-md p-md">
               <div>
                 <Typography variant="small" weight="medium">
-                  {cred.name ?? cred.id}
+                  {cred.name ?? '—'}
                 </Typography>
                 <Typography variant="caption" tone="muted">
                   {cred.status}

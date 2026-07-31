@@ -26,7 +26,12 @@ export function AiContextPanel({
         <Button size="sm" disabled={resolving} onClick={() => void resolve()}>
           Resolve context
         </Button>
-        <Button size="sm" variant="outline" disabled={loadingAudit} onClick={() => void loadAudit()}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={loadingAudit}
+          onClick={() => void loadAudit()}
+        >
           Audit log
         </Button>
       </div>
@@ -43,7 +48,7 @@ export function AiContextPanel({
             <ul className="divide-y divide-neutral-200">
               {result.citations.map((c) => (
                 <li key={`${c.blockId}-${c.documentId}`} className="py-xs text-xs text-neutral-600">
-                  {c.headingPath || c.blockId}
+                  {c.headingPath || 'Untitled section'}
                   {c.documentTitle ? ` · ${c.documentTitle}` : ''}
                 </li>
               ))}

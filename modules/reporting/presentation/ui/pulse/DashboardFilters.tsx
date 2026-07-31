@@ -1,6 +1,6 @@
 'use client'
 
-import { Select, Stack, Typography } from '@/shared/ui'
+import { Card, Select, Stack, Typography } from '@/shared/ui'
 import type { PulseFilterOption, PulsePeriodFilter } from '../../../domain/model/project-pulse'
 
 export function DashboardFilters({
@@ -23,7 +23,7 @@ export function DashboardFilters({
   baselineOptions: PulseFilterOption[]
 }) {
   return (
-    <div className="border border-neutral-200 bg-white p-md shadow-sm">
+    <Card className="p-md">
       <Typography variant="overline" tone="muted" className="mb-sm">
         Dashboard filters
       </Typography>
@@ -48,12 +48,7 @@ export function DashboardFilters({
           <Typography variant="caption" tone="muted">
             Phase
           </Typography>
-          <Select
-            size="sm"
-            value={phase}
-            onValueChange={onPhaseChange}
-            options={phaseOptions}
-          />
+          <Select size="sm" value={phase} onValueChange={onPhaseChange} options={phaseOptions} />
         </Stack>
         <Stack direction="vertical" spacing="xs">
           <Typography variant="caption" tone="muted">
@@ -67,6 +62,6 @@ export function DashboardFilters({
           />
         </Stack>
       </div>
-    </div>
+    </Card>
   )
 }

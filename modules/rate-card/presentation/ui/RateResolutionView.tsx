@@ -3,9 +3,12 @@
 import { Calculator, Search } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Button, Input, Select, Stack, Typography, Skeleton } from '@/shared/ui'
+import { Button, Input, Select, Stack, Typography, Skeleton, Card } from '@/shared/ui'
 import { useRateResolution } from '../hooks/useRateResolution'
 import { RateType } from '../../domain/enums/rate-card.enum'
+import { ProjectSearchSelect, TaskSearchSelect } from '@/modules/projects'
+import { AdminOrganizationSearchSelect } from '@/modules/admin/organizations'
+import { useCostingSetup } from '../hooks/useCostingSetup'
 
 const RATE_TYPE_OPTIONS = [
   { value: '', label: 'Any' },
@@ -26,6 +29,7 @@ function todayIso(): string {
 export function RateResolutionView() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
   const { result, preview, loading, error, resolve, previewTask } = useRateResolution()
+  const { costRoles } = useCostingSetup(workspaceId)
   const [mode, setMode] = useState<'resolve' | 'task-preview'>('resolve')
 
   const [form, setForm] = useState({
@@ -87,9 +91,9 @@ export function RateResolutionView() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <Typography as="h1" size="lg" weight="semibold">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2">
+        <Typography as="h1" size="md" weight="medium">
           Rate Resolution — Diagnostics
         </Typography>
         <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -107,26 +111,38 @@ export function RateResolutionView() {
 
       {mode === 'resolve' ? (
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="border border-neutral-200 bg-white p-4">
+          <Card className="border border-neutral-200 bg-white p-4">
             <Typography weight="semibold" variant="small" className="mb-4">
               Context
             </Typography>
             <Stack direction="vertical" spacing="md">
-              <Input label="Workspace ID" value={workspaceId} disabled readOnly />
-              <Input
-                label="Organization ID (optional)"
+              <Input label="Workspace context" value="Current workspace" disabled readOnly />
+              <AdminOrganizationSearchSelect
+                optional
                 value={form.organizationId}
-                onChange={(e) => setForm((f) => ({ ...f, organizationId: e.target.value }))}
+                onChange={(organizationId) =>
+                  setForm((current) => ({ ...current, organizationId }))
+                }
               />
-              <Input
-                label="Project ID (optional)"
+              <ProjectSearchSelect
+                workspaceId={workspaceId}
+                optional
                 value={form.projectId}
-                onChange={(e) => setForm((f) => ({ ...f, projectId: e.target.value }))}
+                onChange={(projectId) => setForm((current) => ({ ...current, projectId }))}
               />
-              <Input
-                label="Cost role ID (optional)"
+              <Select
+                label="Cost role (optional)"
                 value={form.costRoleId}
-                onChange={(e) => setForm((f) => ({ ...f, costRoleId: e.target.value }))}
+                options={[
+                  { value: '', label: 'Use role code instead' },
+                  ...costRoles.map((role) => ({
+                    value: role.id,
+                    label: `${role.code} · ${role.name}`,
+                  })),
+                ]}
+                onValueChange={(costRoleId: string) =>
+                  setForm((current) => ({ ...current, costRoleId }))
+                }
               />
               <Input
                 label="Cost role code (optional)"
@@ -167,9 +183,9 @@ export function RateResolutionView() {
                 Resolve rate
               </Button>
             </Stack>
-          </div>
+          </Card>
 
-          <div className="border border-neutral-200 bg-white p-4">
+          <Card className="border border-neutral-200 bg-white p-4">
             <Typography weight="semibold" variant="small" className="mb-4">
               Result
             </Typography>
@@ -188,26 +204,42 @@ export function RateResolutionView() {
                 Run a resolution to see the full rate snapshot.
               </Typography>
             )}
-          </div>
+          </Card>
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="border border-neutral-200 bg-white p-4">
+          <Card className="border border-neutral-200 bg-white p-4">
             <Typography weight="semibold" variant="small" className="mb-4">
               Task cost preview
             </Typography>
             <Stack direction="vertical" spacing="md">
-              <Input label="Workspace ID" value={workspaceId} disabled readOnly />
-              <Input
-                label="Task ID"
-                value={taskForm.taskId}
-                onChange={(e) => setTaskForm((f) => ({ ...f, taskId: e.target.value }))}
-                required
+              <Input label="Workspace context" value="Current workspace" disabled readOnly />
+              <ProjectSearchSelect
+                workspaceId={workspaceId}
+                value={form.projectId}
+                onChange={(projectId) => {
+                  setForm((current) => ({ ...current, projectId }))
+                  setTaskForm((current) => ({ ...current, taskId: '' }))
+                }}
               />
-              <Input
-                label="Cost role ID (optional)"
+              <TaskSearchSelect
+                projectId={form.projectId}
+                value={taskForm.taskId}
+                onChange={(taskId) => setTaskForm((current) => ({ ...current, taskId }))}
+              />
+              <Select
+                label="Cost role (optional)"
                 value={taskForm.costRoleId}
-                onChange={(e) => setTaskForm((f) => ({ ...f, costRoleId: e.target.value }))}
+                options={[
+                  { value: '', label: 'Use role code instead' },
+                  ...costRoles.map((role) => ({
+                    value: role.id,
+                    label: `${role.code} · ${role.name}`,
+                  })),
+                ]}
+                onValueChange={(costRoleId: string) =>
+                  setTaskForm((current) => ({ ...current, costRoleId }))
+                }
               />
               <Input
                 label="Cost role code (optional)"
@@ -237,9 +269,9 @@ export function RateResolutionView() {
                 Preview task cost
               </Button>
             </Stack>
-          </div>
+          </Card>
 
-          <div className="border border-neutral-200 bg-white p-4">
+          <Card className="border border-neutral-200 bg-white p-4">
             <Typography weight="semibold" variant="small" className="mb-4">
               Preview result
             </Typography>
@@ -255,7 +287,7 @@ export function RateResolutionView() {
                   <Typography variant="small" tone="muted">
                     {preview.label}
                   </Typography>
-                  <Typography size="lg" weight="bold">
+                  <Typography size="md" weight="medium">
                     {preview.estimatedLaborCostPreview.toLocaleString(undefined, {
                       maximumFractionDigits: 2,
                     })}{' '}
@@ -271,10 +303,10 @@ export function RateResolutionView() {
               </div>
             ) : (
               <Typography tone="muted" variant="small">
-                Enter a task ID and role to preview estimated labor cost.
+                Select a task and role to preview estimated labor cost.
               </Typography>
             )}
-          </div>
+          </Card>
         </div>
       )}
     </div>

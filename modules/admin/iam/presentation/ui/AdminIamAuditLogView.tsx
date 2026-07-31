@@ -1,7 +1,7 @@
 'use client'
 
 import { Clock } from 'lucide-react'
-import { Typography, Badge, PageSkeleton } from '@/shared/ui'
+import { Typography, Badge, PageSkeleton, DataTable } from '@/shared/ui'
 import { useIamAuditEvents } from '../hooks/useIamAuditEvents'
 
 function formatDate(iso: string) {
@@ -63,48 +63,56 @@ export function AdminIamAuditLogView() {
         </div>
       ) : (
         <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">When</th>
-                <th className="px-4 py-3 font-medium">Event</th>
-                <th className="px-4 py-3 font-medium">Severity</th>
-                <th className="px-4 py-3 font-medium">Actor</th>
-                <th className="px-4 py-3 font-medium">Resource</th>
-                <th className="px-4 py-3 font-medium">Reason</th>
-                <th className="px-4 py-3 font-medium">Trace</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((event) => (
-                <tr key={event.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-4 py-3 text-neutral-600 whitespace-nowrap">
-                    {formatDate(event.occurredAt)}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs">{event.eventType}</td>
-                  <td className="px-4 py-3">
-                    <Badge tone={severityTone(event.severity)}>
-                      {event.severity}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs">
-                    {event.actorId ?? '—'}
-                    {event.actorType ? (
-                      <span className="ml-1 text-neutral-500">({event.actorType})</span>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs">
+          <DataTable
+            ariaLabel="Admin Iam Audit Log"
+            rows={items}
+            rowKey={(event) => String(event.id)}
+            emptyMessage="No items."
+            columns={[
+              {
+                id: 'when',
+                header: 'When',
+                cell: (event) => <>{formatDate(event.occurredAt)}</>,
+                cellClassName: 'text-neutral-600 whitespace-nowrap',
+              },
+              { id: 'event', header: 'Event', accessor: 'eventType', cellClassName: 'text-xs' },
+              {
+                id: 'severity',
+                header: 'Severity',
+                cell: (event) => (
+                  <>
+                    <Badge tone={severityTone(event.severity)}>{event.severity}</Badge>
+                  </>
+                ),
+              },
+              {
+                id: 'actor',
+                header: 'Actor',
+                accessor: (event) => event.actorType ?? '—',
+                cellClassName: 'text-xs',
+              },
+              {
+                id: 'resource',
+                header: 'Resource',
+                cell: (event) => (
+                  <>
                     {event.resourceType ?? '—'}
                     {event.resourceRefId ? (
                       <div className="text-neutral-500">{event.resourceRefId}</div>
                     ) : null}
-                  </td>
-                  <td className="px-4 py-3">{event.reason ?? '—'}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{event.traceId || '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </>
+                ),
+                cellClassName: 'text-xs',
+              },
+              { id: 'reason', header: 'Reason', cell: (event) => <>{event.reason ?? '—'}</> },
+              {
+                id: 'trace',
+                header: 'Trace',
+                cell: (event) => <>{event.traceId || '—'}</>,
+                cellClassName: 'text-xs',
+              },
+            ]}
+          />
         </div>
       )}
     </div>

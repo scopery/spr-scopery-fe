@@ -62,20 +62,20 @@ export function ProjectStepIndicator({
   const steps = customSteps ?? DEFAULT_STEPS
   const showStepper = !hideStepper
   const stepperNode = showStepper ? (
-    <Stepper steps={steps} className={stepperPosition === 'top' ? 'mb-4' : 'mt-4'} />
+    <Stepper steps={steps} className={stepperPosition === 'top' ? 'mb-2' : 'mt-2'} />
   ) : null
 
   return (
-    <div className="mb-6 flex flex-col gap-4 border-b-[1px] border-neutral-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mb-2 flex flex-col gap-2 border-b border-neutral-200 pb-2 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0 flex-1">
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             {title}
           </Typography>
           {badges}
         </div>
         {description && (
-          <Typography tone="muted" className="mb-2">
+          <Typography variant="small" tone="muted" className="mb-1">
             {description}
           </Typography>
         )}

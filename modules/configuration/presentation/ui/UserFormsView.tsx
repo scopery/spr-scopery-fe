@@ -9,9 +9,7 @@ export function UserFormsView() {
   const { forms, loading, error } = useUserForms(workspaceId)
 
   if (loading) {
-    return (
-      <PageSkeleton variant="list" />
-    )
+    return <PageSkeleton variant="list" />
   }
 
   if (error) {
@@ -25,9 +23,9 @@ export function UserFormsView() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <Typography as="h1" size="lg" weight="semibold">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2">
+        <Typography as="h1" size="md" weight="medium">
           Forms
         </Typography>
         <Typography as="p" variant="small" tone="muted" className="mt-1">

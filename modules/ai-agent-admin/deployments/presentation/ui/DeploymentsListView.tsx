@@ -14,6 +14,7 @@ import {
   Select,
   Stack,
   Typography,
+  DataTable,
 } from '@/shared/ui'
 import { useCanManageAiConfig } from '../../../presentation/hooks/useCanManageAiConfig'
 import { AiLifecycleStatusBadge } from '../../../presentation/ui/AiLifecycleStatusBadge'
@@ -172,113 +173,113 @@ export function DeploymentsListView() {
       {error ? <Typography tone="error">{error}</Typography> : null}
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-neutral-200 bg-neutral-50 text-left">
-            <tr>
-              <th className="px-4 py-3 font-medium">Deployment</th>
-              <th className="px-4 py-3 font-medium">Model</th>
-              <th className="px-4 py-3 font-medium">Env</th>
-              <th className="px-4 py-3 font-medium">Endpoint</th>
-              <th className="px-4 py-3 font-medium">Default</th>
-              <th className="px-4 py-3 font-medium">Temp</th>
-              <th className="px-4 py-3 font-medium">Max tokens</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-neutral-500">
-                  No deployments found.
-                </td>
-              </tr>
-            ) : (
-              items.map((d) => (
-                <tr key={d.id} className="border-b border-neutral-100">
-                  <td className="px-4 py-3">
-                    <Typography weight="medium">{d.name}</Typography>
-                    <Typography variant="caption" tone="muted" className="block font-mono">
-                      {d.code}
-                    </Typography>
-                  </td>
-                  <td className="px-4 py-3">
-                    {modelNameById.get(d.modelId) ?? d.modelId.slice(0, 8)}
-                  </td>
-                  <td className="px-4 py-3">{d.environment}</td>
-                  <td className="max-w-[140px] truncate px-4 py-3 text-xs">
-                    {d.endpointUrl || '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    {d.isDefault ? <Badge tone="success">Default</Badge> : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    {d.defaultTemperature != null ? d.defaultTemperature : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    {d.defaultMaxOutputTokens != null ? d.defaultMaxOutputTokens : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <AiLifecycleStatusBadge status={d.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      <Button
-                        as={NextLink}
-                        href={ADMIN_ROUTES.aiControlDeployment(d.id)}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Open
-                      </Button>
-                      {canManage ? (
-                        <>
+        <DataTable
+          ariaLabel="Deployments List"
+          rows={items}
+          rowKey={(d) => String(d.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'deployment',
+              header: 'Deployment',
+              cell: (d) => (
+                <>
+                  <Typography weight="medium">{d.name}</Typography>
+                  <Typography variant="caption" tone="muted" className="block font-normal">
+                    {d.code}
+                  </Typography>
+                </>
+              ),
+            },
+            {
+              id: 'model',
+              header: 'Model',
+              cell: (d) => <>{modelNameById.get(d.modelId) ?? '—'}</>,
+            },
+            { id: 'env', header: 'Env', accessor: 'environment' },
+            {
+              id: 'endpoint',
+              header: 'Endpoint',
+              cell: (d) => <>{d.endpointUrl || '—'}</>,
+              cellClassName: 'max-w-[140px] truncate text-xs',
+            },
+            {
+              id: 'default',
+              header: 'Default',
+              cell: (d) => <>{d.isDefault ? <Badge tone="success">Default</Badge> : '—'}</>,
+            },
+            {
+              id: 'temp',
+              header: 'Temp',
+              cell: (d) => <>{d.defaultTemperature != null ? d.defaultTemperature : '—'}</>,
+            },
+            {
+              id: 'max-tokens',
+              header: 'Max tokens',
+              cell: (d) => <>{d.defaultMaxOutputTokens != null ? d.defaultMaxOutputTokens : '—'}</>,
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (d) => (
+                <>
+                  <AiLifecycleStatusBadge status={d.status} />
+                </>
+              ),
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (d) => (
+                <>
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      as={NextLink}
+                      href={ADMIN_ROUTES.aiControlDeployment(d.id)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Open
+                    </Button>
+                    {canManage ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditing(d)
+                            setFormOpen(true)
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        {d.status !== DeploymentStatus.Active ? (
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => {
-                              setEditing(d)
-                              setFormOpen(true)
-                            }}
+                            disabled={saving}
+                            onClick={() => void activate(d.id)}
                           >
-                            Edit
+                            Activate
                           </Button>
-                          {d.status !== DeploymentStatus.Active ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={saving}
-                              onClick={() => void activate(d.id)}
-                            >
-                              Activate
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setDeactivateTarget(d)}
-                            >
-                              Deactivate
-                            </Button>
-                          )}
-                          {!d.isDefault ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setSetDefaultTarget(d)}
-                            >
-                              Set default
-                            </Button>
-                          ) : null}
-                        </>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                        ) : (
+                          <Button size="sm" variant="ghost" onClick={() => setDeactivateTarget(d)}>
+                            Deactivate
+                          </Button>
+                        )}
+                        {!d.isDefault ? (
+                          <Button size="sm" variant="ghost" onClick={() => setSetDefaultTarget(d)}>
+                            Set default
+                          </Button>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </div>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
 
       {totalElements > PAGE_SIZE ? (
@@ -320,9 +321,7 @@ export function DeploymentsListView() {
         open={deactivateTarget != null}
         onClose={() => setDeactivateTarget(null)}
         title="Deactivate deployment"
-        message={
-          deactivateTarget ? `Deactivate “${deactivateTarget.name}”?` : ''
-        }
+        message={deactivateTarget ? `Deactivate “${deactivateTarget.name}”?` : ''}
         confirmLabel="Deactivate"
         variant="danger"
         onConfirm={() => {

@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   CoverageStatus,
   buildRequirementCoverageRows,
+  coverageNextAction,
   deriveCoverageStatus,
   filterCoverageRows,
   summarizeCoverage,
 } from './requirement-coverage'
-import type { Requirement } from '@/modules/projects/requirements/model/requirements'
+import type { Requirement } from '@/modules/projects/requirements'
 
 const req = (id: string, code: string, title: string): Requirement => ({
   id,
@@ -20,16 +21,21 @@ const req = (id: string, code: string, title: string): Requirement => ({
 
 describe('deriveCoverageStatus', () => {
   it('maps missing / not evaluated / at risk / covered', () => {
-    expect(deriveCoverageStatus({ testCaseCount: 0, hasResult: false, hasDefect: false }))
-      .toBe(CoverageStatus.MissingTests)
-    expect(deriveCoverageStatus({ testCaseCount: 2, hasResult: false, hasDefect: false }))
-      .toBe(CoverageStatus.NotEvaluated)
-    expect(deriveCoverageStatus({ testCaseCount: 2, hasResult: true, hasDefect: true }))
-      .toBe(CoverageStatus.AtRisk)
-    expect(deriveCoverageStatus({ testCaseCount: 2, hasResult: true, hasDefect: false, gap: true }))
-      .toBe(CoverageStatus.AtRisk)
-    expect(deriveCoverageStatus({ testCaseCount: 2, hasResult: true, hasDefect: false }))
-      .toBe(CoverageStatus.Covered)
+    expect(deriveCoverageStatus({ testCaseCount: 0, hasResult: false, hasDefect: false })).toBe(
+      CoverageStatus.MissingTests
+    )
+    expect(deriveCoverageStatus({ testCaseCount: 2, hasResult: false, hasDefect: false })).toBe(
+      CoverageStatus.NotEvaluated
+    )
+    expect(deriveCoverageStatus({ testCaseCount: 2, hasResult: true, hasDefect: true })).toBe(
+      CoverageStatus.AtRisk
+    )
+    expect(
+      deriveCoverageStatus({ testCaseCount: 2, hasResult: true, hasDefect: false, gap: true })
+    ).toBe(CoverageStatus.AtRisk)
+    expect(deriveCoverageStatus({ testCaseCount: 2, hasResult: true, hasDefect: false })).toBe(
+      CoverageStatus.Covered
+    )
   })
 })
 
@@ -113,5 +119,27 @@ describe('summarizeCoverage + filterCoverageRows', () => {
     expect(summary.covered).toBe(1)
     expect(summary.missingTests).toBe(1)
     expect(filterCoverageRows(rows, { query: '', quickFilter: 'gaps' })).toHaveLength(1)
+  })
+})
+
+describe('NFR pipeline behavior', () => {
+  it('does not route NFR gaps into the functional Test Case flow', () => {
+    const [row] = buildRequirementCoverageRows({
+      requirements: [
+        {
+          ...req('nfr-1', 'NFR-01', 'Latency'),
+          req_type: 'NFR',
+        },
+      ],
+      links: [],
+      cells: [],
+      testCases: [],
+    })
+
+    expect(coverageNextAction(row)).toEqual({
+      type: 'OPEN_NFR',
+      label: 'Review NFR Pipeline',
+    })
+    expect(filterCoverageRows([row], { query: '', quickFilter: 'gaps' })).toEqual([])
   })
 })

@@ -4,10 +4,10 @@ import { useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
+import { Badge, Button, Card, DataTable, PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { useProject } from '../../../project/hooks/useProject'
 import { useRaidRegister } from '../hooks/useRaidRegister'
 import { CreateRaidItemModal } from './CreateRaidItemModal'
@@ -49,17 +49,24 @@ export function RaidRegisterView() {
   const [tab, setTab] = useState<RaidRegisterTab>('register')
   const [typeFilter, setTypeFilter] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
-  const { items, loading, forbidden, actingId, createItem, runAction, escalateItem, convertToIssue, createCRDraft } = useRaidRegister(projectId)
+  const {
+    items,
+    loading,
+    forbidden,
+    actingId,
+    createItem,
+    runAction,
+    escalateItem,
+    convertToIssue,
+    createCRDraft,
+  } = useRaidRegister(projectId)
 
   const filteredItems = useMemo(
     () => (typeFilter ? items.filter((item) => item.type === typeFilter) : items),
     [items, typeFilter]
   )
 
-  const handleAction = async (
-    id: string,
-    action: 'resolve' | 'close' | 'reopen' | 'archive'
-  ) => {
+  const handleAction = async (id: string, action: 'resolve' | 'close' | 'reopen' | 'archive') => {
     try {
       await runAction(id, action)
       toast.success('RAID item updated')
@@ -99,26 +106,26 @@ export function RaidRegisterView() {
 
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="p-8 text-center">
         <Typography weight="medium">You don’t have access to the RAID register</Typography>
-      </div>
+      </Card>
     )
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
         current="RAID"
       />
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
+      <div className="mb-2 mt-1 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             RAID register
           </Typography>
-          <Typography variant="small" tone="muted" className="mt-1">
+          <Typography variant="caption" tone="muted" className="mt-0.5">
             Risks, Assumptions, Issues and Dependencies
           </Typography>
         </div>
@@ -162,116 +169,100 @@ export function RaidRegisterView() {
             />
           </div>
 
-          <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Code / Title</th>
-                  <th className="px-4 py-3 font-medium">Type</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Probability</th>
-                  <th className="px-4 py-3 font-medium">Impact</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center">
-                      <Typography variant="small" tone="muted">
-                        No RAID items found
-                      </Typography>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredItems.map((item) => (
-                    <tr key={item.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                      <td className="px-4 py-3">
-                        <Typography as="span" variant="small" tone="muted" className="font-mono">
-                          {item.code}
-                        </Typography>
-                        <Typography as="div" weight="medium">
-                          {item.title}
-                        </Typography>
-                      </td>
-                      <td className="px-4 py-3">{raidTypeLabel(item.type)}</td>
-                      <td className="px-4 py-3">
-                        <Badge tone={raidStatusTone(item.status)}>
-                          {raidStatusLabel(item.status)}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3">{item.probability ?? '—'}</td>
-                      <td className="px-4 py-3">{item.impact ?? '—'}</td>
-                      <td className="px-4 py-3">
-                        <Stack direction="horizontal" spacing="sm">
-                          {canResolveRaidItem(item) && (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              disabled={actingId === item.id}
-                              onClick={() => void handleAction(item.id, 'resolve')}
-                            >
-                              Resolve
-                            </Button>
-                          )}
-                          {canEscalateRaidItem(item) && (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              disabled={actingId === item.id}
-                              onClick={() => void handleEscalate(item.id)}
-                            >
-                              Escalate
-                            </Button>
-                          )}
-                          {canCloseRaidItem(item) && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={actingId === item.id}
-                              onClick={() => void handleAction(item.id, 'close')}
-                            >
-                              Close
-                            </Button>
-                          )}
-                          {canArchiveRaidItem(item) && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              tone="error"
-                              disabled={actingId === item.id}
-                              onClick={() => void handleAction(item.id, 'archive')}
-                            >
-                              Archive
-                            </Button>
-                          )}
-                          {canConvertToIssue(item) && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={actingId === item.id}
-                              onClick={() => void handleConvertToIssue(item.id)}
-                            >
-                              → Issue
-                            </Button>
-                          )}
-                          {canCreateCRDraft(item) && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={actingId === item.id}
-                              onClick={() => void handleCreateCRDraft(item.id)}
-                            >
-                              → CR Draft
-                            </Button>
-                          )}
-                        </Stack>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          <div className="border border-neutral-200 bg-white">
+            <DataTable
+              ariaLabel="RAID register"
+              rows={filteredItems}
+              rowKey={(item) => item.id}
+              emptyMessage="No RAID items found"
+              columns={[
+                { id: 'code', header: 'Code', accessor: 'code', kind: 'code' },
+                { id: 'title', header: 'Title', accessor: 'title' },
+                { id: 'type', header: 'Type', accessor: (item) => raidTypeLabel(item.type) },
+                {
+                  id: 'status',
+                  header: 'Status',
+                  cell: (item) => (
+                    <Badge tone={raidStatusTone(item.status)}>{raidStatusLabel(item.status)}</Badge>
+                  ),
+                },
+                {
+                  id: 'probability',
+                  header: 'Probability',
+                  accessor: (item) => item.probability ?? '—',
+                },
+                { id: 'impact', header: 'Impact', accessor: (item) => item.impact ?? '—' },
+                {
+                  id: 'actions',
+                  header: 'Actions',
+                  cell: (item) => (
+                    <Stack direction="horizontal" spacing="sm">
+                      {canResolveRaidItem(item) ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={actingId === item.id}
+                          onClick={() => void handleAction(item.id, 'resolve')}
+                        >
+                          Resolve
+                        </Button>
+                      ) : null}
+                      {canEscalateRaidItem(item) ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={actingId === item.id}
+                          onClick={() => void handleEscalate(item.id)}
+                        >
+                          Escalate
+                        </Button>
+                      ) : null}
+                      {canCloseRaidItem(item) ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={actingId === item.id}
+                          onClick={() => void handleAction(item.id, 'close')}
+                        >
+                          Close
+                        </Button>
+                      ) : null}
+                      {canArchiveRaidItem(item) ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          tone="error"
+                          disabled={actingId === item.id}
+                          onClick={() => void handleAction(item.id, 'archive')}
+                        >
+                          Archive
+                        </Button>
+                      ) : null}
+                      {canConvertToIssue(item) ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={actingId === item.id}
+                          onClick={() => void handleConvertToIssue(item.id)}
+                        >
+                          → Issue
+                        </Button>
+                      ) : null}
+                      {canCreateCRDraft(item) ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={actingId === item.id}
+                          onClick={() => void handleCreateCRDraft(item.id)}
+                        >
+                          → CR Draft
+                        </Button>
+                      ) : null}
+                    </Stack>
+                  ),
+                },
+              ]}
+            />
           </div>
         </>
       )}

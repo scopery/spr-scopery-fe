@@ -2,7 +2,7 @@
 
 import { ChevronDown, X } from 'lucide-react'
 
-import { Input, Select, Typography, Button, Skeleton } from '@/shared/ui'
+import { Input, Select, Typography, Button, Card, Skeleton } from '@/shared/ui'
 import type { DeliverableDocumentSetPickerViewProps } from '../model/deliverable-document-set-picker'
 
 export function DeliverableDocumentSetPickerView({
@@ -26,7 +26,7 @@ export function DeliverableDocumentSetPickerView({
   onLoadMore,
 }: DeliverableDocumentSetPickerViewProps) {
   return (
-    <div className="border-border space-y-3 rounded-md border p-3">
+    <Card className="border-border space-y-3 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Typography variant="small" weight="medium">
           Document set picker ({selectedIds.length}/{maxSelected} selected)
@@ -98,12 +98,14 @@ export function DeliverableDocumentSetPickerView({
               type="button"
               variant="outline"
               loading={loadingMore}
-              onClick={onLoadMore} icon={<ChevronDown size={16} />}>
+              onClick={onLoadMore}
+              icon={<ChevronDown size={16} />}
+            >
               Load more
             </Button>
           ) : null}
         </>
       )}
-    </div>
+    </Card>
   )
 }

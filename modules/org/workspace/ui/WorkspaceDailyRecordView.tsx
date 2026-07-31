@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Badge, ContentLoader, Typography } from '@/shared/ui'
+import { Badge, Card, ContentLoader, Typography } from '@/shared/ui'
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
 import { WORKSPACE_ROUTES } from '@/modules/org/lib/routes'
 import { useWorkspaceDailySummary } from '../hooks/useWorkspaceDailySummary'
@@ -27,10 +27,10 @@ export function WorkspaceDailyRecordView() {
   const { labelFor } = useResolveUsers(userIds)
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 pb-4">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Daily Record
           </Typography>
           <Typography variant="small" tone="muted" className="mt-0.5">
@@ -49,7 +49,9 @@ export function WorkspaceDailyRecordView() {
       {loading ? (
         <ContentLoader />
       ) : error ? (
-        <Typography tone="error" variant="small">{error}</Typography>
+        <Typography tone="error" variant="small">
+          {error}
+        </Typography>
       ) : !data || data.members.length === 0 ? (
         <div className="py-16 text-center">
           <Typography tone="muted" variant="small">
@@ -89,7 +91,7 @@ function MemberCard({
   const totalInProgress = member.inProgress.length
 
   return (
-    <div className="border border-neutral-200 bg-white">
+    <Card>
       <div className="flex items-center justify-between gap-2 border-b border-neutral-200 px-4 py-3">
         <Typography weight="semibold" className="truncate text-neutral-900">
           {name}
@@ -110,17 +112,14 @@ function MemberCard({
 
       {totalDone === 0 && totalInProgress === 0 ? (
         <div className="px-4 py-6 text-center">
-          <Typography variant="small" tone="muted">No tasks</Typography>
+          <Typography variant="small" tone="muted">
+            No tasks
+          </Typography>
         </div>
       ) : (
         <div className="divide-y divide-neutral-100">
           {member.done.length > 0 && (
-            <TaskGroup
-              label="Done"
-              tasks={member.done}
-              tone="success"
-              onNavigate={onNavigate}
-            />
+            <TaskGroup label="Done" tasks={member.done} tone="success" onNavigate={onNavigate} />
           )}
           {member.inProgress.length > 0 && (
             <TaskGroup
@@ -132,7 +131,7 @@ function MemberCard({
           )}
         </div>
       )}
-    </div>
+    </Card>
   )
 }
 

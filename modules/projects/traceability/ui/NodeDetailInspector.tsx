@@ -154,7 +154,7 @@ export function NodeDetailInspector({
     )
     const groups = new Map<string, BrowseCatalogNode[]>()
     for (const fn of forModule) {
-      const key = fn.projectName?.trim() || fn.projectId || 'Project'
+      const key = fn.projectName?.trim() || 'Unknown project'
       const list = groups.get(key) ?? []
       list.push(fn)
       groups.set(key, list)

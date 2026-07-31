@@ -1392,7 +1392,7 @@ Cùng endpoints với cost forecasts (`2.6`). `forecastType` values: `CONTRACT` 
   "code": "CR-001",
   "title": "Add mobile feature scope",
   "description": "Client requested iOS/Android native app",
-  "changeType": "SCOPE_ADDITION",
+  "changeType": "SCOPE_CHANGE",
   "priority": "HIGH",
   "baselineId": "<uuid>",
   "reason": "New business requirement from client meeting 2026-07-10"
@@ -1409,7 +1409,7 @@ Cùng endpoints với cost forecasts (`2.6`). `forecastType` values: `CONTRACT` 
   "code": "CR-001",
   "title": "Add mobile feature scope",
   "description": "Client requested iOS/Android native app",
-  "changeType": "SCOPE_ADDITION",
+  "changeType": "SCOPE_CHANGE",
   "priority": "HIGH",
   "status": "DRAFT",
   "reason": "New business requirement from client meeting 2026-07-10",
@@ -1427,8 +1427,11 @@ Cùng endpoints với cost forecasts (`2.6`). `forecastType` values: `CONTRACT` 
 }
 ```
 
-`changeType` values: `SCOPE_ADDITION` | `SCOPE_REDUCTION` | `COST_CHANGE` | `SCHEDULE_CHANGE` | `RISK_ADJUSTMENT`
-`priority` values: `LOW` | `MEDIUM` | `HIGH` | `CRITICAL`
+> **Enum source of truth:** BE Java enums / live OpenAPI (`/v3/api-docs`). Older WAVE3 draft values below are superseded.
+
+`changeType` values: `SCOPE_CHANGE` | `SCHEDULE_CHANGE` | `COST_CHANGE` | `REVENUE_CHANGE` | `QUOTE_CHANGE` | `RESOURCE_CHANGE` | `RISK_RESPONSE` | `OTHER`  
+~~`SCOPE_ADDITION` | `SCOPE_REDUCTION` | `RISK_ADJUSTMENT`~~ (obsolete — rejected by BE)  
+`priority` values: `LOW` | `MEDIUM` | `HIGH` | `CRITICAL`  
 `status` values: `DRAFT` | `SUBMITTED` | `APPROVED` | `REJECTED` | `CANCELLED` | `APPLIED` | `ARCHIVED`
 
 ---
@@ -1448,7 +1451,7 @@ Cùng endpoints với cost forecasts (`2.6`). `forecastType` values: `CONTRACT` 
 {
   "targetType": "TASK",
   "targetId": "<uuid>",
-  "operation": "ADD",
+  "operation": "CREATE",
   "summary": "Add task: Mobile app wireframing",
   "beforeSnapshotJson": null,
   "afterSnapshotJson": "{\"estimatedHours\": 40}",
@@ -1458,7 +1461,9 @@ Cùng endpoints với cost forecasts (`2.6`). `forecastType` values: `CONTRACT` 
 
 **ChangeRequestItemResponse** — fields chính: `id`, `changeRequestId`, `targetType`, `targetId`, `operation`, `summary`, `beforeSnapshotJson`, `afterSnapshotJson`, `applyPayloadJson`, `status`, `createdAt`
 
-`operation` values: `ADD` | `MODIFY` | `REMOVE`
+`operation` values: `CREATE` | `UPDATE` | `DELETE` | `ARCHIVE` | `MOVE` | `RECALCULATE` | `REPLACE_REFERENCE`  
+~~`ADD` | `MODIFY` | `REMOVE`~~ (obsolete — rejected by BE)  
+`targetType` values: `PROJECT` | `PROJECT_PHASE` | `WBS_NODE` | `TASK` | `TASK_DEPENDENCY` | `MILESTONE` | `SCHEDULE` | `ESTIMATE` | `FINANCE_SCENARIO` | `QUOTE_VERSION` | `CUSTOM_COST` | `VENDOR_COST` | `FUNCTION` | `OTHER`
 
 ---
 

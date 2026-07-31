@@ -3,15 +3,8 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Archive, Ban, Check, Plus, RefreshCw } from 'lucide-react'
-import {
-  Badge,
-  Button,
-  Input,
-  Modal,
-  PageSkeleton,
-  Select,
-  Typography,
-} from '@/shared/ui'
+import { Badge, Button, Input, Modal, PageSkeleton, Select, Typography, Card } from '@/shared/ui'
+import { PersonReferenceSelect } from '@/modules/platform'
 import { useAllocationPlanner } from '../hooks/useAllocationPlanner'
 import {
   allocationBarStyle,
@@ -43,7 +36,7 @@ export function AllocationPlannerView() {
     groupedByMember,
     overAllocations,
     projects,
-    members,
+    memberOptions,
     selected,
     selectedId,
     setSelectedId,
@@ -76,7 +69,7 @@ export function AllocationPlannerView() {
 
   if (error) {
     return (
-      <div className="border border-error/30 bg-error/5 p-4">
+      <div className="border-error/30 bg-error/5 border p-4">
         <Typography variant="small" tone="error">
           {error}
         </Typography>
@@ -97,10 +90,10 @@ export function AllocationPlannerView() {
   ]
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-md">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-md">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Allocation Planner
           </Typography>
           <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -136,12 +129,7 @@ export function AllocationPlannerView() {
           value={fromDate}
           onChange={(e) => setFromDate(e.target.value)}
         />
-        <Input
-          label="To"
-          type="date"
-          value={toDate}
-          onChange={(e) => setToDate(e.target.value)}
-        />
+        <Input label="To" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
         <div className="w-48">
           <Typography variant="small" weight="medium" className="mb-1">
             Project
@@ -173,7 +161,7 @@ export function AllocationPlannerView() {
       </div>
 
       <div className="grid gap-md xl:grid-cols-[1.7fr_1fr]">
-        <div className="border border-neutral-200 bg-white">
+        <Card className="border border-neutral-200 bg-white">
           <div className="border-b border-neutral-100 px-4 py-3">
             <Typography weight="semibold" variant="small">
               Resource allocations
@@ -197,10 +185,7 @@ export function AllocationPlannerView() {
                     <Typography weight="semibold" variant="small">
                       {memberLabel(group.memberId)}
                     </Typography>
-                    <Badge
-                      size="sm"
-                      tone={group.totalPercent > 100 ? 'error' : 'neutral'}
-                    >
+                    <Badge size="sm" tone={group.totalPercent > 100 ? 'error' : 'neutral'}>
                       {formatPercent(group.totalPercent)} active
                     </Badge>
                   </div>
@@ -220,9 +205,7 @@ export function AllocationPlannerView() {
                           type="button"
                           title={`${projectName(alloc.projectId)} · ${alloc.allocationPercent}%`}
                           className={`absolute top-1 h-6 truncate px-1 text-left text-[10px] text-white ${
-                            selectedId === alloc.id
-                              ? 'ring-2 ring-neutral-900'
-                              : ''
+                            selectedId === alloc.id ? 'ring-2 ring-neutral-900' : ''
                           } ${
                             overloaded
                               ? 'bg-error'
@@ -262,10 +245,10 @@ export function AllocationPlannerView() {
               ))}
             </ul>
           )}
-        </div>
+        </Card>
 
         <aside className="flex flex-col gap-md">
-          <div className="border border-neutral-200 bg-white p-md">
+          <Card className="border border-neutral-200 bg-white p-md">
             <Typography weight="semibold" variant="small" className="mb-sm">
               Selection
             </Typography>
@@ -285,9 +268,7 @@ export function AllocationPlannerView() {
                   </Badge>
                   <Badge
                     size="sm"
-                    tone={
-                      selected.status === CapacityEntityStatus.Active ? 'success' : 'neutral'
-                    }
+                    tone={selected.status === CapacityEntityStatus.Active ? 'success' : 'neutral'}
                   >
                     {selected.status}
                   </Badge>
@@ -334,9 +315,9 @@ export function AllocationPlannerView() {
                 </div>
               </div>
             )}
-          </div>
+          </Card>
 
-          <div className="border border-neutral-200 bg-white">
+          <Card className="border border-neutral-200 bg-white">
             <div className="border-b border-neutral-100 px-4 py-3">
               <Typography weight="semibold" variant="small">
                 Over-allocations ({overAllocations.length})
@@ -353,17 +334,16 @@ export function AllocationPlannerView() {
                 {overAllocations.map((row, i) => (
                   <li key={`${row.resourceProfileId}-${row.projectId}-${i}`} className="px-4 py-2">
                     <Typography variant="small" weight="medium">
-                      {row.resourceDisplayName ?? row.resourceProfileId?.slice(0, 8) ?? 'Resource'}
+                      {row.resourceDisplayName ?? 'Resource'}
                     </Typography>
                     <Typography variant="caption" tone="muted">
-                      {row.projectName ?? row.projectId?.slice(0, 8) ?? 'Project'} ·{' '}
-                      {formatPercent(row.utilizationPercent)}
+                      {row.projectName ?? 'Project'} · {formatPercent(row.utilizationPercent)}
                     </Typography>
                   </li>
                 ))}
               </ul>
             )}
-          </div>
+          </Card>
         </aside>
       </div>
 
@@ -421,23 +401,16 @@ export function AllocationPlannerView() {
               </Typography>
             </div>
           ) : null}
-          <div>
-            <Typography variant="small" weight="medium" className="mb-1">
-              Member
-            </Typography>
-            <Select
-              value={form.workspaceMemberId}
-              onValueChange={(v: string) => {
-                setFormWarning(null)
-                setForm((f) => ({ ...f, workspaceMemberId: v }))
-              }}
-              options={members.map((m) => ({
-                value: m.id,
-                label: memberLabel(m.id),
-              }))}
-              placeholder="Select member"
-            />
-          </div>
+          <PersonReferenceSelect
+            label="Member"
+            value={form.workspaceMemberId}
+            onChange={(v: string) => {
+              setFormWarning(null)
+              setForm((f) => ({ ...f, workspaceMemberId: v }))
+            }}
+            options={memberOptions}
+            placeholder="Select member"
+          />
           <div>
             <Typography variant="small" weight="medium" className="mb-1">
               Project

@@ -27,6 +27,9 @@ export type { LinkProps, LinkVariant, LinkSize } from './atoms/Link'
 export { Box } from './atoms/Box'
 export type { BoxProps, BoxDisplay, BoxPadding, BoxRadius, BoxShadow } from './atoms/Box'
 
+export { Card } from './atoms/Card'
+export type { CardProps } from './atoms/Card'
+
 export { Input } from './atoms/Input'
 export type { InputProps, InputSize, InputVariant, InputState } from './atoms/Input'
 
@@ -90,6 +93,8 @@ export type { StepperProps, StepperStep } from './atoms/Stepper'
 export { Select } from './atoms/Select'
 export type { SelectProps, SelectOption, SelectSize } from './atoms/Select'
 
+export { SearchableSelect } from './atoms/SearchableSelect'
+
 export { CurrencyAmount } from './atoms/CurrencyAmount'
 export type { CurrencyAmountProps, CurrencyAmountSize } from './atoms/CurrencyAmount'
 
@@ -108,6 +113,16 @@ export type { ModalProps, ModalSize, ModalAction } from './molecules/Modal'
 
 export { DetailDrawer } from './molecules/DetailDrawer'
 export type { DetailDrawerProps } from './molecules/DetailDrawer'
+
+export { DataTable } from './molecules/DataTable'
+export type {
+  DataTableAlign,
+  DataTableCellKind,
+  DataTableColumn,
+  DataTableProps,
+  DataTableSort,
+  DataTableSortDirection,
+} from './molecules/DataTable'
 
 export { ConfirmDialog } from './molecules/ConfirmDialog'
 export type { ConfirmDialogProps } from './molecules/ConfirmDialog'

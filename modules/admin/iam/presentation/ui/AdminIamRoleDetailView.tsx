@@ -4,9 +4,18 @@ import { useState } from 'react'
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { ArrowLeft, Ban, Check, Pencil, Save } from 'lucide-react'
-import { Typography, Button, Badge, Stack, Input, PageSkeleton } from '@/shared/ui'
+import {
+  Typography,
+  Button,
+  Badge,
+  Stack,
+  Input,
+  PageSkeleton,
+  DataTable, Card,
+} from '@/shared/ui'
 import { IamStatusBadge } from './IamStatusBadge'
 import { useIamRoleDetail } from '../hooks/useIamRoleDetail'
+import { useIamIdentityDirectory } from '../hooks/useIamIdentityDirectory'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 import { cn } from '@/utils/cn'
 
@@ -29,6 +38,18 @@ export function AdminIamRoleDetailView() {
   const { roleId } = useParams<{ roleId: string }>()
   const { role, assignments, loading, error, actingId, updating, updateRole, runAssignmentAction } =
     useIamRoleDetail(roleId)
+  const { usersById, rolesById, workspacesById } = useIamIdentityDirectory({
+    userIds: assignments
+      .filter((assignment) => assignment.assigneeType === 'USER')
+      .map((assignment) => assignment.assigneeId),
+    roleIds: [
+      role?.parentRoleId,
+      ...assignments
+        .filter((assignment) => assignment.assigneeType === 'ROLE')
+        .map((assignment) => assignment.assigneeId),
+    ],
+    workspaceIds: [role?.workspaceId, ...assignments.map((assignment) => assignment.workspaceId)],
+  })
   const [tab, setTab] = useState<Tab>('info')
   const [editOpen, setEditOpen] = useState(false)
   const [editForm, setEditForm] = useState({ name: '', description: '' })
@@ -41,7 +62,10 @@ export function AdminIamRoleDetailView() {
 
   const handleUpdate = async () => {
     try {
-      await updateRole({ name: editForm.name.trim(), description: editForm.description.trim() || undefined })
+      await updateRole({
+        name: editForm.name.trim(),
+        description: editForm.description.trim() || undefined,
+      })
       setEditOpen(false)
     } catch {
       // error already toasted
@@ -49,9 +73,7 @@ export function AdminIamRoleDetailView() {
   }
 
   if (loading) {
-    return (
-      <PageSkeleton variant="detail" />
-    )
+    return <PageSkeleton variant="detail" />
   }
 
   if (error || !role) {
@@ -88,13 +110,9 @@ export function AdminIamRoleDetailView() {
               {role.name}
             </Typography>
             <IamStatusBadge status={role.status} />
-            {role.isSystem && (
-              <Badge tone="info">
-                System
-              </Badge>
-            )}
+            {role.isSystem && <Badge tone="info">System</Badge>}
           </div>
-          <Typography as="p" variant="small" className="mt-1 font-mono text-neutral-500">
+          <Typography as="p" variant="small" className="mt-1 font-normal text-neutral-500">
             {role.code}
           </Typography>
         </div>
@@ -125,7 +143,9 @@ export function AdminIamRoleDetailView() {
               <Button
                 variant="primary"
                 disabled={updating || !editForm.name.trim()}
-                onClick={() => void handleUpdate()} icon={<Save size={16} />}>
+                onClick={() => void handleUpdate()}
+                icon={<Save size={16} />}
+              >
                 {updating ? 'Saving…' : 'Save'}
               </Button>
               <Button variant="ghost" onClick={() => setEditOpen(false)}>
@@ -155,17 +175,30 @@ export function AdminIamRoleDetailView() {
       </div>
 
       {tab === 'info' && (
-        <div className="max-w-lg border border-neutral-200 bg-white">
+        <Card className="max-w-lg">
           <div className="divide-y divide-neutral-100">
             {[
-              { label: 'Role ID', value: role.id, mono: true },
               { label: 'Code', value: role.code, mono: true },
               { label: 'Name', value: role.name },
               { label: 'Description', value: role.description || '—' },
               { label: 'Scope', value: role.roleScope ?? '—' },
               { label: 'Source', value: role.roleSource ?? '—' },
-              { label: 'Workspace', value: role.workspaceId ?? '—', mono: true },
-              { label: 'Parent Role', value: role.parentRoleId ?? '—', mono: true },
+              {
+                label: 'Workspace',
+                value: role.workspaceId
+                  ? workspacesById[role.workspaceId]
+                    ? `${workspacesById[role.workspaceId].name} (${workspacesById[role.workspaceId].code})`
+                    : '—'
+                  : '—',
+              },
+              {
+                label: 'Parent Role',
+                value: role.parentRoleId
+                  ? rolesById[role.parentRoleId]
+                    ? `${rolesById[role.parentRoleId].name} (${rolesById[role.parentRoleId].code})`
+                    : '—'
+                  : '—',
+              },
               { label: 'System role', value: role.isSystem ? 'Yes' : 'No' },
               { label: 'Created', value: formatDate(role.createdAt) },
               { label: 'Updated', value: formatDate(role.updatedAt) },
@@ -176,14 +209,14 @@ export function AdminIamRoleDetailView() {
                 </Typography>
                 <Typography
                   variant="small"
-                  className={cn('flex-1 break-all', mono && 'font-mono text-xs')}
+                  className={cn('flex-1 break-all', mono && 'text-xs font-normal')}
                 >
                   {value}
                 </Typography>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
       {tab === 'assignments' && (
@@ -196,40 +229,76 @@ export function AdminIamRoleDetailView() {
             </div>
           ) : (
             <div className="overflow-x-auto border border-neutral-200">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-neutral-50 text-neutral-600">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Assignee type</th>
-                    <th className="px-4 py-3 font-medium">Assignee ID</th>
-                    <th className="px-4 py-3 font-medium">Workspace</th>
-                    <th className="px-4 py-3 font-medium">Assigned at</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="min-w-[12rem] whitespace-nowrap px-4 py-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {assignments.map((a) => (
-                    <tr key={a.id} className="border-t border-neutral-100">
-                      <td className="px-4 py-3">
-                        <Badge tone="neutral">
-                          {a.assigneeType}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs">{a.assigneeId}</td>
-                      <td className="px-4 py-3 font-mono text-xs">{a.workspaceId ?? '—'}</td>
-                      <td className="px-4 py-3 text-neutral-600">
-                        {a.assignedAt ? formatDate(a.assignedAt) : '—'}
-                      </td>
-                      <td className="px-4 py-3">
+              <DataTable
+                ariaLabel="Admin Iam Role Detail"
+                rows={assignments}
+                rowKey={(a) => String(a.id)}
+                emptyMessage="No items."
+                columns={[
+                  {
+                    id: 'assignee-type',
+                    header: 'Assignee type',
+                    cell: (a) => (
+                      <>
+                        <Badge tone="neutral">{a.assigneeType}</Badge>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'assignee',
+                    header: 'Assignee',
+                    accessor: (assignment) => {
+                      if (assignment.assigneeType === 'USER') {
+                        const user = usersById[assignment.assigneeId]
+                        return user?.fullName || user?.username || user?.email || '—'
+                      }
+                      if (assignment.assigneeType === 'ROLE') {
+                        return rolesById[assignment.assigneeId]?.name ?? '—'
+                      }
+                      return '—'
+                    },
+                    kind: 'reference',
+                  },
+                  {
+                    id: 'workspace',
+                    header: 'Workspace',
+                    accessor: (assignment) =>
+                      assignment.workspaceId
+                        ? (workspacesById[assignment.workspaceId]?.name ??
+                          workspacesById[assignment.workspaceId]?.code ??
+                          '—')
+                        : 'System',
+                    kind: 'reference',
+                    cellClassName: 'text-xs',
+                  },
+                  {
+                    id: 'assigned-at',
+                    header: 'Assigned at',
+                    cell: (a) => <>{a.assignedAt ? formatDate(a.assignedAt) : '—'}</>,
+                    cellClassName: 'text-neutral-600',
+                  },
+                  {
+                    id: 'status',
+                    header: 'Status',
+                    cell: (a) => (
+                      <>
                         <IamStatusBadge status={a.status} />
-                      </td>
-                      <td className="px-4 py-3">
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'actions',
+                    header: 'Actions',
+                    cell: (a) => (
+                      <>
                         <Stack direction="horizontal" spacing="xs">
                           {a.status.toUpperCase() !== 'ACTIVE' && (
                             <Button
                               variant="ghost"
                               disabled={actingId === a.id}
-                              onClick={() => void runAssignmentAction(a.id, 'activate')} icon={<Check size={16} />}>
+                              onClick={() => void runAssignmentAction(a.id, 'activate')}
+                              icon={<Check size={16} />}
+                            >
                               Activate
                             </Button>
                           )}
@@ -237,16 +306,18 @@ export function AdminIamRoleDetailView() {
                             <Button
                               variant="ghost"
                               disabled={actingId === a.id}
-                              onClick={() => void runAssignmentAction(a.id, 'deactivate')} icon={<Ban size={16} />}>
+                              onClick={() => void runAssignmentAction(a.id, 'deactivate')}
+                              icon={<Ban size={16} />}
+                            >
                               Deactivate
                             </Button>
                           )}
                         </Stack>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </>
+                    ),
+                  },
+                ]}
+              />
             </div>
           )}
         </div>

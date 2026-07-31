@@ -1,8 +1,8 @@
 import React from 'react'
 import { cn } from '@/utils/cn'
-import { Box } from '@/shared/ui/atoms/Box'
 import { Stack } from '@/shared/ui/atoms/Stack'
 import { Typography } from '@/shared/ui/atoms/Typography'
+import { Card } from '@/shared/ui/atoms/Card'
 import { Sparkles } from 'lucide-react'
 import type { AISuggestionProps } from './AISuggestion.types'
 
@@ -29,60 +29,54 @@ export const AISuggestion = React.forwardRef(
       onYes,
       onNo,
       showIcon = true,
-      cardBorderRadius = 'lg',
-      cardShadow = 'lg',
       className,
       ...props
     }: AISuggestionProps<C>,
     ref?: React.Ref<HTMLDivElement>
   ) => {
-    const Component = as || 'div'
-
     return (
-      <Component ref={ref} {...props}>
-        <Box
-          background="transparent"
-          radius={cardBorderRadius}
-          shadow={cardShadow}
-          className={cn('flex flex-col gap-3 bg-[#312C22] p-4', className)}
-        >
-          {/* Header */}
-          <Stack direction="horizontal" spacing="sm" align="center">
-            {showIcon && <Sparkles size={16} className="text-[#d4f5a0]" />}
-            <Typography variant="h6" weight="normal" className="text-sm text-[#d4f5a0]">
-              {title}
-            </Typography>
-          </Stack>
-
-          {/* Question */}
-          <Typography variant="body" className="text-sm leading-relaxed text-[#C7C3BB]">
-            {question}
+      <Card
+        as={as}
+        ref={ref}
+        className={cn('flex flex-col gap-3 bg-[#312C22] p-4', className)}
+        {...props}
+      >
+        {/* Header */}
+        <Stack direction="horizontal" spacing="sm" align="center">
+          {showIcon && <Sparkles size={16} className="text-[#d4f5a0]" />}
+          <Typography variant="h6" weight="normal" className="text-sm text-[#d4f5a0]">
+            {title}
           </Typography>
+        </Stack>
 
-          {/* Options */}
-          <Stack direction="horizontal" spacing="sm" align="center" className="flex-wrap">
-            {onYes && (
-              <button
-                onClick={onYes}
-                className="cursor-pointer text-sm font-normal text-[#f5a623] transition-colors hover:text-[#ffb84d]"
-                aria-label={yesLabel}
-              >
-                {yesLabel}
-              </button>
-            )}
-            {onYes && onNo && <span className="text-sm text-white">/</span>}
-            {onNo && (
-              <button
-                onClick={onNo}
-                className="cursor-pointer text-sm font-normal text-white transition-colors hover:text-neutral-200"
-                aria-label={noLabel}
-              >
-                {noLabel}
-              </button>
-            )}
-          </Stack>
-        </Box>
-      </Component>
+        {/* Question */}
+        <Typography variant="body" className="text-sm leading-relaxed text-[#C7C3BB]">
+          {question}
+        </Typography>
+
+        {/* Options */}
+        <Stack direction="horizontal" spacing="sm" align="center" className="flex-wrap">
+          {onYes && (
+            <button
+              onClick={onYes}
+              className="cursor-pointer text-sm font-normal text-[#f5a623] transition-colors hover:text-[#ffb84d]"
+              aria-label={yesLabel}
+            >
+              {yesLabel}
+            </button>
+          )}
+          {onYes && onNo && <span className="text-sm text-white">/</span>}
+          {onNo && (
+            <button
+              onClick={onNo}
+              className="cursor-pointer text-sm font-normal text-white transition-colors hover:text-neutral-200"
+              aria-label={noLabel}
+            >
+              {noLabel}
+            </button>
+          )}
+        </Stack>
+      </Card>
     )
   }
 )

@@ -1,18 +1,8 @@
 'use client'
 
-import {
-  useCallback,
-  useEffect,
-  useState
-} from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import {
-  Button,
-  Input,
-  PageSkeleton,
-  Stack,
-  Typography
-} from '@/shared/ui'
+import { Button, Input, PageSkeleton, Stack, Typography } from '@/shared/ui'
 
 import * as api from '../api/document-workbench.api'
 import type { DocumentTemplate } from '../api/document-workbench.api'
@@ -62,8 +52,12 @@ export function WorkspaceDocumentTemplatesView() {
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Document templates</Typography>
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="border-b border-neutral-200 pb-2">
+        <Typography as="h1" size="md" weight="medium">
+          Document templates
+        </Typography>
+      </div>
       <div className="flex flex-wrap gap-sm">
         <Input
           value={code}

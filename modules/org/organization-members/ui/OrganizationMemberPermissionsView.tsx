@@ -3,12 +3,12 @@
 import { useEffect, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { PageSkeleton, Typography } from '@/shared/ui'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { MemberPermissionsPanel } from '@/modules/auth/iam/presentation/ui/MemberPermissionsPanel'
-import { useOrganizationMembers } from '@/modules/org/organization-members/hooks/useOrganizationMembers'
-import { useWorkspace } from '@/modules/org/workspace/hooks/useWorkspace'
+import { useWorkspace } from '@/modules/org/workspace'
 import { useAuth } from '@/modules/auth'
-import { OrgMemberStatus } from '@/modules/org/organization-members/model/organization-member'
+import { useOrganizationMembers } from '../hooks/useOrganizationMembers'
+import { OrgMemberStatus } from '../model/organization-member'
 
 export function OrganizationMemberPermissionsView() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
@@ -41,12 +41,12 @@ export function OrganizationMemberPermissionsView() {
         current="Organization permissions"
         className="mb-4"
       />
-      <Typography as="h1" size="lg" weight="semibold" className="mb-2">
+      <Typography as="h1" size="md" weight="medium" className="mb-1">
         Organization member permissions
       </Typography>
       <Typography variant="small" tone="muted" className="mb-4">
-        Organization-level permissions only (org settings, teams…). Workspace and project rights
-        are managed in their own Member permissions pages.
+        Organization-level permissions only (org settings, teams…). Workspace and project rights are
+        managed in their own Member permissions pages.
       </Typography>
       <MemberPermissionsPanel
         scope={{ kind: 'organization', organizationId }}

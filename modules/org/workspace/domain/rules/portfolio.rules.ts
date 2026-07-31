@@ -131,7 +131,9 @@ export function sortPortfolioRows(rows: PhaseWatchProjectRow[]): PhaseWatchProje
   return [...rows].sort((a, b) => {
     const byRank = rank(a) - rank(b)
     if (byRank !== 0) return byRank
-    return b.unassignedTaskCount - a.unassignedTaskCount || a.projectName.localeCompare(b.projectName)
+    return (
+      b.unassignedTaskCount - a.unassignedTaskCount || a.projectName.localeCompare(b.projectName)
+    )
   })
 }
 

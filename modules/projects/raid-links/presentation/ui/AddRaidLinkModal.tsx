@@ -2,16 +2,21 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Button, Input, Modal, Select, Stack, Typography } from '@/shared/ui'
+import { Button, Modal, Select, Stack, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { RaidLinkTargetType, RaidLinkType } from '../../domain/enums/raid-link.enum'
 import type { CreateRaidLinkPayload } from '../../domain/model/raid-link'
+import { ProjectRecordSearchSelect } from '@/modules/projects/project'
 
 const TARGET_TYPE_OPTIONS = [
   { value: RaidLinkTargetType.RaidItem, label: 'RAID item' },
   { value: RaidLinkTargetType.Decision, label: 'Decision' },
   { value: RaidLinkTargetType.Task, label: 'Task' },
-  { value: RaidLinkTargetType.Deliverable, label: 'Deliverable' },
+  {
+    value: RaidLinkTargetType.Deliverable,
+    label: 'Deliverable (picker unavailable)',
+    disabled: true,
+  },
 ]
 
 const LINK_TYPE_OPTIONS = [
@@ -23,11 +28,12 @@ const LINK_TYPE_OPTIONS = [
 
 interface Props {
   open: boolean
+  projectId: string
   onClose: () => void
   onSubmit: (body: CreateRaidLinkPayload) => Promise<unknown>
 }
 
-export function AddRaidLinkModal({ open, onClose, onSubmit }: Props) {
+export function AddRaidLinkModal({ open, projectId, onClose, onSubmit }: Props) {
   const [targetType, setTargetType] = useState<string>(RaidLinkTargetType.RaidItem)
   const [targetId, setTargetId] = useState('')
   const [linkType, setLinkType] = useState<string>(RaidLinkType.RelatedTo)
@@ -58,11 +64,7 @@ export function AddRaidLinkModal({ open, onClose, onSubmit }: Props) {
             <Typography variant="small" weight="medium" className="mb-1">
               Relationship
             </Typography>
-            <Select
-              value={linkType}
-              onValueChange={setLinkType}
-              options={LINK_TYPE_OPTIONS}
-            />
+            <Select value={linkType} onValueChange={setLinkType} options={LINK_TYPE_OPTIONS} />
           </div>
           <div>
             <Typography variant="small" weight="medium" className="mb-1">
@@ -70,21 +72,22 @@ export function AddRaidLinkModal({ open, onClose, onSubmit }: Props) {
             </Typography>
             <Select
               value={targetType}
-              onValueChange={setTargetType}
+              onValueChange={(next: string) => {
+                setTargetType(next)
+                setTargetId('')
+              }}
               options={TARGET_TYPE_OPTIONS}
             />
           </div>
-          <div>
-            <Typography variant="small" weight="medium" className="mb-1">
-              Target ID <span className="text-red-500">*</span>
-            </Typography>
-            <Input
-              value={targetId}
-              onChange={(e) => setTargetId(e.target.value)}
-              placeholder="Entity ID"
-              required
-            />
-          </div>
+          <ProjectRecordSearchSelect
+            projectId={projectId}
+            recordType={targetType}
+            label={
+              TARGET_TYPE_OPTIONS.find((option) => option.value === targetType)?.label ?? 'Target'
+            }
+            value={targetId}
+            onChange={setTargetId}
+          />
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
               Cancel

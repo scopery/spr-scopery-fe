@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { Search } from 'lucide-react'
 import { Button, Checkbox, Input, Modal, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import type {
@@ -221,6 +222,7 @@ export function StructureCandidatePalette({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search…"
           aria-label="Search candidates"
+          prefix={<Search size={14} />}
         />
         {filtered.length > 1 || (tab !== 'all' && allowedGroupIds.length > 1) ? (
           <div className="flex flex-wrap gap-1">

@@ -6,6 +6,7 @@ export {
   useResolveEventConfig,
 } from './presentation/hooks/useEventConfigs'
 export { useEventConfigMutations } from './presentation/hooks/useEventConfigMutations'
+export * as eventConfigsApi from './infrastructure/api/event-configs.api'
 export type {
   AiEventConfig,
   CreateAiEventConfigPayload,

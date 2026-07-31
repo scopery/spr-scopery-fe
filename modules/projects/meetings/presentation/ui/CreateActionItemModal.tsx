@@ -1,7 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { Input, Modal, Textarea, Typography } from '@/shared/ui'
+import { UserSearchSelect } from '@/modules/platform'
+import { useWorkspaceMemberPeople } from '@/modules/org/workspace'
 import type { CreateActionItemPayload } from '../../domain/model/meeting-action-item'
 
 interface CreateActionItemModalProps {
@@ -11,6 +14,8 @@ interface CreateActionItemModalProps {
 }
 
 export function CreateActionItemModal({ open, onClose, onSubmit }: CreateActionItemModalProps) {
+  const { workspaceId } = useParams<{ workspaceId: string }>()
+  const { people: ownerPeople } = useWorkspaceMemberPeople(open ? workspaceId : null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [ownerTargetId, setOwnerTargetId] = useState('')
@@ -75,12 +80,12 @@ export function CreateActionItemModal({ open, onClose, onSubmit }: CreateActionI
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
         />
-        <Input
-          label="Owner user id (optional)"
-          fullWidth
-          placeholder="uuid"
+        <UserSearchSelect
+          label="Owner (optional)"
           value={ownerTargetId}
-          onChange={(e) => setOwnerTargetId(e.target.value)}
+          onChange={setOwnerTargetId}
+          seedPeople={ownerPeople}
+          allowRemoteSearch={false}
         />
         <Input
           label="Due date"

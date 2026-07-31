@@ -7,6 +7,7 @@ import {
   Badge,
   Button,
   ConfirmDialog,
+  DataTable,
   Input,
   Modal,
   Stack,
@@ -87,10 +88,13 @@ export function OrganizationInvitationsPanel({
     }
     setActionLoading(true)
     try {
-      const created = await organizationInvitationsApi.createOrganizationInvitation(organizationId, {
-        inviteeEmail,
-        membershipType: 'MEMBER',
-      })
+      const created = await organizationInvitationsApi.createOrganizationInvitation(
+        organizationId,
+        {
+          inviteeEmail,
+          membershipType: 'MEMBER',
+        }
+      )
       upsertTrackedOrgInvitation(created)
       setCreatedToken(created.token)
       setEmail('')
@@ -107,10 +111,7 @@ export function OrganizationInvitationsPanel({
     if (!cancelTarget) return
     setActionLoading(true)
     try {
-      await organizationInvitationsApi.cancelOrganizationInvitation(
-        organizationId,
-        cancelTarget.id
-      )
+      await organizationInvitationsApi.cancelOrganizationInvitation(organizationId, cancelTarget.id)
       updateTrackedOrgInvitationStatus(cancelTarget.id, OrgInvitationStatus.Cancelled)
       setCancelTarget(null)
       refresh()
@@ -134,9 +135,9 @@ export function OrganizationInvitationsPanel({
   return (
     <div>
       {!embedded && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <Typography as="h1" size="lg" weight="semibold">
+            <Typography as="h1" size="md" weight="medium">
               Organization invitations
             </Typography>
             <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -175,59 +176,56 @@ export function OrganizationInvitationsPanel({
         browser.
       </Typography>
 
-      <div className="overflow-hidden border border-neutral-200 bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-neutral-200 bg-neutral-50">
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Email</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Status</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Expires</th>
-              <th className="min-w-[12rem] whitespace-nowrap px-4 py-3 text-left font-medium text-neutral-600">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-neutral-500">
-                  No tracked invitations
-                </td>
-              </tr>
-            ) : (
-              items.map((inv) => (
-                <tr key={inv.id} className="border-b border-neutral-100 last:border-0">
-                  <td className="px-4 py-3">{inv.inviteeEmail}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant="solid"
-                      tone={
-                        inv.status === OrgInvitationStatus.Pending
-                          ? 'warning'
-                          : inv.status === OrgInvitationStatus.Accepted
-                            ? 'success'
-                            : 'neutral'
-                      }
-                    >
-                      {inv.status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600">
-                    {inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString() : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    {inv.status === OrgInvitationStatus.Pending && (
-                      <Button
-                        variant="ghost"
-                        tone="error"
-                        onClick={() => setCancelTarget(inv)}
-                      >
-                        Cancel
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="border border-neutral-200 bg-white">
+        <DataTable
+          ariaLabel="Organization invitations"
+          rows={items}
+          rowKey={(inv) => inv.id}
+          emptyMessage="No tracked invitations"
+          columns={[
+            { id: 'email', header: 'Email', accessor: 'inviteeEmail' },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (inv) => (
+                <Badge
+                  variant="solid"
+                  tone={
+                    inv.status === OrgInvitationStatus.Pending
+                      ? 'warning'
+                      : inv.status === OrgInvitationStatus.Accepted
+                        ? 'success'
+                        : 'neutral'
+                  }
+                >
+                  {inv.status
+                    .replace(/_/g, ' ')
+                    .toLowerCase()
+                    .replace(/\b\w/g, (c) => c.toUpperCase())}
+                </Badge>
+              ),
+            },
+            {
+              id: 'expires',
+              header: 'Expires',
+              accessor: (inv) =>
+                inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString() : '—',
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              width: '12rem',
+              cell: (inv) =>
+                inv.status === OrgInvitationStatus.Pending ? (
+                  <Button variant="ghost" tone="error" onClick={() => setCancelTarget(inv)}>
+                    Cancel
+                  </Button>
+                ) : (
+                  '—'
+                ),
+            },
+          ]}
+        />
       </div>
 
       <Modal
@@ -282,7 +280,9 @@ export function OrganizationInvitationsPanel({
             <Typography variant="small" tone="warning">
               Copy this link now — the raw token is only returned on create.
             </Typography>
-            <code className="block break-all bg-neutral-100 p-3 text-xs">{acceptUrl(createdToken)}</code>
+            <code className="block break-all bg-neutral-100 p-3 text-xs">
+              {acceptUrl(createdToken)}
+            </code>
           </Stack>
         ) : (
           <Input

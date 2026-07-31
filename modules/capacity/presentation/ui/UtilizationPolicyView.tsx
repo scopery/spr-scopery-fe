@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { Button, Input, PageSkeleton, Typography } from '@/shared/ui'
+import { Button, Input, PageSkeleton, Typography, Card } from '@/shared/ui'
 import { useUtilizationPolicy } from '../hooks/useUtilizationPolicy'
 import type { UpdateUtilizationThresholdPolicyPayload } from '../../domain/model/utilization-threshold-policy'
 
@@ -19,21 +19,13 @@ const FIELDS: {
 
 export function UtilizationPolicyView() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
-  const {
-    policy,
-    form,
-    loading,
-    saving,
-    error,
-    validationError,
-    updateField,
-    save,
-  } = useUtilizationPolicy(workspaceId)
+  const { policy, form, loading, saving, error, validationError, updateField, save } =
+    useUtilizationPolicy(workspaceId)
 
   if (loading) return <PageSkeleton variant="detail" />
   if (error) {
     return (
-      <div className="border border-error/30 bg-error/5 p-4">
+      <div className="border-error/30 bg-error/5 border p-4">
         <Typography variant="small" tone="error">
           {error}
         </Typography>
@@ -50,10 +42,10 @@ export function UtilizationPolicyView() {
   ]
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-md">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-md">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Utilization Policies
           </Typography>
           <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -67,14 +59,14 @@ export function UtilizationPolicyView() {
       </div>
 
       {validationError ? (
-        <div className="mb-4 border border-warning/40 bg-warning/10 p-3">
+        <div className="border-warning/40 bg-warning/10 mb-4 border p-3">
           <Typography variant="small" tone="warning">
             {validationError}
           </Typography>
         </div>
       ) : null}
 
-      <div className="mb-6 border border-neutral-200 bg-white p-md">
+      <Card className="mb-6 border border-neutral-200 bg-white p-md">
         <Typography variant="small" weight="semibold" className="mb-sm">
           Threshold preview
         </Typography>
@@ -96,9 +88,9 @@ export function UtilizationPolicyView() {
             Last updated {new Date(policy.updatedAt).toLocaleString()}
           </Typography>
         ) : null}
-      </div>
+      </Card>
 
-      <div className="grid max-w-xl gap-3 border border-neutral-200 bg-white p-md">
+      <Card className="grid max-w-xl gap-3 border border-neutral-200 bg-white p-md">
         {FIELDS.map((field) => (
           <Input
             key={field.key}
@@ -108,7 +100,7 @@ export function UtilizationPolicyView() {
             onChange={(e) => updateField(field.key, Number(e.target.value))}
           />
         ))}
-      </div>
+      </Card>
     </div>
   )
 }

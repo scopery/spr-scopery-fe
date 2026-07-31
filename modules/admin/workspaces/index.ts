@@ -10,4 +10,5 @@ export { AdminWorkspaceDetailView } from './presentation/ui/AdminWorkspaceDetail
 export { AdminWorkspaceMembersView } from './presentation/ui/AdminWorkspaceMembersView'
 export { AdminWorkspaceTeamsView } from './presentation/ui/AdminWorkspaceTeamsView'
 export { AdminWorkspaceStatusBadge } from './presentation/ui/AdminWorkspaceStatusBadge'
+export { AdminWorkspaceSearchSelect } from './presentation/ui/AdminWorkspaceSearchSelect'
 export * as workspacesV1Api from './infrastructure/api/workspaces.api'

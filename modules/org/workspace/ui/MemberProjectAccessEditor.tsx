@@ -56,10 +56,7 @@ export function MemberProjectAccessEditor({
     setSelected(new Set(initial.projects.map((p) => p.projectId)))
   }, [initial, editing])
 
-  const available = useMemo(
-    () => initial.availableProjects ?? [],
-    [initial.availableProjects]
-  )
+  const available = useMemo(() => initial.availableProjects ?? [], [initial.availableProjects])
 
   const toggleProject = (projectId: string, checked: boolean) => {
     setSelected((prev) => {
@@ -101,7 +98,12 @@ export function MemberProjectAccessEditor({
                 : `Sees ${initial.projects.length} of ${initial.totalProjects} projects; new projects are not auto-granted.`}
             </Typography>
           </div>
-          <Button size="sm" variant="ghost" className="bg-neutral-100 hover:bg-neutral-200" onClick={() => setEditing(true)}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="bg-neutral-100 hover:bg-neutral-200"
+            onClick={() => setEditing(true)}
+          >
             Edit
           </Button>
         </div>

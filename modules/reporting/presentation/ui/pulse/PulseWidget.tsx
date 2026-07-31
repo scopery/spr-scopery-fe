@@ -3,22 +3,18 @@
 import type { ReactNode } from 'react'
 import NextLink from 'next/link'
 import { ArrowRight } from 'lucide-react'
-import { Stack, Typography } from '@/shared/ui'
+import { Card, Stack, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 
 /** @deprecated Prefer PulseTextAction for widget CTAs */
 export const pulseActionButtonClassName =
   'border-transparent bg-neutral-800 text-white hover:bg-neutral-900 active:bg-neutral-950'
 
-export function PulsePanel({
-  children,
-  className,
-}: {
-  children: ReactNode
-  className?: string
-}) {
+export function PulsePanel({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <section className={cn('border border-neutral-200 bg-white', className)}>{children}</section>
+    <Card as="section" className={className}>
+      {children}
+    </Card>
   )
 }
 
@@ -52,13 +48,7 @@ export function PulseEmpty({ children }: { children: ReactNode }) {
   )
 }
 
-export function PulseTextAction({
-  href,
-  children,
-}: {
-  href: string
-  children: ReactNode
-}) {
+export function PulseTextAction({ href, children }: { href: string; children: ReactNode }) {
   return (
     <NextLink
       href={href}
@@ -70,11 +60,7 @@ export function PulseTextAction({
   )
 }
 
-export function PulseStatRows({
-  rows,
-}: {
-  rows: Array<{ label: string; value: string }>
-}) {
+export function PulseStatRows({ rows }: { rows: Array<{ label: string; value: string }> }) {
   if (rows.length === 0) return <PulseEmpty>No signals yet.</PulseEmpty>
   return (
     <Stack direction="vertical" spacing="xs">

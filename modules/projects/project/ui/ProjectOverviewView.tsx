@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { AlertTriangle, ListTodo, Settings, Sparkles } from 'lucide-react'
-import { Typography, Button, PageSkeleton, Stack, Badge } from '@/shared/ui'
+import { Typography, Button, Card, PageSkeleton, Stack, Badge } from '@/shared/ui'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import { UserIdentity } from '@/modules/platform/identity/presentation/ui/UserIdentity'
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
@@ -21,10 +21,7 @@ import { ProjectStatusBadge } from '../presentation/ui/ProjectStatusBadge'
 import { ProjectLifecycleMenu } from '../presentation/ui/ProjectLifecycleMenu'
 import { ProjectSummaryModal } from '../presentation/ui/ProjectSummaryModal'
 import { TaskStatus } from '../domain/enums/project.enum'
-import {
-  isTaskOverdue,
-  taskStatusLabel,
-} from '../../task/domain/rules/task.rules'
+import { isTaskOverdue, taskStatusLabel } from '../../task/domain/rules/task.rules'
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return '—'
@@ -50,7 +47,9 @@ export function ProjectOverviewView() {
     setSummaryLoading(true)
     setSummaryPreview(null)
     try {
-      const res = await aiDocumentIntelligenceApi.generateProjectBrief(workspaceId, projectId, { save: false })
+      const res = await aiDocumentIntelligenceApi.generateProjectBrief(workspaceId, projectId, {
+        save: false,
+      })
       if ('preview' in res) {
         setSummaryPreview(res.preview)
         setSummaryGenerationId(res.generationId)
@@ -97,7 +96,11 @@ export function ProjectOverviewView() {
     void refetch()
   })
   const { phases, loading: phasesLoading } = useProjectPhases(projectId)
-  const { tasks, loading: tasksLoading, forbidden } = useProjectTasks(projectId, {
+  const {
+    tasks,
+    loading: tasksLoading,
+    forbidden,
+  } = useProjectTasks(projectId, {
     size: 500,
     status: [
       TaskStatus.Todo,
@@ -122,9 +125,7 @@ export function ProjectOverviewView() {
   }, [tasks])
 
   const attention = useMemo(() => {
-    return tasks.filter(
-      (t) => t.status === TaskStatus.Blocked || isTaskOverdue(t)
-    )
+    return tasks.filter((t) => t.status === TaskStatus.Blocked || isTaskOverdue(t))
   }, [tasks])
 
   if (loading || phasesLoading || tasksLoading) {
@@ -133,12 +134,12 @@ export function ProjectOverviewView() {
 
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="p-8 text-center">
         <Typography weight="medium">You don’t have access to this project</Typography>
         <Typography tone="muted" className="mt-2">
           Ask a workspace admin to grant access.
         </Typography>
-      </div>
+      </Card>
     )
   }
 
@@ -151,14 +152,14 @@ export function ProjectOverviewView() {
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={{ id: projectId, name: project.name }}
-        className="mb-4"
+        className="mb-1"
       />
 
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4 border-b border-neutral-200 pb-6">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
           <Stack direction="horizontal" spacing="sm" className="mb-2 items-center">
             <Typography variant="small" className="font-mono text-neutral-600">
@@ -166,11 +167,11 @@ export function ProjectOverviewView() {
             </Typography>
             <ProjectStatusBadge status={project.status} />
           </Stack>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             {project.name}
           </Typography>
           {project.description ? (
-            <Typography tone="muted" className="mt-2 max-w-2xl">
+            <Typography variant="small" tone="muted" className="mt-1 max-w-2xl">
               {project.description}
             </Typography>
           ) : null}
@@ -214,7 +215,7 @@ export function ProjectOverviewView() {
         </Stack>
       </div>
 
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {(
           [
             TaskStatus.Todo,
@@ -223,19 +224,19 @@ export function ProjectOverviewView() {
             TaskStatus.Completed,
           ] as const
         ).map((status) => (
-          <div key={status} className="border border-neutral-200 bg-white p-4">
+          <Card key={status} className="p-4">
             <Typography variant="small" tone="muted">
               {taskStatusLabel(status)}
             </Typography>
-            <Typography as="p" size="xl" weight="bold" className="mt-1">
+            <Typography as="p" size="md" weight="bold" className="mt-1">
               {taskCounts[status] ?? 0}
             </Typography>
-          </div>
+          </Card>
         ))}
       </div>
 
       <div className="mb-8 grid gap-6 lg:grid-cols-2">
-        <section className="border border-neutral-200 bg-white p-5">
+        <Card as="section" className="p-5">
           <Stack direction="horizontal" spacing="sm" className="mb-4 items-center">
             <AlertTriangle size={16} className="text-warning" />
             <Typography as="h2" weight="semibold">
@@ -271,7 +272,7 @@ export function ProjectOverviewView() {
               ))}
             </ul>
           )}
-        </section>
+        </Card>
 
         <CurrentNextPhaseWidget
           workspaceId={workspaceId}
@@ -284,7 +285,7 @@ export function ProjectOverviewView() {
         />
       </div>
 
-      <section className="border border-neutral-200 bg-white p-5">
+      <Card as="section" className="p-5">
         <Typography as="h2" weight="semibold" className="mb-2">
           Quick links
         </Typography>
@@ -314,7 +315,7 @@ export function ProjectOverviewView() {
             Elicitation sessions
           </NextLink>
         </Stack>
-      </section>
+      </Card>
 
       <ProjectSummaryModal
         open={summaryOpen}

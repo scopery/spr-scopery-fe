@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { Box, Button, Input, Select, Typography, Badge, PageSkeleton } from '@/shared/ui'
+import { Box, Button, Card, Input, Select, Typography, Badge, PageSkeleton } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { governanceApi } from '@/modules/governance'
 import {
@@ -120,9 +120,7 @@ export function GovernanceListView() {
   }
 
   if (loading) {
-    return (
-      <PageSkeleton variant="detail" />
-    )
+    return <PageSkeleton variant="detail" />
   }
 
   return (
@@ -137,7 +135,12 @@ export function GovernanceListView() {
           </Typography>
         </div>
         {canManage ? (
-          <Button variant="primary" onClick={() => setShowCreate((v) => !v)} icon={!showCreate ? <Plus size={16} /> : undefined}>{showCreate ? 'Cancel' : 'New policy'}
+          <Button
+            variant="primary"
+            onClick={() => setShowCreate((v) => !v)}
+            icon={!showCreate ? <Plus size={16} /> : undefined}
+          >
+            {showCreate ? 'Cancel' : 'New policy'}
           </Button>
         ) : null}
       </div>
@@ -175,7 +178,7 @@ export function GovernanceListView() {
       </div>
 
       {showCreate && canManage ? (
-        <div className="border-border space-y-3 rounded-md border p-4">
+        <Card className="border-border space-y-3 p-4">
           <Input
             label="Policy key"
             value={policyKey}
@@ -191,10 +194,12 @@ export function GovernanceListView() {
           <Button
             variant="primary"
             loading={creating}
-            onClick={() => void handleCreate()} icon={<Plus size={16} />}>
+            onClick={() => void handleCreate()}
+            icon={<Plus size={16} />}
+          >
             Create policy
           </Button>
-        </div>
+        </Card>
       ) : null}
 
       {items.length === 0 ? (
@@ -212,7 +217,7 @@ export function GovernanceListView() {
           </Typography>
           <ul className="space-y-3">
             {items.map((item) => (
-              <li key={item.id} className="border-border rounded-md border p-4">
+              <Card as="li" key={item.id} className="border-border p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="space-y-1">
                     <Link
@@ -232,11 +237,12 @@ export function GovernanceListView() {
                     </Typography>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge
-                      variant="solid"
-                      tone={item.status === 'active' ? 'success' : 'neutral'}
-                    >
-                      {item.status === 'active' ? 'Active' : item.status === 'archived' ? 'Archived' : item.status}
+                    <Badge variant="solid" tone={item.status === 'active' ? 'success' : 'neutral'}>
+                      {item.status === 'active'
+                        ? 'Active'
+                        : item.status === 'archived'
+                          ? 'Archived'
+                          : item.status}
                     </Badge>
                     <Link
                       href={ROUTES.workspace.governancePolicy(orgId, item.id)}
@@ -246,7 +252,7 @@ export function GovernanceListView() {
                     </Link>
                   </div>
                 </div>
-              </li>
+              </Card>
             ))}
           </ul>
         </>
@@ -259,9 +265,10 @@ export function GovernanceListView() {
           </Typography>
           <ul className="space-y-2">
             {presets.map((preset) => (
-              <li
+              <Card
+                as="li"
                 key={preset.preset_key}
-                className="border-border flex flex-wrap items-center justify-between gap-2 rounded border p-3"
+                className="border-border flex flex-wrap items-center justify-between gap-2 p-3"
               >
                 <div>
                   <Typography variant="small" className="font-medium">
@@ -273,10 +280,12 @@ export function GovernanceListView() {
                 </div>
                 <Button
                   variant="outline"
-                  onClick={() => setPresetPreviewKey(preset.preset_key)} icon={<Eye size={16} />}>
+                  onClick={() => setPresetPreviewKey(preset.preset_key)}
+                  icon={<Eye size={16} />}
+                >
                   Preview & apply
                 </Button>
-              </li>
+              </Card>
             ))}
           </ul>
         </div>

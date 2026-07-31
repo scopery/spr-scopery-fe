@@ -3,10 +3,21 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, Modal, PageSkeleton, Stack, Typography, Input, Select } from '@/shared/ui'
+import {
+  Badge,
+  Button,
+  Modal,
+  PageSkeleton,
+  Stack,
+  Typography,
+  Input,
+  Select,
+  DataTable, Card,
+} from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { useEmailRules } from '../hooks/useEmailRules'
 import type { CreateEmailRulePayload } from '../../domain/model/email-rule'
+import { useEmailTemplates } from '@/modules/notifications/admin/email-templates'
 
 function statusTone(status: string): 'success' | 'neutral' | 'error' {
   if (status === 'ACTIVE') return 'success'
@@ -16,6 +27,7 @@ function statusTone(status: string): 'success' | 'neutral' | 'error' {
 
 export function EmailRulesView() {
   const { rules, loading, forbidden, actingId, create, runAction, remove } = useEmailRules()
+  const { templates } = useEmailTemplates()
   const [createOpen, setCreateOpen] = useState(false)
   const [name, setName] = useState('')
   const [triggerEvent, setTriggerEvent] = useState('')
@@ -27,9 +39,9 @@ export function EmailRulesView() {
 
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="p-8 text-center">
         <Typography weight="medium">You don&apos;t have access to email rules</Typography>
-      </div>
+      </Card>
     )
   }
 
@@ -65,7 +77,7 @@ export function EmailRulesView() {
   const handleAction = async (
     ruleId: string,
     action: 'activate' | 'deactivate' | 'enable' | 'disable',
-    label: string,
+    label: string
   ) => {
     try {
       await runAction(ruleId, action)
@@ -76,53 +88,81 @@ export function EmailRulesView() {
   }
 
   const handleDelete = async (id: string) => {
-    try { await remove(id); toast.success('Rule deleted') }
-    catch (err) { toast.error(getProblemToastMessage(err)) }
+    try {
+      await remove(id)
+      toast.success('Rule deleted')
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    }
   }
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <Typography as="h1" size="lg" weight="semibold">Email rules</Typography>
+        <Typography as="h1" size="lg" weight="semibold">
+          Email rules
+        </Typography>
         <Button variant="primary" icon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>
           New rule
         </Button>
       </div>
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Trigger event</th>
-              <th className="px-4 py-3 font-medium">Priority</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Enabled</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rules.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center">
-                  <Typography variant="small" tone="muted">No email rules</Typography>
-                </td>
-              </tr>
-            ) : rules.map((r) => (
-              <tr key={r.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                <td className="px-4 py-3">
+        <DataTable
+          ariaLabel="Email Rules"
+          rows={rules}
+          rowKey={(r) => String(r.id)}
+          emptyMessage="No items."
+          columns={[
+            {
+              id: 'name',
+              header: 'Name',
+              cell: (r) => (
+                <>
                   <Typography weight="medium">{r.name}</Typography>
-                  {r.mandatory && <Badge tone="warning" className="mt-1">Mandatory</Badge>}
-                </td>
-                <td className="px-4 py-3 font-mono text-xs text-neutral-500">{r.triggerEvent}</td>
-                <td className="px-4 py-3 text-neutral-500">{r.priority}</td>
-                <td className="px-4 py-3">
+                  {r.mandatory && (
+                    <Badge tone="warning" className="mt-1">
+                      Mandatory
+                    </Badge>
+                  )}
+                </>
+              ),
+            },
+            {
+              id: 'trigger-event',
+              header: 'Trigger event',
+              accessor: 'triggerEvent',
+              cellClassName: 'text-xs text-neutral-500',
+            },
+            {
+              id: 'priority',
+              header: 'Priority',
+              accessor: 'priority',
+              cellClassName: 'text-neutral-500',
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (r) => (
+                <>
                   <Badge tone={statusTone(r.status)}>{r.status}</Badge>
-                </td>
-                <td className="px-4 py-3">
+                </>
+              ),
+            },
+            {
+              id: 'enabled',
+              header: 'Enabled',
+              cell: (r) => (
+                <>
                   <Badge tone={r.enabled ? 'success' : 'neutral'}>{r.enabled ? 'On' : 'Off'}</Badge>
-                </td>
-                <td className="px-4 py-3">
+                </>
+              ),
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (r) => (
+                <>
                   <Stack direction="horizontal" spacing="sm">
                     {r.status !== 'ACTIVE' && (
                       <Button
@@ -175,14 +215,21 @@ export function EmailRulesView() {
                       </Button>
                     )}
                   </Stack>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
 
-      <Modal open={createOpen} onClose={() => { setCreateOpen(false); resetForm() }} title="New email rule">
+      <Modal
+        open={createOpen}
+        onClose={() => {
+          setCreateOpen(false)
+          resetForm()
+        }}
+        title="New email rule"
+      >
         <form onSubmit={(e) => void handleCreate(e)}>
           <Stack direction="vertical" spacing="md">
             <Input
@@ -200,11 +247,17 @@ export function EmailRulesView() {
               fullWidth
               placeholder="e.g. PROJECT_CREATED"
             />
-            <Input
-              label="Template ID (optional)"
+            <Select
+              label="Template (optional)"
               value={templateId}
-              onChange={(e) => setTemplateId(e.target.value)}
-              fullWidth
+              options={[
+                { value: '', label: 'No template' },
+                ...templates.map((template) => ({
+                  value: template.id,
+                  label: `${template.code} · ${template.name}`,
+                })),
+              ]}
+              onValueChange={setTemplateId}
             />
             <Input
               label="Priority"
@@ -214,7 +267,15 @@ export function EmailRulesView() {
               fullWidth
             />
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => { setCreateOpen(false); resetForm() }} disabled={saving}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setCreateOpen(false)
+                  resetForm()
+                }}
+                disabled={saving}
+              >
                 Cancel
               </Button>
               <Button

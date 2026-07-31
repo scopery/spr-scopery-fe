@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as api from '../../infrastructure/api/quality.api'
 import type { CreateDefectPayload, Defect } from '../../domain/model/quality'
+import type { DefectLifecycleAction } from '../../domain/rules/quality.rules'
 
 export function useDefects(projectId: string | null) {
   const [items, setItems] = useState<Defect[]>([])
@@ -30,10 +31,12 @@ export function useDefects(projectId: string | null) {
 
   const create = useCallback(
     async (body: CreateDefectPayload) => {
-      if (!projectId) return
-      await api.createDefect(projectId, body)
+      if (!projectId) return null
+      const created = await api.createDefect(projectId, body)
+      await load()
+      return created
     },
-    [projectId]
+    [projectId, load]
   )
 
   const close = useCallback(
@@ -45,10 +48,26 @@ export function useDefects(projectId: string | null) {
         await load()
       } catch (err) {
         setActionError(err instanceof Error ? err.message : 'Close failed')
+        throw err
       }
     },
     [projectId, load]
   )
 
-  return { items, loading, error, actionError, refetch: load, create, close }
+  const runLifecycle = useCallback(
+    async (defectId: string, action: DefectLifecycleAction) => {
+      if (!projectId) return
+      setActionError(null)
+      try {
+        await api.applyDefectLifecycleAction(projectId, defectId, action)
+        await load()
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : `Failed to ${action} defect`)
+        throw err
+      }
+    },
+    [projectId, load]
+  )
+
+  return { items, loading, error, actionError, refetch: load, create, close, runLifecycle }
 }

@@ -6,9 +6,15 @@ export { CreateProjectModal } from './project/ui/CreateProjectModal'
 export { ProjectDetailView } from './project/ui/ProjectDetailView'
 export { ProjectOverviewView } from './project/ui/ProjectOverviewView'
 export { ProjectSettingsView } from './project/ui/ProjectSettingsView'
+export { ProjectSearchSelect } from './project/ui/ProjectSearchSelect'
+export {
+  ProjectRecordSearchSelect,
+  type ProjectRecordType,
+} from './project/ui/ProjectRecordSearchSelect'
 export { ProjectMemberPermissionsView } from './project/ui/ProjectMemberPermissionsView'
 export { ProjectsListView } from './project/ui/ProjectsListView'
 export { ProjectWorkItemsView } from './task/presentation/ui/ProjectWorkItemsView'
+export { TaskSearchSelect } from './task/presentation/ui/TaskSearchSelect'
 export { useProjectTasks } from './task/presentation/hooks/useProjectTasks'
 export { useProjectPhases } from './phase/presentation/hooks/useProjectPhases'
 export { usePhaseWatch } from './phase/presentation/hooks/usePhaseWatch'
@@ -87,6 +93,7 @@ export type {
 export type { TraceLinksListResponse } from './traceability/model/traceability'
 export {
   TraceabilityMatrixView,
+  RequirementTraceabilityView,
   ApplicationRegistryView,
   ApplicationWorkbenchView,
   FunctionalCatalogView,
@@ -95,7 +102,11 @@ export {
 } from './traceability'
 export type { ProjectTask, CreateTaskPayload, UpdateTaskPayload } from './task/domain/model/task'
 export type { ProjectPhase, CreateProjectPhasePayload } from './phase/domain/model/phase'
-export type { Meeting, CreateMeetingPayload, UpdateMeetingPayload } from './meetings/domain/model/meeting'
+export type {
+  Meeting,
+  CreateMeetingPayload,
+  UpdateMeetingPayload,
+} from './meetings/domain/model/meeting'
 export type { MeetingMinutes } from './meetings/domain/model/meeting-minutes'
 export type {
   MeetingActionItem,
@@ -157,7 +168,11 @@ export { RaidRiskMatrixView } from './raid/presentation/ui/RaidRiskMatrixView'
 export { CreateRaidItemModal } from './raid/presentation/ui/CreateRaidItemModal'
 export { useRaidRegister } from './raid/presentation/hooks/useRaidRegister'
 export * as raidApi from './raid/infrastructure/api/raid.api'
-export type { RaidItem, CreateRaidItemPayload, UpdateRaidItemPayload } from './raid/domain/model/raid'
+export type {
+  RaidItem,
+  CreateRaidItemPayload,
+  UpdateRaidItemPayload,
+} from './raid/domain/model/raid'
 export {
   RaidItemType,
   RaidItemStatus,

@@ -1,7 +1,7 @@
 'use client'
 
 import NextLink from 'next/link'
-import { Typography } from '@/shared/ui'
+import { Card, Typography } from '@/shared/ui'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 
 const CARDS: { title: string; description: string; href: string }[] = [
@@ -76,10 +76,11 @@ export function AdminIamOverviewView() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {CARDS.map((card) => (
-          <NextLink
+          <Card
+            as={NextLink}
             key={card.href}
             href={card.href}
-            className="border border-neutral-200 bg-white p-5 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+            className="p-5 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
           >
             <Typography as="h2" size="sm" weight="semibold" className="mb-1">
               {card.title}
@@ -87,7 +88,7 @@ export function AdminIamOverviewView() {
             <Typography as="p" variant="small" tone="muted">
               {card.description}
             </Typography>
-          </NextLink>
+          </Card>
         ))}
       </div>
     </div>

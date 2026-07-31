@@ -9,6 +9,7 @@ export const WORKSPACE_INVITATION_ENDPOINTS = {
   create: (workspaceId: string) => apiPath(`/workspaces/${workspaceId}/invitations`),
   revoke: (workspaceId: string, invitationId: string) =>
     apiPath(`/workspaces/${workspaceId}/invitations/${invitationId}/revoke`),
-  acceptByCode: (code: string) => apiPath(`/workspaces/invitations/${encodeURIComponent(code)}/accept`),
+  acceptByCode: (code: string) =>
+    apiPath(`/workspaces/invitations/${encodeURIComponent(code)}/accept`),
   acceptById: (id: string) => apiPath(`/me/workspace-invitations/${id}/accept`),
 } as const

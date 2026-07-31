@@ -1,10 +1,10 @@
 import React from 'react'
 import { cn } from '@/utils/cn'
-import { Box } from '@/shared/ui/atoms/Box'
 import { Stack } from '@/shared/ui/atoms/Stack'
 import { Typography } from '@/shared/ui/atoms/Typography'
 import { Avatar } from '@/shared/ui/atoms/Avatar'
 import { Button } from '@/shared/ui/atoms/Button'
+import { Card } from '@/shared/ui/atoms/Card'
 import { Bell } from 'lucide-react'
 import type { UserProfileCardProps } from './UserProfileCard.types'
 
@@ -29,54 +29,43 @@ export const UserProfileCard = React.forwardRef(
       title = '',
       avatar,
       onNotificationClick,
-      cardBorderRadius = 'lg',
-      cardShadow = 'sm',
       className,
       ...props
     }: UserProfileCardProps<C>,
     ref?: React.Ref<HTMLDivElement>
   ) => {
-    const Component = as || 'div'
-
     return (
-      <Component ref={ref} {...props}>
-        <Box
-          background="white"
-          radius={cardBorderRadius}
-          shadow={cardShadow}
-          className={cn('p-4', className)}
-        >
-          <Stack direction="horizontal" spacing="md" align="center">
-            <Avatar
-              size="md"
-              src={avatar}
-              fallback={name
-                .split(' ')
-                .map((n) => n[0])
-                .join('')
-                .toUpperCase()}
-            />
-            <Stack direction="vertical" spacing="none" className="flex-1">
-              <Typography variant="small" weight="semibold" className="text-neutral-900">
-                {name}
-              </Typography>
-              <Typography variant="small" className="text-xs uppercase text-neutral-600">
-                {title}
-              </Typography>
-            </Stack>
-            {onNotificationClick && (
-              <Button
-                variant="ghost"
-                iconOnly
-                icon={<Bell size={18} />}
-                onClick={onNotificationClick}
-                className="text-neutral-600 hover:text-neutral-900"
-                aria-label="Notifications"
-              />
-            )}
+      <Card as={as} ref={ref} className={cn('p-4', className)} {...props}>
+        <Stack direction="horizontal" spacing="md" align="center">
+          <Avatar
+            size="md"
+            src={avatar}
+            fallback={name
+              .split(' ')
+              .map((n) => n[0])
+              .join('')
+              .toUpperCase()}
+          />
+          <Stack direction="vertical" spacing="none" className="flex-1">
+            <Typography variant="small" weight="semibold" className="text-neutral-900">
+              {name}
+            </Typography>
+            <Typography variant="small" className="text-xs uppercase text-neutral-600">
+              {title}
+            </Typography>
           </Stack>
-        </Box>
-      </Component>
+          {onNotificationClick && (
+            <Button
+              variant="ghost"
+              iconOnly
+              icon={<Bell size={18} />}
+              onClick={onNotificationClick}
+              className="text-neutral-600 hover:text-neutral-900"
+              aria-label="Notifications"
+            />
+          )}
+        </Stack>
+      </Card>
     )
   }
 )

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import NextLink from 'next/link'
 import { ArrowLeft, Plus } from 'lucide-react'
-import { Typography, Button, Stack, Input } from '@/shared/ui'
+import { Typography, Button, Stack, Input, Card } from '@/shared/ui'
 import { useAdminOrganizationCreate } from '../hooks/useAdminOrganizationCreate'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 
@@ -62,7 +62,7 @@ export function AdminOrganizationCreateView() {
         </Typography>
       </div>
 
-      <div className="max-w-md border border-neutral-200 bg-white p-6">
+      <Card className="max-w-md p-6">
         <Stack direction="vertical" spacing="md">
           <Input
             label="Name"
@@ -105,7 +105,7 @@ export function AdminOrganizationCreateView() {
             {submitting ? 'Creating…' : 'Create organization'}
           </Button>
         </Stack>
-      </div>
+      </Card>
     </div>
   )
 }

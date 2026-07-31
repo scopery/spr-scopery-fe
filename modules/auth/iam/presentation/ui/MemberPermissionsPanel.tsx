@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import {
   Badge,
   Button,
+  Card,
   Checkbox,
   ConfirmDialog,
   Input,
@@ -13,7 +14,7 @@ import {
   Stack,
   Typography,
 } from '@/shared/ui'
-import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
+import { UserSearchSelect, useResolveUsers, type PersonIdentity } from '@/modules/platform'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { cn } from '@/utils/cn'
 import {
@@ -59,10 +60,22 @@ export function MemberPermissionsPanel({
   const [search, setSearch] = useState('')
   const [confirmGrantFull, setConfirmGrantFull] = useState(false)
 
-  const { selected, loading: snapLoading, saving, isDirty, toggle, setMany, save } =
-    useMemberPermissionsEditor(scope, userId || null)
+  const {
+    selected,
+    loading: snapLoading,
+    saving,
+    isDirty,
+    toggle,
+    setMany,
+    save,
+  } = useMemberPermissionsEditor(scope, userId || null)
 
-  const { labelFor } = useResolveUsers(memberUserIds)
+  const { labelFor, personFor } = useResolveUsers(memberUserIds)
+  const memberPeople = useMemo(
+    () =>
+      memberUserIds.map(personFor).filter((person): person is PersonIdentity => Boolean(person)),
+    [memberUserIds, personFor]
+  )
 
   const editableItems = useMemo(() => items.filter((r) => !r.baseline), [items])
 
@@ -74,9 +87,7 @@ export function MemberPermissionsPanel({
 
   const confirmDiscardUnsaved = useCallback(() => {
     if (!isDirty) return true
-    return window.confirm(
-      'You have unsaved permission changes. Leave without saving?'
-    )
+    return window.confirm('You have unsaved permission changes. Leave without saving?')
   }, [isDirty])
 
   useEffect(() => {
@@ -125,17 +136,6 @@ export function MemberPermissionsPanel({
     setUserId(nextUserId)
   }
 
-  const memberOptions = useMemo(
-    () => [
-      { value: '', label: 'Select a member…' },
-      ...memberUserIds.map((id) => ({
-        value: id,
-        label: labelFor(id),
-      })),
-    ],
-    [memberUserIds, labelFor]
-  )
-
   const query = search.trim().toLowerCase()
 
   const filteredItems = useMemo(() => {
@@ -143,8 +143,7 @@ export function MemberPermissionsPanel({
     return items.filter((item) => {
       const moduleKey = item.module?.trim() || 'General'
       const groupLabel = formatModuleLabel(moduleKey).toLowerCase()
-      const groupMatches =
-        groupLabel.includes(query) || moduleKey.toLowerCase().includes(query)
+      const groupMatches = groupLabel.includes(query) || moduleKey.toLowerCase().includes(query)
       if (groupMatches) return true
       return (
         item.title.toLowerCase().includes(query) ||
@@ -234,11 +233,11 @@ export function MemberPermissionsPanel({
 
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-neutral-50 p-4">
+      <Card className="border border-neutral-200 bg-neutral-50 p-4">
         <Typography variant="small" tone="muted">
           You cannot grant permissions on this resource. Only owners with delegable access can.
         </Typography>
-      </div>
+      </Card>
     )
   }
 
@@ -252,14 +251,14 @@ export function MemberPermissionsPanel({
 
   if (items.length === 0) {
     return (
-      <div className="border border-neutral-200 bg-neutral-50 p-4">
+      <Card className="border border-neutral-200 bg-neutral-50 p-4">
         <Typography as="h2" size="md" weight="semibold" className="mb-1">
           {title}
         </Typography>
         <Typography variant="small" tone="muted">
           No grantable permissions available for your account on this resource.
         </Typography>
-      </div>
+      </Card>
     )
   }
 
@@ -274,16 +273,17 @@ export function MemberPermissionsPanel({
         </Typography>
       </div>
 
-      <div className="border border-neutral-200 bg-neutral-50 p-4">
+      <Card className="border border-neutral-200 bg-neutral-50 p-4">
         <Typography variant="small" weight="medium" className="mb-2">
           Who are you granting to?
         </Typography>
-        <div className="min-w-[16rem] max-w-md">
-          <Select
+        <div className="max-w-md">
+          <UserSearchSelect
+            label="Member"
             value={userId}
-            onValueChange={handleMemberChange}
-            options={memberOptions}
-            className="w-full"
+            onChange={handleMemberChange}
+            seedPeople={memberPeople}
+            allowRemoteSearch={false}
           />
         </div>
         {userId ? (
@@ -305,14 +305,14 @@ export function MemberPermissionsPanel({
             ) : null}
           </Typography>
         ) : null}
-      </div>
+      </Card>
 
       {!userId ? (
-        <div className="border border-dashed border-neutral-300 bg-white p-8 text-center">
+        <Card className="border border-dashed border-neutral-300 bg-white p-8 text-center">
           <Typography variant="small" tone="muted">
             Select a member above to review and tick permissions.
           </Typography>
-        </div>
+        </Card>
       ) : snapLoading ? (
         <PageSkeleton variant="split" />
       ) : (
@@ -359,7 +359,7 @@ export function MemberPermissionsPanel({
                         className={cn(
                           'flex w-full items-center justify-between gap-2 border-l-2 px-3 py-2 text-left text-sm transition-colors',
                           active
-                            ? 'border-l-primary bg-primary/5 font-medium text-primary'
+                            ? 'bg-primary/5 border-l-primary font-medium text-primary'
                             : 'border-l-transparent text-neutral-700 hover:bg-neutral-50'
                         )}
                       >
@@ -424,7 +424,7 @@ export function MemberPermissionsPanel({
                           <label
                             className={cn(
                               'flex gap-2.5 px-4 py-2.5 transition-colors',
-                              locked ? 'cursor-default bg-neutral-50/80' : 'cursor-pointer',
+                              locked ? 'bg-neutral-50/80 cursor-default' : 'cursor-pointer',
                               !locked && checked ? 'bg-primary/5' : null,
                               !locked && !checked ? 'hover:bg-neutral-50' : null
                             )}

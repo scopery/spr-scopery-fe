@@ -4,14 +4,23 @@ import { useMemo, useState } from 'react'
 import NextLink from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
-import { Typography, Button, Stack, Input, Select } from '@/shared/ui'
+import { Typography, Button, Stack, Input, SearchableSelect, Select, Card } from '@/shared/ui'
+import { UserSearchSelect } from '@/modules/platform'
 import { useIamDelegationCreate } from '../hooks/useIamDelegationCreate'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
+import { IamRoleSearchSelect } from './IamRoleSearchSelect'
+import { IamScopeReferenceSelect } from './IamScopeReferenceSelect'
+import { useWorkspaceTeams } from '@/modules/admin/workspaces'
 
 const SUBJECT_TYPE_OPTIONS = [
   { value: 'USER', label: 'User' },
   { value: 'ROLE', label: 'Role' },
   { value: 'TEAM', label: 'Team' },
+]
+const RESOURCE_TYPE_OPTIONS = [
+  { value: 'ORGANIZATION', label: 'Organization' },
+  { value: 'WORKSPACE', label: 'Workspace' },
+  { value: 'PROJECT', label: 'Project' },
 ]
 
 export function AdminIamDelegationCreateView() {
@@ -32,6 +41,10 @@ export function AdminIamDelegationCreateView() {
     reason: '',
   })
   const [actions, setActions] = useState([{ permissionCode: '', actionCode: '' }])
+  const { items: workspaceTeams } = useWorkspaceTeams(
+    form.resourceType === 'WORKSPACE' ? form.resourceRefId || null : null,
+    { status: 'ACTIVE', page: 0, size: 200 }
+  )
 
   const canSubmit =
     form.subjectId.trim() &&
@@ -50,9 +63,7 @@ export function AdminIamDelegationCreateView() {
         resourceType: form.resourceType.trim().toUpperCase(),
         resourceRefId: form.resourceRefId.trim(),
         delegationDepth: Number(form.delegationDepth),
-        expiresAt: form.expiresAt.trim()
-          ? new Date(form.expiresAt).toISOString()
-          : undefined,
+        expiresAt: form.expiresAt.trim() ? new Date(form.expiresAt).toISOString() : undefined,
         reason: form.reason.trim() || undefined,
         actions: actions
           .filter((a) => a.permissionCode.trim() && a.actionCode.trim())
@@ -84,7 +95,7 @@ export function AdminIamDelegationCreateView() {
         </Typography>
       </div>
 
-      <div className="max-w-xl border border-neutral-200 bg-white p-6">
+      <Card className="max-w-xl p-6">
         <Stack direction="vertical" spacing="md">
           <div>
             <Typography variant="small" tone="muted" className="mb-1.5">
@@ -92,27 +103,54 @@ export function AdminIamDelegationCreateView() {
             </Typography>
             <Select
               value={form.subjectType}
-              onValueChange={(v: string) => setForm((f) => ({ ...f, subjectType: v }))}
+              onValueChange={(v: string) =>
+                setForm((f) => ({ ...f, subjectType: v, subjectId: '' }))
+              }
               options={SUBJECT_TYPE_OPTIONS}
             />
           </div>
-          <Input
-            label="Subject ID"
-            value={form.subjectId}
-            onChange={(e) => setForm((f) => ({ ...f, subjectId: e.target.value }))}
-            placeholder="User, role, or team ID"
-          />
-          <Input
+          {form.subjectType === 'USER' ? (
+            <UserSearchSelect
+              label="User"
+              value={form.subjectId}
+              onChange={(subjectId) => setForm((f) => ({ ...f, subjectId }))}
+            />
+          ) : form.subjectType === 'ROLE' ? (
+            <IamRoleSearchSelect
+              label="Role"
+              value={form.subjectId}
+              onChange={(subjectId) => setForm((current) => ({ ...current, subjectId }))}
+            />
+          ) : (
+            <SearchableSelect
+              value={form.subjectId}
+              options={workspaceTeams.map((team) => ({
+                value: team.id,
+                label: `${team.code} · ${team.name}`,
+              }))}
+              disabled={form.resourceType !== 'WORKSPACE' || !form.resourceRefId}
+              placeholder="Select a workspace resource first"
+              searchPlaceholder="Search team…"
+              onValueChange={(subjectId) => setForm((current) => ({ ...current, subjectId }))}
+            />
+          )}
+          <Select
             label="Resource type"
             value={form.resourceType}
-            onChange={(e) => setForm((f) => ({ ...f, resourceType: e.target.value }))}
-            placeholder="WORKSPACE, PROJECT, …"
+            options={RESOURCE_TYPE_OPTIONS}
+            onValueChange={(resourceType: string) =>
+              setForm((current) => ({
+                ...current,
+                resourceType,
+                resourceRefId: '',
+                subjectId: current.subjectType === 'TEAM' ? '' : current.subjectId,
+              }))
+            }
           />
-          <Input
-            label="Resource ref ID"
+          <IamScopeReferenceSelect
+            resourceType={form.resourceType}
             value={form.resourceRefId}
-            onChange={(e) => setForm((f) => ({ ...f, resourceRefId: e.target.value }))}
-            placeholder="Target resource UUID"
+            onChange={(resourceRefId) => setForm((current) => ({ ...current, resourceRefId }))}
           />
           <Input
             label="Delegation depth"
@@ -215,7 +253,7 @@ export function AdminIamDelegationCreateView() {
             </NextLink>
           </Stack>
         </Stack>
-      </div>
+      </Card>
     </div>
   )
 }

@@ -3,8 +3,17 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Ban, Plus } from 'lucide-react'
-import { Typography, Badge, Button, ConfirmDialog, PageSkeleton, Skeleton } from '@/shared/ui'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import {
+  Typography,
+  Badge,
+  Button,
+  Card,
+  ConfirmDialog,
+  DataTable,
+  PageSkeleton,
+  Skeleton,
+} from '@/shared/ui'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { CreateWorkspaceInvitationModal } from './CreateWorkspaceInvitationModal'
 import { useWorkspaceInvitations } from '../hooks/useWorkspaceInvitations'
 import * as workspaceInvitationsApi from '../api/workspace-invitations.api'
@@ -31,7 +40,10 @@ function invitationDisplayStatus(inv: WorkspaceInvitation): {
     return { label: 'Pending', tone: 'warning', isOpen: true }
   }
   return {
-    label: inv.status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()),
+    label: inv.status
+      .replace(/_/g, ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase()),
     tone: 'neutral',
     isOpen: false,
   }
@@ -67,9 +79,7 @@ export function WorkspaceInvitationsView({ embedded = false }: { embedded?: bool
   }
 
   if (authzLoading) {
-    return (
-      <PageSkeleton variant="list" />
-    )
+    return <PageSkeleton variant="list" />
   }
 
   if (!FEATURES.orgInvites || !canInviteMembers) {
@@ -82,11 +92,11 @@ export function WorkspaceInvitationsView({ embedded = false }: { embedded?: bool
             className="mb-4"
           />
         ) : null}
-        <div className="border border-neutral-200 bg-neutral-50 p-4">
+        <Card className="bg-neutral-50 p-4">
           <Typography variant="small" tone="muted">
             You do not have permission to manage workspace invitations.
           </Typography>
-        </div>
+        </Card>
       </div>
     )
   }
@@ -104,12 +114,12 @@ export function WorkspaceInvitationsView({ embedded = false }: { embedded?: bool
         className={
           embedded
             ? 'mb-4 flex flex-wrap items-center justify-end gap-2'
-            : 'mb-6 flex flex-wrap items-center justify-between gap-4'
+            : 'mb-2 flex flex-wrap items-center justify-between gap-2'
         }
       >
         {!embedded ? (
           <div>
-            <Typography as="h1" size="lg" weight="semibold">
+            <Typography as="h1" size="md" weight="medium">
               Invitations
             </Typography>
             <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -117,11 +127,7 @@ export function WorkspaceInvitationsView({ embedded = false }: { embedded?: bool
             </Typography>
           </div>
         ) : null}
-        <Button
-          variant="primary"
-          icon={<Plus size={16} />}
-          onClick={() => setCreateOpen(true)}
-        >
+        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>
           Invite
         </Button>
       </div>
@@ -132,73 +138,87 @@ export function WorkspaceInvitationsView({ embedded = false }: { embedded?: bool
         </Typography>
       )}
 
-      <div className="overflow-hidden border border-neutral-200 bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-neutral-200 bg-neutral-50">
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Email</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Code hint</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Status</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Uses</th>
-              <th className="px-4 py-3 text-left font-medium text-neutral-600">Expires</th>
-              <th className="min-w-[10rem] whitespace-nowrap px-4 py-3 text-left font-medium text-neutral-600">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center">
-                  <Skeleton variant="rectangular" width="100%" height={80} />
-                </td>
-              </tr>
-            ) : invitations.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-neutral-500">
-                  No invitations yet
-                </td>
-              </tr>
-            ) : (
-              invitations.map((inv) => {
-                const display = invitationDisplayStatus(inv)
-                return (
-                <tr key={inv.id} className="border-b border-neutral-100 last:border-0">
-                  <td className="px-4 py-3">{inv.invitedEmail ?? '—'}</td>
-                  <td className="px-4 py-3 font-mono text-neutral-600">
-                    {inv.invitationCodeHint ? `••••${inv.invitationCodeHint}` : '—'}
-                  </td>
-                  <td className="px-4 py-3">
+      <div className="border border-neutral-200 bg-white">
+        {loading ? (
+          <div className="p-4">
+            <Skeleton variant="rectangular" width="100%" height={80} />
+          </div>
+        ) : (
+          <DataTable
+            ariaLabel="Workspace invitations"
+            rows={invitations}
+            rowKey={(invitation) => invitation.id}
+            emptyMessage="No invitations yet"
+            columns={[
+              {
+                id: 'email',
+                header: 'Email',
+                accessor: (invitation) => invitation.invitedEmail ?? '—',
+              },
+              {
+                id: 'code',
+                header: 'Code hint',
+                kind: 'code',
+                accessor: (invitation) =>
+                  invitation.invitationCodeHint ? `••••${invitation.invitationCodeHint}` : '—',
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (invitation) => {
+                  const display = invitationDisplayStatus(invitation)
+                  return (
                     <Badge variant="solid" tone={display.tone}>
                       {display.label}
                     </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600">
-                    {inv.usedCount}
-                    {inv.maxUses != null ? ` / ${inv.maxUses}` : ''}
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600">
-                    {inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString() : 'No expiry'}
-                  </td>
-                  <td className="px-4 py-3">
-                    {display.isOpen && (
-                      <Button
-                        variant="ghost"
-                        tone="error"
-                        onClick={() =>
-                          setConfirmRevoke({
-                            inviteId: inv.id,
-                            email: inv.invitedEmail ?? inv.invitationCodeHint ?? 'this invite',
-                          })
-                        } icon={<Ban size={16} />}>
-                        Revoke
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
+                  )
+                },
+              },
+              {
+                id: 'uses',
+                header: 'Uses',
+                accessor: (invitation) =>
+                  `${invitation.usedCount}${invitation.maxUses != null ? ` / ${invitation.maxUses}` : ''}`,
+              },
+              {
+                id: 'expires',
+                header: 'Expires',
+                accessor: (invitation) =>
+                  invitation.expiresAt
+                    ? new Date(invitation.expiresAt).toLocaleDateString()
+                    : 'No expiry',
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                width: '10rem',
+                cell: (invitation) => {
+                  const display = invitationDisplayStatus(invitation)
+                  return display.isOpen ? (
+                    <Button
+                      variant="ghost"
+                      tone="error"
+                      onClick={() =>
+                        setConfirmRevoke({
+                          inviteId: invitation.id,
+                          email:
+                            invitation.invitedEmail ??
+                            invitation.invitationCodeHint ??
+                            'this invite',
+                        })
+                      }
+                      icon={<Ban size={16} />}
+                    >
+                      Revoke
+                    </Button>
+                  ) : (
+                    '—'
+                  )
+                },
+              },
+            ]}
+          />
+        )}
       </div>
 
       <CreateWorkspaceInvitationModal

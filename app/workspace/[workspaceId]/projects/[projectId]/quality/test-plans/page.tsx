@@ -1,7 +1,11 @@
 'use client'
 
-import { TestManagementView } from '@/modules/quality/presentation/ui/TestManagementView'
+import { LegacyQualityRedirect, TestManagementView } from '@/modules/quality'
 
 export default function Page() {
-  return <TestManagementView />
+  return (
+    <LegacyQualityRedirect target="runs">
+      <TestManagementView />
+    </LegacyQualityRedirect>
+  )
 }

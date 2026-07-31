@@ -29,8 +29,10 @@ export function useNavCapabilityDeepLinkGuard(opts: {
     if (loading || !ready) return
     const req = resolveNavCapabilityForPath(pathname, workspaceId)
     if (!req) return
-    if (!(req.key in caps)) return
-    if (can(req.key)) {
+    const requiredKeys = [req.key, ...(req.alternativeKeys ?? [])]
+    const resolvedKeys = requiredKeys.filter((key) => key in caps)
+    if (resolvedKeys.length < requiredKeys.length) return
+    if (resolvedKeys.some((key) => can(key))) {
       lastRedirect.current = null
       return
     }

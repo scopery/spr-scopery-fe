@@ -5,6 +5,7 @@ import { ChevronDown, Pencil, Plus, Trash2 } from 'lucide-react'
 import {
   Button,
   ConfirmDialog,
+  DataTable,
   Divider,
   Input,
   Modal,
@@ -92,10 +93,7 @@ export function ScreenStructureEditor({
   onUpdate,
   onDelete,
 }: ScreenStructureEditorProps) {
-  const hasEnumColumns = useMemo(
-    () => columns.some((c) => (c.options?.length ?? 0) > 0),
-    [columns]
-  )
+  const hasEnumColumns = useMemo(() => columns.some((c) => (c.options?.length ?? 0) > 0), [columns])
   const [rows, setRows] = useState<EditRow[]>([])
   const [editOpen, setEditOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
@@ -188,9 +186,7 @@ export function ScreenStructureEditor({
       )
       return
     }
-    setRows((prev) =>
-      prev.map((r) => (r.id === row.id ? { ...r, saving: true, error: null } : r))
-    )
+    setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, saving: true, error: null } : r)))
     try {
       await onUpdate(row.id, row.draft)
     } catch (err: unknown) {
@@ -243,8 +239,7 @@ export function ScreenStructureEditor({
       }
       if (!next.length) return
       setDrafts((prev) => {
-        const blank =
-          prev.length === 1 && Object.values(prev[0].values).every((v) => !v.trim())
+        const blank = prev.length === 1 && Object.values(prev[0].values).every((v) => !v.trim())
         return blank ? next : [...prev, ...next]
       })
       setPasteHint(true)
@@ -354,9 +349,7 @@ export function ScreenStructureEditor({
     if (col.options && col.options.length > 0) {
       const base = col.options.map((o) => ({ value: o, label: o }))
       const options =
-        value && !col.options.includes(value)
-          ? [{ value, label: value }, ...base]
-          : base
+        value && !col.options.includes(value) ? [{ value, label: value }, ...base] : base
       return (
         <Select
           options={options}
@@ -397,10 +390,7 @@ export function ScreenStructureEditor({
             {hasEnumColumns ? (
               <ChevronDown
                 size={14}
-                className={cn(
-                  'ml-1 inline transition-transform',
-                  addMenuOpen && 'rotate-180'
-                )}
+                className={cn('ml-1 inline transition-transform', addMenuOpen && 'rotate-180')}
               />
             ) : null}
           </Button>
@@ -497,89 +487,76 @@ export function ScreenStructureEditor({
           <Typography variant="small" tone="muted">
             Edit cells like Excel. Save each dirty row or use Save all.
           </Typography>
-          <div className="max-h-[min(60vh,520px)] overflow-auto border border-neutral-200">
-            <table className="w-full min-w-[480px] text-left text-sm">
-              <thead>
-                <tr className="sticky top-0 z-[1] border-b border-neutral-200 bg-neutral-50 text-xs text-neutral-500">
-                  <th className="w-8 px-2 py-2">#</th>
-                  {columns.map((col) => (
-                    <th key={col.key} className="px-2 py-2">
-                      {col.label}
-                      {col.required ? ' *' : ''}
-                    </th>
-                  ))}
-                  <th className="w-28 px-2 py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, index) => (
-                  <tr
-                    key={row.id}
-                    className={cn(
-                      'border-b border-neutral-100',
-                      row.dirty && 'bg-amber-50/50',
-                      row.error && 'bg-red-50/60'
-                    )}
-                  >
-                    <td className="px-2 py-1.5 text-xs text-neutral-400">{index + 1}</td>
-                    {columns.map((col) => {
-                      const locked = Boolean(col.lockedOnExisting)
-                      return (
-                        <td key={col.key} className="px-2 py-1.5">
-                          {locked ? (
-                            <span className="block truncate py-1.5 text-neutral-600">
-                              {row.values[col.key] || '—'}
-                            </span>
-                          ) : (
-                            renderValueControl(
-                              col,
-                              row.draft[col.key] ?? '',
-                              (next) => updateDraftCell(row.id, col.key, next),
-                              {
-                                disabled: row.saving,
-                                'aria-label': `${col.label} row ${index + 1}`,
-                                size: 'sm',
-                              }
-                            )
-                          )}
-                        </td>
-                      )
-                    })}
-                    <td className="px-1 py-1.5">
-                      <div className="flex items-center gap-0.5">
-                        {row.dirty ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={row.saving}
-                            loading={row.saving}
-                            onClick={() => void saveRow(row)}
-                          >
-                            Save
-                          </Button>
-                        ) : null}
-                        {allowDelete ? (
-                          <button
-                            type="button"
-                            className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
-                            aria-label={`Delete ${itemLabel}`}
-                            onClick={() => setDeleteTarget(row)}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        ) : null}
-                      </div>
-                      {row.error ? (
-                        <Typography variant="caption" tone="error" className="mt-0.5 block">
-                          {row.error}
-                        </Typography>
+          <DataTable
+            className="max-h-[min(60vh,520px)] border border-neutral-200"
+            tableClassName="min-w-[480px]"
+            ariaLabel={editTitle}
+            rows={rows}
+            rowKey={(row) => row.id}
+            rowClassName={(row) => cn(row.dirty && 'bg-amber-50/50', row.error && 'bg-red-50/60')}
+            columns={[
+              { id: 'index', header: '#', cell: (_row, index) => index + 1, width: '48px' },
+              ...columns.map((col) => ({
+                id: col.key,
+                header: `${col.label}${col.required ? ' *' : ''}`,
+                kind: /code|key/i.test(col.key) ? ('code' as const) : undefined,
+                cell: (row: EditRow, index: number) =>
+                  col.lockedOnExisting ? (
+                    <span className="block truncate py-1.5 text-neutral-600">
+                      {row.values[col.key] || '—'}
+                    </span>
+                  ) : (
+                    renderValueControl(
+                      col,
+                      row.draft[col.key] ?? '',
+                      (next) => updateDraftCell(row.id, col.key, next),
+                      {
+                        disabled: row.saving,
+                        'aria-label': `${col.label} row ${index + 1}`,
+                        size: 'sm',
+                      }
+                    )
+                  ),
+              })),
+              {
+                id: 'actions',
+                header: '',
+                width: '112px',
+                cell: (row) => (
+                  <div>
+                    <div className="flex items-center gap-0.5">
+                      {row.dirty ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={row.saving}
+                          loading={row.saving}
+                          onClick={() => void saveRow(row)}
+                        >
+                          Save
+                        </Button>
                       ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      {allowDelete ? (
+                        <button
+                          type="button"
+                          className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
+                          aria-label={`Delete ${itemLabel}`}
+                          onClick={() => setDeleteTarget(row)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      ) : null}
+                    </div>
+                    {row.error ? (
+                      <Typography variant="caption" tone="error" className="mt-0.5 block">
+                        {row.error}
+                      </Typography>
+                    ) : null}
+                  </div>
+                ),
+              },
+            ]}
+          />
         </div>
       </Modal>
 
@@ -610,75 +587,57 @@ export function ScreenStructureEditor({
               Pasted — review before create.
             </Typography>
           ) : null}
-          <div className="max-h-[min(60vh,520px)] overflow-auto border border-neutral-200">
-            <table className="w-full min-w-[480px] text-left text-sm">
-              <thead>
-                <tr className="sticky top-0 z-[1] border-b border-neutral-200 bg-neutral-50 text-xs text-neutral-500">
-                  <th className="w-8 px-2 py-2">#</th>
-                  {columns.map((col) => (
-                    <th key={col.key} className="px-2 py-2">
-                      {col.label}
-                      {col.required ? ' *' : ''}
-                    </th>
-                  ))}
-                  <th className="w-10 px-2 py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {drafts.map((draft, index) => (
-                  <tr
-                    key={draft.id}
-                    className={cn(
-                      'border-b border-neutral-100',
-                      draft.error && 'bg-red-50/60'
-                    )}
+          <DataTable
+            className="max-h-[min(60vh,520px)] border border-neutral-200"
+            tableClassName="min-w-[480px]"
+            ariaLabel={addTitle}
+            rows={drafts}
+            rowKey={(draft) => draft.id}
+            rowClassName={(draft) => cn(draft.error && 'bg-red-50/60')}
+            columns={[
+              { id: 'index', header: '#', cell: (_draft, index) => index + 1, width: '48px' },
+              ...columns.map((col) => ({
+                id: col.key,
+                header: `${col.label}${col.required ? ' *' : ''}`,
+                kind: /code|key/i.test(col.key) ? ('code' as const) : undefined,
+                cell: (draft: DraftRow, index: number) =>
+                  renderValueControl(
+                    col,
+                    draft.values[col.key] ?? '',
+                    (next) =>
+                      setDrafts((prev) =>
+                        prev.map((item) =>
+                          item.id === draft.id
+                            ? { ...item, values: { ...item.values, [col.key]: next }, error: null }
+                            : item
+                        )
+                      ),
+                    { 'aria-label': `${col.label} draft ${index + 1}`, size: 'sm' }
+                  ),
+              })),
+              {
+                id: 'remove',
+                header: '',
+                width: '48px',
+                cell: (draft, index) => (
+                  <button
+                    type="button"
+                    className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
+                    onClick={() =>
+                      setDrafts((prev) =>
+                        prev.length <= 1
+                          ? [{ id: newDraftId(), values: emptyValues(columns) }]
+                          : prev.filter((item) => item.id !== draft.id)
+                      )
+                    }
+                    aria-label={`Remove row ${index + 1}`}
                   >
-                    <td className="px-2 py-1.5 text-xs text-neutral-400">{index + 1}</td>
-                    {columns.map((col) => (
-                      <td key={col.key} className="px-2 py-1.5">
-                        {renderValueControl(
-                          col,
-                          draft.values[col.key] ?? '',
-                          (next) =>
-                            setDrafts((prev) =>
-                              prev.map((d) =>
-                                d.id === draft.id
-                                  ? {
-                                      ...d,
-                                      values: { ...d.values, [col.key]: next },
-                                      error: null,
-                                    }
-                                  : d
-                              )
-                            ),
-                          {
-                            'aria-label': `${col.label} draft ${index + 1}`,
-                            size: 'sm',
-                          }
-                        )}
-                      </td>
-                    ))}
-                    <td className="px-1 py-1.5">
-                      <button
-                        type="button"
-                        className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
-                        onClick={() =>
-                          setDrafts((prev) =>
-                            prev.length <= 1
-                              ? [{ id: newDraftId(), values: emptyValues(columns) }]
-                              : prev.filter((d) => d.id !== draft.id)
-                          )
-                        }
-                        aria-label={`Remove row ${index + 1}`}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    <Trash2 size={14} />
+                  </button>
+                ),
+              },
+            ]}
+          />
           {drafts.some((d) => d.error) ? (
             <ul className="space-y-1">
               {drafts.map((d, i) =>
@@ -701,10 +660,7 @@ export function ScreenStructureEditor({
             size="sm"
             variant="secondary"
             onClick={() =>
-              setDrafts((prev) => [
-                ...prev,
-                { id: newDraftId(), values: emptyValues(columns) },
-              ])
+              setDrafts((prev) => [...prev, { id: newDraftId(), values: emptyValues(columns) }])
             }
           >
             <Plus size={14} className="mr-1 inline" />
@@ -725,9 +681,7 @@ export function ScreenStructureEditor({
             label: submitting ? 'Creating…' : 'Create',
             onClick: () => void handleSingleCreate(),
             variant: 'primary',
-            disabled:
-              submitting ||
-              columns.some((c) => c.required && !singleValues[c.key]?.trim()),
+            disabled: submitting || columns.some((c) => c.required && !singleValues[c.key]?.trim()),
             loading: submitting,
           },
         ]}
@@ -762,9 +716,7 @@ export function ScreenStructureEditor({
         open={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
         title={`Delete ${itemLabel}?`}
-        message={
-          deleteTarget ? `Remove this ${itemLabel}. This cannot be undone.` : ''
-        }
+        message={deleteTarget ? `Remove this ${itemLabel}. This cannot be undone.` : ''}
         confirmLabel="Delete"
         variant="danger"
         loading={deleting}

@@ -8,7 +8,9 @@ import { toast } from 'sonner'
 import {
   Badge,
   Button,
+  Card,
   CurrencyAmount,
+  DataTable,
   FinancialKpiStrip,
   LongRunningJobState,
   LongRunningJobStatus,
@@ -103,15 +105,15 @@ export function FinanceScenarioWorkbenchView() {
 
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="border border-neutral-200 bg-white p-8 text-center">
         <Typography weight="medium">You don’t have access to this scenario</Typography>
-      </div>
+      </Card>
     )
   }
 
   if (error || !scenario) {
     return (
-      <div className="border border-error/30 bg-error/5 p-4">
+      <div className="border-error/30 bg-error/5 border p-4">
         <Typography variant="small" tone="error">
           {error ?? 'Scenario not found'}
         </Typography>
@@ -154,7 +156,7 @@ export function FinanceScenarioWorkbenchView() {
     : []
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
@@ -169,7 +171,7 @@ export function FinanceScenarioWorkbenchView() {
           >
             ← Finance Scenarios
           </NextLink>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             {scenario.name}
           </Typography>
           <div className="mt-2 flex flex-wrap items-center gap-sm">
@@ -246,32 +248,25 @@ export function FinanceScenarioWorkbenchView() {
       {summary ? (
         <div className="mb-4">
           <FinancialKpiStrip items={primaryKpis} mode="expanded" className="mb-3" />
-          <div className="overflow-x-auto border border-neutral-200 bg-neutral-50">
-            <table className="min-w-full text-left text-xs">
-              <tbody>
-                <tr className="border-b border-neutral-200">
-                  <td className="px-3 py-2 text-neutral-600">Estimate hours</td>
-                  <td className="px-3 py-2">{formatHours(summary.totalEstimateHours)}</td>
-                  <td className="px-3 py-2 text-neutral-600">Labor</td>
-                  <td className="px-3 py-2">{money(summary.totalLaborCost, currency)}</td>
-                  <td className="px-3 py-2 text-neutral-600">Custom</td>
-                  <td className="px-3 py-2">{money(summary.totalCustomCost, currency)}</td>
-                  <td className="px-3 py-2 text-neutral-600">Vendor</td>
-                  <td className="px-3 py-2">{money(summary.totalVendorCost, currency)}</td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-2 text-neutral-600">Contingency</td>
-                  <td className="px-3 py-2">{money(summary.totalContingency, currency)}</td>
-                  <td className="px-3 py-2 text-neutral-600">Overhead</td>
-                  <td className="px-3 py-2">{money(summary.totalOverhead, currency)}</td>
-                  <td className="px-3 py-2 text-neutral-600">Margin %</td>
-                  <td className="px-3 py-2">{formatPercent(summary.grossMarginPercent)}</td>
-                  <td className="px-3 py-2 text-neutral-600">PBT %</td>
-                  <td className="px-3 py-2">{formatPercent(summary.pbtPercent)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            ariaLabel="Finance summary details"
+            rows={[
+              { metric: 'Estimate hours', value: formatHours(summary.totalEstimateHours) },
+              { metric: 'Labor', value: money(summary.totalLaborCost, currency) },
+              { metric: 'Custom', value: money(summary.totalCustomCost, currency) },
+              { metric: 'Vendor', value: money(summary.totalVendorCost, currency) },
+              { metric: 'Contingency', value: money(summary.totalContingency, currency) },
+              { metric: 'Overhead', value: money(summary.totalOverhead, currency) },
+              { metric: 'Margin %', value: formatPercent(summary.grossMarginPercent) },
+              { metric: 'PBT %', value: formatPercent(summary.pbtPercent) },
+            ]}
+            rowKey={(row) => row.metric}
+            compact
+            columns={[
+              { id: 'metric', header: 'Metric', accessor: 'metric' },
+              { id: 'value', header: 'Value', accessor: 'value' },
+            ]}
+          />
         </div>
       ) : null}
 
@@ -293,76 +288,76 @@ export function FinanceScenarioWorkbenchView() {
       </div>
 
       {tab === 'phases' ? (
-        <div className="overflow-x-auto border border-neutral-200 bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="sticky left-0 z-10 bg-neutral-50 px-3 py-2 font-medium">
-                  Phase
-                </th>
-                <th className="px-3 py-2 font-medium">Hours</th>
-                <th className="px-3 py-2 font-medium">Labor</th>
-                <th className="px-3 py-2 font-medium">Custom</th>
-                <th className="px-3 py-2 font-medium">Vendor</th>
-                <th className="px-3 py-2 font-medium">Contingency</th>
-                <th className="px-3 py-2 font-medium">Direct</th>
-                <th className="px-3 py-2 font-medium">Overhead</th>
-                <th className="px-3 py-2 font-medium">Budget</th>
-                <th className="px-3 py-2 font-medium">Revenue</th>
-                <th className="px-3 py-2 font-medium">Rev %</th>
-                <th className="px-3 py-2 font-medium">Margin</th>
-                <th className="px-3 py-2 font-medium">Margin %</th>
-                <th className="px-3 py-2 font-medium">PBT</th>
-                {editable ? <th className="px-3 py-2 font-medium">Actions</th> : null}
-              </tr>
-            </thead>
-            <tbody>
-              {phases.length === 0 ? (
-                <tr>
-                  <td colSpan={editable ? 15 : 14} className="px-3 py-8 text-center">
-                    <Typography variant="small" tone="muted">
-                      No phase financials — recalculate after creating the scenario
-                    </Typography>
-                  </td>
-                </tr>
-              ) : (
-                [...phases]
-                  .sort((a, b) => a.phaseOrder - b.phaseOrder)
-                  .map((p) => (
-                    <tr key={p.id} className="border-t border-neutral-100">
-                      <td className="sticky left-0 z-10 bg-white px-3 py-2 font-medium">
-                        {p.phaseNameSnapshot}
-                      </td>
-                      <td className="px-3 py-2">{formatHours(p.estimateHours)}</td>
-                      <td className="px-3 py-2">{money(p.laborCost, currency)}</td>
-                      <td className="px-3 py-2">{money(p.customCost, currency)}</td>
-                      <td className="px-3 py-2">{money(p.vendorCost, currency)}</td>
-                      <td className="px-3 py-2">{money(p.contingencyAmount, currency)}</td>
-                      <td className="px-3 py-2">{money(p.directCost, currency)}</td>
-                      <td className="px-3 py-2">{money(p.overheadAmount, currency)}</td>
-                      <td className="px-3 py-2">{money(p.budgetOfCosts, currency)}</td>
-                      <td className="px-3 py-2">{money(p.plannedRevenue, currency)}</td>
-                      <td className="px-3 py-2">{formatPercent(p.revenuePercent)}</td>
-                      <td className="px-3 py-2">{money(p.grossMargin, currency)}</td>
-                      <td className="px-3 py-2">{formatPercent(p.grossMarginPercent)}</td>
-                      <td className="px-3 py-2">{money(p.profitBeforeTax, currency)}</td>
-                      {editable ? (
-                        <td className="px-3 py-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setPhaseEdit(p)}
-                          >
-                            Revenue
-                          </Button>
-                        </td>
-                      ) : null}
-                    </tr>
-                  ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          ariaLabel="Phase financials"
+          rows={[...phases].sort((a, b) => a.phaseOrder - b.phaseOrder)}
+          rowKey={(phase) => phase.id}
+          emptyMessage="No phase financials — recalculate after creating the scenario"
+          columns={[
+            {
+              id: 'phase',
+              header: 'Phase',
+              accessor: (p) => p.phaseNameSnapshot || '—',
+              sticky: true,
+              width: '180px',
+            },
+            { id: 'hours', header: 'Hours', accessor: (p) => formatHours(p.estimateHours) },
+            ...(
+              [
+                'laborCost',
+                'customCost',
+                'vendorCost',
+                'contingencyAmount',
+                'directCost',
+                'overheadAmount',
+                'budgetOfCosts',
+                'plannedRevenue',
+                'grossMargin',
+                'profitBeforeTax',
+              ] as const
+            ).map((field) => ({
+              id: field,
+              header: (
+                {
+                  laborCost: 'Labor',
+                  customCost: 'Custom',
+                  vendorCost: 'Vendor',
+                  contingencyAmount: 'Contingency',
+                  directCost: 'Direct',
+                  overheadAmount: 'Overhead',
+                  budgetOfCosts: 'Budget',
+                  plannedRevenue: 'Revenue',
+                  grossMargin: 'Margin',
+                  profitBeforeTax: 'PBT',
+                } as const
+              )[field],
+              cell: (p: (typeof phases)[number]) => money(p[field], currency),
+            })),
+            {
+              id: 'revenuePercent',
+              header: 'Rev %',
+              accessor: (p) => formatPercent(p.revenuePercent),
+            },
+            {
+              id: 'marginPercent',
+              header: 'Margin %',
+              accessor: (p) => formatPercent(p.grossMarginPercent),
+            },
+            ...(editable
+              ? [
+                  {
+                    id: 'actions',
+                    header: 'Actions',
+                    cell: (p: (typeof phases)[number]) => (
+                      <Button size="sm" variant="ghost" onClick={() => setPhaseEdit(p)}>
+                        Revenue
+                      </Button>
+                    ),
+                  },
+                ]
+              : []),
+          ]}
+        />
       ) : null}
 
       {tab === 'custom' ? (
@@ -379,56 +374,38 @@ export function FinanceScenarioWorkbenchView() {
               </Button>
             </div>
           ) : null}
-          <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Category</th>
-                  <th className="px-4 py-3 font-medium">Amount</th>
-                  <th className="px-4 py-3 font-medium">Date</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  {editable ? <th className="px-4 py-3 font-medium">Actions</th> : null}
-                </tr>
-              </thead>
-              <tbody>
-                {customCosts.length === 0 ? (
-                  <tr>
-                    <td colSpan={editable ? 6 : 5} className="px-4 py-8 text-center">
-                      <Typography variant="small" tone="muted">
-                        No custom costs
-                      </Typography>
-                    </td>
-                  </tr>
-                ) : (
-                  customCosts.map((c) => (
-                    <tr key={c.id} className="border-t border-neutral-100">
-                      <td className="px-4 py-3">{c.name}</td>
-                      <td className="px-4 py-3">{c.category}</td>
-                      <td className="px-4 py-3">{money(c.amount, c.currencyCode)}</td>
-                      <td className="px-4 py-3">{c.costDate ?? '—'}</td>
-                      <td className="px-4 py-3">{c.status}</td>
-                      {editable ? (
-                        <td className="px-4 py-3">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() =>
-                              void runAction('Custom cost archived', () =>
-                                archiveCustom(c.id)
-                              )
-                            }
-                          >
-                            Archive
-                          </Button>
-                        </td>
-                      ) : null}
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            ariaLabel="Custom costs"
+            rows={customCosts}
+            rowKey={(cost) => cost.id}
+            emptyMessage="No custom costs"
+            columns={[
+              { id: 'name', header: 'Name', accessor: (c) => c.name || '—' },
+              { id: 'category', header: 'Category', accessor: (c) => c.category || '—' },
+              { id: 'amount', header: 'Amount', cell: (c) => money(c.amount, c.currencyCode) },
+              { id: 'date', header: 'Date', accessor: (c) => c.costDate ?? '—' },
+              { id: 'status', header: 'Status', accessor: 'status' },
+              ...(editable
+                ? [
+                    {
+                      id: 'actions',
+                      header: 'Actions',
+                      cell: (c: (typeof customCosts)[number]) => (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            void runAction('Custom cost archived', () => archiveCustom(c.id))
+                          }
+                        >
+                          Archive
+                        </Button>
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
+          />
         </div>
       ) : null}
 
@@ -446,59 +423,47 @@ export function FinanceScenarioWorkbenchView() {
               </Button>
             </div>
           ) : null}
-          <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Vendor</th>
-                  <th className="px-4 py-3 font-medium">Description</th>
-                  <th className="px-4 py-3 font-medium">Amount</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  {editable ? <th className="px-4 py-3 font-medium">Actions</th> : null}
-                </tr>
-              </thead>
-              <tbody>
-                {vendorCosts.length === 0 ? (
-                  <tr>
-                    <td colSpan={editable ? 5 : 4} className="px-4 py-8 text-center">
-                      <Typography variant="small" tone="muted">
-                        No vendor costs
-                      </Typography>
-                    </td>
-                  </tr>
-                ) : (
-                  vendorCosts.map((v) => (
-                    <tr key={v.id} className="border-t border-neutral-100">
-                      <td className="px-4 py-3">{v.vendorName}</td>
-                      <td className="px-4 py-3">{v.description ?? '—'}</td>
-                      <td className="px-4 py-3">{money(v.amount, v.currencyCode)}</td>
-                      <td className="px-4 py-3">{v.status}</td>
-                      {editable ? (
-                        <td className="px-4 py-3">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() =>
-                              void runAction('Vendor cost archived', () =>
-                                archiveVendor(v.id)
-                              )
-                            }
-                          >
-                            Archive
-                          </Button>
-                        </td>
-                      ) : null}
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            ariaLabel="Vendor costs"
+            rows={vendorCosts}
+            rowKey={(cost) => cost.id}
+            emptyMessage="No vendor costs"
+            columns={[
+              {
+                id: 'vendor',
+                header: 'Vendor',
+                accessor: (v) => v.vendorName || '—',
+                kind: 'reference',
+              },
+              { id: 'description', header: 'Description', accessor: (v) => v.description ?? '—' },
+              { id: 'amount', header: 'Amount', cell: (v) => money(v.amount, v.currencyCode) },
+              { id: 'status', header: 'Status', accessor: 'status' },
+              ...(editable
+                ? [
+                    {
+                      id: 'actions',
+                      header: 'Actions',
+                      cell: (v: (typeof vendorCosts)[number]) => (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            void runAction('Vendor cost archived', () => archiveVendor(v.id))
+                          }
+                        >
+                          Archive
+                        </Button>
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
+          />
         </div>
       ) : null}
 
       {tab === 'assumptions' ? (
-        <div className="border border-neutral-200 bg-neutral-50 p-4">
+        <Card className="border border-neutral-200 bg-neutral-50 p-4">
           {scenario.assumptionsJson == null ? (
             <Typography variant="small" tone="muted">
               No assumptions recorded.
@@ -508,7 +473,7 @@ export function FinanceScenarioWorkbenchView() {
               {JSON.stringify(scenario.assumptionsJson, null, 2)}
             </pre>
           )}
-        </div>
+        </Card>
       ) : null}
 
       <EditPhaseRevenueModal

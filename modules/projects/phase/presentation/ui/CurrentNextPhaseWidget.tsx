@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
-import { Badge, Button, Progress, Typography } from '@/shared/ui'
+import { Badge, Button, Card, Progress, Typography } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import type { ProjectPhase } from '../../domain/model/phase'
 import type { ProjectTask } from '../../../task/domain/model/task'
@@ -47,7 +47,7 @@ export function CurrentNextPhaseWidget({
 
   if (loading) {
     return (
-      <section className="border border-neutral-200 bg-white p-5">
+      <Card as="section" className="p-5">
         <Typography as="h2" weight="semibold" className="mb-4">
           Current and next Phase
         </Typography>
@@ -55,13 +55,13 @@ export function CurrentNextPhaseWidget({
           <div className="h-3 w-2/3 bg-neutral-100" />
           <div className="h-3 w-1/2 bg-neutral-100" />
         </div>
-      </section>
+      </Card>
     )
   }
 
   if (phases.length === 0) {
     return (
-      <section className="border border-neutral-200 bg-white p-5">
+      <Card as="section" className="p-5">
         <Typography as="h2" weight="semibold" className="mb-4">
           Current and next Phase
         </Typography>
@@ -74,12 +74,12 @@ export function CurrentNextPhaseWidget({
         >
           Manage phases <ArrowRight size={14} />
         </Link>
-      </section>
+      </Card>
     )
   }
 
   return (
-    <section className="border border-neutral-200 bg-white p-5">
+    <Card as="section" className="p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <Typography as="h2" weight="semibold">
           Current and next Phase
@@ -89,7 +89,12 @@ export function CurrentNextPhaseWidget({
 
       <div className="space-y-5">
         <div>
-          <Typography variant="small" tone="muted" weight="medium" className="mb-2 uppercase tracking-wide">
+          <Typography
+            variant="small"
+            tone="muted"
+            weight="medium"
+            className="mb-2 uppercase tracking-wide"
+          >
             Current
             {row.activePhases.length > 1 ? ` · ${row.activePhases.length}` : ''}
           </Typography>
@@ -102,35 +107,50 @@ export function CurrentNextPhaseWidget({
               {row.activePhases.map((phase) => {
                 const title = phaseDisplayTitle(phase)
                 const endingSoon = isPhaseEndingSoon(phase.plannedEndDate, todayIso)
+                const detail = [
+                  phase.progressPercent == null
+                    ? 'No tasks yet'
+                    : `${phase.progressPercent}% complete`,
+                  phase.plannedEndDate
+                    ? `Planned finish ${formatPhaseWatchDate(phase.plannedEndDate)}`
+                    : null,
+                  endingSoon && phase.plannedEndDate
+                    ? formatDaysRemaining(phase.plannedEndDate, todayIso)
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
                 return (
-                <li key={phase.phaseId} className="min-w-0 space-y-1.5">
-                  <Typography as="p" size="sm" weight="semibold" className="break-words">
-                    {title}
-                  </Typography>
-                  <Typography variant="small" className="break-words text-neutral-600">
-                    {phase.progressPercent == null
-                      ? 'No tasks yet'
-                      : `${phase.progressPercent}% complete`}
-                    {phase.plannedEndDate
-                      ? ` · Planned finish ${formatPhaseWatchDate(phase.plannedEndDate)}`
-                      : ''}
-                    {endingSoon && phase.plannedEndDate
-                      ? ` · ${formatDaysRemaining(phase.plannedEndDate, todayIso)}`
-                      : ''}
-                  </Typography>
-                  {phase.progressPercent != null ? (
-                    <Progress
-                      value={phase.progressPercent}
+                  <li key={phase.phaseId} className="min-w-0 space-y-1.5">
+                    <Typography
+                      as="p"
                       size="sm"
-                      className="[&_[role=progressbar]]:rounded-none"
-                    />
-                  ) : null}
-                  {phase.blockedTaskCount > 0 ? (
-                    <Badge variant="solid" tone="error" className="rounded-none">
-                      {phase.blockedTaskCount} blocked
-                    </Badge>
-                  ) : null}
-                </li>
+                      weight="semibold"
+                      className="truncate"
+                      title={title}
+                    >
+                      {title}
+                    </Typography>
+                    <Typography
+                      variant="small"
+                      className="truncate text-neutral-600"
+                      title={detail}
+                    >
+                      {detail}
+                    </Typography>
+                    {phase.progressPercent != null ? (
+                      <Progress
+                        value={phase.progressPercent}
+                        size="sm"
+                        className="[&_[role=progressbar]]:rounded-none"
+                      />
+                    ) : null}
+                    {phase.blockedTaskCount > 0 ? (
+                      <Badge variant="solid" tone="error" className="rounded-none">
+                        {phase.blockedTaskCount} blocked
+                      </Badge>
+                    ) : null}
+                  </li>
                 )
               })}
             </ul>
@@ -138,7 +158,12 @@ export function CurrentNextPhaseWidget({
         </div>
 
         <div className="border-t border-neutral-100 pt-4">
-          <Typography variant="small" tone="muted" weight="medium" className="mb-2 uppercase tracking-wide">
+          <Typography
+            variant="small"
+            tone="muted"
+            weight="medium"
+            className="mb-2 uppercase tracking-wide"
+          >
             Next
           </Typography>
           {row.nextPhase ? (
@@ -146,37 +171,58 @@ export function CurrentNextPhaseWidget({
               const startingSoon = row.signals.includes(PhaseWatchSignal.StartingSoon)
               const noStartDate = row.signals.includes(PhaseWatchSignal.NoStartDate)
               const alert = startingSoon || noStartDate
-              return (
-            <div
-              className={cn(
-                'min-w-0 space-y-1.5',
-                alert && 'rounded-none border border-orange-200/70 bg-orange-50/80 px-2 py-1.5'
-              )}
-            >
-              <Typography as="p" size="sm" weight="semibold" className="break-words">
-                {phaseDisplayTitle(row.nextPhase)}
-              </Typography>
-              <Typography
-                variant="small"
-                className={cn(alert ? 'font-medium text-red-700' : 'text-neutral-600')}
-              >
-                {row.nextPhase.plannedStartDate
+              const nextTitle = phaseDisplayTitle(row.nextPhase)
+              const nextSchedule = [
+                row.nextPhase.plannedStartDate
                   ? `Planned start ${formatPhaseWatchDate(row.nextPhase.plannedStartDate)}`
-                  : 'Start date not scheduled'}
-                {startingSoon && row.nextPhase.plannedStartDate
-                  ? ` · ${formatDaysRemaining(row.nextPhase.plannedStartDate, todayIso)}`
-                  : ''}
-              </Typography>
-              {row.followUpLabels.filter((l) => l !== 'Ready').length > 0 ? (
-                <Typography variant="small" className="text-neutral-700">
-                  {row.followUpLabels.filter((l) => l !== 'Ready').join(' · ')}
-                </Typography>
-              ) : (
-                <Typography variant="small" tone="muted">
-                  Ready
-                </Typography>
-              )}
-            </div>
+                  : 'Start date not scheduled',
+                startingSoon && row.nextPhase.plannedStartDate
+                  ? formatDaysRemaining(row.nextPhase.plannedStartDate, todayIso)
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')
+              const followUp = row.followUpLabels.filter((l) => l !== 'Ready').join(' · ')
+              return (
+                <div
+                  className={cn(
+                    'min-w-0 space-y-1.5',
+                    alert && 'rounded-none border border-orange-200/70 bg-orange-50/80 px-2 py-1.5'
+                  )}
+                >
+                  <Typography
+                    as="p"
+                    size="sm"
+                    weight="semibold"
+                    className="truncate"
+                    title={nextTitle}
+                  >
+                    {nextTitle}
+                  </Typography>
+                  <Typography
+                    variant="small"
+                    className={cn(
+                      'truncate',
+                      alert ? 'font-medium text-red-700' : 'text-neutral-600'
+                    )}
+                    title={nextSchedule}
+                  >
+                    {nextSchedule}
+                  </Typography>
+                  {followUp ? (
+                    <Typography
+                      variant="small"
+                      className="truncate text-neutral-700"
+                      title={followUp}
+                    >
+                      {followUp}
+                    </Typography>
+                  ) : (
+                    <Typography variant="small" tone="muted">
+                      Ready
+                    </Typography>
+                  )}
+                </div>
               )
             })()
           ) : (
@@ -200,6 +246,6 @@ export function CurrentNextPhaseWidget({
           Manage phases <ArrowRight size={14} />
         </Link>
       </div>
-    </section>
+    </Card>
   )
 }

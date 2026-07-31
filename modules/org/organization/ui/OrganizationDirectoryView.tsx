@@ -104,7 +104,7 @@ export function OrganizationDirectoryView() {
             href={t.href}
             aria-current={activeTab === t.id ? 'page' : undefined}
             className={cn(
-              'rounded-none border-b-2 border-transparent px-3 py-2 text-sm text-neutral-600 motion-colors hover:text-neutral-900',
+              'motion-colors rounded-none border-b-2 border-transparent px-3 py-2 text-sm text-neutral-600 hover:text-neutral-900',
               activeTab === t.id && 'border-primary font-medium text-neutral-900'
             )}
           >

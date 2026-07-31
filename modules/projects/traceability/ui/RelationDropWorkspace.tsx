@@ -66,7 +66,7 @@ function endLabel(
   if (node) {
     return `${ARCHITECTURE_NODE_TYPE_LABEL[node.type]} · ${labelArchitectureNode(node)}`
   }
-  return `${nodeType} · ${nodeId.slice(0, 8)}…`
+  return `${nodeType} · Unavailable node`
 }
 
 export function RelationDropWorkspace({

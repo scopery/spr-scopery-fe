@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Plus } from 'lucide-react'
-import { Badge, Button, PageSkeleton, Typography } from '@/shared/ui'
+import { Badge, Button, DataTable, PageSkeleton, Typography } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { useProject } from '../../../project/hooks/useProject'
 import { useDeliverables } from '../hooks/useDeliverables'
 import { CreateDeliverableModal } from './CreateDeliverableModal'
@@ -37,20 +37,20 @@ export function DeliverablesView() {
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
-        className="mb-4"
+        className="mb-1"
       />
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Deliverables
           </Typography>
           {project ? (
-            <Typography variant="small" tone="muted" className="mt-1">
+            <Typography variant="caption" tone="muted" className="mt-0.5">
               {project.code} · {project.name}
             </Typography>
           ) : null}
@@ -68,64 +68,58 @@ export function DeliverablesView() {
         </div>
       ) : null}
 
-      <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">Code / Title</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Acceptance</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {deliverables.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center">
-                  <Typography variant="small" tone="muted">
-                    No deliverables yet
-                  </Typography>
-                </td>
-              </tr>
-            ) : (
-              deliverables.map((d) => (
-                <tr key={d.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      className="text-left hover:underline"
-                      onClick={() => setSelected(d)}
-                    >
-                      <Typography as="span" variant="small" tone="muted" className="font-mono">
-                        {d.code}
-                      </Typography>
-                      <Typography as="div" weight="medium">
-                        {d.title}
-                      </Typography>
-                    </button>
-                  </td>
-                  <td className="px-4 py-3">{d.type}</td>
-                  <td className="px-4 py-3">
-                    <Badge tone={d.status === 'ACCEPTED' ? 'success' : 'neutral'}>
-                      {deliverableStatusLabel(d.status)}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">{d.acceptanceRequired ? 'Required' : 'Not required'}</td>
-                  <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      className="text-sm text-primary hover:underline"
-                      onClick={() => setSelected(d)}
-                    >
-                      Open
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="border border-neutral-200 bg-white">
+        <DataTable
+          ariaLabel="Project deliverables"
+          rows={deliverables}
+          rowKey={(deliverable) => deliverable.id}
+          emptyMessage="No deliverables yet"
+          columns={[
+            { id: 'code', header: 'Code', accessor: 'code', kind: 'code' },
+            {
+              id: 'title',
+              header: 'Title',
+              cell: (deliverable) => (
+                <button
+                  type="button"
+                  className="text-left font-medium hover:underline"
+                  onClick={() => setSelected(deliverable)}
+                >
+                  {deliverable.title}
+                </button>
+              ),
+            },
+            { id: 'type', header: 'Type', accessor: 'type' },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (deliverable) => (
+                <Badge tone={deliverable.status === 'ACCEPTED' ? 'success' : 'neutral'}>
+                  {deliverableStatusLabel(deliverable.status)}
+                </Badge>
+              ),
+            },
+            {
+              id: 'acceptance',
+              header: 'Acceptance',
+              accessor: (deliverable) =>
+                deliverable.acceptanceRequired ? 'Required' : 'Not required',
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (deliverable) => (
+                <button
+                  type="button"
+                  className="text-sm text-primary hover:underline"
+                  onClick={() => setSelected(deliverable)}
+                >
+                  Open
+                </button>
+              ),
+            },
+          ]}
+        />
       </div>
 
       <CreateDeliverableModal

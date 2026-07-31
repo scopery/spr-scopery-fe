@@ -1,14 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import {
-  Button,
-  Input,
-  LongRunningJobPanel,
-  PageSkeleton,
-  Stack,
-  Typography
-} from '@/shared/ui'
+import { Button, LongRunningJobPanel, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useKnowledgeIndexing } from '../hooks/useKnowledgeIndexing'
 
 export function KnowledgeIndexingView() {
@@ -16,8 +9,6 @@ export function KnowledgeIndexingView() {
   const {
     jobs,
     classifications,
-    sourceId,
-    setSourceId,
     sourceDetail,
     chunks,
     loading,
@@ -25,16 +16,19 @@ export function KnowledgeIndexingView() {
     actionError,
     refetch,
     startReindex,
-    loadSource,
     reindexSource,
   } = useKnowledgeIndexing(workspaceId)
 
-  if (loading && jobs.length === 0) return <PageSkeleton variant="list" className="p-lg" />
+  if (loading && jobs.length === 0) {
+    return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4" />
+  }
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Knowledge Indexing Center</Typography>
-      <Typography tone="muted">
+    <Stack direction="vertical" spacing="sm" className="px-3 py-3 lg:px-4">
+      <Typography as="h1" size="md" weight="medium">
+        Knowledge Indexing Center
+      </Typography>
+      <Typography variant="small" tone="muted">
         Monitor reindex jobs. Requires X-Workspace-Id (injected via knowledge headers).
       </Typography>
       {error ? <Typography tone="error">{error}</Typography> : null}
@@ -76,22 +70,16 @@ export function KnowledgeIndexingView() {
 
       <Typography variant="h4">Source inspector</Typography>
       <div className="flex flex-wrap gap-sm">
-        <Input
-          value={sourceId}
-          onChange={(e) => setSourceId(e.target.value)}
-          placeholder="Source ID"
-          aria-label="Knowledge source ID"
-        />
-        <Button size="sm" variant="outline" onClick={() => void loadSource(sourceId)}>
-          Load
-        </Button>
+        <Typography variant="caption" tone="muted">
+          Source selection will be enabled when the backend exposes a source catalog endpoint.
+        </Typography>
         <Button size="sm" disabled={!sourceDetail} onClick={() => void reindexSource()}>
           Reindex source
         </Button>
       </div>
       {sourceDetail ? (
         <Typography variant="caption" tone="muted">
-          {[sourceDetail.title ?? sourceDetail.id, sourceDetail.status].filter(Boolean).join(' · ')}
+          {[sourceDetail.title ?? '—', sourceDetail.status].filter(Boolean).join(' · ')}
           {chunks.length ? ` · ${chunks.length} chunks` : ''}
         </Typography>
       ) : null}

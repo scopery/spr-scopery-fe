@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { Button, Input, Modal, Stack, Typography } from '@/shared/ui'
+import {
+  Button,
+  DataTable,
+  Input,
+  Modal,
+  Stack,
+  Typography,
+  type DataTableColumn,
+} from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
 import { cn } from '@/utils/cn'
 import type { CreateRequirementPayload } from '../model/requirements'
@@ -32,13 +40,7 @@ const COLUMNS: ColumnDef[] = [
   { key: 'description', label: 'Description', placeholder: 'Optional' },
 ]
 
-const VALID_TYPES = new Set([
-  'FUNCTIONAL',
-  'NON_FUNCTIONAL',
-  'BUSINESS',
-  'TECHNICAL',
-  'CONSTRAINT',
-])
+const VALID_TYPES = new Set(['FUNCTIONAL', 'NON_FUNCTIONAL', 'BUSINESS', 'TECHNICAL', 'CONSTRAINT'])
 
 const VALID_PRIORITIES = new Set(['HIGH', 'MEDIUM', 'LOW'])
 
@@ -313,55 +315,50 @@ export function RequirementBulkAddModal({
           </Typography>
         ) : null}
 
-        <div className="overflow-x-auto border border-neutral-200">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-neutral-200 bg-neutral-50 text-xs text-neutral-500">
-                <th className="w-8 px-2 py-2">#</th>
-                {COLUMNS.map((col) => (
-                  <th key={col.key} className="px-2 py-2">
-                    {col.label}
-                    {col.required ? ' *' : ''}
-                  </th>
-                ))}
-                <th className="w-10 px-2 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, index) => (
-                <tr
-                  key={row.id}
-                  className={cn('border-b border-neutral-100', row.error && 'bg-error/5')}
-                >
-                  <td className="px-2 py-1.5 align-middle text-xs text-neutral-400">
-                    {index + 1}
-                  </td>
-                  {COLUMNS.map((col) => (
-                    <td key={col.key} className="px-2 py-1.5 align-middle">
-                      <Input
-                        value={row[col.key]}
-                        onChange={(e) => updateRow(row.id, { [col.key]: e.target.value })}
-                        placeholder={col.placeholder}
-                        aria-label={`${col.label} row ${index + 1}`}
-                        fullWidth
-                        size="sm"
-                      />
-                    </td>
-                  ))}
-                  <td className="px-1 py-1.5 align-middle">
-                    <button
-                      type="button"
-                      className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
-                      onClick={() => removeRow(row.id)}
-                      aria-label={`Remove row ${index + 1}`}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="border border-neutral-200">
+          <DataTable
+            ariaLabel="Requirements to create"
+            rows={rows}
+            rowKey={(row) => row.id}
+            tableClassName="min-w-[720px]"
+            compact
+            rowClassName={(row) => cn(row.error && 'bg-error/5')}
+            columns={[
+              { id: 'index', header: '#', width: '2rem', cell: (_row, index) => index + 1 },
+              ...COLUMNS.map(
+                (column): DataTableColumn<DraftRow> => ({
+                  id: column.key,
+                  header: `${column.label}${column.required ? ' *' : ''}`,
+                  kind: column.key === 'code' ? 'code' : 'text',
+                  cell: (row, index) => (
+                    <Input
+                      value={row[column.key]}
+                      onChange={(event) => updateRow(row.id, { [column.key]: event.target.value })}
+                      placeholder={column.placeholder}
+                      aria-label={`${column.label} row ${index + 1}`}
+                      fullWidth
+                      size="sm"
+                    />
+                  ),
+                })
+              ),
+              {
+                id: 'remove',
+                header: '',
+                width: '2.5rem',
+                cell: (row, index) => (
+                  <button
+                    type="button"
+                    className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
+                    onClick={() => removeRow(row.id)}
+                    aria-label={`Remove row ${index + 1}`}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                ),
+              },
+            ]}
+          />
         </div>
 
         {rows.some((r) => r.error) ? (

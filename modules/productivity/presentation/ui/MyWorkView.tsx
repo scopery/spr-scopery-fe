@@ -3,14 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import {
-  Badge,
-  Button,
-  PageSkeleton,
-  Select,
-  Stack,
-  Typography,
-} from '@/shared/ui'
+import { Badge, Button, PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
 import { MyWorkWindow } from '../../domain/enums/my-work.enum'
@@ -75,7 +68,10 @@ function formatDate(iso: string | null | undefined) {
 }
 
 function groupByProject(items: MyWorkTaskItem[]) {
-  const map = new Map<string, { projectId: string; projectCode: string; projectName: string; tasks: MyWorkTaskItem[] }>()
+  const map = new Map<
+    string,
+    { projectId: string; projectCode: string; projectName: string; tasks: MyWorkTaskItem[] }
+  >()
   for (const item of items) {
     const existing = map.get(item.projectId)
     if (existing) {
@@ -113,14 +109,14 @@ export function MyWorkView() {
   const groups = useMemo(() => groupByProject(items), [items])
 
   if (loading && items.length === 0) {
-    return <PageSkeleton variant="list" className="p-lg" />
+    return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
   }
 
   return (
-    <div className="p-lg">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-4 border-b border-neutral-200 pb-4">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             My Work
           </Typography>
           <Typography variant="small" tone="muted" className="mt-1">

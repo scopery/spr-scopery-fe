@@ -34,6 +34,12 @@ export const FEATURES = {
   projectGovernance: true,
   reporting: true,
   quality: true,
+  /**
+   * Quality simplified workflow — Overview / Cases / Runs / Defects / Releases.
+   * When true, hides Quality Plan / Test Plan / Suite from primary nav and uses
+   * the five-page IA. Legacy routes redirect to canonical pages.
+   */
+  qualitySimplifiedWorkflow: true,
   /** Requirements register + coverage matrix (distinct from legacy `traceability`) */
   requirementsTraceability: true,
   aiPlanning: true,

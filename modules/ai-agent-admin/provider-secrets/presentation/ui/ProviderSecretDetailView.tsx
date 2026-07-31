@@ -5,16 +5,9 @@ import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import { ADMIN_ROUTES } from '@/modules/admin'
-import { hasPermission, PERMISSIONS } from '@/modules/permissions/access/lib/permissions'
-import { useEffectivePermissions } from '@/modules/permissions/access/hooks/useEffectivePermissions'
-import {
-  Button,
-  ConfirmDialog,
-  MaskedValue,
-  PageSkeleton,
-  Stack,
-  Typography,
-} from '@/shared/ui'
+import { useProviders } from '@/modules/ai-agent-admin/providers'
+import { hasPermission, PERMISSIONS, useEffectivePermissions } from '@/modules/permissions'
+import { Button, ConfirmDialog, MaskedValue, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { ProviderSecretStatus } from '../../domain/enums/provider-secret.enum'
 import { useProviderSecretDetail } from '../hooks/useProviderSecrets'
 import { useProviderSecretMutations } from '../hooks/useProviderSecretMutations'
@@ -32,16 +25,16 @@ export function ProviderSecretDetailView() {
   const canManage = useMemo(() => {
     if (!permissions) return true
     if (hasPermission(permissions, PERMISSIONS.AI_PROVIDER_SECRET_MANAGE)) return true
-    const hasWave5 = permissions.permissions.some((p) =>
-      p.startsWith('AI_PROVIDER_SECRET')
-    )
+    const hasWave5 = permissions.permissions.some((p) => p.startsWith('AI_PROVIDER_SECRET'))
     return !hasWave5
   }, [permissions])
 
   const { secret, loading, error, refetch } = useProviderSecretDetail(secretId)
+  const { items: providers } = useProviders({ page: 0, size: 100 })
   const { saving, deactivate } = useProviderSecretMutations(refetch)
   const [rotateOpen, setRotateOpen] = useState(false)
   const [deactivateOpen, setDeactivateOpen] = useState(false)
+  const provider = providers.find((item) => item.id === secret?.providerId)
 
   if (loading && !secret) {
     return <PageSkeleton variant="detail" className="p-lg" />
@@ -140,9 +133,11 @@ export function ProviderSecretDetailView() {
         </div>
         <div>
           <Typography variant="caption" tone="muted">
-            Provider ID
+            Provider
           </Typography>
-          <Typography className="mt-1 font-mono text-xs">{secret.providerId}</Typography>
+          <Typography className="mt-1">
+            {provider ? `${provider.name} (${provider.code})` : '—'}
+          </Typography>
         </div>
         <div>
           <Typography variant="caption" tone="muted">
@@ -176,9 +171,7 @@ export function ProviderSecretDetailView() {
         message={`Deactivate ${secret.maskedValue}? The raw value cannot be recovered from the UI.`}
         confirmLabel="Deactivate"
         variant="danger"
-        onConfirm={() =>
-          void deactivate(secret.id).then(() => setDeactivateOpen(false))
-        }
+        onConfirm={() => void deactivate(secret.id).then(() => setDeactivateOpen(false))}
       />
     </Stack>
   )

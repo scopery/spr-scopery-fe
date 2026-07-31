@@ -8,7 +8,9 @@ import { toast } from 'sonner'
 import {
   Badge,
   Button,
+  Card,
   CurrencyAmount,
+  DataTable,
   FinancialKpiStrip,
   LongRunningJobState,
   LongRunningJobStatus,
@@ -67,9 +69,7 @@ export function EstimationCenterView() {
   const projectId = params.projectId as string
 
   const [createOpen, setCreateOpen] = useState(false)
-  const [scheduleOptions, setScheduleOptions] = useState<
-    Array<{ id: string; label: string }>
-  >([])
+  const [scheduleOptions, setScheduleOptions] = useState<Array<{ id: string; label: string }>>([])
 
   const { project } = useProject(workspaceId, projectId)
   const {
@@ -130,9 +130,9 @@ export function EstimationCenterView() {
 
   if (forbidden) {
     return (
-      <div className="border border-neutral-200 bg-white p-8 text-center">
+      <Card className="border border-neutral-200 bg-white p-8 text-center">
         <Typography weight="medium">You don’t have access to estimation</Typography>
-      </div>
+      </Card>
     )
   }
 
@@ -143,25 +143,20 @@ export function EstimationCenterView() {
           id: 'hours',
           label: 'Estimate hours',
           value: (
-            <Typography weight="semibold">{formatHours(currentSummary.totalEstimateHours)}</Typography>
+            <Typography weight="semibold">
+              {formatHours(currentSummary.totalEstimateHours)}
+            </Typography>
           ),
         },
         {
           id: 'labor',
           label: 'Labor cost',
-          value: (
-            <CurrencyAmount amount={currentSummary.totalLaborCost} currency={currency} />
-          ),
+          value: <CurrencyAmount amount={currentSummary.totalLaborCost} currency={currency} />,
         },
         {
           id: 'billing',
           label: 'Billing preview',
-          value: (
-            <CurrencyAmount
-              amount={currentSummary.totalBillingPreview}
-              currency={currency}
-            />
-          ),
+          value: <CurrencyAmount amount={currentSummary.totalBillingPreview} currency={currency} />,
         },
         {
           id: 'included',
@@ -175,28 +170,26 @@ export function EstimationCenterView() {
         {
           id: 'warnings',
           label: 'Warnings',
-          value: (
-            <Typography weight="semibold">{currentSummary.warningCount}</Typography>
-          ),
+          value: <Typography weight="semibold">{currentSummary.warningCount}</Typography>,
         },
       ]
     : []
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
         current="Estimation"
       />
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
+      <div className="mb-2 mt-1 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Estimation Center
           </Typography>
           {project ? (
-            <Typography variant="small" tone="muted" className="mt-1">
+            <Typography variant="caption" tone="muted" className="mt-0.5">
               {project.code} · {project.name}
             </Typography>
           ) : null}
@@ -239,7 +232,7 @@ export function EstimationCenterView() {
         />
       ) : null}
 
-      <Typography as="h2" size="lg" weight="semibold" className="mb-3">
+      <Typography as="h2" size="md" weight="semibold" className="mb-2">
         Current estimate
       </Typography>
       {currentSummary && currentRun ? (
@@ -252,11 +245,7 @@ export function EstimationCenterView() {
               Current
             </Badge>
             <NextLink
-              href={ROUTES.workspace.projectEstimationRun(
-                workspaceId,
-                projectId,
-                currentRun.id
-              )}
+              href={ROUTES.workspace.projectEstimationRun(workspaceId, projectId, currentRun.id)}
               className="text-sm text-primary underline-offset-2 hover:underline"
             >
               Open detail
@@ -276,133 +265,100 @@ export function EstimationCenterView() {
           </div>
         </div>
       ) : (
-        <div className="mb-8 border border-neutral-200 bg-neutral-50 p-4">
+        <Card className="mb-8 border border-neutral-200 bg-neutral-50 p-4">
           <Typography variant="small" tone="muted">
             No current estimate yet. Create a run and mark it as current.
           </Typography>
-        </div>
+        </Card>
       )}
 
-      <Typography as="h2" size="lg" weight="semibold" className="mb-3">
+      <Typography as="h2" size="md" weight="semibold" className="mb-2">
         Estimation runs
       </Typography>
-      <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Mode</th>
-              <th className="px-4 py-3 font-medium">Rate strategy</th>
-              <th className="px-4 py-3 font-medium">Currency</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Current</th>
-              <th className="px-4 py-3 font-medium">Started</th>
-              <th className="px-4 py-3 font-medium">Completed</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {runs.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="px-4 py-8 text-center">
-                  <Typography variant="small" tone="muted">
-                    No estimation runs yet
+      <DataTable<EstimationRun>
+        ariaLabel="Estimation runs"
+        rows={runs}
+        rowKey={(run) => run.id}
+        emptyMessage="No estimation runs yet"
+        columns={[
+          {
+            id: 'name',
+            header: 'Name',
+            cell: (run) => (
+              <>
+                <NextLink
+                  href={ROUTES.workspace.projectEstimationRun(workspaceId, projectId, run.id)}
+                  className="font-medium text-primary underline-offset-2 hover:underline"
+                >
+                  {run.name}
+                </NextLink>
+                {run.errorMessage ? (
+                  <Typography variant="caption" tone="error" className="mt-0.5 block">
+                    {run.errorCode ? `${run.errorCode}: ` : ''}
+                    {run.errorMessage}
                   </Typography>
-                </td>
-              </tr>
-            ) : (
-              runs.map((run) => {
-                const isCurrent = currentRun?.id === run.id
-                return (
-                  <tr key={run.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                    <td className="px-4 py-3">
-                      <NextLink
-                        href={ROUTES.workspace.projectEstimationRun(
-                          workspaceId,
-                          projectId,
-                          run.id
-                        )}
-                        className="font-medium text-primary underline-offset-2 hover:underline"
-                      >
-                        {run.name}
-                      </NextLink>
-                      {run.errorMessage ? (
-                        <Typography variant="caption" tone="error" className="mt-0.5 block">
-                          {run.errorCode ? `${run.errorCode}: ` : ''}
-                          {run.errorMessage}
-                        </Typography>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Typography variant="small" tone="muted">
-                        {calculationModeLabel(run.calculationMode)}
-                      </Typography>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Typography variant="small" tone="muted">
-                        {rateStrategyLabel(run.rateTargetDateStrategy)}
-                      </Typography>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Typography variant="small" tone="muted">
-                        {run.currencyPolicy}
-                      </Typography>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={estimationStatusTone(run.status)}>
-                        {estimationStatusLabel(run.status)}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      {isCurrent ? (
-                        <Badge tone="success" size="sm">
-                          Yes
-                        </Badge>
-                      ) : (
-                        <Typography variant="small" tone="muted">
-                          —
-                        </Typography>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Typography variant="small" tone="muted">
-                        {formatInstant(run.startedAt)}
-                      </Typography>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Typography variant="small" tone="muted">
-                        {formatInstant(run.completedAt)}
-                      </Typography>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {canCancelEstimation(run) ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => void handleCancel(run)}
-                          >
-                            Cancel
-                          </Button>
-                        ) : null}
-                        {canMarkCurrent(run) && !isCurrent ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => void handleMarkCurrent(run)}
-                          >
-                            Mark current
-                          </Button>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                ) : null}
+              </>
+            ),
+          },
+          {
+            id: 'mode',
+            header: 'Mode',
+            accessor: (run) => calculationModeLabel(run.calculationMode),
+          },
+          {
+            id: 'strategy',
+            header: 'Rate strategy',
+            accessor: (run) => rateStrategyLabel(run.rateTargetDateStrategy),
+          },
+          { id: 'currency', header: 'Currency', accessor: 'currencyPolicy' },
+          {
+            id: 'status',
+            header: 'Status',
+            cell: (run) => (
+              <Badge tone={estimationStatusTone(run.status)}>
+                {estimationStatusLabel(run.status)}
+              </Badge>
+            ),
+          },
+          {
+            id: 'current',
+            header: 'Current',
+            cell: (run) =>
+              currentRun?.id === run.id ? (
+                <Badge tone="success" size="sm">
+                  Yes
+                </Badge>
+              ) : (
+                '—'
+              ),
+          },
+          { id: 'started', header: 'Started', accessor: (run) => formatInstant(run.startedAt) },
+          {
+            id: 'completed',
+            header: 'Completed',
+            accessor: (run) => formatInstant(run.completedAt),
+          },
+          {
+            id: 'actions',
+            header: 'Actions',
+            cell: (run) => (
+              <div className="flex flex-wrap gap-1">
+                {canCancelEstimation(run) ? (
+                  <Button size="sm" variant="ghost" onClick={() => void handleCancel(run)}>
+                    Cancel
+                  </Button>
+                ) : null}
+                {canMarkCurrent(run) && currentRun?.id !== run.id ? (
+                  <Button size="sm" variant="ghost" onClick={() => void handleMarkCurrent(run)}>
+                    Mark current
+                  </Button>
+                ) : null}
+              </div>
+            ),
+          },
+        ]}
+      />
 
       <CreateEstimationRunModal
         open={createOpen}

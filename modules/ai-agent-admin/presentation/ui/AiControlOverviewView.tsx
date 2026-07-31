@@ -1,7 +1,7 @@
 'use client'
 
 import NextLink from 'next/link'
-import { Button, Link as DesignLink, PageSkeleton, Stack, Typography } from '@/shared/ui'
+import { Button, Card, Link as DesignLink, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { ADMIN_ROUTES } from '@/modules/admin'
 import { useAiControlOverview } from '../hooks/useAiControlOverview'
 
@@ -14,11 +14,7 @@ interface OverviewCardProps {
 
 function OverviewCard({ label, count, href, error }: OverviewCardProps) {
   return (
-    <DesignLink
-      as={NextLink}
-      href={href}
-      className="block border border-neutral-200 p-md transition-colors hover:bg-neutral-50"
-    >
+    <Card as={DesignLink} href={href} className="block p-md transition-colors hover:bg-neutral-50">
       <Typography variant="caption" tone="muted">
         {label}
       </Typography>
@@ -30,7 +26,7 @@ function OverviewCard({ label, count, href, error }: OverviewCardProps) {
           Unavailable
         </Typography>
       ) : null}
-    </DesignLink>
+    </Card>
   )
 }
 
@@ -47,8 +43,8 @@ export function AiControlOverviewView() {
         <div>
           <Typography variant="h2">AI & Automation</Typography>
           <Typography variant="caption" tone="muted" className="mt-1 block">
-            Control center overview. Counts are lazy-loaded from list APIs (size=1) — no mock
-            data (GAP-09).
+            Control center overview. Counts are lazy-loaded from list APIs (size=1) — no mock data
+            (GAP-09).
           </Typography>
         </div>
         <Button size="sm" variant="outline" onClick={() => void refetch()}>

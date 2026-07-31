@@ -8,10 +8,7 @@ import { useWorkspaceAuthorization } from '@/modules/auth/iam'
 import { CreateProjectModal } from '@/modules/projects'
 import { useWorkspace } from '../hooks/useWorkspace'
 import { useWorkspacePortfolio } from '../hooks/useWorkspacePortfolio'
-import {
-  filterPortfolioRows,
-  type PortfolioMetricFilter,
-} from '../domain/rules/portfolio.rules'
+import { filterPortfolioRows, type PortfolioMetricFilter } from '../domain/rules/portfolio.rules'
 import { WorkspacePortfolioHeader } from './portfolio/WorkspacePortfolioHeader'
 import { WorkspacePortfolioSummaryStrip } from './portfolio/WorkspacePortfolioSummaryStrip'
 import { WorkspaceAttentionQueue } from './portfolio/WorkspaceAttentionQueue'
@@ -23,20 +20,15 @@ import { WorkspaceSetupState } from './portfolio/WorkspaceSetupState'
 export function WorkspaceOverviewView() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
   const { workspace, loading, error } = useWorkspace(workspaceId)
-  const {
-    canUpdateWorkspace,
-    canManageMembers,
-    canInviteMembers,
-    canCreateProjects,
-  } = useWorkspaceAuthorization(workspaceId)
+  const { canUpdateWorkspace, canManageMembers, canInviteMembers, canCreateProjects } =
+    useWorkspaceAuthorization(workspaceId)
 
   const portfolio = useWorkspacePortfolio(workspaceId)
   const [metricFilter, setMetricFilter] = useState<PortfolioMetricFilter>('all')
   const [createOpen, setCreateOpen] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
 
-  const canSeeUnassigned =
-    canUpdateWorkspace || canManageMembers || canCreateProjects
+  const canSeeUnassigned = canUpdateWorkspace || canManageMembers || canCreateProjects
 
   const filteredRows = useMemo(
     () => filterPortfolioRows(portfolio.rows, metricFilter),
@@ -77,12 +69,10 @@ export function WorkspaceOverviewView() {
 
   const projectCount = portfolio.summary.projectCount
   const isEmptyPortfolio = projectCount === 0 && !portfolio.phaseWatchLoading
-  const hasPhases = portfolio.allRows.some(
-    (r) => r.activePhases.length > 0 || r.nextPhase != null
-  )
+  const hasPhases = portfolio.allRows.some((r) => r.activePhases.length > 0 || r.nextPhase != null)
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb workspaceId={workspaceId} current="Overview" className="mb-4" />
 
       <div data-workspace-actions>

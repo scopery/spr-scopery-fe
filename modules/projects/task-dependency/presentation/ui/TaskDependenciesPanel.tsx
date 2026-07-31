@@ -80,7 +80,7 @@ export function TaskDependenciesPanel({
 
   const taskLabel = (id: string) => {
     const t = taskMap[id]
-    if (!t) return id.slice(0, 8) + '…'
+    if (!t) return 'Unavailable task'
     return t.code ? `${t.code} · ${t.title}` : t.title
   }
 

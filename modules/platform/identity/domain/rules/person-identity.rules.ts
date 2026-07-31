@@ -1,11 +1,9 @@
 import type { PersonIdentity } from '../model/person-identity'
 
-/** Short mono fallback when identity is unknown. */
+/** Compatibility fallback that never exposes a technical user identifier. */
 export function shortUserId(userId: string | null | undefined): string {
   if (!userId) return '—'
-  const trimmed = userId.trim()
-  if (trimmed.length <= 8) return trimmed
-  return `${trimmed.slice(0, 8)}…`
+  return '—'
 }
 
 export function personInitials(nameOrId: string): string {
@@ -18,7 +16,7 @@ export function personInitials(nameOrId: string): string {
   return trimmed.slice(0, 2).toUpperCase()
 }
 
-/** Primary label for selects / lists. Prefer name → email → username → short id. */
+/** Primary label for selects / lists. Prefer name → email → username. */
 export function formatPersonLabel(
   person: PersonIdentity | null | undefined,
   userId: string,
@@ -50,7 +48,7 @@ export function mapIamUserToPerson(user: {
 }): PersonIdentity {
   return {
     id: user.id,
-    fullName: user.fullName?.trim() || user.username || user.email || user.id,
+    fullName: user.fullName?.trim() || user.username || user.email || '—',
     email: user.email || null,
     username: user.username || null,
     avatarUrl: null,

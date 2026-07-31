@@ -100,7 +100,7 @@ export function useResourceProfiles(workspaceId: string | null) {
   const roleName = useCallback(
     (roleId: string | null) => {
       if (!roleId) return '—'
-      return roles.find((r) => r.id === roleId)?.name ?? roleId.slice(0, 8)
+      return roles.find((r) => r.id === roleId)?.name ?? '—'
     },
     [roles]
   )

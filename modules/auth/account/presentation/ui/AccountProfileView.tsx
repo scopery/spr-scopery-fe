@@ -4,9 +4,9 @@ import { Save } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Button, Input, Stack, Typography, PageSkeleton } from '@/shared/ui'
-import { useAuth } from '@/modules/auth/auth/context/AuthContext'
-import { useProfile } from '@/modules/auth/profile/hooks/useProfile'
+import { Button, Card, Input, Stack, Typography, PageSkeleton } from '@/shared/ui'
+import { useAuth } from '@/modules/auth/auth'
+import { useProfile } from '@/modules/auth/profile'
 
 export function AccountProfileView() {
   const { session } = useAuth()
@@ -41,31 +41,39 @@ export function AccountProfileView() {
   }
 
   if (loading && !profile) {
-    return (
-      <PageSkeleton variant="form" />
-    )
+    return <PageSkeleton variant="form" />
   }
 
   return (
-    <div className="border border-neutral-200 bg-white p-6">
-      <Typography as="h2" size="lg" weight="bold" className="mb-1">
+    <Card className="border border-neutral-200 bg-white p-3">
+      <Typography as="h2" size="md" weight="medium" className="mb-1">
         Profile
       </Typography>
-      <Typography as="p" variant="small" tone="muted" className="mb-6">
+      <Typography as="p" variant="small" tone="muted" className="mb-2">
         Update how your name appears across Scopery.
       </Typography>
       <Stack direction="vertical" spacing="md" className="max-w-md">
-        <Input label="Email" value={session?.user.email ?? profile?.email ?? ''} disabled fullWidth />
+        <Input
+          label="Email"
+          value={session?.user.email ?? profile?.email ?? ''}
+          disabled
+          fullWidth
+        />
         <Input
           label="Display name"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           fullWidth
         />
-        <Button variant="primary" loading={saving} onClick={() => void handleSave()} icon={<Save size={16} />}>
+        <Button
+          variant="primary"
+          loading={saving}
+          onClick={() => void handleSave()}
+          icon={<Save size={16} />}
+        >
           Save changes
         </Button>
       </Stack>
-    </div>
+    </Card>
   )
 }

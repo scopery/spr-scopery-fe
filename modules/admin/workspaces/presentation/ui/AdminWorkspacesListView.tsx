@@ -4,11 +4,12 @@ import { Archive, Check, Plus } from 'lucide-react'
 
 import React from 'react'
 import NextLink from 'next/link'
-import { Typography, Button, Stack, Select, Input, PageSkeleton } from '@/shared/ui'
+import { Typography, Button, Stack, Select, Input, PageSkeleton, DataTable } from '@/shared/ui'
 import { useAdminWorkspaces } from '../hooks/useAdminWorkspaces'
 import { AdminWorkspaceStatusBadge } from './AdminWorkspaceStatusBadge'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 import { WorkspaceStatus } from '../../domain/enums/workspace.enum'
+import { AdminOrganizationSearchSelect } from '@/modules/admin/organizations'
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
@@ -74,11 +75,11 @@ export function AdminWorkspacesListView() {
           />
         </div>
         <div className="w-64 shrink-0">
-          <Input
-            fullWidth
-            placeholder="Filter organization ID…"
+          <AdminOrganizationSearchSelect
+            optional
+            label="Filter organization"
             value={organizationId}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrganizationId(e.target.value)}
+            onChange={setOrganizationId}
           />
         </div>
         <Select
@@ -100,88 +101,117 @@ export function AdminWorkspacesListView() {
         </div>
       ) : (
         <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Code</th>
-                <th className="px-4 py-3 font-medium">Organization</th>
-                <th className="px-4 py-3 font-medium">Visibility</th>
-                <th className="px-4 py-3 font-medium">Join policy</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Created</th>
-                <th className="min-w-[12rem] whitespace-nowrap px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-neutral-500">
-                    No workspaces found
-                  </td>
-                </tr>
-              ) : (
-                items.map((ws) => (
-                  <tr key={ws.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                    <td className="px-4 py-3">
+          <DataTable
+            ariaLabel="Admin Workspaces List"
+            rows={items}
+            rowKey={(ws) => String(ws.id)}
+            emptyMessage="No items."
+            columns={[
+              {
+                id: 'name',
+                header: 'Name',
+                cell: (ws) => (
+                  <>
+                    <NextLink
+                      href={ADMIN_ROUTES.workspace(ws.id)}
+                      className="font-medium text-neutral-900 hover:underline"
+                    >
+                      {ws.name}
+                    </NextLink>
+                  </>
+                ),
+              },
+              {
+                id: 'code',
+                header: 'Code',
+                accessor: 'code',
+                kind: 'code',
+                cellClassName: 'text-xs text-neutral-600',
+              },
+              {
+                id: 'organization',
+                header: 'Organization',
+                cell: (ws) => (
+                  <>
+                    <NextLink
+                      href={ADMIN_ROUTES.organization(ws.organizationId)}
+                      className="text-xs font-normal text-primary hover:underline"
+                    >
+                      —
+                    </NextLink>
+                  </>
+                ),
+              },
+              {
+                id: 'visibility',
+                header: 'Visibility',
+                accessor: 'defaultVisibility',
+                cellClassName: 'text-neutral-600',
+              },
+              {
+                id: 'join-policy',
+                header: 'Join policy',
+                accessor: 'joinPolicy',
+                cellClassName: 'text-neutral-600',
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (ws) => (
+                  <>
+                    <AdminWorkspaceStatusBadge status={ws.status} />
+                  </>
+                ),
+              },
+              {
+                id: 'created',
+                header: 'Created',
+                cell: (ws) => <>{formatDate(ws.createdAt)}</>,
+                cellClassName: 'text-neutral-600',
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (ws) => (
+                  <>
+                    <Stack direction="horizontal" spacing="sm" className="items-center">
                       <NextLink
                         href={ADMIN_ROUTES.workspace(ws.id)}
-                        className="font-medium text-neutral-900 hover:underline"
+                        className="text-sm text-primary hover:underline"
                       >
-                        {ws.name}
+                        View
                       </NextLink>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-neutral-600">{ws.code}</td>
-                    <td className="px-4 py-3">
                       <NextLink
-                        href={ADMIN_ROUTES.organization(ws.organizationId)}
-                        className="font-mono text-xs text-primary hover:underline"
+                        href={ADMIN_ROUTES.workspaceAccess(ws.id)}
+                        className="text-sm text-neutral-600 hover:underline"
                       >
-                        {ws.organizationId.slice(0, 8)}…
+                        Access
                       </NextLink>
-                    </td>
-                    <td className="px-4 py-3 text-neutral-600">{ws.defaultVisibility}</td>
-                    <td className="px-4 py-3 text-neutral-600">{ws.joinPolicy}</td>
-                    <td className="px-4 py-3">
-                      <AdminWorkspaceStatusBadge status={ws.status} />
-                    </td>
-                    <td className="px-4 py-3 text-neutral-600">{formatDate(ws.createdAt)}</td>
-                    <td className="px-4 py-3">
-                      <Stack direction="horizontal" spacing="sm" className="items-center">
-                        <NextLink
-                          href={ADMIN_ROUTES.workspace(ws.id)}
-                          className="text-sm text-primary hover:underline"
+                      {ws.status === WorkspaceStatus.Archived ? (
+                        <Button
+                          variant="ghost"
+                          disabled={actingId === ws.id}
+                          onClick={() => void runAction(ws.id, 'activate')}
+                          icon={<Check size={16} />}
                         >
-                          View
-                        </NextLink>
-                        <NextLink
-                          href={ADMIN_ROUTES.workspaceAccess(ws.id)}
-                          className="text-sm text-neutral-600 hover:underline"
+                          Activate
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          disabled={actingId === ws.id}
+                          onClick={() => void runAction(ws.id, 'archive')}
+                          icon={<Archive size={16} />}
                         >
-                          Access
-                        </NextLink>
-                        {ws.status === WorkspaceStatus.Archived ? (
-                          <Button
-                            variant="ghost"
-                            disabled={actingId === ws.id}
-                            onClick={() => void runAction(ws.id, 'activate')} icon={<Check size={16} />}>
-                            Activate
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            disabled={actingId === ws.id}
-                            onClick={() => void runAction(ws.id, 'archive')} icon={<Archive size={16} />}>
-                            Archive
-                          </Button>
-                        )}
-                      </Stack>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                          Archive
+                        </Button>
+                      )}
+                    </Stack>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
     </div>

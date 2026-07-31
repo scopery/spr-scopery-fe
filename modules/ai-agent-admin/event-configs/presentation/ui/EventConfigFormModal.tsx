@@ -11,6 +11,8 @@ import {
 } from '../../domain/enums/event-config.enum'
 import type { AiEventConfig } from '../../domain/model/event-config'
 import { useEventConfigMutations } from '../hooks/useEventConfigMutations'
+import { EventDefinitionSearchSelect } from '@/modules/admin/event-definitions'
+import { PromptVersionSearchSelect } from '@/modules/ai-agent-admin/prompt-templates'
 
 interface EventConfigFormModalProps {
   open: boolean
@@ -61,7 +63,7 @@ export function EventConfigFormModal({
   const handleSubmit = async () => {
     setFieldError(null)
     if (!name.trim() || !eventDefinitionId.trim() || (!isEdit && !code.trim())) {
-      setFieldError('Code, name, and event definition ID are required')
+      setFieldError('Code, name, and event definition are required')
       return
     }
     const body = {
@@ -117,12 +119,12 @@ export function EventConfigFormModal({
           <Typography className="font-mono text-sm">{config?.code}</Typography>
         )}
         <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
-        <Input
-          label="Event definition ID"
-          value={eventDefinitionId}
-          onChange={(e) => setEventDefinitionId(e.target.value)}
-          required
-        />
+        <div>
+          <Typography variant="caption" tone="muted" className="mb-1 block">
+            Event definition
+          </Typography>
+          <EventDefinitionSearchSelect value={eventDefinitionId} onChange={setEventDefinitionId} />
+        </div>
         <div className="grid gap-md sm:grid-cols-2">
           <div>
             <Typography variant="caption" tone="muted" className="mb-1 block">
@@ -161,11 +163,16 @@ export function EventConfigFormModal({
             options={[{ value: '', label: 'None' }, ...agentOptions]}
           />
         </div>
-        <Input
-          label="Prompt version ID"
-          value={promptVersionId}
-          onChange={(e) => setPromptVersionId(e.target.value)}
-        />
+        <div>
+          <Typography variant="caption" tone="muted" className="mb-1 block">
+            Prompt version
+          </Typography>
+          <PromptVersionSearchSelect
+            optional
+            value={promptVersionId}
+            onChange={setPromptVersionId}
+          />
+        </div>
         <div>
           <Typography variant="caption" tone="muted" className="mb-1 block">
             Model deployment

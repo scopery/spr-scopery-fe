@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import NextLink from 'next/link'
 import { Check, ChevronDown, ChevronRight } from 'lucide-react'
-import { Button, Stack, Typography } from '@/shared/ui'
+import { Button, Card, Stack, Typography } from '@/shared/ui'
 import type {
   ActivityTimelineItem,
   AttentionItem,
@@ -29,7 +29,7 @@ export function ProjectSetupMode({
   return (
     <Stack direction="vertical" spacing="md">
       <PulsePanel>
-        <div className="space-y-md bg-warning/5 p-md">
+        <div className="bg-warning/5 space-y-md p-md">
           <div className="flex flex-wrap items-start justify-between gap-md">
             <div className="max-w-2xl space-y-xs">
               <Typography variant="h4">{setup.title}</Typography>
@@ -47,7 +47,7 @@ export function ProjectSetupMode({
             </div>
           </div>
 
-          <div className="h-2 overflow-hidden bg-warning/20">
+          <div className="bg-warning/20 h-2 overflow-hidden">
             <div className="h-full bg-warning" style={{ width: `${progress}%` }} />
           </div>
 
@@ -62,7 +62,7 @@ export function ProjectSetupMode({
             ) : (
               <ol className="space-y-sm">
                 {remaining.map((step, index) => (
-                  <li key={step.id} className="border border-neutral-200 bg-neutral-50 p-sm">
+                  <Card as="li" key={step.id} hasShadow={false} className="bg-neutral-50 p-sm">
                     <div className="flex flex-wrap items-start justify-between gap-sm">
                       <div className="min-w-0 flex-1 space-y-xs">
                         <Typography variant="small" className="font-semibold text-neutral-900">
@@ -73,12 +73,18 @@ export function ProjectSetupMode({
                         </Typography>
                       </div>
                       {step.href ? (
-                        <Button as={NextLink} href={step.href} size="sm" variant="primary" className="bg-primary">
+                        <Button
+                          as={NextLink}
+                          href={step.href}
+                          size="sm"
+                          variant="primary"
+                          className="bg-primary"
+                        >
                           {step.actionLabel}
                         </Button>
                       ) : null}
                     </div>
-                  </li>
+                  </Card>
                 ))}
               </ol>
             )}
@@ -96,7 +102,7 @@ export function ProjectSetupMode({
                 <span className="text-neutral-500">· View</span>
               </button>
               {showCompleted ? (
-                <ul className="mt-sm space-y-xs border border-neutral-200 bg-white p-sm">
+                <Card as="ul" hasShadow={false} className="mt-sm space-y-xs p-sm">
                   {completed.map((step) => (
                     <li key={step.id} className="flex items-center gap-sm">
                       <Check size={14} className="shrink-0 text-success" aria-hidden />
@@ -105,7 +111,7 @@ export function ProjectSetupMode({
                       </Typography>
                     </li>
                   ))}
-                </ul>
+                </Card>
               ) : null}
             </div>
           ) : null}
@@ -131,7 +137,10 @@ export function ProjectSetupMode({
                       {item.label}
                     </Typography>
                     {item.href ? (
-                      <NextLink href={item.href} className="text-sm font-semibold text-neutral-900 underline-offset-2 hover:underline">
+                      <NextLink
+                        href={item.href}
+                        className="text-sm font-semibold text-neutral-900 underline-offset-2 hover:underline"
+                      >
                         {item.value}
                       </NextLink>
                     ) : (

@@ -36,7 +36,7 @@ export function DocumentHubHeader({
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
-        <Typography as="h1" size="lg" weight="semibold">
+        <Typography as="h1" size="md" weight="medium">
           Document Hub
         </Typography>
         <Typography variant="small" tone="muted" className="mt-0.5">

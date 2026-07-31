@@ -3,14 +3,15 @@
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button, Input, Select, Stack, Typography } from '@/shared/ui'
+import { Button, DataTable, Select, Stack, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import type { MeetingArtifactLink } from '../../domain/model/artifact-link'
 import type { CreateArtifactLinkPayload } from '../../domain/model/artifact-link'
+import { ProjectRecordSearchSelect } from '@/modules/projects/project'
 
 const TARGET_TYPE_OPTIONS = [
   { value: 'TASK', label: 'Task' },
-  { value: 'DOCUMENT', label: 'Document' },
+  { value: 'DOCUMENT', label: 'Document (picker unavailable)', disabled: true },
   { value: 'DECISION', label: 'Decision' },
   { value: 'RAID_ITEM', label: 'RAID item' },
 ]
@@ -27,12 +28,13 @@ const LINK_TYPE_OPTIONS = [
 ]
 
 interface Props {
+  projectId: string
   artifactLinks: MeetingArtifactLink[]
   onAdd: (body: CreateArtifactLinkPayload) => Promise<unknown>
   onRemove: (linkId: string) => Promise<void>
 }
 
-export function ArtifactLinksPanel({ artifactLinks, onAdd, onRemove }: Props) {
+export function ArtifactLinksPanel({ projectId, artifactLinks, onAdd, onRemove }: Props) {
   const [targetType, setTargetType] = useState('TASK')
   const [targetId, setTargetId] = useState('')
   const [linkType, setLinkType] = useState('REFERENCE')
@@ -68,22 +70,27 @@ export function ArtifactLinksPanel({ artifactLinks, onAdd, onRemove }: Props) {
   return (
     <div className="space-y-4">
       <div className="space-y-2 rounded border border-neutral-200 p-3">
-        <Typography variant="small" weight="medium">Link artifact</Typography>
+        <Typography variant="small" weight="medium">
+          Link artifact
+        </Typography>
         <Select
           value={targetType}
-          onValueChange={setTargetType}
+          onValueChange={(next: string) => {
+            setTargetType(next)
+            setTargetId('')
+          }}
           options={TARGET_TYPE_OPTIONS}
         />
-        <Input
+        <ProjectRecordSearchSelect
+          projectId={projectId}
+          recordType={targetType}
+          label={
+            TARGET_TYPE_OPTIONS.find((option) => option.value === targetType)?.label ?? 'Target'
+          }
           value={targetId}
-          onChange={(e) => setTargetId(e.target.value)}
-          placeholder="Target ID (UUID)"
+          onChange={setTargetId}
         />
-        <Select
-          value={linkType}
-          onValueChange={setLinkType}
-          options={LINK_TYPE_OPTIONS}
-        />
+        <Select value={linkType} onValueChange={setLinkType} options={LINK_TYPE_OPTIONS} />
         <Button
           size="sm"
           variant="secondary"
@@ -96,41 +103,38 @@ export function ArtifactLinksPanel({ artifactLinks, onAdd, onRemove }: Props) {
       </div>
 
       {artifactLinks.length === 0 ? (
-        <Typography variant="small" tone="muted">No artifact links</Typography>
+        <Typography variant="small" tone="muted">
+          No artifact links
+        </Typography>
       ) : (
-        <div className="overflow-x-auto border border-neutral-200 bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-500">
-              <tr>
-                <th className="px-3 py-2 font-medium">Type</th>
-                <th className="px-3 py-2 font-medium">Target ID</th>
-                <th className="px-3 py-2 font-medium">Link</th>
-                <th className="px-3 py-2 font-medium"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {artifactLinks.map((link) => (
-                <tr key={link.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-3 py-2 text-neutral-500">{link.targetType}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-neutral-500">{link.targetId}</td>
-                  <td className="px-3 py-2 text-neutral-500">{link.linkType}</td>
-                  <td className="px-3 py-2">
-                    <Stack direction="horizontal" spacing="sm">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        tone="error"
-                        icon={<Trash2 size={14} />}
-                        onClick={() => void handleRemove(link.id)}
-                      >
-                        Remove
-                      </Button>
-                    </Stack>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="border border-neutral-200 bg-white">
+          <DataTable
+            ariaLabel="Meeting artifact links"
+            rows={artifactLinks}
+            rowKey={(link) => link.id}
+            columns={[
+              { id: 'type', header: 'Type', accessor: 'targetType' },
+              { id: 'target', header: 'Target', kind: 'reference', accessor: () => '—' },
+              { id: 'link', header: 'Link', accessor: 'linkType' },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (link) => (
+                  <Stack direction="horizontal" spacing="sm">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      tone="error"
+                      icon={<Trash2 size={14} />}
+                      onClick={() => void handleRemove(link.id)}
+                    >
+                      Remove
+                    </Button>
+                  </Stack>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
     </div>

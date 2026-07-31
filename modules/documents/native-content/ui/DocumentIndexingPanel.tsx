@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { CheckCircle2, XCircle, RefreshCw } from 'lucide-react'
-import { Button, Stack, Typography } from '@/shared/ui'
+import { Button, Card, Stack, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { knowledgeApi, type IndexJob, type DocumentIndexStatus } from '@/modules/knowledge'
 
@@ -123,7 +123,7 @@ export function DocumentIndexingPanel({
   return (
     <Stack direction="vertical" spacing="sm" className="p-sm">
       {documentId ? (
-        <div className="rounded border border-neutral-200 p-sm">
+        <Card className="p-sm">
           <div className="mb-xs flex items-center justify-between">
             <Typography variant="small" weight="medium">
               This document
@@ -164,10 +164,10 @@ export function DocumentIndexingPanel({
               Reindex this document
             </Button>
           </div>
-        </div>
+        </Card>
       ) : null}
 
-      <div className="rounded border border-neutral-200 p-sm">
+      <Card className="p-sm">
         <Typography variant="small" weight="medium" className="mb-xs block">
           Knowledge indexing
         </Typography>
@@ -179,7 +179,12 @@ export function DocumentIndexingPanel({
           <Button size="sm" variant="outline" disabled={busy} onClick={() => void reindexProject()}>
             Reindex project
           </Button>
-          <Button size="sm" variant="outline" disabled={busy} onClick={() => void reindexWorkspace()}>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => void reindexWorkspace()}
+          >
             Reindex workspace
           </Button>
           {lastJob && jobIdOf(lastJob) ? (
@@ -209,7 +214,7 @@ export function DocumentIndexingPanel({
             </Typography>
           </Stack>
         ) : null}
-      </div>
+      </Card>
     </Stack>
   )
 }

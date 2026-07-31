@@ -52,11 +52,7 @@ const WIDTH_CLASS: Record<CanvasWidth, string> = {
   full: 'max-w-none',
 }
 
-function appendSyncedBlockReference(
-  value: Value,
-  syncedBlockId: string,
-  title: string
-): Value {
+function appendSyncedBlockReference(value: Value, syncedBlockId: string, title: string): Value {
   return [...value, createSyncedBlockNode({ syncedBlockId, title })] as Value
 }
 
@@ -315,7 +311,7 @@ export function NativeDocumentEditorView({
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white">
       {/* Top bar — W41-DOC-04 */}
-      <header className="z-20 shrink-0 border-b border-neutral-200 bg-white px-4 py-2.5 lg:px-6">
+      <header className="z-20 shrink-0 border-b border-neutral-200 bg-white px-3 py-3 lg:px-4 lg:py-3">
         <div className="mb-2 flex items-center gap-2">
           <Link
             href={backHref}
@@ -355,7 +351,7 @@ export function NativeDocumentEditorView({
                 }}
                 className={cn(
                   'min-w-[12rem] max-w-full flex-1 bg-transparent px-0 py-0.5',
-                  'text-lg font-semibold text-neutral-900',
+                  'text-base font-medium text-neutral-900',
                   'border-0 border-b border-dashed border-neutral-400',
                   'rounded-none outline-none ring-0',
                   'focus:border-neutral-700 focus:outline-none focus:ring-0',
@@ -373,7 +369,7 @@ export function NativeDocumentEditorView({
                 >
                   <Pencil size={14} />
                 </button>
-                <Typography as="h1" size="lg" weight="semibold" className="min-w-0 truncate">
+                <Typography as="h1" size="md" weight="medium" className="min-w-0 truncate">
                   {editor.title || 'Untitled'}
                 </Typography>
               </>
@@ -519,7 +515,7 @@ export function NativeDocumentEditorView({
               />
 
               {editor.nativeUnsupported ? (
-                <div className="border border-warning/40 bg-warning/10 px-3 py-2.5">
+                <div className="border-warning/40 bg-warning/10 border px-3 py-2.5">
                   <Typography weight="semibold" size="sm">
                     This document is FILE mode
                   </Typography>

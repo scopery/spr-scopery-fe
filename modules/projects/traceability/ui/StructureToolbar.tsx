@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { Search } from 'lucide-react'
 import { Button, Input, Typography } from '@/shared/ui'
 import type { OverallStructureResponse, StructureFocus } from '../model/overall-structure'
 import {
@@ -46,6 +47,7 @@ export function StructureToolbar({
           onFocus={() => setOpen(true)}
           placeholder="Search structure…"
           aria-label="Search structure"
+          prefix={<Search size={14} />}
         />
         {open && query.trim() && hits.length > 0 ? (
           <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto border border-neutral-200 bg-white shadow-sm">

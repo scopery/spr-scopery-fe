@@ -1,6 +1,7 @@
 export { PromptTemplatesListView } from './presentation/ui/PromptTemplatesListView'
 export { PromptTemplateDetailView } from './presentation/ui/PromptTemplateDetailView'
 export { PromptVersionStudioView } from './presentation/ui/PromptVersionStudioView'
+export { PromptVersionSearchSelect } from './presentation/ui/PromptVersionSearchSelect'
 export {
   usePromptTemplates,
   usePromptTemplateDetail,

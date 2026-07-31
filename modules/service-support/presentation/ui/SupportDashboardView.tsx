@@ -27,14 +27,17 @@ export function SupportDashboardView() {
   } = useSupportOps(workspaceId)
   const [createOpen, setCreateOpen] = useState(false)
 
-  if (loading || opsLoading) return <PageSkeleton variant="cards" className="p-lg" />
+  if (loading || opsLoading)
+    return <PageSkeleton variant="cards" className="px-3 py-3 lg:px-4 lg:py-3" />
   if (error) return <Typography tone="error">{error}</Typography>
   if (opsError) return <Typography tone="error">{opsError}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <Typography variant="h2">Support Center</Typography>
+        <Typography as="h1" size="md" weight="medium">
+          Support Center
+        </Typography>
         <Button
           variant="primary"
           size="sm"
@@ -45,23 +48,29 @@ export function SupportDashboardView() {
         </Button>
       </div>
       <div className="grid grid-cols-3 gap-md">
-        <div className="border border-neutral-200 p-md">
+        <div className="border border-neutral-200 bg-white p-md">
           <Typography variant="caption" tone="muted">
             Open cases
           </Typography>
-          <Typography variant="h3">{dashboard?.openCases ?? 0}</Typography>
+          <Typography size="md" weight="medium">
+            {dashboard?.openCases ?? 0}
+          </Typography>
         </div>
-        <div className="border border-neutral-200 p-md">
+        <div className="border border-neutral-200 bg-white p-md">
           <Typography variant="caption" tone="muted">
             SLA breached
           </Typography>
-          <Typography variant="h3">{dashboard?.breachedSla ?? 0}</Typography>
+          <Typography size="md" weight="medium">
+            {dashboard?.breachedSla ?? 0}
+          </Typography>
         </div>
-        <div className="border border-neutral-200 p-md">
+        <div className="border border-neutral-200 bg-white p-md">
           <Typography variant="caption" tone="muted">
             Incidents
           </Typography>
-          <Typography variant="h3">{dashboard?.openIncidents ?? 0}</Typography>
+          <Typography size="md" weight="medium">
+            {dashboard?.openIncidents ?? 0}
+          </Typography>
         </div>
       </div>
       {actionError ? <Typography tone="error">{actionError}</Typography> : null}
@@ -72,12 +81,7 @@ export function SupportDashboardView() {
           <Typography variant="small" tone="muted">
             No support cases yet.
           </Typography>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-3"
-            onClick={() => setCreateOpen(true)}
-          >
+          <Button variant="outline" size="sm" className="mt-3" onClick={() => setCreateOpen(true)}>
             Create the first case
           </Button>
         </div>
@@ -113,7 +117,7 @@ export function SupportDashboardView() {
             <li key={i.id} className="flex items-center justify-between gap-md p-md">
               <div>
                 <Typography variant="small" weight="medium">
-                  {i.title ?? i.id}
+                  {i.title ?? '—'}
                 </Typography>
                 <Typography variant="caption" tone="muted">
                   {[i.status, i.severity].filter(Boolean).join(' · ')}
@@ -146,7 +150,7 @@ export function SupportDashboardView() {
             <li key={p.id} className="flex items-center justify-between gap-md p-md">
               <div>
                 <Typography variant="small" weight="medium">
-                  {p.title ?? p.id}
+                  {p.title ?? '—'}
                 </Typography>
                 <Typography variant="caption" tone="muted">
                   {p.status}
@@ -174,7 +178,7 @@ export function SupportDashboardView() {
         <ul className="divide-y divide-neutral-200 border border-neutral-200">
           {maintenancePlans.map((m) => (
             <li key={m.id} className="p-md text-sm">
-              {[m.name ?? m.id, m.status].filter(Boolean).join(' · ')}
+              {[m.name ?? '—', m.status].filter(Boolean).join(' · ')}
             </li>
           ))}
         </ul>

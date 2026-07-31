@@ -2,7 +2,7 @@
 
 import { Archive, Play, Plus } from 'lucide-react'
 
-import { Box, Button, Input, Select, Typography, Badge } from '@/shared/ui'
+import { Box, Button, Card, Input, Select, Typography, Badge } from '@/shared/ui'
 import type { OrgAgentListItem } from '@/modules/ai-agent-control/agent-control'
 import { usePromptRegistryPanel } from '../hooks/usePromptRegistryPanel'
 
@@ -55,26 +55,35 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
       </div>
 
       {panel.showCreateForm && canManage ? (
-        <div className="border-border space-y-3 rounded-md border p-4">
+        <Card className="border-border space-y-3 p-4">
           <Input
             label="Prompt key"
             value={panel.promptKey}
             onChange={(e) => panel.setPromptKey(e.target.value)}
           />
-          <Input label="Name" value={panel.promptName} onChange={(e) => panel.setPromptName(e.target.value)} />
+          <Input
+            label="Name"
+            value={panel.promptName}
+            onChange={(e) => panel.setPromptName(e.target.value)}
+          />
           <Select
             label="Category"
             value={panel.promptCategory}
             onValueChange={(v: string) => panel.setPromptCategory(v)}
-            options={(panel.metadata?.categories ?? ['writing']).map((c) => ({ value: c, label: c }))}
+            options={(panel.metadata?.categories ?? ['writing']).map((c) => ({
+              value: c,
+              label: c,
+            }))}
           />
           <Button
             variant="primary"
             loading={panel.saving}
-            onClick={() => void panel.handleCreatePrompt()} icon={<Plus size={16} />}>
+            onClick={() => void panel.handleCreatePrompt()}
+            icon={<Plus size={16} />}
+          >
             Create draft prompt
           </Button>
-        </div>
+        </Card>
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -89,7 +98,7 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
           ) : (
             <ul className="space-y-2">
               {panel.prompts.map((prompt) => (
-                <li key={prompt.id} className="border-border rounded-md border p-3">
+                <Card as="li" key={prompt.id} className="border-border p-3">
                   <button
                     type="button"
                     className="w-full text-left"
@@ -112,17 +121,19 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
                     <Button
                       variant="ghost"
                       className="mt-2"
-                      onClick={() => void panel.archivePrompt(prompt.id)} icon={<Archive size={16} />}>
+                      onClick={() => void panel.archivePrompt(prompt.id)}
+                      icon={<Archive size={16} />}
+                    >
                       Archive
                     </Button>
                   ) : null}
-                </li>
+                </Card>
               ))}
             </ul>
           )}
         </div>
 
-        <div className="border-border space-y-3 rounded-md border p-4">
+        <Card className="border-border space-y-3 p-4">
           <Typography variant="small" weight="medium">
             Prompt detail
           </Typography>
@@ -138,7 +149,7 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
               </Typography>
               <ul className="space-y-2">
                 {panel.promptDetail.versions.map((version) => (
-                  <li key={version.id} className="border-border rounded border p-2 text-sm">
+                  <Card as="li" key={version.id} className="border-border p-2 text-sm">
                     <div className="flex items-center justify-between">
                       <Typography as="span" variant="small">
                         v{version.version_number}
@@ -148,7 +159,9 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
                       {canManage && panel.promptDetail!.current_version_id !== version.id ? (
                         <Button
                           variant="ghost"
-                          onClick={() => void panel.handleSetCurrent(version.id)} icon={<Play size={16} />}>
+                          onClick={() => void panel.handleSetCurrent(version.id)}
+                          icon={<Play size={16} />}
+                        >
                           Set current
                         </Button>
                       ) : null}
@@ -164,7 +177,7 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
                         {version.system_prompt}
                       </Typography>
                     ) : null}
-                  </li>
+                  </Card>
                 ))}
               </ul>
               {canManage ? (
@@ -185,18 +198,20 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
                   <Button
                     variant="primary"
                     loading={panel.saving}
-                    onClick={() => void panel.handleCreateVersion()} icon={<Plus size={16} />}>
+                    onClick={() => void panel.handleCreateVersion()}
+                    icon={<Plus size={16} />}
+                  >
                     Create version
                   </Button>
                 </div>
               ) : null}
             </>
           )}
-        </div>
+        </Card>
       </div>
 
       {canManage ? (
-        <div className="border-border space-y-3 rounded-md border p-4">
+        <Card className="border-border space-y-3 p-4">
           <Typography variant="small" weight="medium">
             Bind prompt to agent
           </Typography>
@@ -228,10 +243,12 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
           <Button
             variant="outline"
             loading={panel.saving}
-            onClick={() => void panel.handleCreateAgentBinding()} icon={<Plus size={16} />}>
+            onClick={() => void panel.handleCreateAgentBinding()}
+            icon={<Plus size={16} />}
+          >
             Create binding
           </Button>
-        </div>
+        </Card>
       ) : null}
 
       {panel.templateBindings.length > 0 ? (
@@ -241,12 +258,12 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
           </Typography>
           <ul className="space-y-2">
             {panel.templateBindings.map((binding) => (
-              <li key={binding.id} className="border-border rounded border p-2">
+              <Card as="li" key={binding.id} className="border-border p-2">
                 <Typography variant="small">
                   {binding.binding_key} · template {binding.template_key ?? '—'} · deliverable{' '}
                   {binding.deliverable_type ?? '—'} · section {binding.section_type ?? '—'}
                 </Typography>
-              </li>
+              </Card>
             ))}
           </ul>
         </div>
@@ -259,9 +276,10 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
           </Typography>
           <ul className="space-y-2">
             {panel.presets.map((preset) => (
-              <li
+              <Card
+                as="li"
                 key={preset.preset_key}
-                className="border-border flex flex-wrap items-center justify-between gap-2 rounded border p-3"
+                className="border-border flex flex-wrap items-center justify-between gap-2 p-3"
               >
                 <div>
                   <Typography variant="small" weight="medium">
@@ -274,10 +292,12 @@ export function PromptRegistryPanel({ orgId, canManage, agents }: Props) {
                 <Button
                   variant="outline"
                   loading={panel.saving}
-                  onClick={() => void panel.handleApplyPreset(preset.preset_key)} icon={<Play size={16} />}>
+                  onClick={() => void panel.handleApplyPreset(preset.preset_key)}
+                  icon={<Play size={16} />}
+                >
                   Apply preset
                 </Button>
-              </li>
+              </Card>
             ))}
           </ul>
         </div>

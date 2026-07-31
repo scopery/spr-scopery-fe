@@ -5,8 +5,8 @@ import { ApiError } from '@/shared/lib/api-types'
 import { toast } from 'sonner'
 import { Modal, Input, Select, Typography } from '@/shared/ui'
 import { useAuth } from '@/modules/auth/auth/context/AuthContext'
-import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
-import { useWorkspaceMembers } from '@/modules/org/workspace/hooks/useWorkspaceMembers'
+import { UserSearchSelect, useResolveUsers, type PersonIdentity } from '@/modules/platform'
+import { useWorkspaceMembers } from '@/modules/org/workspace'
 import * as projectsApi from '../api/projects.api'
 import { projectCodeFromName } from '../model/project'
 import type { CreateProjectModalProps } from '../model/project'
@@ -44,18 +44,22 @@ export function CreateProjectModal({
 }: CreateProjectModalProps) {
   const { session, profile } = useAuth()
   const currentUserId = session?.user?.id ?? profile?.user_id ?? ''
-  const currentUserLabel =
-    profile?.display_name ||
-    session?.user?.fullName ||
-    session?.user?.email ||
-    session?.user?.username ||
-    'You'
 
-  const { members, loading: membersLoading, error: membersError } = useWorkspaceMembers(
-    open ? workspaceId : null
-  )
+  const {
+    members,
+    loading: membersLoading,
+    error: membersError,
+  } = useWorkspaceMembers(open ? workspaceId : null)
   const memberUserIds = useMemo(() => members.map((m) => m.userId), [members])
-  const { labelFor } = useResolveUsers(memberUserIds)
+  const { personFor } = useResolveUsers(memberUserIds)
+  const ownerPeople = useMemo(
+    () =>
+      members
+        .filter((member) => isActiveMember(member.status))
+        .map((member) => personFor(member.userId))
+        .filter((person): person is PersonIdentity => Boolean(person)),
+    [members, personFor]
+  )
 
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
@@ -85,34 +89,6 @@ export function CreateProjectModal({
     setTemplatesError(null)
   }, [open, currentUserId])
 
-  const ownerOptions = useMemo(() => {
-    const active = members.filter((m) => isActiveMember(m.status))
-    const seen = new Set<string>()
-    const options: { value: string; label: string }[] = [
-      { value: '', label: 'No owner' },
-    ]
-
-    // Ensure current user is always selectable even if members list lags.
-    if (currentUserId) {
-      seen.add(currentUserId)
-      options.push({
-        value: currentUserId,
-        label: `You — ${currentUserLabel}`,
-      })
-    }
-
-    for (const m of active) {
-      if (seen.has(m.userId)) continue
-      seen.add(m.userId)
-      options.push({
-        value: m.userId,
-        label: labelFor(m.userId, { currentUserId, youLabel: currentUserLabel }),
-      })
-    }
-
-    return options
-  }, [members, currentUserId, currentUserLabel, labelFor])
-
   useEffect(() => {
     if (!open || step !== 3) return
     let cancelled = false
@@ -135,9 +111,7 @@ export function CreateProjectModal({
       .catch((err) => {
         if (cancelled) return
         setTemplates([])
-        setTemplatesError(
-          err instanceof Error ? err.message : 'Could not load project templates'
-        )
+        setTemplatesError(err instanceof Error ? err.message : 'Could not load project templates')
       })
       .finally(() => {
         if (!cancelled) setTemplatesLoading(false)
@@ -302,14 +276,12 @@ export function CreateProjectModal({
             </Typography>
           ) : (
             <div>
-              <Typography variant="small" className="mb-1.5">
-                Owner (optional)
-              </Typography>
-              <Select
+              <UserSearchSelect
+                label="Owner (optional)"
                 value={ownerUserId}
-                onValueChange={setOwnerUserId}
-                options={ownerOptions}
-                placeholder="Select owner"
+                onChange={setOwnerUserId}
+                seedPeople={ownerPeople}
+                allowRemoteSearch={false}
               />
               {membersError ? (
                 <Typography variant="small" className="mt-2 text-amber-700">

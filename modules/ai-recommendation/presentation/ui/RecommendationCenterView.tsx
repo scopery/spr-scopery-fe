@@ -1,33 +1,22 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import {
-  Button,
-  PageSkeleton,
-  Stack,
-  Typography
-} from '@/shared/ui'
+import { Button, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useAiRecommendations } from '../hooks/useAiRecommendations'
 
 export function RecommendationCenterView() {
   const { projectId } = useParams<{ projectId: string }>()
-  const {
-    items,
-    loading,
-    error,
-    actionError,
-    prepareInfo,
-    accept,
-    reject,
-    prepareApply,
-  } = useAiRecommendations(projectId)
+  const { items, loading, error, actionError, prepareInfo, accept, reject, prepareApply } =
+    useAiRecommendations(projectId)
 
-  if (loading) return <PageSkeleton variant="list" className="p-lg" />
+  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Recommendation Center</Typography>
+    <Stack direction="vertical" spacing="sm" className="px-3 py-3 lg:px-4">
+      <Typography as="h1" size="md" weight="medium">
+        Recommendation Center
+      </Typography>
       {actionError ? <Typography tone="error">{actionError}</Typography> : null}
       {prepareInfo ? (
         <div className="border border-neutral-200 p-md">

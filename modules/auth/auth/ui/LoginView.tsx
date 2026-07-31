@@ -110,7 +110,7 @@ function LoginContent() {
         aria-label="Loading"
         aria-live="polite"
       >
-        <ContentLoader variant="easeOut" className="w-20" />
+        <ContentLoader variant="easeOut" className="w-20 !bg-transparent" />
       </div>
     )
   }

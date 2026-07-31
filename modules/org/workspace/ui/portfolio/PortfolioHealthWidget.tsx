@@ -1,6 +1,6 @@
 'use client'
 
-import { Badge, Typography } from '@/shared/ui'
+import { Badge, Card, Typography } from '@/shared/ui'
 import type { PortfolioSummary } from '../../domain/rules/portfolio.rules'
 import { portfolioMetricTone } from './portfolioStatusTones'
 
@@ -11,7 +11,7 @@ interface PortfolioHealthWidgetProps {
 export function PortfolioHealthWidget({ summary }: PortfolioHealthWidgetProps) {
   if (!summary.healthAvailable) {
     return (
-      <section className="border border-neutral-200 bg-white">
+      <Card as="section">
         <header className="border-b border-neutral-200 px-4 py-3">
           <Typography as="h2" size="sm" weight="semibold">
             Portfolio health
@@ -22,7 +22,7 @@ export function PortfolioHealthWidget({ summary }: PortfolioHealthWidgetProps) {
             Health unavailable
           </Typography>
         </div>
-      </section>
+      </Card>
     )
   }
 
@@ -68,7 +68,7 @@ export function PortfolioHealthWidget({ summary }: PortfolioHealthWidgetProps) {
   }>
 
   return (
-    <section className="border border-neutral-200 bg-white">
+    <Card as="section">
       <header className="border-b border-neutral-200 px-4 py-3">
         <Typography as="h2" size="sm" weight="semibold">
           Portfolio health
@@ -107,6 +107,6 @@ export function PortfolioHealthWidget({ summary }: PortfolioHealthWidgetProps) {
           </div>
         ) : null}
       </div>
-    </section>
+    </Card>
   )
 }

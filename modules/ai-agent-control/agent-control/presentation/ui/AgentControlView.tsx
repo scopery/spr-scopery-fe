@@ -4,7 +4,7 @@ import { Archive, Play, Plus } from 'lucide-react'
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Box, Button, Input, Select, Typography, Badge, PageSkeleton } from '@/shared/ui'
+import { Box, Button, Card, Input, Select, Typography, Badge, PageSkeleton } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { useAgentControl } from '../hooks/useAgentControl'
 import { useAgentControlMutations } from '../hooks/useAgentControlMutations'
@@ -39,9 +39,7 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
   const mutations = useAgentControlMutations(orgId, () => void reload())
 
   if (loading) {
-    return (
-      <PageSkeleton variant="list" />
-    )
+    return <PageSkeleton variant="list" />
   }
 
   return (
@@ -139,7 +137,7 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
           ) : null}
 
           {mutations.showAgentForm && canManage ? (
-            <div className="border-border space-y-3 rounded-md border p-4">
+            <Card className="border-border space-y-3 p-4">
               <Input
                 label="Agent key"
                 value={mutations.agentKey}
@@ -158,14 +156,16 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
               <Button
                 variant="primary"
                 loading={mutations.saving}
-                onClick={() => void mutations.handleCreateAgent()} icon={<Plus size={16} />}>
+                onClick={() => void mutations.handleCreateAgent()}
+                icon={<Plus size={16} />}
+              >
                 Create inactive agent
               </Button>
-            </div>
+            </Card>
           ) : null}
 
           {mutations.showPolicyForm && canManage ? (
-            <div className="border-border space-y-3 rounded-md border p-4">
+            <Card className="border-border space-y-3 p-4">
               <Input
                 label="Policy key"
                 value={mutations.policyKey}
@@ -196,10 +196,12 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
               <Button
                 variant="primary"
                 loading={mutations.saving}
-                onClick={() => void mutations.handleCreatePolicy()} icon={<Plus size={16} />}>
+                onClick={() => void mutations.handleCreatePolicy()}
+                icon={<Plus size={16} />}
+              >
                 Create inactive policy
               </Button>
-            </div>
+            </Card>
           ) : null}
 
           {tab === 'agents' ? (
@@ -210,7 +212,7 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
             ) : (
               <ul className="space-y-3">
                 {agents.map((agent) => (
-                  <li key={agent.id} className="border-border rounded-md border p-4">
+                  <Card as="li" key={agent.id} className="border-border p-4">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="space-y-1">
                         <Typography variant="small" weight="medium">
@@ -231,18 +233,24 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
                           variant="solid"
                           tone={agent.status === 'active' ? 'success' : 'neutral'}
                         >
-                          {agent.status === 'active' ? 'Active' : agent.status === 'archived' ? 'Archived' : agent.status}
+                          {agent.status === 'active'
+                            ? 'Active'
+                            : agent.status === 'archived'
+                              ? 'Archived'
+                              : agent.status}
                         </Badge>
                         {canManage && agent.status !== 'archived' ? (
                           <Button
                             variant="ghost"
-                            onClick={() => void mutations.archiveAgent(agent.id)} icon={<Archive size={16} />}>
+                            onClick={() => void mutations.archiveAgent(agent.id)}
+                            icon={<Archive size={16} />}
+                          >
                             Archive
                           </Button>
                         ) : null}
                       </div>
                     </div>
-                  </li>
+                  </Card>
                 ))}
               </ul>
             )
@@ -253,7 +261,7 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
           ) : (
             <ul className="space-y-3">
               {policies.map((policy) => (
-                <li key={policy.id} className="border-border rounded-md border p-4">
+                <Card as="li" key={policy.id} className="border-border p-4">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="space-y-1">
                       <Typography variant="small" weight="medium">
@@ -276,18 +284,24 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
                         variant="solid"
                         tone={policy.status === 'active' ? 'success' : 'neutral'}
                       >
-                        {policy.status === 'active' ? 'Active' : policy.status === 'archived' ? 'Archived' : policy.status}
+                        {policy.status === 'active'
+                          ? 'Active'
+                          : policy.status === 'archived'
+                            ? 'Archived'
+                            : policy.status}
                       </Badge>
                       {canManage && policy.status !== 'archived' ? (
                         <Button
                           variant="ghost"
-                          onClick={() => void mutations.archivePolicy(policy.id)} icon={<Archive size={16} />}>
+                          onClick={() => void mutations.archivePolicy(policy.id)}
+                          icon={<Archive size={16} />}
+                        >
                           Archive
                         </Button>
                       ) : null}
                     </div>
                   </div>
-                </li>
+                </Card>
               ))}
             </ul>
           )}
@@ -299,9 +313,10 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
               </Typography>
               <ul className="space-y-2">
                 {presets.map((preset) => (
-                  <li
+                  <Card
+                    as="li"
                     key={preset.preset_key}
-                    className="border-border flex flex-wrap items-center justify-between gap-2 rounded border p-3"
+                    className="border-border flex flex-wrap items-center justify-between gap-2 p-3"
                   >
                     <div>
                       <Typography variant="small" weight="medium">
@@ -315,10 +330,12 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
                     <Button
                       variant="outline"
                       loading={mutations.applyingPreset}
-                      onClick={() => void mutations.handleApplyPreset(preset.preset_key)} icon={<Play size={16} />}>
+                      onClick={() => void mutations.handleApplyPreset(preset.preset_key)}
+                      icon={<Play size={16} />}
+                    >
                       Apply preset
                     </Button>
-                  </li>
+                  </Card>
                 ))}
               </ul>
             </div>

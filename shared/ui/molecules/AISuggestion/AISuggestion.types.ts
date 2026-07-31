@@ -37,13 +37,5 @@ export type AISuggestionProps<C extends React.ElementType = 'div'> =
        * @default true
        */
       showIcon?: boolean
-      /**
-       * Border radius for the card container
-       */
-      cardBorderRadius?: 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'full'
-      /**
-       * Shadow for the card container
-       */
-      cardShadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl'
     }
   >

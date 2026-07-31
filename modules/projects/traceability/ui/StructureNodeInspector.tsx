@@ -112,7 +112,7 @@ export function findFocusLabel(
       }
     }
   }
-  return { title: focus.id.slice(0, 8) + '…', subtitle: focus.type, path: '' }
+  return { title: 'Unavailable node', subtitle: focus.type, path: '' }
 }
 
 export function StructureNodeInspector({

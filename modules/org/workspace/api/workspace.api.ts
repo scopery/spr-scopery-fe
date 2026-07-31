@@ -1,14 +1,8 @@
 import { apiClient } from '@/shared/lib/apiClient'
 import { WORKSPACE_ENDPOINTS } from './endpoints'
-import type {
-  CreateWorkspacePayload,
-  UpdateWorkspacePayload,
-  WorkspaceDetail,
-} from '../model'
+import type { CreateWorkspacePayload, UpdateWorkspacePayload, WorkspaceDetail } from '../model'
 
-export async function createWorkspace(
-  body: CreateWorkspacePayload
-): Promise<WorkspaceDetail> {
+export async function createWorkspace(body: CreateWorkspacePayload): Promise<WorkspaceDetail> {
   return apiClient.post<WorkspaceDetail>(WORKSPACE_ENDPOINTS.create(), body)
 }
 

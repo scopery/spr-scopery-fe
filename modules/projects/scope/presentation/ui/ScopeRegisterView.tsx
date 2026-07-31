@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Plus } from 'lucide-react'
+import { Archive, Check, Link2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
+import { Badge, Button, DataTable, PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
-import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
+import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { useProject } from '../../../project/hooks/useProject'
 import { useScopeRegister } from '../hooks/useScopeRegister'
 import { useScopePackageRequirements } from '../hooks/useScopePackageRequirements'
@@ -29,7 +29,6 @@ export function ScopeRegisterView() {
     forbidden,
     createPackage,
     approvePackage,
-    markCurrentPackage,
     archivePackage,
   } = useScopeRegister(projectId)
 
@@ -52,16 +51,6 @@ export function ScopeRegisterView() {
     try {
       await approvePackage(selectedPackage.id)
       toast.success('Scope package approved')
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    }
-  }
-
-  const handleMarkCurrent = async () => {
-    if (!selectedPackage) return
-    try {
-      await markCurrentPackage(selectedPackage.id)
-      toast.success('Marked as current package')
     } catch (err) {
       toast.error(getProblemToastMessage(err))
     }
@@ -114,19 +103,19 @@ export function ScopeRegisterView() {
   }
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
         current="Scope register"
       />
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-6">
+      <div className="mb-2 mt-1 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Scope register
           </Typography>
-          <Typography variant="small" tone="muted" className="mt-1">
+          <Typography variant="caption" tone="muted" className="mt-0.5">
             Scope packages linked to project requirements
           </Typography>
         </div>
@@ -139,114 +128,116 @@ export function ScopeRegisterView() {
         </Button>
       </div>
 
-      <Stack direction="horizontal" spacing="sm" className="mb-4 flex-wrap items-center">
-        <Select
-          value={selectedPackageId ?? ''}
-          onValueChange={setSelectedPackageId}
-          options={packages.map((p) => ({
-            value: p.id,
-            label: `${p.code} · ${p.name}${p.currentFlag ? ' (current)' : ''}`,
-          }))}
-          className="w-64"
-        />
-        {selectedPackage && (
-          <Badge tone={selectedPackage.status === 'APPROVED' ? 'success' : 'neutral'}>
-            {scopePackageStatusLabel(selectedPackage.status)}
-          </Badge>
-        )}
-        {selectedPackage && selectedPackage.status === 'DRAFT' && (
-          <Button size="sm" variant="secondary" onClick={() => void handleApprove()}>
-            Approve
-          </Button>
-        )}
-        {selectedPackage && !selectedPackage.currentFlag && (
-          <Button size="sm" variant="ghost" onClick={() => void handleMarkCurrent()}>
-            Mark current
-          </Button>
-        )}
-        {selectedPackage && selectedPackage.status !== 'ARCHIVED' && (
-          <Button
-            size="sm"
-            variant="ghost"
-            tone="error"
-            onClick={() => void handleArchivePackage()}
-          >
-            Archive
-          </Button>
-        )}
-        {selectedPackage && (
-          <Button
-            size="sm"
-            variant="primary"
-            icon={<Plus size={16} />}
-            onClick={() => setLinkOpen(true)}
-          >
-            Link requirements
-          </Button>
-        )}
-      </Stack>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <Stack direction="horizontal" spacing="sm" className="min-w-0 flex-wrap items-center">
+          <Select
+            value={selectedPackageId ?? ''}
+            onValueChange={setSelectedPackageId}
+            options={packages.map((p) => ({
+              value: p.id,
+              label: `${p.code} · ${p.name}${p.currentFlag ? ' (current)' : ''}`,
+            }))}
+            className="w-64"
+          />
+          {selectedPackage ? (
+            <Badge
+              variant="solid"
+              tone={selectedPackage.status === 'APPROVED' ? 'success' : 'neutral'}
+            >
+              {scopePackageStatusLabel(selectedPackage.status)}
+            </Badge>
+          ) : null}
+        </Stack>
+
+        {selectedPackage ? (
+          <Stack direction="horizontal" spacing="sm" className="ml-auto flex-wrap items-center">
+            {selectedPackage.status === 'DRAFT' ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                iconOnly
+                icon={<Check size={16} />}
+                aria-label="Approve package"
+                title="Approve"
+                onClick={() => void handleApprove()}
+              />
+            ) : null}
+            {selectedPackage.status !== 'ARCHIVED' ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                tone="error"
+                iconOnly
+                icon={<Archive size={16} />}
+                aria-label="Archive package"
+                title="Archive"
+                onClick={() => void handleArchivePackage()}
+              />
+            ) : null}
+            <Button
+              size="sm"
+              variant="ghost"
+              iconOnly
+              icon={<Link2 size={16} />}
+              aria-label="Link requirements"
+              title="Link requirements"
+              onClick={() => setLinkOpen(true)}
+            />
+          </Stack>
+        ) : null}
+      </div>
 
       {packages.length === 0 ? (
         <div className="border border-neutral-200 bg-white p-8 text-center">
           <Typography tone="muted">No scope packages yet. Create one to get started.</Typography>
         </div>
       ) : (
-        <div className="overflow-x-auto border border-neutral-200 bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Code</th>
-                <th className="px-4 py-3 font-medium">Title</th>
-                <th className="px-4 py-3 font-medium">Type</th>
-                <th className="px-4 py-3 font-medium">Priority</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loadingReqs ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center">
-                    <Typography variant="small" tone="muted">
-                      Loading requirements…
-                    </Typography>
-                  </td>
-                </tr>
-              ) : requirements.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center">
-                    <Typography variant="small" tone="muted">
-                      No requirements linked. Use “Link requirements” to add some.
-                    </Typography>
-                  </td>
-                </tr>
-              ) : (
-                requirements.map((r) => (
-                  <tr key={r.id} className="border-t border-neutral-100">
-                    <td className="px-4 py-3 font-mono text-xs text-neutral-600">{r.code}</td>
-                    <td className="px-4 py-3 font-medium text-neutral-900">{r.title}</td>
-                    <td className="px-4 py-3">{r.requirementType ?? '—'}</td>
-                    <td className="px-4 py-3">{r.priority ?? '—'}</td>
-                    <td className="px-4 py-3">
-                      <Badge tone="neutral">{r.status ?? '—'}</Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        tone="error"
-                        disabled={acting || unlinkingId === r.id}
-                        loading={unlinkingId === r.id}
-                        onClick={() => void handleUnlink(r.id)}
-                      >
-                        Unlink
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="border border-neutral-200 bg-white">
+          <DataTable
+            ariaLabel="Linked scope requirements"
+            rows={loadingReqs ? [] : requirements}
+            rowKey={(requirement) => requirement.id}
+            emptyMessage={
+              loadingReqs
+                ? 'Loading requirements…'
+                : 'No requirements linked. Use “Link requirements” to add some.'
+            }
+            columns={[
+              { id: 'code', header: 'Code', accessor: 'code', kind: 'code' },
+              { id: 'title', header: 'Title', accessor: 'title' },
+              {
+                id: 'type',
+                header: 'Type',
+                accessor: (requirement) => requirement.requirementType ?? '—',
+              },
+              {
+                id: 'priority',
+                header: 'Priority',
+                accessor: (requirement) => requirement.priority ?? '—',
+              },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (requirement) => <Badge tone="neutral">{requirement.status ?? '—'}</Badge>,
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (requirement) => (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    tone="error"
+                    disabled={acting || unlinkingId === requirement.id}
+                    loading={unlinkingId === requirement.id}
+                    onClick={() => void handleUnlink(requirement.id)}
+                  >
+                    Unlink
+                  </Button>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
 

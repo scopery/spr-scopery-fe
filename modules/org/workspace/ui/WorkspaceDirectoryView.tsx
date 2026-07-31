@@ -78,7 +78,7 @@ export function WorkspaceDirectoryView() {
             href={t.href}
             aria-current={tab === t.id ? 'page' : undefined}
             className={cn(
-              'rounded-none border-b-2 border-transparent px-3 py-2 text-sm text-neutral-600 motion-colors hover:text-neutral-900',
+              'motion-colors rounded-none border-b-2 border-transparent px-3 py-2 text-sm text-neutral-600 hover:text-neutral-900',
               tab === t.id && 'border-primary font-medium text-neutral-900'
             )}
           >

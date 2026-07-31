@@ -1,18 +1,23 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { Input, Modal, Select, Textarea, Typography } from '@/shared/ui'
+import { UseCaseSearchSelect } from '@/modules/projects/traceability'
 import {
   DefectCategory,
   DefectPriority,
   DefectSeverity,
   ReleaseType,
+  RunScope,
   TestCasePriority,
   TestCaseType,
   TestLevel,
   TestRunType,
   TraceLinkType,
 } from '../../domain/enums/quality.enum'
+import * as qualityApi from '../../infrastructure/api/quality.api'
+import type { TestPlan, TestSuite } from '../../domain/model/quality'
 import {
   emptyDraftValues,
   isDraftRowValid,
@@ -22,6 +27,7 @@ import {
   type QualityCreateInput,
   type QualityDraftValues,
 } from './quality-bulk.model'
+import { TRACE_ENTITY_TYPE_OPTIONS, TraceEntitySearchSelect } from './TraceEntitySearchSelect'
 
 function enumOptions(values: readonly string[]) {
   return values.map((v) => ({ value: v, label: v }))
@@ -40,9 +46,13 @@ export function QualitySingleAddModal({
   onClose,
   onCreate,
 }: QualitySingleAddModalProps) {
+  const { workspaceId, projectId } = useParams<{ workspaceId: string; projectId: string }>()
   const [values, setValues] = useState<QualityDraftValues>(() => emptyDraftValues(kind))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [plans, setPlans] = useState<TestPlan[]>([])
+  const [suites, setSuites] = useState<TestSuite[]>([])
+  const [plansLoading, setPlansLoading] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -51,11 +61,65 @@ export function QualitySingleAddModal({
     setLoading(false)
   }, [open, kind])
 
+  useEffect(() => {
+    if (!open || kind !== 'TEST_RUN' || !projectId) return
+    let cancelled = false
+    setPlansLoading(true)
+    void qualityApi
+      .listTestPlans(projectId)
+      .then((res) => {
+        if (cancelled) return
+        setPlans(res.items)
+        const first = res.items[0]?.id
+        if (first) {
+          setValues((prev) => ({ ...prev, testPlanId: prev.testPlanId || first }))
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPlans([])
+      })
+      .finally(() => {
+        if (!cancelled) setPlansLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, kind, projectId])
+
+  useEffect(() => {
+    if (!open || kind !== 'TEST_RUN' || !projectId || !values.testPlanId) {
+      setSuites([])
+      return
+    }
+    let cancelled = false
+    void qualityApi
+      .listTestSuites(projectId, values.testPlanId)
+      .then((res) => {
+        if (cancelled) return
+        setSuites(res.items)
+        const first = res.items[0]?.id
+        setValues((prev) => ({
+          ...prev,
+          testSuiteId:
+            prev.testSuiteId && res.items.some((s) => s.id === prev.testSuiteId)
+              ? prev.testSuiteId
+              : (first ?? ''),
+        }))
+      })
+      .catch(() => {
+        if (!cancelled) setSuites([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, kind, projectId, values.testPlanId])
+
   const set = (key: string, value: string) => {
     setValues((prev) => ({ ...prev, [key]: value }))
   }
 
-  const canSubmit = isDraftRowValid(kind, values)
+  const canSubmit =
+    isDraftRowValid(kind, values) && (kind !== 'TEST_CASE' || Boolean(values.useCaseId))
 
   return (
     <Modal
@@ -197,7 +261,11 @@ export function QualitySingleAddModal({
                 <Select
                   value={values.type ?? TestCaseType.Functional}
                   onValueChange={(v: string) => set('type', v)}
-                  options={enumOptions(Object.values(TestCaseType))}
+                  options={enumOptions(
+                    Object.values(TestCaseType).filter(
+                      (value) => value !== TestCaseType.NonFunctional
+                    )
+                  )}
                 />
               </div>
               <div>
@@ -211,6 +279,12 @@ export function QualitySingleAddModal({
                 />
               </div>
             </div>
+            <UseCaseSearchSelect
+              projectId={projectId}
+              value={values.useCaseId ?? ''}
+              onChange={(useCaseId) => set('useCaseId', useCaseId)}
+              required
+            />
             <Textarea
               label="Preconditions"
               fullWidth
@@ -245,6 +319,65 @@ export function QualitySingleAddModal({
                 value={values.runType ?? TestRunType.Manual}
                 onValueChange={(v: string) => set('runType', v)}
                 options={enumOptions(Object.values(TestRunType))}
+              />
+            </div>
+            <div>
+              <Typography variant="small" weight="medium" className="mb-1">
+                Run scope
+              </Typography>
+              <Select
+                value={values.runScope ?? RunScope.Functional}
+                onValueChange={(v: string) => set('runScope', v)}
+                options={enumOptions(Object.values(RunScope))}
+              />
+            </div>
+            <Typography variant="caption" tone="muted">
+              Optional: link a Test Suite to auto-load cases on Start. Or create empty and use Add
+              cases (membership).
+            </Typography>
+            <div>
+              <Typography variant="small" weight="medium" className="mb-1">
+                Test plan
+              </Typography>
+              <Select
+                value={values.testPlanId ?? ''}
+                onValueChange={(v: string) => {
+                  set('testPlanId', v)
+                  set('testSuiteId', '')
+                }}
+                options={[
+                  { value: '', label: 'None — add cases later' },
+                  ...plans.map((p) => ({
+                    value: p.id,
+                    label: p.code ? `${p.code} · ${p.name}` : p.name,
+                  })),
+                ]}
+                disabled={plansLoading}
+                placeholder={plansLoading ? 'Loading plans…' : 'Optional'}
+              />
+            </div>
+            <div>
+              <Typography variant="small" weight="medium" className="mb-1">
+                Test suite
+              </Typography>
+              <Select
+                value={values.testSuiteId ?? ''}
+                onValueChange={(v: string) => set('testSuiteId', v)}
+                options={[
+                  { value: '', label: 'None' },
+                  ...suites.map((s) => ({
+                    value: s.id,
+                    label: s.name,
+                  })),
+                ]}
+                disabled={!values.testPlanId || suites.length === 0}
+                placeholder={
+                  !values.testPlanId
+                    ? 'Select a plan first (optional)'
+                    : suites.length === 0
+                      ? 'No suites in this plan'
+                      : 'Optional'
+                }
               />
             </div>
           </>
@@ -355,33 +488,39 @@ export function QualitySingleAddModal({
         {kind === 'TRACE_LINK' ? (
           <>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Input
+              <Select
                 label="Source type"
-                fullWidth
-                required
                 value={values.sourceType ?? ''}
-                onChange={(e) => set('sourceType', e.target.value)}
+                options={TRACE_ENTITY_TYPE_OPTIONS}
+                onValueChange={(sourceType: string) =>
+                  setValues((current) => ({ ...current, sourceType, sourceId: '' }))
+                }
               />
-              <Input
-                label="Source ID"
-                fullWidth
+              <TraceEntitySearchSelect
+                workspaceId={workspaceId}
+                projectId={projectId}
+                entityType={values.sourceType ?? ''}
+                label="Source"
                 required
                 value={values.sourceId ?? ''}
-                onChange={(e) => set('sourceId', e.target.value)}
+                onChange={(sourceId) => set('sourceId', sourceId)}
               />
-              <Input
+              <Select
                 label="Target type"
-                fullWidth
-                required
                 value={values.targetType ?? ''}
-                onChange={(e) => set('targetType', e.target.value)}
+                options={TRACE_ENTITY_TYPE_OPTIONS}
+                onValueChange={(targetType: string) =>
+                  setValues((current) => ({ ...current, targetType, targetId: '' }))
+                }
               />
-              <Input
-                label="Target ID"
-                fullWidth
+              <TraceEntitySearchSelect
+                workspaceId={workspaceId}
+                projectId={projectId}
+                entityType={values.targetType ?? ''}
+                label="Target"
                 required
                 value={values.targetId ?? ''}
-                onChange={(e) => set('targetId', e.target.value)}
+                onChange={(targetId) => set('targetId', targetId)}
               />
             </div>
             <div>

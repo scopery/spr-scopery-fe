@@ -1,6 +1,6 @@
 'use client'
 
-import { Typography } from '@/shared/ui'
+import { Card, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import type { PortfolioSummary } from '../../domain/rules/portfolio.rules'
 import type { PortfolioMetricFilter } from '../../domain/rules/portfolio.rules'
@@ -11,7 +11,6 @@ interface WorkspacePortfolioSummaryStripProps {
   onFilterChange: (filter: PortfolioMetricFilter) => void
 }
 
-
 export function WorkspacePortfolioSummaryStrip({
   summary,
   activeFilter,
@@ -19,11 +18,11 @@ export function WorkspacePortfolioSummaryStrip({
 }: WorkspacePortfolioSummaryStripProps) {
   if (!summary.healthAvailable) {
     return (
-      <div className="mb-4 border border-neutral-200 bg-white px-4 py-3">
+      <Card as="section" className="mb-4 px-4 py-3">
         <Typography variant="small" tone="muted">
           Health unavailable — create projects and phases to unlock portfolio metrics.
         </Typography>
-      </div>
+      </Card>
     )
   }
 
@@ -47,7 +46,7 @@ export function WorkspacePortfolioSummaryStrip({
   ]
 
   return (
-    <div className="mb-4 flex flex-wrap gap-px border border-neutral-200 bg-neutral-200">
+    <Card className="mb-4 flex flex-wrap gap-px bg-neutral-200">
       {metrics.map((m) => {
         if (m.hideZero && (m.value == null || m.value === 0) && m.key !== 'all') return null
         const suffix =
@@ -57,17 +56,18 @@ export function WorkspacePortfolioSummaryStrip({
             key={m.key}
             type="button"
             onClick={() => onFilterChange(m.key)}
-            className="min-w-[110px] flex-1 bg-white px-3 py-3 transition-colors hover:bg-neutral-50 outline-none focus:outline-none focus-visible:outline-none flex items-center justify-between gap-2"
+            className="flex min-w-[110px] flex-1 items-center justify-between gap-2 bg-white px-3 py-3 outline-none transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:outline-none"
           >
             <Typography variant="small" tone="muted">
-              {m.label}{suffix}
+              {m.label}
+              {suffix}
             </Typography>
-            <Typography as="span" size="lg" weight="semibold" className="tabular-nums">
+            <Typography as="span" size="md" weight="medium" className="tabular-nums">
               {m.value ?? '—'}
             </Typography>
           </button>
         )
       })}
-    </div>
+    </Card>
   )
 }

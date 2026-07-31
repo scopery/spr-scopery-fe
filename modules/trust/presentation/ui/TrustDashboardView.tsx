@@ -8,7 +8,7 @@ import {
   MaskedValue,
   PageSkeleton,
   Stack,
-  Typography
+  Typography,
 } from '@/shared/ui'
 import { useTrustDashboard } from '../hooks/useTrustDashboard'
 
@@ -42,12 +42,14 @@ export function TrustDashboardView() {
     releaseSuppression,
   } = useTrustDashboard(workspaceId)
 
-  if (loading) return <PageSkeleton variant="cards" className="p-lg" />
+  if (loading) return <PageSkeleton variant="cards" className="px-3 py-3 lg:px-4 lg:py-3" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Trust & Compliance</Typography>
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <Typography as="h1" size="md" weight="medium">
+        Trust & Compliance
+      </Typography>
       <div className="flex flex-wrap gap-sm">
         <ClassificationBadge level={ClassificationLevel.Confidential} />
         <MaskedValue masked />
@@ -57,19 +59,25 @@ export function TrustDashboardView() {
           <Typography variant="caption" tone="muted">
             Privacy requests
           </Typography>
-          <Typography variant="h3">{data?.openPrivacyRequests ?? 0}</Typography>
+          <Typography size="md" weight="medium">
+            {data?.openPrivacyRequests ?? 0}
+          </Typography>
         </div>
         <div className="border border-neutral-200 p-md">
           <Typography variant="caption" tone="muted">
             Legal holds
           </Typography>
-          <Typography variant="h3">{data?.activeLegalHolds ?? 0}</Typography>
+          <Typography size="md" weight="medium">
+            {data?.activeLegalHolds ?? 0}
+          </Typography>
         </div>
         <div className="border border-neutral-200 p-md">
           <Typography variant="caption" tone="muted">
             Access reviews
           </Typography>
-          <Typography variant="h3">{data?.pendingAccessReviews ?? 0}</Typography>
+          <Typography size="md" weight="medium">
+            {data?.pendingAccessReviews ?? 0}
+          </Typography>
         </div>
       </div>
 
@@ -90,7 +98,11 @@ export function TrustDashboardView() {
                   {p.name}
                 </Typography>
                 <Typography variant="caption" tone="muted">
-                  {[p.policyCode, p.retentionAction, p.retentionPeriodDays && `${p.retentionPeriodDays}d`]
+                  {[
+                    p.policyCode,
+                    p.retentionAction,
+                    p.retentionPeriodDays && `${p.retentionPeriodDays}d`,
+                  ]
                     .filter(Boolean)
                     .join(' · ')}
                 </Typography>
@@ -114,7 +126,7 @@ export function TrustDashboardView() {
             <li key={c.id} className="flex items-center justify-between gap-md p-md">
               <div>
                 <Typography variant="small" weight="medium">
-                  {c.name ?? c.id}
+                  {c.name ?? '—'}
                 </Typography>
                 <Typography variant="caption" tone="muted">
                   {c.status}
@@ -147,7 +159,7 @@ export function TrustDashboardView() {
             <li key={f.id} className="flex items-center justify-between gap-md p-md">
               <div>
                 <Typography variant="small" weight="medium">
-                  {f.summary ?? f.id}
+                  {f.summary ?? '—'}
                 </Typography>
                 <Typography variant="caption" tone="muted">
                   {f.status}
@@ -177,7 +189,7 @@ export function TrustDashboardView() {
             <li key={e.id} className="flex items-center justify-between gap-md p-md">
               <div>
                 <Typography variant="small" weight="medium">
-                  {e.title ?? e.id}
+                  {e.title ?? '—'}
                 </Typography>
                 <Typography variant="caption" tone="muted">
                   {[e.evidenceType, e.status].filter(Boolean).join(' · ')}
@@ -205,7 +217,7 @@ export function TrustDashboardView() {
         <ul className="divide-y divide-neutral-200 border border-neutral-200">
           {sensitiveObjects.map((o) => (
             <li key={o.id} className="p-md text-sm">
-              {[o.objectType, o.classification, o.status].filter(Boolean).join(' · ') || o.id}
+              {[o.objectType, o.classification, o.status].filter(Boolean).join(' · ') || '—'}
             </li>
           ))}
         </ul>
@@ -222,7 +234,7 @@ export function TrustDashboardView() {
             <li key={c.id} className="flex items-center justify-between gap-md p-md">
               <div>
                 <Typography variant="small" weight="medium">
-                  {c.subjectLabel ?? c.id}
+                  {c.subjectLabel ?? '—'}
                 </Typography>
                 <Typography variant="caption" tone="muted">
                   {c.status}
@@ -247,7 +259,7 @@ export function TrustDashboardView() {
             <li key={s.id} className="flex items-center justify-between gap-md p-md">
               <div>
                 <Typography variant="small" weight="medium">
-                  {s.channel ?? s.id}
+                  {s.channel ?? '—'}
                 </Typography>
                 <Typography variant="caption" tone="muted">
                   {s.status}

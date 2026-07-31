@@ -4,14 +4,9 @@ import { useMemo, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import { ADMIN_ROUTES } from '@/modules/admin'
+import { useAuth } from '@/modules/auth'
 import { useDeployments } from '@/modules/ai-agent-admin/deployments'
-import {
-  Button,
-  ConfirmDialog,
-  PageSkeleton,
-  Stack,
-  Typography,
-} from '@/shared/ui'
+import { Button, ConfirmDialog, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { useCanManageAiConfig } from '../../../presentation/hooks/useCanManageAiConfig'
 import { AiLifecycleStatusBadge } from '../../../presentation/ui/AiLifecycleStatusBadge'
 import { AgentStatus } from '../../domain/enums/agent.enum'
@@ -22,6 +17,7 @@ import { AgentFormModal } from './AgentFormModal'
 export function AgentDetailView() {
   const { agentId } = useParams<{ agentId: string }>()
   const canManage = useCanManageAiConfig()
+  const { workspaces } = useAuth()
   const { agent, loading, error, refetch } = useAgentDetail(agentId)
   const { saving, activate, deactivate } = useAgentMutations(refetch)
   const { items: deployments } = useDeployments({ page: 0, size: 100, status: 'ACTIVE' })
@@ -35,6 +31,11 @@ export function AgentDetailView() {
   )
   const [editOpen, setEditOpen] = useState(false)
   const [deactivateOpen, setDeactivateOpen] = useState(false)
+  const defaultDeployment = deployments.find((item) => item.id === agent?.defaultModelDeploymentId)
+  const organizationName = workspaces.find(
+    (item) => item.organizationId === agent?.organizationId
+  )?.organizationName
+  const workspace = workspaces.find((item) => item.id === agent?.workspaceId)
 
   if (loading && !agent) return <PageSkeleton variant="detail" className="p-lg" />
   if (error || !agent) {
@@ -128,22 +129,22 @@ export function AgentDetailView() {
             Default deployment
           </Typography>
           <Typography className="mt-1 font-mono text-xs">
-            {agent.defaultModelDeploymentId || '—'}
+            {defaultDeployment ? `${defaultDeployment.name} (${defaultDeployment.code})` : '—'}
           </Typography>
         </div>
         <div>
           <Typography variant="caption" tone="muted">
             Organization
           </Typography>
-          <Typography className="mt-1 font-mono text-xs">
-            {agent.organizationId || '—'}
-          </Typography>
+          <Typography className="mt-1 font-mono text-xs">{organizationName || '—'}</Typography>
         </div>
         <div>
           <Typography variant="caption" tone="muted">
             Workspace
           </Typography>
-          <Typography className="mt-1 font-mono text-xs">{agent.workspaceId || '—'}</Typography>
+          <Typography className="mt-1 font-mono text-xs">
+            {workspace ? `${workspace.name} (${workspace.code})` : '—'}
+          </Typography>
         </div>
         <div className="sm:col-span-2">
           <Typography variant="caption" tone="muted">

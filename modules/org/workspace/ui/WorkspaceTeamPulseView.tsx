@@ -50,7 +50,7 @@ type StatusFilter = 'all' | 'working' | 'available'
 function StatusChip({ status }: { status: MemberPulseStatus }) {
   if (status === 'working') {
     return (
-      <span className="inline-flex items-center gap-1 bg-info/10 px-2 py-0.5 text-xs font-medium text-info">
+      <span className="bg-info/10 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-info">
         <span className="h-1.5 w-1.5 rounded-full bg-info" />
         Working
       </span>
@@ -79,7 +79,10 @@ function CapacityBar({
   return (
     <div className="flex items-center gap-2">
       <div className="h-1.5 w-16 overflow-hidden rounded-full bg-neutral-200">
-        <div className={cn('h-full rounded-full transition-all', barColor)} style={{ width: `${pct}%` }} />
+        <div
+          className={cn('h-full rounded-full transition-all', barColor)}
+          style={{ width: `${pct}%` }}
+        />
       </div>
       <Typography variant="small" tone="muted" className="whitespace-nowrap text-xs">
         {estimateHours}h / {capacityHours}h
@@ -139,12 +142,12 @@ export function WorkspaceTeamPulseView() {
     : null
 
   return (
-    <div>
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
       {/* Header */}
       <div className="mb-4 border-b border-neutral-200 pb-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <Typography as="h1" size="lg" weight="semibold">
+            <Typography as="h1" size="md" weight="medium">
               Team Pulse
             </Typography>
             <Typography variant="small" tone="muted" className="mt-0.5">
@@ -188,8 +191,6 @@ export function WorkspaceTeamPulseView() {
         </div>
       </div>
 
-      
-
       {error ? (
         <Typography tone="error" variant="small">
           {error}
@@ -220,7 +221,7 @@ export function WorkspaceTeamPulseView() {
                   className={cn(
                     'h-8 border px-3 text-sm transition-colors disabled:opacity-40',
                     statusFilter === s && !needsAttention
-                      ? 'border-primary bg-primary/5 text-primary'
+                      ? 'bg-primary/5 border-primary text-primary'
                       : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
                   )}
                 >
@@ -237,7 +238,7 @@ export function WorkspaceTeamPulseView() {
                 className={cn(
                   'h-8 border px-3 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40',
                   needsAttention
-                    ? 'border-primary bg-primary/5 text-primary'
+                    ? 'bg-primary/5 border-primary text-primary'
                     : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
                 )}
               >
@@ -254,8 +255,8 @@ export function WorkspaceTeamPulseView() {
                   {search
                     ? `No members matching "${search}".`
                     : needsAttention
-                    ? 'All members have active tasks — no one needs attention right now.'
-                    : 'No member activity recorded for this date.'}
+                      ? 'All members have active tasks — no one needs attention right now.'
+                      : 'No member activity recorded for this date.'}
                 </Typography>
               </div>
             ) : (
@@ -526,11 +527,7 @@ function UnassignedPanel({
                   >
                     {task.code}
                   </Typography>
-                  <Typography
-                    variant="small"
-                    weight="medium"
-                    className="truncate text-neutral-900"
-                  >
+                  <Typography variant="small" weight="medium" className="truncate text-neutral-900">
                     {task.title}
                   </Typography>
                 </div>
@@ -592,7 +589,7 @@ function MemberDetailDrawer({
         <>
           <div className="mb-4 flex gap-6 border-b border-neutral-100 pb-4">
             <div>
-              <Typography size="lg" weight="semibold">
+              <Typography size="md" weight="medium">
                 {row.inProgress.length}
               </Typography>
               <Typography variant="small" tone="muted">
@@ -600,7 +597,7 @@ function MemberDetailDrawer({
               </Typography>
             </div>
             <div>
-              <Typography size="lg" weight="semibold">
+              <Typography size="md" weight="medium">
                 {row.done.length}
               </Typography>
               <Typography variant="small" tone="muted">
@@ -609,7 +606,7 @@ function MemberDetailDrawer({
             </div>
             {row.status === 'working' && (
               <div>
-                <Typography size="lg" weight="semibold">
+                <Typography size="md" weight="medium">
                   {row.inProgress.reduce((s, t) => s + (t.estimateHours ?? 0), 0)}h
                 </Typography>
                 <Typography variant="small" tone="muted">
@@ -881,7 +878,7 @@ function QuickAssignDrawer({
               className={cn(
                 'w-full border px-3 py-2.5 text-left transition-colors',
                 selectedUserId === member.userId
-                  ? 'border-primary bg-primary/5'
+                  ? 'bg-primary/5 border-primary'
                   : 'border-neutral-200 hover:bg-neutral-50'
               )}
             >

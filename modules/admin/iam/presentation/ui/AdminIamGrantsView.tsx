@@ -1,15 +1,15 @@
 'use client'
 
-import React from 'react'
 import NextLink from 'next/link'
 import { Ban, CircleArrowRight, Search } from 'lucide-react'
-import { Typography, Button, Stack, PageSkeleton } from '@/shared/ui'
+import { Typography, Button, Stack, PageSkeleton, DataTable } from '@/shared/ui'
 import { IamStatusBadge } from './IamStatusBadge'
-import { IamSearchField } from './IamSearchField'
 import { useIamGrants } from '../hooks/useIamGrants'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 import { useIamIdentityDirectory } from '../hooks/useIamIdentityDirectory'
 import { IamEntityIdentityCard } from './IamEntityIdentityCard'
+import { UserSearchSelect } from '@/modules/platform'
+import { IamResourceSearchSelect } from './IamResourceSearchSelect'
 
 export function AdminIamGrantsView() {
   const {
@@ -53,16 +53,16 @@ export function AdminIamGrantsView() {
       </div>
 
       <Stack direction="horizontal" spacing="sm" className="mb-6 flex-wrap items-center">
-        <IamSearchField
-          placeholder="Subject ID"
-          value={subjectId}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSubjectId(e.target.value)}
-        />
-        <IamSearchField
-          placeholder="Resource ID"
-          value={resourceId}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setResourceId(e.target.value)}
-        />
+        <div className="min-w-56">
+          <UserSearchSelect label="Filter by user" value={subjectId} onChange={setSubjectId} />
+        </div>
+        <div className="min-w-64">
+          <IamResourceSearchSelect
+            label="Filter by resource"
+            value={resourceId}
+            onChange={setResourceId}
+          />
+        </div>
         <Button variant="primary" onClick={() => void refetch()} icon={<Search size={16} />}>
           Search
         </Button>
@@ -78,29 +78,33 @@ export function AdminIamGrantsView() {
         </div>
       ) : (
         <div className="overflow-x-auto border border-neutral-200">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Subject</th>
-                <th className="px-4 py-3 font-medium">Resource</th>
-                <th className="px-4 py-3 font-medium">Effect</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="min-w-[12rem] whitespace-nowrap px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((grant) => (
-                <tr key={grant.id} className="border-t border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-4 py-3">
-                    <NextLink href={ADMIN_ROUTES.iamGrant(grant.id)} className="block hover:opacity-90">
+          <DataTable
+            ariaLabel="Admin Iam Grants"
+            rows={items}
+            rowKey={(grant) => String(grant.id)}
+            emptyMessage="No items."
+            columns={[
+              {
+                id: 'subject',
+                header: 'Subject',
+                cell: (grant) => (
+                  <>
+                    <NextLink
+                      href={ADMIN_ROUTES.iamGrant(grant.id)}
+                      className="block hover:opacity-90"
+                    >
                       {grant.subjectType === 'USER' && usersById[grant.subjectId] ? (
                         <IamEntityIdentityCard
-                          title={usersById[grant.subjectId].fullName || usersById[grant.subjectId].username}
+                          title={
+                            usersById[grant.subjectId].fullName ||
+                            usersById[grant.subjectId].username
+                          }
                           subtitle={`@${usersById[grant.subjectId].username}`}
                           meta={usersById[grant.subjectId].email}
                           id={grant.subjectId}
                           avatarFallback={
-                            usersById[grant.subjectId].fullName || usersById[grant.subjectId].username
+                            usersById[grant.subjectId].fullName ||
+                            usersById[grant.subjectId].username
                           }
                           badge={grant.subjectType}
                         />
@@ -114,15 +118,21 @@ export function AdminIamGrantsView() {
                         />
                       ) : (
                         <IamEntityIdentityCard
-                          title={grant.subjectId}
+                          title="—"
                           subtitle={grant.subjectType}
                           id={grant.subjectId}
                           badge={grant.subjectType}
                         />
                       )}
                     </NextLink>
-                  </td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              {
+                id: 'resource',
+                header: 'Resource',
+                cell: (grant) => (
+                  <>
                     {resourcesById[grant.resourceId] ? (
                       <IamEntityIdentityCard
                         title={resourcesById[grant.resourceId].name}
@@ -131,20 +141,34 @@ export function AdminIamGrantsView() {
                         id={grant.resourceId}
                       />
                     ) : (
-                      <IamEntityIdentityCard title={grant.resourceId} id={grant.resourceId} />
+                      <IamEntityIdentityCard title="—" id={grant.resourceId} />
                     )}
-                  </td>
-                  <td className="px-4 py-3">{grant.effect}</td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              { id: 'effect', header: 'Effect', accessor: 'effect' },
+              {
+                id: 'status',
+                header: 'Status',
+                cell: (grant) => (
+                  <>
                     <IamStatusBadge status={grant.status} />
-                  </td>
-                  <td className="px-4 py-3">
+                  </>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                cell: (grant) => (
+                  <>
                     <Stack direction="horizontal" spacing="xs" className="flex-wrap">
                       <Button
                         variant="ghost"
                         tone="error"
                         disabled={actingId === grant.id || grant.status !== 'ACTIVE'}
-                        onClick={() => void revoke(grant.id)} icon={<Ban size={16} />}>
+                        onClick={() => void revoke(grant.id)}
+                        icon={<Ban size={16} />}
+                      >
                         Revoke
                       </Button>
                       <NextLink
@@ -155,18 +179,11 @@ export function AdminIamGrantsView() {
                         View
                       </NextLink>
                     </Stack>
-                  </td>
-                </tr>
-              ))}
-              {!items.length && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-neutral-400">
-                    No grants found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
       )}
     </div>

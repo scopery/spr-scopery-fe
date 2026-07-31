@@ -1,7 +1,7 @@
 'use client'
 
 import NextLink from 'next/link'
-import { Typography } from '@/shared/ui'
+import { Card, Typography } from '@/shared/ui'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 
 const CARDS = [
@@ -38,16 +38,12 @@ export function NadOverviewView() {
       </Typography>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {CARDS.map((c) => (
-          <NextLink
-            key={c.title}
-            href={c.href}
-            className="border border-neutral-200 bg-white p-5 hover:border-neutral-400"
-          >
+          <Card as={NextLink} key={c.title} href={c.href} className="p-5 hover:border-neutral-400">
             <Typography weight="semibold">{c.title}</Typography>
             <Typography variant="small" tone="muted" className="mt-1">
               {c.description}
             </Typography>
-          </NextLink>
+          </Card>
         ))}
       </div>
     </div>

@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Typography, Box, Stack, Button, Input } from '@/shared/ui'
+import { Typography, Box, Stack, Button, Input, Card } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import { useProfile } from '@/modules/auth/profile/hooks/useProfile'
@@ -49,13 +49,7 @@ export function OnboardingProfileView() {
 
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
-      <Box
-        as="section"
-        padding="xl"
-        background="white"
-        shadow="xl"
-        className="w-full max-w-lg border border-neutral-100"
-      >
+      <Card as="section" className="w-full max-w-lg border border-neutral-100 p-xl">
         <Typography as="h1" size="lg" weight="bold" className="mb-2">
           Set up your profile
         </Typography>
@@ -80,12 +74,14 @@ export function OnboardingProfileView() {
               variant="primary"
               fullWidth
               loading={loading}
-              disabled={!displayName.trim()} icon={<ArrowRight size={16} />}>
+              disabled={!displayName.trim()}
+              icon={<ArrowRight size={16} />}
+            >
               Continue
             </Button>
           </Stack>
         </form>
-      </Box>
+      </Card>
     </main>
   )
 }

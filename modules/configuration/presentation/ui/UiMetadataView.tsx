@@ -4,7 +4,7 @@ import { Plus, Upload } from 'lucide-react'
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Badge, Button, Input, Select, Typography, PageSkeleton } from '@/shared/ui'
+import { Badge, Button, Input, Select, Typography, PageSkeleton, DataTable, Card } from '@/shared/ui'
 import { useUiMetadata } from '../hooks/useUiMetadata'
 import { LayoutType } from '../../domain/enums/configuration.enum'
 import { cn } from '@/utils/cn'
@@ -62,17 +62,18 @@ export function UiMetadataView() {
   const [termForm, setTermForm] = useState({ termCode: '', label: '', parentTermId: '' })
 
   if (loading) {
-    return (
-      <PageSkeleton variant="list" />
-    )
+    return <PageSkeleton variant="list" />
   }
 
-  const objectTypeOptions = objectTypes.map((t) => ({ value: t.code, label: `${t.name} (${t.code})` }))
+  const objectTypeOptions = objectTypes.map((t) => ({
+    value: t.code,
+    label: `${t.name} (${t.code})`,
+  }))
 
   return (
     <div>
       <div className="mb-6">
-        <Typography as="h1" size="lg" weight="semibold">
+        <Typography as="h1" size="md" weight="medium">
           UI Metadata
         </Typography>
         <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -101,50 +102,42 @@ export function UiMetadataView() {
       {tab === 'layouts' ? (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
           <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Name</th>
-                  <th className="px-3 py-2 font-medium">Object type</th>
-                  <th className="px-3 py-2 font-medium">Layout type</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
-                  <th className="px-3 py-2 font-medium" />
-                </tr>
-              </thead>
-              <tbody>
-                {layouts.map((layout) => (
-                  <tr key={layout.id} className="border-t border-neutral-100">
-                    <td className="px-3 py-2">{layout.name}</td>
-                    <td className="px-3 py-2">{layout.objectTypeCode}</td>
-                    <td className="px-3 py-2">{layout.layoutType}</td>
-                    <td className="px-3 py-2">
-                      <Badge tone={layout.currentFlag ? 'success' : 'neutral'}>
-                        {layout.status}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {!layout.currentFlag ? (
-                        <Button variant="ghost" onClick={() => void publishLayout(layout.id)} icon={<Upload size={16} />}>
-                          Publish
-                        </Button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-                {layouts.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-3 py-10 text-center">
-                      <Typography variant="small" tone="muted">
-                        No layouts yet.
-                      </Typography>
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+            <DataTable
+              ariaLabel="Layouts"
+              rows={layouts}
+              rowKey={(layout) => layout.id}
+              emptyMessage="No layouts yet."
+              columns={[
+                { id: 'name', header: 'Name', accessor: 'name' },
+                { id: 'object-type', header: 'Object type', accessor: 'objectTypeCode' },
+                { id: 'layout-type', header: 'Layout type', accessor: 'layoutType' },
+                {
+                  id: 'status',
+                  header: 'Status',
+                  cell: (layout) => (
+                    <Badge tone={layout.currentFlag ? 'success' : 'neutral'}>{layout.status}</Badge>
+                  ),
+                },
+                {
+                  id: 'actions',
+                  header: 'Actions',
+                  align: 'right',
+                  cell: (layout) =>
+                    !layout.currentFlag ? (
+                      <Button
+                        variant="ghost"
+                        onClick={() => void publishLayout(layout.id)}
+                        icon={<Upload size={16} />}
+                      >
+                        Publish
+                      </Button>
+                    ) : null,
+                },
+              ]}
+            />
           </div>
 
-          <div className="border border-neutral-200 bg-white p-4">
+          <Card className="p-4">
             <Typography weight="semibold" variant="small" className="mb-3">
               New layout
             </Typography>
@@ -192,13 +185,13 @@ export function UiMetadataView() {
                 Create layout
               </Button>
             </div>
-          </div>
+          </Card>
         </div>
       ) : null}
 
       {tab === 'status-sets' ? (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
-          <div className="border border-neutral-200 bg-white">
+          <Card>
             <div className="border-b border-neutral-100 px-4 py-3">
               <Typography weight="semibold" variant="small">
                 Status sets ({statusSets.length})
@@ -218,7 +211,7 @@ export function UiMetadataView() {
                     <Typography weight="medium" variant="small">
                       {set.name}
                     </Typography>
-                    <Typography variant="small" tone="muted" className="font-mono text-xs">
+                    <Typography variant="small" tone="muted" className="text-xs font-normal">
                       {set.objectTypeCode} · {set.setCode}
                     </Typography>
                   </button>
@@ -268,14 +261,16 @@ export function UiMetadataView() {
                       setCode: statusSetForm.setCode.trim(),
                       name: statusSetForm.name.trim(),
                     }).then(() => setStatusSetForm({ objectTypeCode: '', setCode: '', name: '' }))
-                  } icon={<Plus size={16} />}>
+                  }
+                  icon={<Plus size={16} />}
+                >
                   Create set
                 </Button>
               </div>
             </div>
-          </div>
+          </Card>
 
-          <div className="border border-neutral-200 bg-white p-4">
+          <Card className="p-4">
             {!selectedStatusSetId ? (
               <Typography tone="muted" variant="small">
                 Select a status set to view values.
@@ -287,11 +282,12 @@ export function UiMetadataView() {
                 </Typography>
                 <ul className="mb-4 divide-y divide-neutral-100 border border-neutral-100">
                   {statusValues.map((value) => (
-                    <li key={value.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                    <li
+                      key={value.id}
+                      className="flex items-center justify-between px-3 py-2 text-sm"
+                    >
                       <span>{value.label}</span>
-                      <Badge tone="neutral">
-                        {value.domainCategory}
-                      </Badge>
+                      <Badge tone="neutral">{value.domainCategory}</Badge>
                     </li>
                   ))}
                   {statusValues.length === 0 ? (
@@ -337,34 +333,40 @@ export function UiMetadataView() {
                       }).then(() =>
                         setStatusValueForm({ valueCode: '', label: '', domainCategory: '' })
                       )
-                    } icon={<Plus size={16} />}>
+                    }
+                    icon={<Plus size={16} />}
+                  >
                     Add value
                   </Button>
                 </div>
               </>
             )}
-          </div>
+          </Card>
         </div>
       ) : null}
 
       {tab === 'tags' ? (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
           <div className="overflow-x-auto border border-neutral-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Label</th>
-                  <th className="px-3 py-2 font-medium">Code</th>
-                  <th className="px-3 py-2 font-medium">Color</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tags.map((tag) => (
-                  <tr key={tag.id} className="border-t border-neutral-100">
-                    <td className="px-3 py-2">{tag.label}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{tag.tagCode}</td>
-                    <td className="px-3 py-2">
+            <DataTable
+              ariaLabel="Ui Metadata"
+              rows={tags}
+              rowKey={(tag) => String(tag.id)}
+              emptyMessage="No items."
+              columns={[
+                { id: 'label', header: 'Label', accessor: 'label' },
+                {
+                  id: 'code',
+                  header: 'Code',
+                  accessor: 'tagCode',
+                  kind: 'code',
+                  cellClassName: 'text-xs',
+                },
+                {
+                  id: 'color',
+                  header: 'Color',
+                  cell: (tag) => (
+                    <>
                       {tag.color ? (
                         <span className="inline-flex items-center gap-2">
                           <span
@@ -376,28 +378,29 @@ export function UiMetadataView() {
                       ) : (
                         '—'
                       )}
-                    </td>
-                    <td className="px-3 py-2">
+                    </>
+                  ),
+                },
+                {
+                  id: 'status',
+                  header: 'Status',
+                  cell: (tag) => (
+                    <>
                       <Badge variant="solid" tone={tag.status === 'ACTIVE' ? 'success' : 'neutral'}>
-                        {tag.status === 'ACTIVE' ? 'Active' : tag.status === 'ARCHIVED' ? 'Archived' : tag.status}
+                        {tag.status === 'ACTIVE'
+                          ? 'Active'
+                          : tag.status === 'ARCHIVED'
+                            ? 'Archived'
+                            : tag.status}
                       </Badge>
-                    </td>
-                  </tr>
-                ))}
-                {tags.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-3 py-10 text-center">
-                      <Typography variant="small" tone="muted">
-                        No tags yet.
-                      </Typography>
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+                    </>
+                  ),
+                },
+              ]}
+            />
           </div>
 
-          <div className="border border-neutral-200 bg-white p-4">
+          <Card className="p-4">
             <Typography weight="semibold" variant="small" className="mb-3">
               New tag
             </Typography>
@@ -426,17 +429,19 @@ export function UiMetadataView() {
                     label: tagForm.label.trim(),
                     color: tagForm.color.trim() || undefined,
                   }).then(() => setTagForm({ tagCode: '', label: '', color: '' }))
-                } icon={<Plus size={16} />}>
+                }
+                icon={<Plus size={16} />}
+              >
                 Create tag
               </Button>
             </div>
-          </div>
+          </Card>
         </div>
       ) : null}
 
       {tab === 'taxonomies' ? (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
-          <div className="border border-neutral-200 bg-white">
+          <Card>
             <div className="border-b border-neutral-100 px-4 py-3">
               <Typography weight="semibold" variant="small">
                 Taxonomies ({taxonomies.length})
@@ -456,7 +461,7 @@ export function UiMetadataView() {
                     <Typography weight="medium" variant="small">
                       {taxonomy.name}
                     </Typography>
-                    <Typography variant="small" tone="muted" className="font-mono text-xs">
+                    <Typography variant="small" tone="muted" className="text-xs font-normal">
                       {taxonomy.taxonomyCode}
                     </Typography>
                   </button>
@@ -478,9 +483,7 @@ export function UiMetadataView() {
                 <Input
                   placeholder="Taxonomy code"
                   value={taxonomyForm.taxonomyCode}
-                  onChange={(e) =>
-                    setTaxonomyForm((f) => ({ ...f, taxonomyCode: e.target.value }))
-                  }
+                  onChange={(e) => setTaxonomyForm((f) => ({ ...f, taxonomyCode: e.target.value }))}
                 />
                 <Input
                   placeholder="Name"
@@ -495,14 +498,16 @@ export function UiMetadataView() {
                       taxonomyCode: taxonomyForm.taxonomyCode.trim(),
                       name: taxonomyForm.name.trim(),
                     }).then(() => setTaxonomyForm({ taxonomyCode: '', name: '' }))
-                  } icon={<Plus size={16} />}>
+                  }
+                  icon={<Plus size={16} />}
+                >
                   Create taxonomy
                 </Button>
               </div>
             </div>
-          </div>
+          </Card>
 
-          <div className="border border-neutral-200 bg-white p-4">
+          <Card className="p-4">
             {!selectedTaxonomyId ? (
               <Typography tone="muted" variant="small">
                 Select a taxonomy to view terms.
@@ -514,9 +519,12 @@ export function UiMetadataView() {
                 </Typography>
                 <ul className="mb-4 divide-y divide-neutral-100 border border-neutral-100">
                   {taxonomyTerms.map((term) => (
-                    <li key={term.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                    <li
+                      key={term.id}
+                      className="flex items-center justify-between px-3 py-2 text-sm"
+                    >
                       <span>{term.label}</span>
-                      <span className="font-mono text-xs text-neutral-400">
+                      <span className="text-xs font-normal text-neutral-400">
                         {term.parentTermId
                           ? `child of ${
                               taxonomyTerms.find((t) => t.id === term.parentTermId)?.label ??
@@ -564,13 +572,15 @@ export function UiMetadataView() {
                         label: termForm.label.trim(),
                         parentTermId: termForm.parentTermId || undefined,
                       }).then(() => setTermForm({ termCode: '', label: '', parentTermId: '' }))
-                    } icon={<Plus size={16} />}>
+                    }
+                    icon={<Plus size={16} />}
+                  >
                     Add term
                   </Button>
                 </div>
               </>
             )}
-          </div>
+          </Card>
         </div>
       ) : null}
     </div>

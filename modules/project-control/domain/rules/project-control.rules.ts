@@ -1,6 +1,7 @@
 import {
   BaselineStatus,
   ChangeItemOperation,
+  ChangeOrderStatus,
   ChangeRequestStatus,
 } from '../enums/project-control.enum'
 import type {
@@ -11,7 +12,7 @@ import type {
 } from '../model/project-control'
 
 export function baselineStatusLabel(status: string): string {
-  switch (status) {
+  switch (status.trim().toUpperCase()) {
     case BaselineStatus.Draft:
       return 'Draft'
     case BaselineStatus.Validated:
@@ -21,7 +22,7 @@ export function baselineStatusLabel(status: string): string {
     case BaselineStatus.Archived:
       return 'Archived'
     default:
-      return status
+      return humanizeEnumToken(status)
   }
 }
 
@@ -329,7 +330,7 @@ export function formatDeltaValue(value: unknown): string {
 }
 
 export function crStatusLabel(status: string): string {
-  switch (status) {
+  switch (status.trim().toUpperCase()) {
     case ChangeRequestStatus.Draft:
       return 'Draft'
     case ChangeRequestStatus.Submitted:
@@ -345,16 +346,16 @@ export function crStatusLabel(status: string): string {
     case ChangeRequestStatus.Archived:
       return 'Archived'
     default:
-      return status
+      return humanizeEnumToken(status)
   }
 }
 
 export function crStatusTone(
   status: string
-): 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'progress' {
-  switch (status) {
+): 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'progress' | 'default' {
+  switch (status.trim().toUpperCase()) {
     case ChangeRequestStatus.Draft:
-      return 'info'
+      return 'default' // soft: gray bg + black text
     case ChangeRequestStatus.Submitted:
       return 'progress'
     case ChangeRequestStatus.Approved:
@@ -370,6 +371,11 @@ export function crStatusTone(
   }
 }
 
+/** Draft = soft gray/black; other statuses = solid colored chips. */
+export function crStatusBadgeVariant(status: string): 'solid' | 'soft' {
+  return status.trim().toUpperCase() === ChangeRequestStatus.Draft ? 'soft' : 'solid'
+}
+
 export function canEditChangeRequest(cr: ChangeRequest): boolean {
   return cr.status === ChangeRequestStatus.Draft
 }
@@ -380,8 +386,18 @@ export function canSubmitChangeRequest(cr: ChangeRequest): boolean {
 
 export type CrWorkflowPhase = 'details' | 'changes' | 'impact' | 'review'
 
+/** Sentence-case human label for SCREAMING_SNAKE / mixed tokens — never show raw enums in UI. */
+function humanizeEnumToken(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) return trimmed
+  return trimmed
+    .replace(/[_-]+/g, ' ')
+    .toLowerCase()
+    .replace(/^\w/, (c) => c.toUpperCase())
+}
+
 export function priorityLabel(priority: string): string {
-  switch (priority) {
+  switch (priority.trim().toUpperCase()) {
     case 'CRITICAL':
       return 'Critical'
     case 'HIGH':
@@ -391,41 +407,74 @@ export function priorityLabel(priority: string): string {
     case 'LOW':
       return 'Low'
     default:
-      return priority
+      return humanizeEnumToken(priority)
   }
 }
 
 export function changeItemOperationLabel(operation: string): string {
-  switch (operation) {
-    case ChangeItemOperation.Add:
+  switch (operation.trim().toUpperCase()) {
+    case ChangeItemOperation.Create:
+    case 'ADD': // legacy WAVE3 docs / old FE payloads
       return 'New'
-    case ChangeItemOperation.Modify:
+    case ChangeItemOperation.Update:
+    case 'MODIFY':
       return 'Modify'
-    case ChangeItemOperation.Remove:
+    case ChangeItemOperation.Delete:
+    case 'REMOVE':
       return 'Remove'
+    case ChangeItemOperation.Archive:
+      return 'Archive'
+    case ChangeItemOperation.Move:
+      return 'Move'
+    case ChangeItemOperation.Recalculate:
+      return 'Recalculate'
+    case ChangeItemOperation.ReplaceReference:
+      return 'Replace reference'
     default:
-      return operation
+      return humanizeEnumToken(operation)
   }
 }
 
 export function changeItemTargetLabel(targetType: string): string {
   const normalized = targetType.trim().toUpperCase()
   switch (normalized) {
-    case 'FUNCTION':
-      return 'Function'
+    case 'PROJECT':
+      return 'Project'
+    case 'PROJECT_PHASE':
+      return 'Project phase'
+    case 'WBS_NODE':
+      return 'WBS node'
     case 'TASK':
       return 'Task'
+    case 'TASK_DEPENDENCY':
+      return 'Task dependency'
+    case 'MILESTONE':
+      return 'Milestone'
     case 'SCHEDULE':
       return 'Schedule'
-    case 'STAFFING':
+    case 'ESTIMATE':
+      return 'Estimate'
+    case 'FINANCE_SCENARIO':
+      return 'Finance scenario'
+    case 'QUOTE_VERSION':
+      return 'Quote version'
+    case 'CUSTOM_COST':
+      return 'Custom cost'
+    case 'VENDOR_COST':
+      return 'Vendor cost'
+    case 'FUNCTION':
+      return 'Function'
+    case 'OTHER':
+      return 'Other'
+    case 'STAFFING': // legacy UI alias
       return 'Staffing'
     default:
-      return targetType.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase())
+      return humanizeEnumToken(targetType)
   }
 }
 
 export function affectedAreaLabel(area: string): string {
-  switch (area) {
+  switch (area.trim().toUpperCase()) {
     case 'ACCEPTANCE_CRITERIA':
       return 'Acceptance criteria'
     case 'BUSINESS_RULES':
@@ -443,7 +492,7 @@ export function affectedAreaLabel(area: string): string {
     case 'ASSIGNMENT':
       return 'Assignment'
     default:
-      return area.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase())
+      return humanizeEnumToken(area)
   }
 }
 
@@ -539,7 +588,36 @@ export function canApplyChangeRequest(cr: ChangeRequest): boolean {
 }
 
 export function changeTypeLabel(type: string): string {
-  return type.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase())
+  const labels: Record<string, string> = {
+    SCOPE_CHANGE: 'Scope change',
+    SCHEDULE_CHANGE: 'Schedule change',
+    COST_CHANGE: 'Cost change',
+    REVENUE_CHANGE: 'Revenue change',
+    QUOTE_CHANGE: 'Quote change',
+    RESOURCE_CHANGE: 'Resource change',
+    RISK_RESPONSE: 'Risk response',
+    OTHER: 'Other',
+    // legacy WAVE3 / old FE values still may appear in old records
+    SCOPE_ADDITION: 'Scope addition',
+    SCOPE_REDUCTION: 'Scope reduction',
+    RISK_ADJUSTMENT: 'Risk adjustment',
+  }
+  return labels[type.trim().toUpperCase()] ?? humanizeEnumToken(type)
+}
+
+export function changeOrderStatusLabel(status: string): string {
+  switch (status.trim().toUpperCase()) {
+    case ChangeOrderStatus.Pending:
+      return 'Pending'
+    case ChangeOrderStatus.Approved:
+      return 'Approved'
+    case ChangeOrderStatus.Rejected:
+      return 'Rejected'
+    case ChangeOrderStatus.Archived:
+      return 'Archived'
+    default:
+      return humanizeEnumToken(status)
+  }
 }
 
 export function priorityTone(

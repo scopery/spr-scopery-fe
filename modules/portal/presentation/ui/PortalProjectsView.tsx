@@ -1,22 +1,20 @@
 'use client'
 
 import Link from 'next/link'
-import {
-  PageSkeleton,
-  Stack,
-  Typography
-} from '@/shared/ui'
+import { PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { usePortalProjects } from '../hooks/usePortalProjects'
 
 export function PortalProjectsView() {
   const { items, loading, error } = usePortalProjects()
 
-  if (loading) return <PageSkeleton variant="list" className="p-lg" />
+  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="p-lg">
-      <Typography variant="h2">Your projects</Typography>
+    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+      <Typography as="h1" size="md" weight="medium">
+        Your projects
+      </Typography>
       <ul className="divide-y divide-neutral-200 border border-neutral-200">
         {items.map((p) => (
           <li key={p.id} className="p-md">

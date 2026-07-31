@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import {
-  openSseStream,
-  parseSseChunk,
-  SseEventType,
-} from '@/shared/lib/sseClient'
+import { openSseStream, parseSseChunk, SseEventType } from '@/shared/lib/sseClient'
 
 describe('parseSseChunk', () => {
   it('parses Wave 5 TOKEN / COMPLETED events with ids', () => {
@@ -123,7 +119,7 @@ describe('openSseStream', () => {
   })
 
   it('seeds Last-Event-ID from initialLastEventId', async () => {
-    const fetchMock = vi.fn(async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => {
       const chunks = ['id: 99\nevent: COMPLETED\ndata: {}\n\n']
       let i = 0
       return {
@@ -151,8 +147,8 @@ describe('openSseStream', () => {
       })
     })
 
-    const headers = (fetchMock.mock.calls[0]?.[1] as { headers?: Record<string, string> })?.headers
-    expect(headers?.['Last-Event-ID']).toBe('10')
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers)
+    expect(headers.get('Last-Event-ID')).toBe('10')
     vi.unstubAllGlobals()
   })
 })

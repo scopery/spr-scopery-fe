@@ -6,6 +6,7 @@ import { RefreshCw, Users } from 'lucide-react'
 import {
   Badge,
   Button,
+  Card,
   FinancialKpiStrip,
   Input,
   PageSkeleton,
@@ -65,28 +66,26 @@ export function CapacityOverviewView() {
 
   if (forbidden || error) {
     return (
-      <div className="border border-neutral-200 bg-neutral-50 p-6">
-        <Typography as="h1" size="lg" weight="semibold" className="mb-2">
+      <Card className="bg-neutral-50 p-6">
+        <Typography as="h1" size="md" weight="medium" className="mb-2">
           Capacity
         </Typography>
         <Typography variant="small" tone="muted">
-          {forbidden
-            ? "You don't have access to capacity for this workspace."
-            : error}
+          {forbidden ? "You don't have access to capacity for this workspace." : error}
         </Typography>
-      </div>
+      </Card>
     )
   }
 
   if (!hasResources) {
     return (
       <div>
-        <div className="mb-6">
-          <Typography as="h1" size="lg" weight="semibold">
+        <div className="mb-2">
+          <Typography as="h1" size="md" weight="medium">
             Capacity Overview
           </Typography>
         </div>
-        <div className="border border-neutral-200 bg-white px-6 py-12 text-center">
+        <Card className="px-6 py-12 text-center">
           <Typography weight="semibold" className="mb-2">
             No resources are available for capacity planning.
           </Typography>
@@ -110,7 +109,7 @@ export function CapacityOverviewView() {
               Create resource
             </Button>
           </div>
-        </div>
+        </Card>
       </div>
     )
   }
@@ -119,13 +118,17 @@ export function CapacityOverviewView() {
     {
       id: 'available',
       label: 'Available capacity',
-      value: <Typography weight="semibold">{formatHours(overview?.availableCapacityHours)}</Typography>,
+      value: (
+        <Typography weight="semibold">{formatHours(overview?.availableCapacityHours)}</Typography>
+      ),
       footnote: `${fromDate} → ${toDate}`,
     },
     {
       id: 'focused',
       label: 'Focused capacity',
-      value: <Typography weight="semibold">{formatHours(overview?.focusedCapacityHours)}</Typography>,
+      value: (
+        <Typography weight="semibold">{formatHours(overview?.focusedCapacityHours)}</Typography>
+      ),
     },
     {
       id: 'allocated',
@@ -160,10 +163,10 @@ export function CapacityOverviewView() {
   const periods = overview?.periods ?? []
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-md">
+    <div className="px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-md">
         <div>
-          <Typography as="h1" size="lg" weight="semibold">
+          <Typography as="h1" size="md" weight="medium">
             Capacity Overview
           </Typography>
           <Typography as="p" variant="small" tone="muted" className="mt-1">
@@ -195,12 +198,7 @@ export function CapacityOverviewView() {
           value={fromDate}
           onChange={(e) => setFromDate(e.target.value)}
         />
-        <Input
-          label="To"
-          type="date"
-          value={toDate}
-          onChange={(e) => setToDate(e.target.value)}
-        />
+        <Input label="To" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
         <Button
           variant="secondary"
           icon={<RefreshCw size={14} />}
@@ -217,7 +215,7 @@ export function CapacityOverviewView() {
         <FinancialKpiStrip items={kpiItems} mode="expanded" aria-label="Capacity KPIs" />
       </div>
 
-      <section className="mb-6 border border-neutral-200 bg-white">
+      <Card as="section" className="mb-6">
         <div className="border-b border-neutral-100 px-4 py-3">
           <Typography weight="semibold" variant="small">
             Capacity vs demand
@@ -276,9 +274,9 @@ export function CapacityOverviewView() {
             </table>
           </div>
         )}
-      </section>
+      </Card>
 
-      <section className="border border-neutral-200 bg-white">
+      <Card as="section">
         <div className="border-b border-neutral-100 px-4 py-3">
           <Typography weight="semibold" variant="small">
             Over-allocations ({overAllocations.length})
@@ -325,7 +323,7 @@ export function CapacityOverviewView() {
             </table>
           </div>
         )}
-      </section>
+      </Card>
     </div>
   )
 }

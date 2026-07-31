@@ -3,10 +3,24 @@
 import { ArrowLeft, ArrowRight, Play, Shield } from 'lucide-react'
 
 import { useMemo, useState } from 'react'
-import { Typography, Button, Stack, Input, Select, Checkbox, ConfirmDialog, PageSkeleton } from '@/shared/ui'
+import {
+  Typography,
+  Button,
+  Stack,
+  Select,
+  Checkbox,
+  ConfirmDialog,
+  PageSkeleton, Card,
+} from '@/shared/ui'
 import { useGrantAccessWizard } from '../hooks/useGrantAccessWizard'
 import type { IamRight } from '@/modules/auth/iam'
 import { cn } from '@/utils/cn'
+import { UserSearchSelect } from '@/modules/platform'
+import { AdminOrganizationSearchSelect } from '@/modules/admin/organizations'
+import { AdminWorkspaceSearchSelect } from '@/modules/admin/workspaces'
+import { IamResourceSearchSelect } from './IamResourceSearchSelect'
+import { IamRoleSearchSelect } from './IamRoleSearchSelect'
+import { useIamIdentityDirectory } from '../hooks/useIamIdentityDirectory'
 
 const SUBJECT_TYPE_OPTIONS = [
   { value: 'USER', label: 'User' },
@@ -42,9 +56,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
             {n}
           </div>
           {n < total && (
-            <div
-              className={cn('h-px w-8', n < current ? 'bg-primary' : 'bg-neutral-200')}
-            />
+            <div className={cn('h-px w-8', n < current ? 'bg-primary' : 'bg-neutral-200')} />
           )}
         </div>
       ))}
@@ -82,6 +94,30 @@ export function AdminIamAccessControlView() {
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   const groupedRights = useMemo(() => groupByModule(availableRights), [availableRights])
+  const { usersById, rolesById, resourcesById, workspacesById } = useIamIdentityDirectory({
+    userIds: [form.subjectType === 'USER' ? form.subjectId : null],
+    roleIds: [form.subjectType === 'ROLE' ? form.subjectId : null, form.roleId],
+    resourceIds: [form.resourceId],
+    workspaceIds: [form.workspaceId],
+  })
+  const subjectLabel =
+    form.subjectType === 'USER'
+      ? usersById[form.subjectId]?.fullName ||
+        usersById[form.subjectId]?.username ||
+        usersById[form.subjectId]?.email ||
+        '—'
+      : rolesById[form.subjectId]
+        ? `${rolesById[form.subjectId].name} (${rolesById[form.subjectId].code})`
+        : '—'
+  const resourceLabel = resourcesById[form.resourceId]
+    ? `${resourcesById[form.resourceId].name} (${resourcesById[form.resourceId].code})`
+    : '—'
+  const workspaceLabel = workspacesById[form.workspaceId]
+    ? `${workspacesById[form.workspaceId].name} (${workspacesById[form.workspaceId].code})`
+    : '—'
+  const roleLabel = rolesById[form.roleId]
+    ? `${rolesById[form.roleId].name} (${rolesById[form.roleId].code})`
+    : '—'
 
   const handleSubmit = async () => {
     try {
@@ -116,71 +152,80 @@ export function AdminIamAccessControlView() {
           </Typography>
         </div>
 
-        <div className="mb-6 border border-neutral-200 bg-white p-6">
+        <Card className="mb-6 p-6">
           {step === 1 && (
             <Stack direction="vertical" spacing="md">
               <div>
-                <Typography variant="small" tone="muted" className="mb-1.5">Subject type</Typography>
+                <Typography variant="small" tone="muted" className="mb-1.5">
+                  Subject type
+                </Typography>
                 <Select
                   value={form.subjectType}
                   onValueChange={(v: string) => setField('subjectType', v as 'USER' | 'ROLE')}
                   options={SUBJECT_TYPE_OPTIONS}
                 />
               </div>
-              <Input
-                label={form.subjectType === 'USER' ? 'User ID' : 'Role ID'}
-                value={form.subjectId}
-                onChange={(e) => setField('subjectId', e.target.value)}
-                placeholder={`Enter ${form.subjectType === 'USER' ? 'user' : 'role'} ID`}
-              />
+              {form.subjectType === 'USER' ? (
+                <UserSearchSelect
+                  label="User"
+                  value={form.subjectId}
+                  onChange={(subjectId) => setField('subjectId', subjectId)}
+                />
+              ) : (
+                <IamRoleSearchSelect
+                  label="Subject role"
+                  value={form.subjectId}
+                  onChange={(subjectId) => setField('subjectId', subjectId)}
+                />
+              )}
             </Stack>
           )}
 
           {step === 2 && (
             <Stack direction="vertical" spacing="md">
-              <Input
-                label="Resource ID"
+              <IamResourceSearchSelect
                 value={form.resourceId}
-                onChange={(e) => setField('resourceId', e.target.value)}
-                placeholder="Enter resource ID"
+                onChange={(resourceId) => setField('resourceId', resourceId)}
               />
               <div>
-                <Typography variant="small" tone="muted" className="mb-1.5">Scope type</Typography>
+                <Typography variant="small" tone="muted" className="mb-1.5">
+                  Scope type
+                </Typography>
                 <Select
                   value={form.scopeType}
                   onValueChange={(v: string) => setField('scopeType', v)}
                   options={SCOPE_TYPE_OPTIONS}
                 />
               </div>
-              {(form.scopeType === 'ORG' || form.scopeType === 'WORKSPACE') && (
-                <Input
-                  label="Scope reference ID"
+              {form.scopeType === 'ORG' ? (
+                <AdminOrganizationSearchSelect
                   value={form.scopeRefId}
-                  onChange={(e) => setField('scopeRefId', e.target.value)}
-                  placeholder="Enter org or workspace ID"
+                  onChange={(scopeRefId) => setField('scopeRefId', scopeRefId)}
                 />
-              )}
-              {form.scopeType === 'WORKSPACE' && (
-                <Input
-                  label="Workspace ID (required for workspace scope)"
+              ) : null}
+              {form.scopeType === 'WORKSPACE' ? (
+                <AdminWorkspaceSearchSelect
                   value={form.workspaceId}
-                  onChange={(e) => setField('workspaceId', e.target.value)}
-                  placeholder="Enter workspace ID"
+                  onChange={(workspaceId) => {
+                    setField('workspaceId', workspaceId)
+                    setField('scopeRefId', workspaceId)
+                  }}
                 />
-              )}
+              ) : null}
               <div>
-                <Typography variant="small" tone="muted" className="mb-1.5">Effect</Typography>
+                <Typography variant="small" tone="muted" className="mb-1.5">
+                  Effect
+                </Typography>
                 <Select
                   value={form.effect}
                   onValueChange={(v: string) => setField('effect', v as 'ALLOW' | 'DENY')}
                   options={EFFECT_OPTIONS}
                 />
               </div>
-              <Input
-                label="Role ID (optional)"
+              <IamRoleSearchSelect
+                optional
                 value={form.roleId}
-                onChange={(e) => setField('roleId', e.target.value)}
-                placeholder="Leave empty to grant directly"
+                onChange={(roleId) => setField('roleId', roleId)}
               />
             </Stack>
           )}
@@ -230,7 +275,8 @@ export function AdminIamAccessControlView() {
                   ))}
                   {form.rightIds.length > 0 && (
                     <Typography variant="small" className="text-primary">
-                      {form.rightIds.length} permission{form.rightIds.length !== 1 ? 's' : ''} selected
+                      {form.rightIds.length} permission{form.rightIds.length !== 1 ? 's' : ''}{' '}
+                      selected
                     </Typography>
                   )}
                 </div>
@@ -247,27 +293,35 @@ export function AdminIamAccessControlView() {
               <div className="divide-y divide-neutral-100 border border-neutral-200">
                 {[
                   { label: 'Subject type', value: form.subjectType },
-                  { label: 'Subject ID', value: form.subjectId, mono: true },
-                  { label: 'Resource ID', value: form.resourceId, mono: true },
+                  { label: 'Subject', value: subjectLabel },
+                  { label: 'Resource', value: resourceLabel },
                   { label: 'Scope type', value: form.scopeType },
-                  ...(form.scopeRefId ? [{ label: 'Scope ref ID', value: form.scopeRefId, mono: true }] : []),
-                  ...(form.workspaceId ? [{ label: 'Workspace ID', value: form.workspaceId, mono: true }] : []),
+                  ...(form.scopeRefId
+                    ? [
+                        {
+                          label: 'Scope',
+                          value:
+                            form.scopeType === 'WORKSPACE'
+                              ? workspaceLabel
+                              : form.scopeType === 'ORG'
+                                ? 'Selected organization'
+                                : 'System',
+                        },
+                      ]
+                    : []),
+                  ...(form.workspaceId ? [{ label: 'Workspace', value: workspaceLabel }] : []),
                   { label: 'Effect', value: form.effect },
-                  ...(form.roleId ? [{ label: 'Role ID', value: form.roleId, mono: true }] : []),
+                  ...(form.roleId ? [{ label: 'Role', value: roleLabel }] : []),
                   {
                     label: 'Permissions',
                     value: form.rightIds.length > 0 ? `${form.rightIds.length} selected` : 'None',
                   },
-                ].map(({ label, value, mono }) => (
+                ].map(({ label, value }) => (
                   <div key={label} className="flex items-start gap-4 px-4 py-3">
                     <Typography variant="small" tone="muted" className="w-32 shrink-0">
                       {label}
                     </Typography>
-                    <Typography
-                      variant="small"
-                      weight="medium"
-                      className={cn('flex-1 break-all', mono && 'font-mono text-xs')}
-                    >
+                    <Typography variant="small" weight="medium" className="flex-1 break-all">
                       {value}
                     </Typography>
                   </div>
@@ -292,10 +346,15 @@ export function AdminIamAccessControlView() {
               )}
             </div>
           )}
-        </div>
+        </Card>
 
         <Stack direction="horizontal" spacing="sm" className="justify-between">
-          <Button variant="outline" onClick={prevStep} disabled={step === 1 || submitting} icon={<ArrowLeft size={16} />}>
+          <Button
+            variant="outline"
+            onClick={prevStep}
+            disabled={step === 1 || submitting}
+            icon={<ArrowLeft size={16} />}
+          >
             Back
           </Button>
           <Stack direction="horizontal" spacing="sm">
@@ -303,18 +362,27 @@ export function AdminIamAccessControlView() {
               <Button
                 variant="primary"
                 onClick={nextStep}
-                disabled={!canAdvance()} icon={<ArrowRight size={16} />}>
+                disabled={!canAdvance()}
+                icon={<ArrowRight size={16} />}
+              >
                 Next
               </Button>
             ) : (
               <>
-                <Button variant="ghost" onClick={resetWizard} disabled={submitting} icon={<Play size={16} />}>
+                <Button
+                  variant="ghost"
+                  onClick={resetWizard}
+                  disabled={submitting}
+                  icon={<Play size={16} />}
+                >
                   Start over
                 </Button>
                 <Button
                   variant="primary"
                   disabled={submitting}
-                  onClick={() => setConfirmOpen(true)} icon={<Shield size={16} />}>
+                  onClick={() => setConfirmOpen(true)}
+                  icon={<Shield size={16} />}
+                >
                   {submitting ? 'Granting…' : 'Grant Access'}
                 </Button>
               </>
@@ -326,7 +394,7 @@ export function AdminIamAccessControlView() {
       <ConfirmDialog
         open={confirmOpen}
         title="Confirm access grant"
-        message={`Grant ${form.effect === 'ALLOW' ? 'access' : 'DENY'} to subject "${form.subjectId}" on resource "${form.resourceId}"? This action will take effect immediately.`}
+        message={`Grant ${form.effect === 'ALLOW' ? 'access' : 'DENY'} to “${subjectLabel}” on “${resourceLabel}”? This action will take effect immediately.`}
         confirmLabel={submitting ? 'Granting…' : 'Grant Access'}
         onConfirm={() => void handleSubmit()}
         onClose={() => setConfirmOpen(false)}

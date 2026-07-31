@@ -19,12 +19,12 @@ export function AccountShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-neutral-50">
       <header className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mx-auto flex max-w-3xl flex-col gap-2 px-3 py-3 sm:flex-row sm:items-end sm:justify-between lg:px-4">
           <div>
             <Typography as="p" variant="small" tone="muted" className="mb-1">
               Account
             </Typography>
-            <Typography as="h1" size="lg" weight="semibold">
+            <Typography as="h1" size="md" weight="medium">
               Personal settings
             </Typography>
           </div>
@@ -51,7 +51,7 @@ export function AccountShell({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-6 py-8">{children}</main>
+      <main className="mx-auto max-w-3xl px-3 py-3 lg:px-4">{children}</main>
     </div>
   )
 }

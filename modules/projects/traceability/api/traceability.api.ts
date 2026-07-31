@@ -29,10 +29,7 @@ import type {
   UpdateRegistryScreenFieldBody,
   UpdateRegistryScreenSectionBody,
 } from '../model/application-registry'
-import type {
-  AddStructureRelationBody,
-  StructureRelation,
-} from '../model/structure-relation'
+import type { AddStructureRelationBody, StructureRelation } from '../model/structure-relation'
 import type {
   LinkScreenComponentBody,
   OverallStructureResponse,
@@ -66,23 +63,22 @@ export const TRACEABILITY_ENDPOINTS = {
     if (params?.limit != null) p.set('limit', String(params.limit))
     if (params?.offset != null) p.set('offset', String(params.offset))
     const q = p.toString()
-    return (
-      apiPath(`/projects/${projectId}/reports/coverage-matrix`) + (q ? `?${q}` : '')
-    )
+    return apiPath(`/projects/${projectId}/reports/coverage-matrix`) + (q ? `?${q}` : '')
   },
   coverageMatrixRequirement: (projectId: string, requirementId: string) =>
-    apiPath(
-      `/projects/${projectId}/reports/coverage-matrix/requirements/${requirementId}`
-    ),
-  traceLinks: (projectId: string, params?: {
-    linkType?: string
-    sourceType?: string
-    sourceId?: string
-    targetType?: string
-    q?: string
-    limit?: number
-    offset?: number
-  }) => {
+    apiPath(`/projects/${projectId}/reports/coverage-matrix/requirements/${requirementId}`),
+  traceLinks: (
+    projectId: string,
+    params?: {
+      linkType?: string
+      sourceType?: string
+      sourceId?: string
+      targetType?: string
+      q?: string
+      limit?: number
+      offset?: number
+    }
+  ) => {
     const p = new URLSearchParams()
     if (params?.linkType) p.set('linkType', params.linkType)
     if (params?.sourceType) p.set('sourceType', params.sourceType)
@@ -94,8 +90,7 @@ export const TRACEABILITY_ENDPOINTS = {
     const q = p.toString()
     return apiPath(`/projects/${projectId}/trace-links`) + (q ? `?${q}` : '')
   },
-  traceLinksBatch: (projectId: string) =>
-    apiPath(`/projects/${projectId}/trace-links/batch`),
+  traceLinksBatch: (projectId: string) => apiPath(`/projects/${projectId}/trace-links/batch`),
   traceLink: (projectId: string, linkId: string) =>
     apiPath(`/projects/${projectId}/trace-links/${linkId}`),
   archiveTraceLink: (projectId: string, linkId: string) =>
@@ -113,13 +108,11 @@ export const TRACEABILITY_ENDPOINTS = {
     if (params?.offset != null) p.set('offset', String(params.offset))
     const q = p.toString()
     return (
-      apiPath(
-        `/projects/${projectId}/requirements/${requirementId}/linkable-test-cases`
-      ) + (q ? `?${q}` : '')
+      apiPath(`/projects/${projectId}/requirements/${requirementId}/linkable-test-cases`) +
+      (q ? `?${q}` : '')
     )
   },
-  applications: (workspaceId: string) =>
-    apiPath(`/workspaces/${workspaceId}/applications`),
+  applications: (workspaceId: string) => apiPath(`/workspaces/${workspaceId}/applications`),
   application: (workspaceId: string, applicationId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}`),
   modules: (workspaceId: string, applicationId: string) =>
@@ -133,9 +126,7 @@ export const TRACEABILITY_ENDPOINTS = {
   apiEndpoints: (workspaceId: string, applicationId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/api-endpoints`),
   apiEndpoint: (workspaceId: string, applicationId: string, endpointId: string) =>
-    apiPath(
-      `/workspaces/${workspaceId}/applications/${applicationId}/api-endpoints/${endpointId}`
-    ),
+    apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/api-endpoints/${endpointId}`),
   components: (workspaceId: string, applicationId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/components`),
   component: (workspaceId: string, applicationId: string, appComponentId: string) =>
@@ -163,9 +154,7 @@ export const TRACEABILITY_ENDPOINTS = {
   structureRelations: (workspaceId: string, applicationId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/structure-relations`),
   structureRelation: (workspaceId: string, applicationId: string, id: string) =>
-    apiPath(
-      `/workspaces/${workspaceId}/applications/${applicationId}/structure-relations/${id}`
-    ),
+    apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/structure-relations/${id}`),
   overallStructure: (workspaceId: string, applicationId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/overall-structure`),
   overallStructureCandidates: (workspaceId: string, applicationId: string) =>
@@ -178,18 +167,9 @@ export const TRACEABILITY_ENDPOINTS = {
     apiPath(`/workspaces/${workspaceId}/screens/${screenId}/components/${componentId}`),
 } as const
 
-export type CoverageLatestResult =
-  | 'PASSED'
-  | 'FAILED'
-  | 'BLOCKED'
-  | 'NOT_RUN'
-  | 'SKIPPED'
+export type CoverageLatestResult = 'PASSED' | 'FAILED' | 'BLOCKED' | 'NOT_RUN' | 'SKIPPED'
 
-export type CoverageStatusApi =
-  | 'MISSING_TESTS'
-  | 'NOT_EVALUATED'
-  | 'AT_RISK'
-  | 'COVERED'
+export type CoverageStatusApi = 'MISSING_TESTS' | 'NOT_EVALUATED' | 'AT_RISK' | 'COVERED'
 
 export interface CoverageDefectSummary {
   id: string
@@ -315,6 +295,7 @@ export interface LinkableTestCase {
   code?: string | null
   title: string
   status?: string | null
+  type?: string | null
 }
 
 /** @deprecated Prefer RegistryApplication — kept for existing list callers */
@@ -395,10 +376,7 @@ export async function createTraceLink(
   return apiClient.post(TRACEABILITY_ENDPOINTS.traceLinks(projectId), body)
 }
 
-export async function deleteTraceLink(
-  projectId: string,
-  linkId: string
-): Promise<void> {
+export async function deleteTraceLink(projectId: string, linkId: string): Promise<void> {
   await apiClient.patch<void>(
     TRACEABILITY_ENDPOINTS.archiveTraceLink(projectId, linkId),
     {},
@@ -421,10 +399,9 @@ export async function linkTestCasesToRequirement(
   requirementId: string,
   testCaseIds: string[]
 ): Promise<BatchCreateTraceLinkResponse | TraceLink[]> {
-  return apiClient.post(
-    TRACEABILITY_ENDPOINTS.requirementTestCaseLinks(projectId, requirementId),
-    { testCaseIds }
-  )
+  return apiClient.post(TRACEABILITY_ENDPOINTS.requirementTestCaseLinks(projectId, requirementId), {
+    testCaseIds,
+  })
 }
 
 export async function listLinkableTestCases(
@@ -487,10 +464,7 @@ export async function updateAppModule(
   appModuleId: string,
   body: UpdateRegistryAppModuleBody
 ): Promise<RegistryAppModule> {
-  return apiClient.put(
-    TRACEABILITY_ENDPOINTS.module(workspaceId, applicationId, appModuleId),
-    body
-  )
+  return apiClient.put(TRACEABILITY_ENDPOINTS.module(workspaceId, applicationId, appModuleId), body)
 }
 
 export async function deleteAppModule(
@@ -527,10 +501,7 @@ export async function updateScreen(
   screenId: string,
   body: UpdateRegistryScreenBody
 ): Promise<RegistryScreen> {
-  return apiClient.put(
-    TRACEABILITY_ENDPOINTS.screen(workspaceId, applicationId, screenId),
-    body
-  )
+  return apiClient.put(TRACEABILITY_ENDPOINTS.screen(workspaceId, applicationId, screenId), body)
 }
 
 export async function deleteScreen(
@@ -538,9 +509,7 @@ export async function deleteScreen(
   applicationId: string,
   screenId: string
 ): Promise<void> {
-  await apiClient.delete<void>(
-    TRACEABILITY_ENDPOINTS.screen(workspaceId, applicationId, screenId)
-  )
+  await apiClient.delete<void>(TRACEABILITY_ENDPOINTS.screen(workspaceId, applicationId, screenId))
 }
 
 export async function listApiEndpoints(
@@ -632,8 +601,7 @@ export async function listDataEntities(
   if (params?.moduleId) q.set('moduleId', params.moduleId)
   const qs = q.toString()
   const res = await apiClient.get<ListPayload<RegistryDataEntity>>(
-    TRACEABILITY_ENDPOINTS.dataEntities(workspaceId, applicationId) +
-      (qs ? `?${qs}` : '')
+    TRACEABILITY_ENDPOINTS.dataEntities(workspaceId, applicationId) + (qs ? `?${qs}` : '')
   )
   return normalizeItemList(res)
 }
@@ -692,10 +660,7 @@ export async function updateScreenSection(
   sectionId: string,
   body: UpdateRegistryScreenSectionBody
 ): Promise<RegistryScreenSection> {
-  return apiClient.put(
-    TRACEABILITY_ENDPOINTS.screenSection(workspaceId, screenId, sectionId),
-    body
-  )
+  return apiClient.put(TRACEABILITY_ENDPOINTS.screenSection(workspaceId, screenId, sectionId), body)
 }
 
 export async function deleteScreenSection(
@@ -732,10 +697,7 @@ export async function updateScreenField(
   fieldId: string,
   body: UpdateRegistryScreenFieldBody
 ): Promise<RegistryScreenField> {
-  return apiClient.put(
-    TRACEABILITY_ENDPOINTS.screenField(workspaceId, screenId, fieldId),
-    body
-  )
+  return apiClient.put(TRACEABILITY_ENDPOINTS.screenField(workspaceId, screenId, fieldId), body)
 }
 
 export async function deleteScreenField(
@@ -743,9 +705,7 @@ export async function deleteScreenField(
   screenId: string,
   fieldId: string
 ): Promise<void> {
-  await apiClient.delete<void>(
-    TRACEABILITY_ENDPOINTS.screenField(workspaceId, screenId, fieldId)
-  )
+  await apiClient.delete<void>(TRACEABILITY_ENDPOINTS.screenField(workspaceId, screenId, fieldId))
 }
 
 export async function listScreenActions(
@@ -772,10 +732,7 @@ export async function updateScreenAction(
   actionId: string,
   body: UpdateRegistryScreenActionBody
 ): Promise<RegistryScreenAction> {
-  return apiClient.put(
-    TRACEABILITY_ENDPOINTS.screenAction(workspaceId, screenId, actionId),
-    body
-  )
+  return apiClient.put(TRACEABILITY_ENDPOINTS.screenAction(workspaceId, screenId, actionId), body)
 }
 
 export async function deleteScreenAction(
@@ -783,9 +740,7 @@ export async function deleteScreenAction(
   screenId: string,
   actionId: string
 ): Promise<void> {
-  await apiClient.delete<void>(
-    TRACEABILITY_ENDPOINTS.screenAction(workspaceId, screenId, actionId)
-  )
+  await apiClient.delete<void>(TRACEABILITY_ENDPOINTS.screenAction(workspaceId, screenId, actionId))
 }
 
 export async function listStructureRelations(
@@ -798,8 +753,7 @@ export async function listStructureRelations(
   if (params?.nodeId) q.set('nodeId', params.nodeId)
   const qs = q.toString()
   const url =
-    TRACEABILITY_ENDPOINTS.structureRelations(workspaceId, applicationId) +
-    (qs ? `?${qs}` : '')
+    TRACEABILITY_ENDPOINTS.structureRelations(workspaceId, applicationId) + (qs ? `?${qs}` : '')
   const res = await apiClient.get<ListPayload<StructureRelation>>(url)
   return normalizeItemList(res)
 }
@@ -809,10 +763,7 @@ export async function createStructureRelation(
   applicationId: string,
   body: AddStructureRelationBody
 ): Promise<StructureRelation> {
-  return apiClient.post(
-    TRACEABILITY_ENDPOINTS.structureRelations(workspaceId, applicationId),
-    body
-  )
+  return apiClient.post(TRACEABILITY_ENDPOINTS.structureRelations(workspaceId, applicationId), body)
 }
 
 export async function deleteStructureRelation(
@@ -829,9 +780,7 @@ export async function getOverallStructure(
   workspaceId: string,
   applicationId: string
 ): Promise<OverallStructureResponse> {
-  return apiClient.get(
-    TRACEABILITY_ENDPOINTS.overallStructure(workspaceId, applicationId)
-  )
+  return apiClient.get(TRACEABILITY_ENDPOINTS.overallStructure(workspaceId, applicationId))
 }
 
 export async function getOverallStructureCandidates(
@@ -863,10 +812,7 @@ export async function linkScreenComponent(
   screenId: string,
   body: LinkScreenComponentBody
 ): Promise<ScreenComponentLink> {
-  return apiClient.post(
-    TRACEABILITY_ENDPOINTS.screenComponents(workspaceId, screenId),
-    body
-  )
+  return apiClient.post(TRACEABILITY_ENDPOINTS.screenComponents(workspaceId, screenId), body)
 }
 
 export async function unlinkScreenComponent(
