@@ -33,6 +33,7 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
     canViewRuntime,
     canViewUsage,
     loading,
+    error,
     refetch: reload,
   } = useAgentControl(orgId, { search, status: statusFilter })
 
@@ -43,29 +44,24 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
   }
 
   return (
-    <Box className="space-y-6">
+    <Box className="space-y-6 p-lg">
       <div>
         <Typography variant="h3">Agent & model control</Typography>
         <Typography variant="small" tone="muted">
-          Centralized org configuration for AI agents, model policies, and prompt registry.
-          Configuration only — does not execute AI calls. Token/cost tracking is Phase 20. Provider
-          API keys stay in server environment variables, never in the database.
+          Org-level setup for AI agents, model policies, and prompts. Configuration only — does not
+          run AI calls. Platform runtime agents (improve answer, generate questions, …) stay under{' '}
+          <Link href={ROUTES.admin.aiAgents} className="text-primary hover:underline">
+            Admin → AI Agents
+          </Link>
+          .
         </Typography>
       </div>
 
-      <Typography
-        as="div"
-        variant="small"
-        tone="muted"
-        className="border-border bg-muted/30 rounded border p-3"
-      >
-        Platform runtime agents (answer improve, question generation, etc.) remain in the system
-        registry at{' '}
-        <Link href={ROUTES.admin.aiAgents} className="text-primary hover:underline">
-          Admin → AI Agents
-        </Link>
-        . This page manages org-scoped agent definitions for future routing.
-      </Typography>
+      {error ? (
+        <Typography tone="error" variant="small">
+          {error}
+        </Typography>
+      ) : null}
 
       <div className="w-64">
         <Select
@@ -211,47 +207,55 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
               </Typography>
             ) : (
               <ul className="space-y-3">
-                {agents.map((agent) => (
-                  <Card as="li" key={agent.id} className="border-border p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="space-y-1">
-                        <Typography variant="small" weight="medium">
-                          {agent.name}
-                        </Typography>
-                        <Typography variant="small" tone="muted">
-                          {agent.agent_key} · {agent.purpose} · risk {agent.risk_level}
-                        </Typography>
-                        <Typography variant="small" tone="muted">
-                          Default policy: {agent.default_model_policy_name ?? 'none'} ·{' '}
-                          {agent.allowed_context_sources.length} context sources ·{' '}
-                          {agent.allowed_actions.length} actions · Updated{' '}
-                          {new Date(agent.updated_at).toLocaleDateString()}
-                        </Typography>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="solid"
-                          tone={agent.status === 'active' ? 'success' : 'neutral'}
-                        >
-                          {agent.status === 'active'
-                            ? 'Active'
-                            : agent.status === 'archived'
-                              ? 'Archived'
-                              : agent.status}
-                        </Badge>
-                        {canManage && agent.status !== 'archived' ? (
-                          <Button
-                            variant="ghost"
-                            onClick={() => void mutations.archiveAgent(agent.id)}
-                            icon={<Archive size={16} />}
+                {agents.map((agent) => {
+                  const contextCount = agent.allowed_context_sources?.length ?? 0
+                  const actionCount = agent.allowed_actions?.length ?? 0
+                  const updatedLabel = agent.updated_at
+                    ? new Date(agent.updated_at).toLocaleDateString()
+                    : '—'
+                  return (
+                    <Card as="li" key={agent.id} className="border-border p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <Typography variant="small" weight="medium">
+                            {agent.name || agent.agent_key || 'Untitled agent'}
+                          </Typography>
+                          <Typography variant="small" tone="muted">
+                            {[agent.agent_key, agent.purpose, agent.risk_level ? `risk ${agent.risk_level}` : null]
+                              .filter(Boolean)
+                              .join(' · ') || '—'}
+                          </Typography>
+                          <Typography variant="small" tone="muted">
+                            Default policy: {agent.default_model_policy_name ?? 'none'} ·{' '}
+                            {contextCount} context sources · {actionCount} actions · Updated{' '}
+                            {updatedLabel}
+                          </Typography>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="solid"
+                            tone={agent.status === 'active' ? 'success' : 'neutral'}
                           >
-                            Archive
-                          </Button>
-                        ) : null}
+                            {agent.status === 'active'
+                              ? 'Active'
+                              : agent.status === 'archived'
+                                ? 'Archived'
+                                : agent.status || 'Unknown'}
+                          </Badge>
+                          {canManage && agent.status !== 'archived' ? (
+                            <Button
+                              variant="ghost"
+                              onClick={() => void mutations.archiveAgent(agent.id)}
+                              icon={<Archive size={16} />}
+                            >
+                              Archive
+                            </Button>
+                          ) : null}
+                        </div>
                       </div>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  )
+                })}
               </ul>
             )
           ) : policies.length === 0 ? (
@@ -260,49 +264,67 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
             </Typography>
           ) : (
             <ul className="space-y-3">
-              {policies.map((policy) => (
-                <Card as="li" key={policy.id} className="border-border p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="space-y-1">
-                      <Typography variant="small" weight="medium">
-                        {policy.name}
-                      </Typography>
-                      <Typography variant="small" tone="muted">
-                        {policy.policy_key} · {policy.provider}/{policy.model_name} · {policy.mode}
-                      </Typography>
-                      <Typography variant="small" tone="muted">
-                        Cost {policy.cost_tier} · Latency {policy.latency_tier} · Quality{' '}
-                        {policy.quality_tier}
-                        {policy.fallback_policy_name
-                          ? ` · Fallback: ${policy.fallback_policy_name}`
-                          : ''}
-                        {' · '}Updated {new Date(policy.updated_at).toLocaleDateString()}
-                      </Typography>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="solid"
-                        tone={policy.status === 'active' ? 'success' : 'neutral'}
-                      >
-                        {policy.status === 'active'
-                          ? 'Active'
-                          : policy.status === 'archived'
-                            ? 'Archived'
-                            : policy.status}
-                      </Badge>
-                      {canManage && policy.status !== 'archived' ? (
-                        <Button
-                          variant="ghost"
-                          onClick={() => void mutations.archivePolicy(policy.id)}
-                          icon={<Archive size={16} />}
+              {policies.map((policy) => {
+                const updatedLabel = policy.updated_at
+                  ? new Date(policy.updated_at).toLocaleDateString()
+                  : '—'
+                return (
+                  <Card as="li" key={policy.id} className="border-border p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="space-y-1">
+                        <Typography variant="small" weight="medium">
+                          {policy.name || policy.policy_key || 'Untitled policy'}
+                        </Typography>
+                        <Typography variant="small" tone="muted">
+                          {[
+                            policy.policy_key,
+                            policy.provider && policy.model_name
+                              ? `${policy.provider}/${policy.model_name}`
+                              : policy.model_name || policy.provider,
+                            policy.mode,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ') || '—'}
+                        </Typography>
+                        <Typography variant="small" tone="muted">
+                          {[
+                            policy.cost_tier ? `Cost ${policy.cost_tier}` : null,
+                            policy.latency_tier ? `Latency ${policy.latency_tier}` : null,
+                            policy.quality_tier ? `Quality ${policy.quality_tier}` : null,
+                            policy.fallback_policy_name
+                              ? `Fallback: ${policy.fallback_policy_name}`
+                              : null,
+                            `Updated ${updatedLabel}`,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </Typography>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="solid"
+                          tone={policy.status === 'active' ? 'success' : 'neutral'}
                         >
-                          Archive
-                        </Button>
-                      ) : null}
+                          {policy.status === 'active'
+                            ? 'Active'
+                            : policy.status === 'archived'
+                              ? 'Archived'
+                              : policy.status || 'Unknown'}
+                        </Badge>
+                        {canManage && policy.status !== 'archived' ? (
+                          <Button
+                            variant="ghost"
+                            onClick={() => void mutations.archivePolicy(policy.id)}
+                            icon={<Archive size={16} />}
+                          >
+                            Archive
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                )
+              })}
             </ul>
           )}
 
@@ -323,8 +345,8 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
                         {preset.name}
                       </Typography>
                       <Typography variant="small" tone="muted">
-                        {preset.description} · {preset.model_policies.length} policies ·{' '}
-                        {preset.agents.length} agents
+                        {preset.description} · {preset.model_policies?.length ?? 0} policies ·{' '}
+                        {preset.agents?.length ?? 0} agents
                       </Typography>
                     </div>
                     <Button

@@ -45,17 +45,19 @@ export function useAgentControl(orgId: string | null, filters?: AgentControlFilt
 
       const [meta, agentsRes, policiesRes, presetsRes] = await Promise.all([
         agentControlApi.getAgentControlMetadata(orgId).catch(() => null),
-        agentControlApi.listOrgAgents(orgId, listParams),
-        agentControlApi.listOrgModelPolicies(orgId, listParams),
+        agentControlApi.listOrgAgents(orgId, listParams).catch(() => ({ items: [], total: 0 })),
+        agentControlApi
+          .listOrgModelPolicies(orgId, listParams)
+          .catch(() => ({ items: [], total: 0 })),
         hasPermission(perms, PERMISSIONS.AGENT_CONTROL_VIEW)
           ? agentControlApi.listAgentControlPresets(orgId).catch(() => ({ items: [] }))
           : Promise.resolve({ items: [] }),
       ])
 
       setMetadata(meta)
-      setAgents(agentsRes.items)
-      setPolicies(policiesRes.items)
-      setPresets(presetsRes.items)
+      setAgents(agentsRes.items ?? [])
+      setPolicies(policiesRes.items ?? [])
+      setPresets(presetsRes.items ?? [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load agent control')
     } finally {

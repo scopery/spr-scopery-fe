@@ -5,11 +5,15 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import {
   Bell,
+  Bug,
+  CalendarDays,
   ClipboardList,
   FileText,
   FolderKanban,
+  Gauge,
   Inbox,
   LayoutDashboard,
+  Rocket,
   Search,
   Sparkles,
   Users,
@@ -167,6 +171,138 @@ export function GlobalSearchPalette({
     return items
   }, [workspaceId, projectId])
 
+  /** Jump targets aligned with AppShell project nav (as-is). */
+  const projectNavHits: SearchHit[] = useMemo(() => {
+    if (!projectId) return []
+    const pid = projectId
+    const items: SearchHit[] = [
+      {
+        id: 'proj-overview',
+        label: 'Project overview',
+        href: ROUTES.workspace.projectOverview(workspaceId, pid),
+        icon: <LayoutDashboard size={14} />,
+        group: 'This project',
+      },
+      {
+        id: 'proj-work',
+        label: 'Work Items',
+        href: ROUTES.workspace.projectWork(workspaceId, pid),
+        icon: <ClipboardList size={14} />,
+        group: 'This project',
+      },
+      {
+        id: 'proj-requirements',
+        label: 'Requirements',
+        href: ROUTES.workspace.projectRequirements(workspaceId, pid),
+        icon: <FileText size={14} />,
+        group: 'This project',
+      },
+      {
+        id: 'proj-traceability',
+        label: 'Traceability',
+        href: ROUTES.workspace.projectTraceability(workspaceId, pid),
+        icon: <ClipboardList size={14} />,
+        group: 'This project',
+      },
+      {
+        id: 'proj-baselines',
+        label: 'Baselines',
+        href: ROUTES.workspace.projectBaselines(workspaceId, pid),
+        icon: <FolderKanban size={14} />,
+        group: 'This project',
+      },
+      {
+        id: 'proj-change-requests',
+        label: 'Change Requests',
+        href: ROUTES.workspace.projectChangeRequests(workspaceId, pid),
+        icon: <FileText size={14} />,
+        group: 'This project',
+      },
+    ]
+
+    if (FEATURES.quality) {
+      if (FEATURES.qualitySimplifiedWorkflow) {
+        items.push(
+          {
+            id: 'proj-quality',
+            label: 'Quality overview',
+            href: ROUTES.workspace.projectQuality(workspaceId, pid),
+            icon: <Gauge size={14} />,
+            group: 'This project',
+          },
+          {
+            id: 'proj-quality-cases',
+            label: 'Quality · Cases',
+            href: ROUTES.workspace.projectQualityCases(workspaceId, pid),
+            icon: <ClipboardList size={14} />,
+            group: 'This project',
+          },
+          {
+            id: 'proj-quality-runs',
+            label: 'Quality · Runs',
+            href: ROUTES.workspace.projectQualityRuns(workspaceId, pid),
+            icon: <CalendarDays size={14} />,
+            group: 'This project',
+          },
+          {
+            id: 'proj-quality-defects',
+            label: 'Quality · Defects',
+            href: ROUTES.workspace.projectQualityDefects(workspaceId, pid),
+            icon: <Bug size={14} />,
+            group: 'This project',
+          },
+          {
+            id: 'proj-quality-releases',
+            label: 'Quality · Releases',
+            href: ROUTES.workspace.projectQualityReleases(workspaceId, pid),
+            icon: <Rocket size={14} />,
+            group: 'This project',
+          }
+        )
+      } else {
+        items.push(
+          {
+            id: 'proj-quality',
+            label: 'Quality',
+            href: ROUTES.workspace.projectQuality(workspaceId, pid),
+            icon: <Gauge size={14} />,
+            group: 'This project',
+          },
+          {
+            id: 'proj-test-cases',
+            label: 'Test Cases',
+            href: ROUTES.workspace.projectTestCases(workspaceId, pid),
+            icon: <ClipboardList size={14} />,
+            group: 'This project',
+          },
+          {
+            id: 'proj-test-runs',
+            label: 'Test Runs',
+            href: ROUTES.workspace.projectTestRuns(workspaceId, pid),
+            icon: <CalendarDays size={14} />,
+            group: 'This project',
+          },
+          {
+            id: 'proj-defects',
+            label: 'Defects',
+            href: ROUTES.workspace.projectDefects(workspaceId, pid),
+            icon: <Bug size={14} />,
+            group: 'This project',
+          },
+          {
+            id: 'proj-releases',
+            label: 'Releases',
+            href: ROUTES.workspace.projectReleases(workspaceId, pid),
+            icon: <Rocket size={14} />,
+            group: 'This project',
+          }
+        )
+      }
+    }
+
+    return items
+  }, [workspaceId, projectId])
+
   const hits = useMemo(() => {
     const q = query.trim().toLowerCase()
     const workspaceHits: SearchHit[] = workspaces.map((w) => ({
@@ -195,15 +331,18 @@ export function GlobalSearchPalette({
       icon: <Search size={14} />,
       group: 'Results',
     }))
-    const all = [...navHits, ...workspaceHits, ...projHits, ...remoteHits]
-    if (!q) return all.filter((h) => h.group === 'Navigate').slice(0, 12)
+    const all = [...projectNavHits, ...navHits, ...workspaceHits, ...projHits, ...remoteHits]
+    if (!q) {
+      const defaults = [...projectNavHits, ...navHits]
+      return defaults.slice(0, 16)
+    }
     return all.filter(
       (h) =>
         h.label.toLowerCase().includes(q) ||
         (h.hint?.toLowerCase().includes(q) ?? false) ||
         h.group === 'Results'
     )
-  }, [query, workspaces, projectHits, navHits, workspaceId, apiHits])
+  }, [query, workspaces, projectHits, navHits, projectNavHits, workspaceId, apiHits])
 
   const grouped = useMemo(() => {
     const map = new Map<string, SearchHit[]>()
@@ -234,23 +373,16 @@ export function GlobalSearchPalette({
         className="fixed left-1/2 top-[12vh] z-[111] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 border border-neutral-200 bg-white shadow-xl"
       >
         <div className="border-b border-neutral-100 p-3">
-          <label className="relative block">
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
-              aria-hidden
-            />
-            <Input
-              fullWidth
-              size="sm"
-              autoFocus
-              placeholder="Search or jump to a page…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="pl-9"
-              aria-label="Command palette search"
-            />
-          </label>
+          <Input
+            fullWidth
+            size="sm"
+            autoFocus
+            placeholder="Search or jump to a page…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            prefix={<Search size={16} className="text-neutral-400" aria-hidden />}
+            aria-label="Command palette search"
+          />
           <Typography variant="small" tone="muted" className="mt-2 px-1">
             Esc to close · ⌘K / Ctrl+K to open
             {searchLoading ? ' · Searching…' : ''}

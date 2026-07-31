@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useState } from 'react'
+import { Search } from 'lucide-react'
 import { Input, Skeleton, Stack, Typography } from '@/shared/ui'
 import { useGlobalSearch } from '../hooks/useGlobalSearch'
 
@@ -17,6 +18,7 @@ export function GlobalSearchView() {
         Search
       </Typography>
       <Input
+        fullWidth
         value={value}
         onChange={(e) => {
           setValue(e.target.value)
@@ -24,6 +26,7 @@ export function GlobalSearchView() {
         }}
         placeholder="Search documents, projects, requirements…"
         aria-label="Global search"
+        prefix={<Search size={16} className="text-neutral-400" aria-hidden />}
       />
       {loading ? (
         <div
