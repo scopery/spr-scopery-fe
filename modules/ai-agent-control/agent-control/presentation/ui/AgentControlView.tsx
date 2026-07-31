@@ -1,6 +1,6 @@
 'use client'
 
-import { Archive, Play, Plus } from 'lucide-react'
+import { Archive, Play, Plus, Search } from 'lucide-react'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -90,23 +90,28 @@ export function AgentControlView({ orgId }: AgentControlViewProps) {
         />
       ) : (
         <>
-          <div className="grid gap-3 md:grid-cols-2">
-            <Input
-              label="Search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Name or key"
-            />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="w-52 shrink-0">
+              <Input
+                fullWidth
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name or key…"
+                prefix={<Search size={14} aria-hidden />}
+                aria-label="Search"
+              />
+            </div>
             <Select
-              label="Status"
-              value={statusFilter}
-              onValueChange={(v: string) => setStatusFilter(v)}
+              value={statusFilter || 'ALL'}
+              onValueChange={(v: string) => setStatusFilter(v === 'ALL' ? '' : v)}
               options={[
-                { value: '', label: 'All statuses' },
+                { value: 'ALL', label: 'All statuses' },
                 { value: 'active', label: 'Active' },
                 { value: 'inactive', label: 'Inactive' },
                 { value: 'archived', label: 'Archived' },
               ]}
+              className="w-40 shrink-0"
+              aria-label="Status"
             />
           </div>
 
