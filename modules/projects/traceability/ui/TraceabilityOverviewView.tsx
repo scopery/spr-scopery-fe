@@ -248,7 +248,7 @@ export function TraceabilityOverviewView({ projectId, onNavigate }: Traceability
       />
 
       <div className="grid gap-3 lg:grid-cols-2">
-        <Card as="section" hasShadow={false}>
+        <Card as="section">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 px-3 py-2.5">
             <Typography weight="medium">Functional Pipeline</Typography>
             <NeutralButton
@@ -372,7 +372,7 @@ export function TraceabilityOverviewView({ projectId, onNavigate }: Traceability
           </div>
         </Card>
 
-        <Card as="section" hasShadow={false}>
+        <Card as="section">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 px-3 py-2.5">
             <Typography weight="medium">NFR Pipeline</Typography>
             <NeutralButton outline onClick={() => onNavigate({ tab: 'nfr' })}>
@@ -424,7 +424,7 @@ export function TraceabilityOverviewView({ projectId, onNavigate }: Traceability
         </Card>
       </div>
 
-      <Card as="section" id="trace-needs-attention" hasShadow={false}>
+      <Card as="section" id="trace-needs-attention">
         <div className="border-b border-neutral-200 px-3 py-2.5">
           <Typography weight="medium">Needs Attention</Typography>
           <Typography variant="caption" tone="muted">
@@ -501,7 +501,7 @@ export function TraceabilityOverviewView({ projectId, onNavigate }: Traceability
       </Card>
 
       {showGetStarted ? (
-        <Card as="section" hasShadow={false}>
+        <Card as="section">
           <div className="border-b border-neutral-200 px-3 py-2.5">
             <Typography weight="medium">Get Started</Typography>
             <Typography variant="caption" tone="muted">
