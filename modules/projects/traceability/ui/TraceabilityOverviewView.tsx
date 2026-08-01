@@ -1,6 +1,6 @@
 'use client'
 
-import { Badge, Button, PageSkeleton, Typography } from '@/shared/ui'
+import { Badge, Button, Card, PageSkeleton, Typography } from '@/shared/ui'
 import type { ReactNode } from 'react'
 import { FUNNEL_STAGE_LABEL } from '../model/requirement-traceability'
 import { useTraceabilityOverview } from '../hooks/useTraceabilityOverview'
@@ -248,7 +248,7 @@ export function TraceabilityOverviewView({ projectId, onNavigate }: Traceability
       />
 
       <div className="grid gap-3 lg:grid-cols-2">
-        <section className="border border-neutral-200 bg-white">
+        <Card as="section" hasShadow={false}>
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 px-3 py-2.5">
             <Typography weight="medium">Functional Pipeline</Typography>
             <NeutralButton
@@ -370,9 +370,9 @@ export function TraceabilityOverviewView({ projectId, onNavigate }: Traceability
               </>
             )}
           </div>
-        </section>
+        </Card>
 
-        <section className="border border-neutral-200 bg-white">
+        <Card as="section" hasShadow={false}>
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 px-3 py-2.5">
             <Typography weight="medium">NFR Pipeline</Typography>
             <NeutralButton outline onClick={() => onNavigate({ tab: 'nfr' })}>
@@ -421,10 +421,10 @@ export function TraceabilityOverviewView({ projectId, onNavigate }: Traceability
               </>
             )}
           </div>
-        </section>
+        </Card>
       </div>
 
-      <section id="trace-needs-attention" className="border border-neutral-200 bg-white">
+      <Card as="section" id="trace-needs-attention" hasShadow={false}>
         <div className="border-b border-neutral-200 px-3 py-2.5">
           <Typography weight="medium">Needs Attention</Typography>
           <Typography variant="caption" tone="muted">
@@ -498,10 +498,10 @@ export function TraceabilityOverviewView({ projectId, onNavigate }: Traceability
             })}
           </ul>
         )}
-      </section>
+      </Card>
 
       {showGetStarted ? (
-        <section className="border border-neutral-200 bg-white">
+        <Card as="section" hasShadow={false}>
           <div className="border-b border-neutral-200 px-3 py-2.5">
             <Typography weight="medium">Get Started</Typography>
             <Typography variant="caption" tone="muted">
@@ -557,7 +557,7 @@ export function TraceabilityOverviewView({ projectId, onNavigate }: Traceability
               </li>
             ))}
           </ul>
-        </section>
+        </Card>
       ) : null}
     </div>
   )
