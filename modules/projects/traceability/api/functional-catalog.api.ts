@@ -17,8 +17,10 @@ import type {
 } from '../model/functional-catalog'
 import type {
   FunctionApiLink,
+  FunctionCommunicationLink,
   FunctionScreenLink,
   LinkFunctionApiBody,
+  LinkFunctionCommunicationBody,
   LinkFunctionScreenBody,
   LinkNfrScopeTargetBody,
   NfrScopeTarget,
@@ -74,6 +76,16 @@ export const FUNCTIONAL_CATALOG_ENDPOINTS = {
   ) =>
     apiPath(
       `/projects/${projectId}/functional-items/${functionalItemId}/api-endpoints/${apiEndpointId}`
+    ),
+  functionCommunications: (projectId: string, functionalItemId: string) =>
+    apiPath(`/projects/${projectId}/functional-items/${functionalItemId}/communications`),
+  functionCommunication: (
+    projectId: string,
+    functionalItemId: string,
+    communicationId: string
+  ) =>
+    apiPath(
+      `/projects/${projectId}/functional-items/${functionalItemId}/communications/${communicationId}`
     ),
   nfrScopeTargets: (projectId: string, nfrId: string) =>
     apiPath(`/projects/${projectId}/non-functional-items/${nfrId}/scope-targets`),
@@ -326,6 +338,41 @@ export async function unlinkFunctionApiEndpoint(
       projectId,
       functionalItemId,
       apiEndpointId
+    )
+  )
+}
+
+export async function listFunctionCommunications(
+  projectId: string,
+  functionalItemId: string
+): Promise<{ items: FunctionCommunicationLink[] }> {
+  const res = await apiClient.get<ListPayload<FunctionCommunicationLink>>(
+    FUNCTIONAL_CATALOG_ENDPOINTS.functionCommunications(projectId, functionalItemId)
+  )
+  return normalizeItemList(res)
+}
+
+export async function linkFunctionCommunication(
+  projectId: string,
+  functionalItemId: string,
+  body: LinkFunctionCommunicationBody
+): Promise<FunctionCommunicationLink> {
+  return apiClient.post(
+    FUNCTIONAL_CATALOG_ENDPOINTS.functionCommunications(projectId, functionalItemId),
+    body
+  )
+}
+
+export async function unlinkFunctionCommunication(
+  projectId: string,
+  functionalItemId: string,
+  communicationId: string
+): Promise<void> {
+  await apiClient.delete(
+    FUNCTIONAL_CATALOG_ENDPOINTS.functionCommunication(
+      projectId,
+      functionalItemId,
+      communicationId
     )
   )
 }

@@ -8,10 +8,12 @@ import type {
   CreateRegistryAppModuleBody,
   CreateRegistryApplicationBody,
   CreateRegistryDataEntityBody,
+  CreateCommunicationSpecBody,
   CreateRegistryScreenActionBody,
   CreateRegistryScreenBody,
   CreateRegistryScreenFieldBody,
   CreateRegistryScreenSectionBody,
+  CommunicationSpecification,
   RegistryApiEndpoint,
   RegistryAppComponent,
   RegistryAppModule,
@@ -25,6 +27,7 @@ import type {
   UpdateRegistryAppComponentBody,
   UpdateRegistryAppModuleBody,
   UpdateRegistryDataEntityBody,
+  UpdateCommunicationSpecBody,
   UpdateRegistryScreenActionBody,
   UpdateRegistryScreenBody,
   UpdateRegistryScreenFieldBody,
@@ -149,6 +152,22 @@ export const TRACEABILITY_ENDPOINTS = {
   dataEntity: (workspaceId: string, applicationId: string, dataEntityId: string) =>
     apiPath(
       `/workspaces/${workspaceId}/applications/${applicationId}/data-entities/${dataEntityId}`
+    ),
+  communicationSpecs: (workspaceId: string, applicationId: string) =>
+    apiPath(
+      `/workspaces/${workspaceId}/applications/${applicationId}/communication-specifications`
+    ),
+  communicationSpec: (workspaceId: string, applicationId: string, communicationSpecId: string) =>
+    apiPath(
+      `/workspaces/${workspaceId}/applications/${applicationId}/communication-specifications/${communicationSpecId}`
+    ),
+  communicationSpecMarkReady: (
+    workspaceId: string,
+    applicationId: string,
+    communicationSpecId: string
+  ) =>
+    apiPath(
+      `/workspaces/${workspaceId}/applications/${applicationId}/communication-specifications/${communicationSpecId}/mark-ready`
     ),
   screenSections: (workspaceId: string, screenId: string) =>
     apiPath(`/workspaces/${workspaceId}/screens/${screenId}/sections`),
@@ -709,6 +728,64 @@ export async function deleteDataEntity(
 ): Promise<void> {
   await apiClient.delete<void>(
     TRACEABILITY_ENDPOINTS.dataEntity(workspaceId, applicationId, dataEntityId)
+  )
+}
+
+export async function listCommunicationSpecs(
+  workspaceId: string,
+  applicationId: string
+): Promise<{ items: CommunicationSpecification[] }> {
+  const res = await apiClient.get<ListPayload<CommunicationSpecification>>(
+    TRACEABILITY_ENDPOINTS.communicationSpecs(workspaceId, applicationId)
+  )
+  return normalizeItemList(res)
+}
+
+export async function createCommunicationSpec(
+  workspaceId: string,
+  applicationId: string,
+  body: CreateCommunicationSpecBody
+): Promise<CommunicationSpecification> {
+  return apiClient.post(
+    TRACEABILITY_ENDPOINTS.communicationSpecs(workspaceId, applicationId),
+    body
+  )
+}
+
+export async function updateCommunicationSpec(
+  workspaceId: string,
+  applicationId: string,
+  communicationSpecId: string,
+  body: UpdateCommunicationSpecBody
+): Promise<CommunicationSpecification> {
+  return apiClient.put(
+    TRACEABILITY_ENDPOINTS.communicationSpec(workspaceId, applicationId, communicationSpecId),
+    body
+  )
+}
+
+export async function archiveCommunicationSpec(
+  workspaceId: string,
+  applicationId: string,
+  communicationSpecId: string
+): Promise<void> {
+  await apiClient.delete<void>(
+    TRACEABILITY_ENDPOINTS.communicationSpec(workspaceId, applicationId, communicationSpecId)
+  )
+}
+
+export async function markCommunicationSpecReady(
+  workspaceId: string,
+  applicationId: string,
+  communicationSpecId: string
+): Promise<CommunicationSpecification> {
+  return apiClient.post(
+    TRACEABILITY_ENDPOINTS.communicationSpecMarkReady(
+      workspaceId,
+      applicationId,
+      communicationSpecId
+    ),
+    {}
   )
 }
 

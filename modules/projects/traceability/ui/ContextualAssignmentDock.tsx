@@ -24,6 +24,11 @@ interface ContextualAssignmentDockProps {
   onFocusLinked: (focus: StructureFocus) => void
   onUnlinkScreen: (functionId: string, screenId: string, projectId?: string | null) => void
   onUnlinkApi: (functionId: string, apiId: string, projectId?: string | null) => void
+  onUnlinkCommunication: (
+    functionId: string,
+    communicationId: string,
+    projectId?: string | null
+  ) => void
   onUnlinkComponent: (screenId: string, componentId: string) => void
   onUnlinkEntity: (entityId: string, moduleId: string) => void
 }
@@ -41,6 +46,7 @@ export function ContextualAssignmentDock({
   onFocusLinked,
   onUnlinkScreen,
   onUnlinkApi,
+  onUnlinkCommunication,
   onUnlinkComponent,
   onUnlinkEntity,
 }: ContextualAssignmentDockProps) {
@@ -85,6 +91,7 @@ export function ContextualAssignmentDock({
           onAssign={onAssign}
           onUnlinkScreen={onUnlinkScreen}
           onUnlinkApi={onUnlinkApi}
+          onUnlinkCommunication={onUnlinkCommunication}
           onUnlinkComponent={onUnlinkComponent}
           onUnlinkEntity={onUnlinkEntity}
         />

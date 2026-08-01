@@ -74,6 +74,15 @@ function labelsFor(kind: CatalogAddKind): {
         namePlaceholder: 'Cart item',
         extraPlaceholder: 'cart_items',
       }
+    case 'COMMUNICATION':
+      return {
+        code: 'Code',
+        name: 'Name',
+        extra: 'Trigger key',
+        codePlaceholder: 'ORDER_CONFIRMED',
+        namePlaceholder: 'Order confirmed email',
+        extraPlaceholder: 'order.confirmed',
+      }
   }
 }
 

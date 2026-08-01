@@ -28,7 +28,7 @@ export function useTestCaseDetail(projectId: string | null, testCaseId: string |
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    if (!projectId || !testCaseId) {
+    if (!projectId || !testCaseId || testCaseId === 'undefined') {
       setDetail(null)
       setTraceability(null)
       return

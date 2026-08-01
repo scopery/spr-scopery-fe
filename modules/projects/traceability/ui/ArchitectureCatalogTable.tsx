@@ -28,6 +28,7 @@ const FILTERS: { id: TypeFilter; label: string }[] = [
   { id: 'API_ENDPOINT', label: 'APIs' },
   { id: 'COMPONENT', label: 'Components' },
   { id: 'DATA_ENTITY', label: 'Entities' },
+  { id: 'COMMUNICATION', label: 'Comms' },
 ]
 
 export function ArchitectureCatalogTable({

@@ -119,4 +119,37 @@ export const CATALOG_BULK_IMPORT_GUIDES: Record<ArchitectureNodeType, BulkImport
       items: [{ code: 'CART_ITEM', name: 'Cart item', tableName: 'cart_items' }],
     },
   },
+  COMMUNICATION: {
+    entityLabel: 'Communication',
+    maxItems: MAX,
+    notes: [
+      'Bulk/JSON import is not available yet — use Catalog → Add node → Communication → Single add.',
+      'code and name are required.',
+      'triggerKey is optional.',
+    ],
+    fields: [
+      {
+        name: 'code',
+        required: true,
+        type: 'string',
+        description: 'Communication code (e.g. ORDER_CONFIRMED).',
+      },
+      { name: 'name', required: true, type: 'string', description: 'Display name.' },
+      {
+        name: 'triggerKey',
+        required: false,
+        type: 'string',
+        description: 'Optional trigger key (e.g. order.confirmed).',
+      },
+    ],
+    sample: {
+      items: [
+        {
+          code: 'ORDER_CONFIRMED',
+          name: 'Order confirmed email',
+          triggerKey: 'order.confirmed',
+        },
+      ],
+    },
+  },
 }

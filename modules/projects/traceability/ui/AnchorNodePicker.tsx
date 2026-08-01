@@ -9,7 +9,7 @@ import {
   type ArchitectureNodeType,
 } from '../model/architecture-workbench'
 import {
-  ARCHITECTURE_TO_ANCHOR_NODE_TYPE,
+  architectureToAnchorNodeType,
   labelArchitectureNode,
 } from '../model/anchor-mapping'
 import type { FunctionalItemAnchorNodeType } from '../model/functional-catalog'
@@ -66,6 +66,7 @@ export function AnchorNodePicker({
   const filteredNodes = useMemo(() => {
     const q = query.trim().toLowerCase()
     return nodes.filter((n) => {
+      if (n.type === 'COMMUNICATION') return false
       if (typeFilter !== 'ALL' && n.type !== typeFilter) return false
       if (!q) return true
       return [n.code, n.name, n.secondary]
@@ -160,10 +161,12 @@ export function AnchorNodePicker({
           disabled={!selectedNode || disabled || submitting}
           onClick={() => {
             if (!selectedNode || !applicationId) return
+            const nodeType = architectureToAnchorNodeType(selectedNode.type)
+            if (!nodeType) return
             void Promise.resolve(
               onAdd(
                 {
-                  nodeType: ARCHITECTURE_TO_ANCHOR_NODE_TYPE[selectedNode.type],
+                  nodeType,
                   nodeId: selectedNode.id,
                   node: selectedNode,
                   applicationId,

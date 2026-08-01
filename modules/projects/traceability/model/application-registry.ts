@@ -67,6 +67,61 @@ export interface RegistryDataEntity {
   createdAt: string
 }
 
+export interface CommunicationSpecification {
+  id: string
+  applicationId: string
+  workspaceId: string
+  code: string
+  name: string
+  description?: string | null
+  status: string
+  triggerName?: string | null
+  triggerKey?: string | null
+  triggerTiming?: string | null
+  conditionJson?: string | null
+  suppressionConditionJson?: string | null
+  deliveryPolicyJson?: string | null
+  inAppContractJson?: string | null
+  emailContractJson?: string | null
+  recipientsJson?: string | null
+  ownerId?: string | null
+  version?: number
+  createdAt: string
+  updatedAt?: string | null
+  archivedAt?: string | null
+}
+
+export interface CreateCommunicationSpecBody {
+  code: string
+  name: string
+  description?: string | null
+  triggerName?: string | null
+  triggerKey?: string | null
+  triggerTiming?: string | null
+  conditionJson?: string | null
+  suppressionConditionJson?: string | null
+  deliveryPolicyJson?: string | null
+  inAppContractJson?: string | null
+  emailContractJson?: string | null
+  recipientsJson?: string | null
+  ownerId?: string | null
+}
+
+export interface UpdateCommunicationSpecBody {
+  name: string
+  description?: string | null
+  triggerName?: string | null
+  triggerKey?: string | null
+  triggerTiming?: string | null
+  conditionJson?: string | null
+  suppressionConditionJson?: string | null
+  deliveryPolicyJson?: string | null
+  inAppContractJson?: string | null
+  emailContractJson?: string | null
+  recipientsJson?: string | null
+  ownerId?: string | null
+}
+
 export interface RegistryScreenSection {
   id: string
   screenId: string

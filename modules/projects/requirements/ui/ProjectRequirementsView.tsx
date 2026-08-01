@@ -33,8 +33,10 @@ import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
 import type { CreateRequirementPayload, Requirement } from '../model/requirements'
 import { RequirementAddBar } from './RequirementAddBar'
+import { SpecPacksView } from './SpecPacksView'
 
 type EvidenceFilter = 'all' | 'with' | 'missing'
+type RequirementsMainTab = 'catalog' | 'spec-packs'
 
 function reqTypeLabel(type: string | null | undefined): string {
   switch ((type ?? '').toUpperCase()) {
@@ -89,6 +91,7 @@ export function ProjectRequirementsView() {
   const [evidenceCounts, setEvidenceCounts] = useState<Record<string, number>>({})
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<EvidenceFilter>('all')
+  const [mainTab, setMainTab] = useState<RequirementsMainTab>('catalog')
   const [resolvedFunctionalItem, setResolvedFunctionalItem] = useState<FunctionalItem | null>(null)
   const [resolvedNfr, setResolvedNfr] = useState<NonFunctionalItem | null>(null)
   const [resolvedScopeItem, setResolvedScopeItem] = useState<ScopeItem | null>(null)
@@ -266,8 +269,8 @@ export function ProjectRequirementsView() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white px-3 py-3 lg:px-4 lg:py-3">
-      <div className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white px-3 py-3 lg:px-4 lg:py-3">
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-1 flex-col overflow-hidden">
         <header className="shrink-0">
           <Link
             href={ROUTES.workspace.project(orgId, projectId)}
@@ -294,9 +297,42 @@ export function ProjectRequirementsView() {
               Requirement → Function
             </Button>
           </div>
+          <div className="mt-2 flex gap-0.5">
+            {(
+              [
+                { id: 'catalog', label: 'Catalog' },
+                { id: 'spec-packs', label: 'Spec Packs' },
+              ] as const
+            ).map((tab) => {
+              const active = mainTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setMainTab(tab.id)}
+                  className={cn(
+                    'border-b-2 px-3 py-1.5 text-sm transition-colors',
+                    active
+                      ? 'border-neutral-900 text-neutral-900'
+                      : 'border-transparent text-neutral-500 hover:text-neutral-800'
+                  )}
+                >
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
         </header>
 
-        <div className="mt-2 min-h-0 flex-1">
+        <div className="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden">
+          {mainTab === 'spec-packs' ? (
+            <SpecPacksView
+              workspaceId={orgId}
+              projectId={projectId}
+              requirements={requirements}
+              canCreate={canCreateRequirement}
+            />
+          ) : (
           <div className="grid h-full min-h-0 grid-cols-1 overflow-hidden border border-neutral-300 bg-white lg:grid-cols-[minmax(0,1fr)_minmax(320px,440px)]">
             <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-b border-neutral-200 lg:border-b-0 lg:border-r">
               <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-neutral-100 px-3 py-2">
@@ -562,6 +598,7 @@ export function ProjectRequirementsView() {
               )}
             </aside>
           </div>
+          )}
         </div>
       </div>
     </div>

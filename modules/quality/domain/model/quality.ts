@@ -316,7 +316,8 @@ export interface UpdateVerificationResultPayload {
 export interface TestRunResult {
   id: string
   testRunId: string
-  testCaseId: string
+  /** Optional — list endpoint often only nests id under `testCase` */
+  testCaseId?: string
   testCase?: TestCaseSummary
   assigneeId?: string | null
   resultStatus: TestExecutionResult | string

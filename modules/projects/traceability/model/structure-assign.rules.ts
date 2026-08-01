@@ -13,12 +13,14 @@ export type StructureDragKind =
   | typeof StructureFocusType.ApiEndpoint
   | typeof StructureFocusType.Component
   | typeof StructureFocusType.Entity
+  | typeof StructureFocusType.Communication
   | typeof StructureFocusType.Nfr
 
 export type StructureAssignAction =
   | 'move-function-to-module'
   | 'link-screen-to-function'
   | 'link-api-to-function'
+  | 'link-communication-to-function'
   | 'link-component-to-screen'
   | 'move-entity-to-module'
   | 'scope-nfr-to-target'
@@ -26,6 +28,7 @@ export type StructureAssignAction =
 export type StructureDropZoneId =
   | 'screens'
   | 'apis'
+  | 'communications'
   | 'components'
   | 'functions'
   | 'entities'
@@ -76,6 +79,12 @@ export function resolveStructureAssignAction(
     return 'link-api-to-function'
   }
   if (
+    dragKind === StructureFocusType.Communication &&
+    focus.type === StructureFocusType.Function
+  ) {
+    return 'link-communication-to-function'
+  }
+  if (
     dragKind === StructureFocusType.Component &&
     focus.type === StructureFocusType.Screen
   ) {
@@ -114,7 +123,7 @@ export function isSameStructureNode(
 export function zonesForFocus(focusType: StructureFocus['type']): StructureDropZoneId[] {
   switch (focusType) {
     case StructureFocusType.Function:
-      return ['screens', 'apis', 'nfr']
+      return ['screens', 'apis', 'communications', 'nfr']
     case StructureFocusType.Screen:
       return ['components']
     case StructureFocusType.Module:
@@ -135,7 +144,7 @@ export function availablePaletteGroupIdsForFocus(
 ): string[] {
   switch (focusType) {
     case StructureFocusType.Function:
-      return ['screens', 'apis', 'nfrs']
+      return ['screens', 'apis', 'communications', 'nfrs']
     case StructureFocusType.Screen:
       return ['components']
     case StructureFocusType.Module:
@@ -161,6 +170,8 @@ export function zoneLabel(zone: StructureDropZoneId): string {
       return 'Screens'
     case 'apis':
       return 'APIs'
+    case 'communications':
+      return 'Communications'
     case 'components':
       return 'Components'
     case 'functions':
@@ -180,6 +191,8 @@ export function zoneHint(zone: StructureDropZoneId): string {
       return 'Drop screens here'
     case 'apis':
       return 'Drop APIs here'
+    case 'communications':
+      return 'Drop communications here'
     case 'components':
       return 'Drop components here'
     case 'functions':
@@ -207,6 +220,8 @@ export function zoneAcceptsDrag(
       return action === 'link-screen-to-function'
     case 'apis':
       return action === 'link-api-to-function'
+    case 'communications':
+      return action === 'link-communication-to-function'
     case 'components':
       return action === 'link-component-to-screen'
     case 'functions':
@@ -237,6 +252,8 @@ export function previewAssignLabel(
       return `Link ${payload.label} to ${focusLabel}`
     case 'link-api-to-function':
       return `Link ${payload.label} to ${focusLabel}`
+    case 'link-communication-to-function':
+      return `Link ${payload.label} to ${focusLabel}`
     case 'link-component-to-screen':
       return `Use ${payload.label} on ${focusLabel}`
     case 'move-function-to-module':
@@ -253,7 +270,7 @@ export function previewAssignLabel(
 export function dropZoneLabelForFocus(focusType: StructureFocus['type']): string {
   switch (focusType) {
     case StructureFocusType.Function:
-      return 'Drop Screens or APIs here'
+      return 'Drop Screens, APIs, or Communications here'
     case StructureFocusType.Screen:
       return 'Drop Components here'
     case StructureFocusType.Module:
@@ -269,6 +286,7 @@ export function actionNeedsProject(action: StructureAssignAction): boolean {
   return (
     action === 'link-screen-to-function' ||
     action === 'link-api-to-function' ||
+    action === 'link-communication-to-function' ||
     action === 'move-function-to-module' ||
     action === 'scope-nfr-to-target'
   )
@@ -280,6 +298,8 @@ export function actionLabel(action: StructureAssignAction): string {
       return 'Link screen'
     case 'link-api-to-function':
       return 'Link API'
+    case 'link-communication-to-function':
+      return 'Link communication'
     case 'link-component-to-screen':
       return 'Link component'
     case 'move-function-to-module':

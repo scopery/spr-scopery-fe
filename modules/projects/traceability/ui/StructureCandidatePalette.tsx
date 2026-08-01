@@ -66,6 +66,12 @@ function flattenCandidates(
 
   push('screens', 'Screens', candidates.screens, StructureFocusType.Screen)
   push('apis', 'APIs', candidates.apis, StructureFocusType.ApiEndpoint)
+  push(
+    'communications',
+    'Communications',
+    candidates.communications,
+    StructureFocusType.Communication
+  )
   push('components', 'Components', candidates.components, StructureFocusType.Component)
   push('functions', 'Functions', candidates.functions, StructureFocusType.Function)
   push('entities', 'Entities', candidates.entities, StructureFocusType.Entity)

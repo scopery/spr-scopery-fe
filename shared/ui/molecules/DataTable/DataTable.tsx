@@ -133,6 +133,15 @@ function DataTableInner<T>(
     })
   }, [rows.length])
 
+  // Keep keyboard focus aligned when parent jumps to a row (e.g. scroll-to-nearest).
+  useEffect(() => {
+    if (selectedRowKey == null) return
+    const idx = rows.findIndex((row) => rowKey(row) === selectedRowKey)
+    if (idx >= 0) {
+      setFocusedIndex((current) => (current === idx ? current : idx))
+    }
+  }, [rowKey, rows, selectedRowKey])
+
   const focusedKeyRef = useRef<string | null>(null)
   useEffect(() => {
     if (!onFocusedRowChange) return
@@ -287,6 +296,7 @@ function DataTableInner<T>(
               return (
                 <tr
                   key={key}
+                  data-row-key={key}
                   aria-selected={selected || selectedKeys?.has(key) || undefined}
                   className={cn(
                     'border-b border-neutral-100 transition-colors',

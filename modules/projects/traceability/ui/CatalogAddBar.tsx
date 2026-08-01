@@ -18,6 +18,7 @@ const KIND_OPTIONS: { value: CatalogAddKind; label: string }[] = [
   { value: 'API_ENDPOINT', label: 'API Endpoint' },
   { value: 'COMPONENT', label: 'Component' },
   { value: 'DATA_ENTITY', label: 'Data Entity' },
+  { value: 'COMMUNICATION', label: 'Communication' },
 ]
 
 const MODE_OPTIONS: { value: AddMode; label: string }[] = [
@@ -114,7 +115,10 @@ export function CatalogAddBar({ onCreate, onSubmitBulk, onBatchComplete }: Catal
           </div>
           <div className="min-w-[140px] py-0.5">
             {activeHover
-              ? MODE_OPTIONS.map((mode) => (
+              ? (activeHover === 'COMMUNICATION'
+                  ? MODE_OPTIONS.filter((m) => m.value === 'single')
+                  : MODE_OPTIONS
+                ).map((mode) => (
                   <button
                     key={mode.value}
                     type="button"

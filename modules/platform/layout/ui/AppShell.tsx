@@ -1155,12 +1155,20 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     pathname?.match(/\/projects\/[^/]+\/functional-catalog(?:\/|$)/)
   )
   const immersiveUseCases = Boolean(pathname?.match(/\/projects\/[^/]+\/use-cases(?:\/|$)/))
+  const immersiveRequirements = Boolean(
+    pathname?.match(/\/projects\/[^/]+\/requirements(?:\/|$)/)
+  )
+  const immersiveQualityRuns = Boolean(
+    pathname?.match(/\/projects\/[^/]+\/quality\/(?:runs|test-runs)(?:\/|$)/)
+  )
   const immersiveMain =
     immersiveDocumentEditor ||
     immersiveAiWorkspace ||
     immersiveApplications ||
     immersiveFunctionalCatalog ||
-    immersiveUseCases
+    immersiveUseCases ||
+    immersiveRequirements ||
+    immersiveQualityRuns
   // Immersive pages used to hide the AI sidebar (!immersiveMain). Keep full-bleed
   // content, but still allow the project chat beside it — except on the dedicated AI workspace.
   const showAiProjectSidebar = Boolean(

@@ -24,6 +24,7 @@ const SCREEN_KEYS = new Set(['code', 'name', 'routePath'])
 const API_KEYS = new Set(['method', 'pathPattern', 'name'])
 const COMPONENT_KEYS = new Set(['code', 'name', 'componentType'])
 const DATA_KEYS = new Set(['code', 'name', 'tableName'])
+const COMM_KEYS = new Set(['code', 'name', 'triggerKey'])
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const
 
@@ -39,6 +40,8 @@ function keysFor(kind: CatalogJsonImportKind): Set<string> {
       return COMPONENT_KEYS
     case 'DATA_ENTITY':
       return DATA_KEYS
+    case 'COMMUNICATION':
+      return COMM_KEYS
   }
 }
 
@@ -92,7 +95,9 @@ export function validateCatalogJsonImport(
             ? 'routePath'
             : kind === 'COMPONENT'
               ? 'componentType'
-              : 'tableName'
+              : kind === 'COMMUNICATION'
+                ? 'triggerKey'
+                : 'tableName'
 
       return {
         code,

@@ -40,6 +40,8 @@ function secondaryLabel(type: BrowseCatalogNode['type']): string | null {
       return 'Component type'
     case 'DATA_ENTITY':
       return 'Table name'
+    case 'COMMUNICATION':
+      return 'Trigger key'
     case 'FUNCTION':
       return 'Module'
     default:

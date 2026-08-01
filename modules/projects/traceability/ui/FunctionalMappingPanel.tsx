@@ -15,7 +15,7 @@ import {
 } from '../model/architecture-workbench'
 import {
   ANCHOR_NODE_TYPE_TO_ARCHITECTURE,
-  ARCHITECTURE_TO_ANCHOR_NODE_TYPE,
+  architectureToAnchorNodeType,
   labelArchitectureNode,
 } from '../model/anchor-mapping'
 import type { FunctionalItem } from '../model/functional-catalog'
@@ -127,20 +127,24 @@ export function FunctionalMappingPanel({
     label: `${i.code} — ${i.title}`,
   }))
 
-  const nodeOptions = nodes.map((n) => ({
-    value: n.id,
-    label: `${ARCHITECTURE_NODE_TYPE_LABEL[n.type]} · ${labelArchitectureNode(n)}`,
-  }))
+  const nodeOptions = nodes
+    .filter((n) => n.type !== 'COMMUNICATION')
+    .map((n) => ({
+      value: n.id,
+      label: `${ARCHITECTURE_NODE_TYPE_LABEL[n.type]} · ${labelArchitectureNode(n)}`,
+    }))
 
   const attach = useCallback(async () => {
     if (!linkFrId || !linkNodeId) return
     const node = nodeById.get(linkNodeId)
     if (!node) return
+    const nodeType = architectureToAnchorNodeType(node.type)
+    if (!nodeType) return
     setSubmitting(true)
     setFormError(null)
     try {
       await catalogApi.addAnchor(projectId, linkFrId, {
-        nodeType: ARCHITECTURE_TO_ANCHOR_NODE_TYPE[node.type],
+        nodeType,
         nodeId: node.id,
         note: null,
       })

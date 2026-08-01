@@ -1,5 +1,5 @@
 import type { ArchitectureCatalogNode } from './architecture-workbench'
-import { ARCHITECTURE_TO_ANCHOR_NODE_TYPE } from './anchor-mapping'
+import { architectureToAnchorNodeType } from './anchor-mapping'
 import {
   StructureRelationType,
   type AddStructureRelationBody,
@@ -42,8 +42,11 @@ export function buildLinkBody(
   relationType: string,
   direction: RelationDirection
 ): AddStructureRelationBody {
-  const focusType = ARCHITECTURE_TO_ANCHOR_NODE_TYPE[focus.type]
-  const targetType = ARCHITECTURE_TO_ANCHOR_NODE_TYPE[target.type]
+  const focusType = architectureToAnchorNodeType(focus.type)
+  const targetType = architectureToAnchorNodeType(target.type)
+  if (!focusType || !targetType) {
+    throw new Error('Communications cannot be used as structure-relation anchors')
+  }
   if (direction === 'focus-as-from') {
     return {
       fromNodeType: focusType,

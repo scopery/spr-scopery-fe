@@ -4,6 +4,7 @@ import {
   mapQualityPlanToSettings,
   mapReleaseToReadinessDetail,
   mapTestCaseToCaseRow,
+  mapTestRunResultToExecutionRow,
   mapVerificationCaseToCaseRow,
 } from './quality-compatibility.mapper'
 import type { QualityPlan, ReleasePackage, TestCase, VerificationCase } from '../../domain/model/quality'
@@ -63,6 +64,17 @@ describe('quality-compatibility.mapper', () => {
       status: 'READY_FOR_RELEASE',
     } satisfies ReleasePackage
     expect(mapReleaseToReadinessDetail(release).readinessStatus).toBe('READY')
+  })
+
+  it('resolves caseId from nested testCase when top-level testCaseId is missing', () => {
+    const row = mapTestRunResultToExecutionRow({
+      id: 'r1',
+      testRunId: 'run1',
+      resultStatus: 'NOT_RUN',
+      testCase: { id: 'tc-nested', code: 'TC-9', title: 'Nested' },
+    })
+    expect(row.caseId).toBe('tc-nested')
+    expect(row.caseCode).toBe('TC-9')
   })
 
   it('builds compat overview metrics with deep-link targets', () => {

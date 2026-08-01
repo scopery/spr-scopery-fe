@@ -76,13 +76,19 @@ export function mapVerificationCaseToCaseRow(vc: VerificationCase): CaseRow {
   }
 }
 
+/** BE lists results with nested `testCase.id` (no top-level `testCaseId`). */
+export function resolveFunctionalResultCaseId(result: TestRunResult): string | null {
+  const id = result.testCaseId ?? result.testCase?.id
+  return id && id !== 'undefined' ? id : null
+}
+
 export function mapTestRunResultToExecutionRow(result: TestRunResult): RunExecutionRow {
   const code = result.testCase?.code?.trim() || null
   const title = result.testCase?.title?.trim() || null
   return {
     kind: 'FUNCTIONAL',
     resultId: result.id,
-    caseId: result.testCaseId,
+    caseId: resolveFunctionalResultCaseId(result) ?? '',
     caseCode: code ?? '—',
     // Prefer real title; never invent "Unavailable…" — membership fallback / case fetch fills gaps.
     caseTitle: title || code || 'Untitled case',
@@ -98,10 +104,11 @@ export function mapVerificationResultToExecutionRow(
 ): RunExecutionRow {
   const code = meta?.caseCode?.trim() || null
   const title = meta?.caseTitle?.trim() || null
+  const caseId = result.verificationCaseId || ''
   return {
     kind: 'NFR',
     resultId: result.id,
-    caseId: result.verificationCaseId,
+    caseId,
     caseCode: code ?? '—',
     caseTitle: title || code || 'Untitled case',
     status: result.resultStatus,

@@ -79,9 +79,17 @@ export function OverallStructurePanel({
     assignMany,
     unlinkScreenFromFunction,
     unlinkApiFromFunction,
+    unlinkCommunicationFromFunction,
     unlinkComponentFromScreen,
     unlinkEntityFromModule,
   } = useOverallStructure(workspaceId, applicationId, projectId)
+
+  // Switching project remaps Functions — drop stale Function focus from another project.
+  useEffect(() => {
+    setFocus(null)
+    setAssignError(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when project changes
+  }, [projectId])
 
   useEffect(() => {
     if (tree) setExpandMap(defaultExpandMap(tree))
@@ -130,6 +138,9 @@ export function OverallStructurePanel({
         void unlinkScreenFromFunction(fnId, screenId, pid)
       }
       onUnlinkApi={(fnId, apiId, pid) => void unlinkApiFromFunction(fnId, apiId, pid)}
+      onUnlinkCommunication={(fnId, communicationId, pid) =>
+        void unlinkCommunicationFromFunction(fnId, communicationId, pid)
+      }
       onUnlinkComponent={(screenId, componentId) =>
         void unlinkComponentFromScreen(screenId, componentId)
       }

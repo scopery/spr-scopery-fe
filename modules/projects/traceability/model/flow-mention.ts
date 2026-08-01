@@ -5,6 +5,7 @@ export const FlowMentionEntityType = {
   Component: 'COMPONENT',
   Api: 'API',
   Entity: 'ENTITY',
+  Communication: 'COMMUNICATION',
 } as const
 export type FlowMentionEntityType =
   (typeof FlowMentionEntityType)[keyof typeof FlowMentionEntityType]
@@ -145,6 +146,7 @@ export interface UseCaseFlowScope {
   screens: Array<{ id: string; code: string; name: string; componentCount: number }>
   apis: Array<{ id: string; name: string }>
   entities: Array<{ id: string; name: string }>
+  communications: Array<{ id: string; name: string }>
 }
 
 export interface UseCaseMentionOption {

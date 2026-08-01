@@ -13,15 +13,21 @@ export const ANCHOR_NODE_TYPE_TO_ARCHITECTURE: Record<
   [FunctionalItemAnchorNodeType.DataEntity]: 'DATA_ENTITY',
 }
 
-export const ARCHITECTURE_TO_ANCHOR_NODE_TYPE: Record<
-  ArchitectureNodeType,
-  FunctionalItemAnchorNodeType
-> = {
+export const ARCHITECTURE_TO_ANCHOR_NODE_TYPE: {
+  [K in Exclude<ArchitectureNodeType, 'COMMUNICATION'>]: FunctionalItemAnchorNodeType
+} = {
   MODULE: FunctionalItemAnchorNodeType.AppModule,
   SCREEN: FunctionalItemAnchorNodeType.Screen,
   API_ENDPOINT: FunctionalItemAnchorNodeType.ApiEndpoint,
   COMPONENT: FunctionalItemAnchorNodeType.AppComponent,
   DATA_ENTITY: FunctionalItemAnchorNodeType.DataEntity,
+}
+
+export function architectureToAnchorNodeType(
+  type: ArchitectureNodeType
+): FunctionalItemAnchorNodeType | null {
+  if (type === 'COMMUNICATION') return null
+  return ARCHITECTURE_TO_ANCHOR_NODE_TYPE[type]
 }
 
 export function labelArchitectureNode(node: ArchitectureCatalogNode): string {

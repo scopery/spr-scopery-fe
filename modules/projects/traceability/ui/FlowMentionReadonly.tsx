@@ -24,6 +24,8 @@ function typeMeta(entityType: string): {
       return { label: 'API', tone: 'secondary' }
     case FlowMentionEntityType.Entity:
       return { label: 'Entity', tone: 'success' }
+    case FlowMentionEntityType.Communication:
+      return { label: 'Comm', tone: 'warning' }
     default:
       return { label: entityType || 'Object', tone: 'default' }
   }

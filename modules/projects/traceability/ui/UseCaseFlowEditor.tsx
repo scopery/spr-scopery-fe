@@ -87,7 +87,7 @@ function StepModal({
       open={open}
       onClose={onClose}
       title={initial ? 'Edit step' : 'Add step'}
-      size="md"
+      size="2xl"
       actions={[
         { label: 'Cancel', onClick: onClose, variant: 'ghost' },
         {
@@ -113,44 +113,46 @@ function StepModal({
           </div>
         ) : null}
 
-        <div>
-          <p className="mb-1.5 text-xs text-neutral-500">Step type</p>
-          <SearchableSelect
-            options={STEP_TYPE_OPTIONS}
-            value={stepType}
-            onValueChange={setStepType}
-          />
-        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <p className="mb-1.5 text-xs text-neutral-500">Step type</p>
+            <SearchableSelect
+              options={STEP_TYPE_OPTIONS}
+              value={stepType}
+              onValueChange={setStepType}
+            />
+          </div>
 
-        <div>
-          <p className="mb-1.5 text-xs text-neutral-500">Screen Context</p>
-          <SearchableSelect
-            options={[
-              { value: '', label: '— None —' },
-              ...screenOptions,
-            ]}
-            value={screenContextId}
-            onValueChange={setScreenContextId}
-            disabled={screenPickerDisabled}
-            placeholder={
-              !hasFunction
-                ? 'Requires primary Function'
-                : !hasScreens
-                  ? 'No Screens linked to Function'
-                  : 'Select screen…'
-            }
-          />
+          <div>
+            <p className="mb-1.5 text-xs text-neutral-500">Screen Context</p>
+            <SearchableSelect
+              options={[
+                { value: '', label: '— None —' },
+                ...screenOptions,
+              ]}
+              value={screenContextId}
+              onValueChange={setScreenContextId}
+              disabled={screenPickerDisabled}
+              placeholder={
+                !hasFunction
+                  ? 'Requires primary Function'
+                  : !hasScreens
+                    ? 'No Screens linked to Function'
+                    : 'Select screen…'
+              }
+            />
+          </div>
         </div>
 
         <div>
           <p className="mb-1.5 text-xs text-neutral-500">Content</p>
           {structuredMentionsBlocked ? (
             <textarea
-              rows={3}
+              rows={8}
               placeholder="Describe this step…"
               value={contentJson}
               onChange={(e) => setContentJson(e.target.value)}
-              className="w-full border border-neutral-200 px-2 py-2 text-sm outline-none focus:border-primary"
+              className="min-h-[12rem] w-full border border-neutral-200 px-3 py-2.5 text-sm outline-none focus:border-primary"
             />
           ) : (
             <FlowMentionInput

@@ -20,6 +20,7 @@ export function linkedIdsForFocus(
       if (fn) {
         for (const s of fn.screens) ids.add(s.id)
         for (const a of fn.apis) ids.add(a.id)
+        for (const c of fn.communications ?? []) ids.add(c.id)
         return ids
       }
     }
@@ -27,6 +28,7 @@ export function linkedIdsForFocus(
       if (fn.id === focus.id) {
         for (const s of fn.screens ?? []) ids.add(s.id)
         for (const a of fn.apis ?? []) ids.add(a.id)
+        for (const c of fn.communications ?? []) ids.add(c.id)
         return ids
       }
     }
@@ -87,6 +89,7 @@ export function enrichCandidatesWithLinkedState(
     components: markLinked(candidates.components, linkedIds, focus.id),
     functions: markLinked(candidates.functions, linkedIds, focus.id),
     entities: markLinked(candidates.entities, linkedIds, focus.id),
+    communications: markLinked(candidates.communications, linkedIds, focus.id),
     modules: markLinked(candidates.modules, linkedIds, focus.id),
     nfrs: markLinked(candidates.nfrs, linkedIds, focus.id),
     nfrTargets: markLinked(candidates.nfrTargets, linkedIds, focus.id),

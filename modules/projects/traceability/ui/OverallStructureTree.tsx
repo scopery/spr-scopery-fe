@@ -187,6 +187,7 @@ function ModuleBranch({
                     title={fn.title}
                     screens={fn.screens}
                     apis={fn.apis}
+                    communications={fn.communications ?? []}
                     focus={focus}
                     onFocus={onFocus}
                     open={expandMap[fn.id] !== false}
@@ -264,6 +265,7 @@ function FunctionBranch({
   title,
   screens,
   apis,
+  communications,
   focus,
   onFocus,
   open,
@@ -274,6 +276,9 @@ function FunctionBranch({
   title: string
   screens: OverallStructureModule['functions'][number]['screens']
   apis: OverallStructureModule['functions'][number]['apis']
+  communications: NonNullable<
+    OverallStructureModule['functions'][number]['communications']
+  >
   focus: StructureFocus | null
   onFocus: (focus: StructureFocus) => void
   open: boolean
@@ -380,6 +385,35 @@ function FunctionBranch({
                   }
                   onClick={() =>
                     onFocus({ type: StructureFocusType.ApiEndpoint, id: a.id })
+                  }
+                  depth={2}
+                />
+              ))}
+            </li>
+          ) : null}
+          {communications.length > 0 ? (
+            <li className="mt-1">
+              <Typography
+                variant="small"
+                tone="muted"
+                className="px-2 text-[10px] uppercase tracking-wide"
+              >
+                Communications
+              </Typography>
+              {communications.map((c) => (
+                <TreeRow
+                  key={c.id}
+                  nodeId={c.id}
+                  label={`${c.code} · ${c.name}`}
+                  active={
+                    focus?.type === StructureFocusType.Communication &&
+                    focus.id === c.id
+                  }
+                  onClick={() =>
+                    onFocus({
+                      type: StructureFocusType.Communication,
+                      id: c.id,
+                    })
                   }
                   depth={2}
                 />

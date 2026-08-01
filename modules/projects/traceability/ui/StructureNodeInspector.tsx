@@ -16,6 +16,11 @@ interface StructureNodeInspectorProps {
   onAssign: (payload: StructureAssignDragPayload) => void
   onUnlinkScreen: (functionId: string, screenId: string, projectId?: string | null) => void
   onUnlinkApi: (functionId: string, apiId: string, projectId?: string | null) => void
+  onUnlinkCommunication: (
+    functionId: string,
+    communicationId: string,
+    projectId?: string | null
+  ) => void
   onUnlinkComponent: (screenId: string, componentId: string) => void
   onUnlinkEntity?: (entityId: string, moduleId: string) => void
   onClose?: () => void
@@ -73,6 +78,15 @@ export function findFocusLabel(
           }
         }
       }
+      for (const c of fn.communications ?? []) {
+        if (focus.type === StructureFocusType.Communication && c.id === focus.id) {
+          return {
+            title: c.name,
+            subtitle: `Communication · ${c.code}`,
+            path: `${mod.name} / ${fn.title}`,
+          }
+        }
+      }
     }
     for (const ent of mod.entities) {
       if (focus.type === StructureFocusType.Entity && ent.id === focus.id) {
@@ -122,6 +136,7 @@ export function StructureNodeInspector({
   onAssign,
   onUnlinkScreen,
   onUnlinkApi,
+  onUnlinkCommunication,
   onUnlinkComponent,
   onUnlinkEntity,
   onClose,
@@ -138,6 +153,7 @@ export function StructureNodeInspector({
             kind: 'function' as const,
             screens: fn.screens,
             apis: fn.apis,
+            communications: fn.communications ?? [],
             projectId: fn.projectId,
             functionId: fn.id,
           }
@@ -149,6 +165,7 @@ export function StructureNodeInspector({
             kind: 'function' as const,
             screens: fn.screens ?? [],
             apis: fn.apis ?? [],
+            communications: fn.communications ?? [],
             projectId: fn.projectId,
             functionId: fn.id,
           }
@@ -254,6 +271,16 @@ export function StructureNodeInspector({
                     : ''
                 }`,
                 onUnlink: () => onUnlinkApi(linked.functionId, a.id, linked.projectId),
+              }))}
+            />
+            <LinkedList
+              title="Linked communications"
+              empty="None yet."
+              items={linked.communications.map((c) => ({
+                id: c.id,
+                label: `${c.code} · ${c.name}`,
+                onUnlink: () =>
+                  onUnlinkCommunication(linked.functionId, c.id, linked.projectId),
               }))}
             />
           </div>

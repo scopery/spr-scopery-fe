@@ -8,17 +8,20 @@ import type {
   CreateRegistryAppComponentBody,
   CreateRegistryAppModuleBody,
   CreateRegistryDataEntityBody,
+  CreateCommunicationSpecBody,
   CreateRegistryScreenBody,
   RegistryApiEndpoint,
   RegistryAppComponent,
   RegistryAppModule,
   RegistryApplication,
   RegistryDataEntity,
+  CommunicationSpecification,
   RegistryScreen,
   UpdateRegistryApiEndpointBody,
   UpdateRegistryAppComponentBody,
   UpdateRegistryAppModuleBody,
   UpdateRegistryDataEntityBody,
+  UpdateCommunicationSpecBody,
   UpdateRegistryScreenBody,
 } from '../model/application-registry'
 
@@ -54,6 +57,7 @@ export function useApplicationWorkbench(
   const [apiEndpoints, setApiEndpoints] = useState<RegistryApiEndpoint[]>([])
   const [components, setComponents] = useState<RegistryAppComponent[]>([])
   const [dataEntities, setDataEntities] = useState<RegistryDataEntity[]>([])
+  const [communications, setCommunications] = useState<CommunicationSpecification[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -65,7 +69,7 @@ export function useApplicationWorkbench(
       }
       setError(null)
       try {
-        const [app, moduleRes, screenRes, endpointRes, componentRes, entityRes] =
+        const [app, moduleRes, screenRes, endpointRes, componentRes, entityRes, commRes] =
           await Promise.all([
             api.getApplication(workspaceId, applicationId),
             api.listAppModules(workspaceId, applicationId),
@@ -73,6 +77,7 @@ export function useApplicationWorkbench(
             api.listApiEndpoints(workspaceId, applicationId),
             api.listAppComponents(workspaceId, applicationId),
             api.listDataEntities(workspaceId, applicationId),
+            api.listCommunicationSpecs(workspaceId, applicationId),
           ])
         setApplication(app)
         setModules(moduleRes.items ?? [])
@@ -80,6 +85,7 @@ export function useApplicationWorkbench(
         setApiEndpoints(endpointRes.items ?? [])
         setComponents(componentRes.items ?? [])
         setDataEntities(entityRes.items ?? [])
+        setCommunications(commRes.items ?? [])
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load application')
       } finally {
@@ -246,6 +252,35 @@ export function useApplicationWorkbench(
     [workspaceId, applicationId, load]
   )
 
+  const createCommunication = useCallback(
+    async (body: CreateCommunicationSpecBody, opts?: MutateOpts) => {
+      if (!workspaceId || !applicationId) return
+      await withConflictRetry(() =>
+        api.createCommunicationSpec(workspaceId, applicationId, body)
+      )
+      await afterCreate(opts)
+    },
+    [workspaceId, applicationId, afterCreate]
+  )
+
+  const updateCommunication = useCallback(
+    async (communicationSpecId: string, body: UpdateCommunicationSpecBody) => {
+      if (!workspaceId || !applicationId) return
+      await api.updateCommunicationSpec(workspaceId, applicationId, communicationSpecId, body)
+      await load({ silent: true })
+    },
+    [workspaceId, applicationId, load]
+  )
+
+  const removeCommunication = useCallback(
+    async (communicationSpecId: string) => {
+      if (!workspaceId || !applicationId) return
+      await api.archiveCommunicationSpec(workspaceId, applicationId, communicationSpecId)
+      await load({ silent: true })
+    },
+    [workspaceId, applicationId, load]
+  )
+
   return {
     application,
     modules,
@@ -253,6 +288,7 @@ export function useApplicationWorkbench(
     apiEndpoints,
     components,
     dataEntities,
+    communications,
     loading,
     error,
     refetch: load,
@@ -271,5 +307,8 @@ export function useApplicationWorkbench(
     createEntity,
     updateEntity,
     removeEntity,
+    createCommunication,
+    updateCommunication,
+    removeCommunication,
   }
 }

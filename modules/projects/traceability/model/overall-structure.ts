@@ -9,6 +9,7 @@ export const StructureFocusType = {
   ApiEndpoint: 'API_ENDPOINT',
   Component: 'COMPONENT',
   Entity: 'ENTITY',
+  Communication: 'COMMUNICATION',
   Nfr: 'NFR',
 } as const
 export type StructureFocusType =
@@ -54,6 +55,14 @@ export interface OverallStructureApiRef {
   usedByFunctionCount?: number | null
 }
 
+export interface OverallStructureCommunicationRef {
+  id: string
+  code: string
+  name: string
+  status?: string | null
+  triggerKey?: string | null
+}
+
 export interface OverallStructureEntityRef {
   id: string
   code: string
@@ -70,6 +79,7 @@ export interface OverallStructureFunctionRef {
   moduleId?: string | null
   screens: OverallStructureScreenRef[]
   apis: OverallStructureApiRef[]
+  communications?: OverallStructureCommunicationRef[]
 }
 
 export interface OverallStructureNfrRef {
@@ -122,6 +132,7 @@ export interface StructureCandidatesResponse {
   components?: StructureCandidateItem[]
   functions?: StructureCandidateItem[]
   entities?: StructureCandidateItem[]
+  communications?: StructureCandidateItem[]
   modules?: StructureCandidateItem[]
   /** NFRs that can be scoped onto Module / Function / Screen focus */
   nfrs?: StructureCandidateItem[]
@@ -147,6 +158,7 @@ export function normalizeStructureCandidates(
     components: asList(r.components),
     functions: asList(r.functions ?? r.functionalItems),
     entities: asList(r.entities ?? r.dataEntities),
+    communications: asList(r.communications),
     modules: asList(r.modules),
     nfrs: asList(r.nfrs ?? r.nonFunctionalItems),
     nfrTargets: asList(r.nfrTargets),
@@ -163,6 +175,13 @@ export interface FunctionScreenLink {
 export interface FunctionApiLink {
   functionId: string
   apiEndpointId: string
+  note?: string | null
+  createdAt?: string
+}
+
+export interface FunctionCommunicationLink {
+  functionId: string
+  communicationId: string
   note?: string | null
   createdAt?: string
 }
@@ -191,6 +210,11 @@ export interface LinkFunctionScreenBody {
 
 export interface LinkFunctionApiBody {
   apiEndpointId: string
+  note?: string | null
+}
+
+export interface LinkFunctionCommunicationBody {
+  communicationId: string
   note?: string | null
 }
 

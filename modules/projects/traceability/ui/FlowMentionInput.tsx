@@ -44,7 +44,7 @@ export function FlowMentionInput({
   const [pickerOpen, setPickerOpen] = useState(false)
   const [mentionQuery, setMentionQuery] = useState('')
   const wrapRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const focusedRef = useRef(false)
 
   useEffect(() => {
@@ -76,10 +76,16 @@ export function FlowMentionInput({
     if (at >= 0) baseDraft = baseDraft.slice(0, at)
     const base = baseDraft ? appendText(doc, baseDraft) : doc
     const next = appendMention(base, attrs)
-    // Space after mention for continued typing
-    commit(appendText(next, ' '), '')
+    // Keep trailing space in the draft so the caret stays beside the chip
+    commit(next, ' ')
     setPickerOpen(false)
-    setTimeout(() => inputRef.current?.focus(), 0)
+    setTimeout(() => {
+      const el = inputRef.current
+      if (!el) return
+      el.focus()
+      const end = el.value.length
+      el.setSelectionRange(end, end)
+    }, 0)
   }
 
   const onDraftChange = (next: string) => {
@@ -100,93 +106,94 @@ export function FlowMentionInput({
   }
 
   const isEmpty = doc.content.length === 0 && !draft
-  const inputWidthCh = Math.max(draft.length + 1, isEmpty ? 0 : 1)
+  const draftLineCount = Math.max(1, draft.split('\n').length)
+  const draftRows = Math.min(10, Math.max(isEmpty ? 4 : 1, draftLineCount))
 
   return (
     <div className="space-y-1">
       <div
         ref={wrapRef}
         className={cn(
-          'min-h-[72px] w-full border border-neutral-200 bg-white px-2 py-1.5 text-sm leading-6',
+          'flex min-h-[12rem] w-full flex-wrap content-start items-baseline gap-x-1 gap-y-1 border border-neutral-200 bg-white px-3 py-2.5 text-sm leading-6',
           disabled && 'bg-neutral-50 opacity-60'
         )}
         onClick={() => {
           if (!disabled) inputRef.current?.focus()
         }}
       >
-        <div className="inline">
-          {doc.content.map((node, idx) =>
-            node.type === 'text' ? (
-              <span key={`t-${idx}`} className="whitespace-pre-wrap text-neutral-800">
-                {node.text}
-              </span>
-            ) : (
-              <span
-                key={`m-${idx}`}
-                className={cn(
-                  'mx-0.5 inline-flex max-w-full items-center gap-0.5 align-baseline rounded-sm px-1.5 py-0 text-xs font-medium leading-5',
-                  node.attrs.outOfScope
-                    ? 'bg-amber-100 text-amber-900 ring-1 ring-amber-300'
-                    : 'bg-teal-50 text-teal-800'
-                )}
-                title={
-                  node.attrs.outOfScope
-                    ? 'Out of current Function scope'
-                    : `${node.attrs.entityType}: ${node.attrs.entityId}`
-                }
-              >
-                <span className="truncate">@{node.attrs.label}</span>
-                {!disabled ? (
-                  <button
-                    type="button"
-                    aria-label={`Remove @${node.attrs.label}`}
-                    className="shrink-0 text-teal-700/70 hover:text-teal-950"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      commit(removeContentAt(doc, idx), draft)
-                    }}
-                  >
-                    <X size={12} />
-                  </button>
-                ) : null}
-              </span>
-            )
+        {doc.content.map((node, idx) =>
+          node.type === 'text' ? (
+            <span
+              key={`t-${idx}`}
+              className="max-w-full whitespace-pre-wrap text-neutral-800"
+            >
+              {node.text}
+            </span>
+          ) : (
+            <span
+              key={`m-${idx}`}
+              className={cn(
+                'inline-flex max-w-full shrink-0 items-center gap-0.5 rounded-sm px-1.5 py-0.5 text-xs font-medium leading-5',
+                node.attrs.outOfScope
+                  ? 'bg-amber-100 text-amber-900 ring-1 ring-amber-300'
+                  : 'bg-teal-50 text-teal-800'
+              )}
+              title={
+                node.attrs.outOfScope
+                  ? 'Out of current Function scope'
+                  : `${node.attrs.entityType}: ${node.attrs.entityId}`
+              }
+            >
+              <span className="truncate">@{node.attrs.label}</span>
+              {!disabled ? (
+                <button
+                  type="button"
+                  aria-label={`Remove @${node.attrs.label}`}
+                  className="shrink-0 text-teal-700/70 hover:text-teal-950"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    commit(removeContentAt(doc, idx), draft)
+                  }}
+                >
+                  <X size={12} />
+                </button>
+              ) : null}
+            </span>
+          )
+        )}
+        <textarea
+          ref={inputRef}
+          disabled={disabled}
+          value={draft}
+          rows={draftRows}
+          placeholder={isEmpty ? placeholder : 'Continue writing… Type @ to mention'}
+          className={cn(
+            'm-0 min-w-[8rem] flex-1 grow basis-[8rem] resize-none border-0 bg-transparent p-0',
+            'align-baseline text-sm leading-6 outline-none placeholder:text-neutral-400',
+            isEmpty && 'min-h-[6rem]'
           )}
-          <input
-            ref={inputRef}
-            disabled={disabled}
-            value={draft}
-            placeholder={isEmpty ? placeholder : undefined}
-            size={Math.max(draft.length + 1, 1)}
-            style={
-              isEmpty
-                ? { width: '100%', minWidth: '100%' }
-                : { width: `${inputWidthCh}ch`, minWidth: '1ch' }
+          onChange={(e) => onDraftChange(e.target.value)}
+          onFocus={() => {
+            focusedRef.current = true
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Backspace' && draft.length === 0 && doc.content.length > 0) {
+              e.preventDefault()
+              commit(backspaceDoc(doc), '')
+              return
             }
-            className="m-0 inline border-0 bg-transparent p-0 align-baseline text-sm leading-6 outline-none placeholder:text-neutral-400"
-            onChange={(e) => onDraftChange(e.target.value)}
-            onFocus={() => {
-              focusedRef.current = true
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Backspace' && draft.length === 0 && doc.content.length > 0) {
-                e.preventDefault()
-                commit(backspaceDoc(doc), '')
-                return
-              }
-              if (e.key === 'Escape' && pickerOpen) {
-                e.preventDefault()
-                setPickerOpen(false)
-              }
-            }}
-            onBlur={() => {
-              focusedRef.current = false
-              if (pickerOpen) return
-              if (!draft) return
-              commit(appendText(doc, draft), '')
-            }}
-          />
-        </div>
+            if (e.key === 'Escape' && pickerOpen) {
+              e.preventDefault()
+              setPickerOpen(false)
+            }
+          }}
+          onBlur={() => {
+            focusedRef.current = false
+            if (pickerOpen) return
+            if (!draft) return
+            commit(appendText(doc, draft), '')
+          }}
+        />
       </div>
 
       {!disabled ? (

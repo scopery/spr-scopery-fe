@@ -80,7 +80,12 @@ export function useTestRuns(projectId: string | null) {
           ? qualityApi.listVerificationResults(projectId, selectedRunId)
           : Promise.resolve({ items: [] }),
       ])
-      setResults(functionalResponse.items)
+      setResults(
+        functionalResponse.items.map((item) => ({
+          ...item,
+          testCaseId: item.testCaseId ?? item.testCase?.id,
+        }))
+      )
       setVerificationResults(verificationResponse.items)
       setResultTotal(
         (functionalResponse.page?.total ?? functionalResponse.items.length) +
@@ -156,7 +161,13 @@ export function useTestRuns(projectId: string | null) {
               ? {
                   ...updated,
                   testCase: updated.testCase ?? current.testCase ?? item.testCase,
-                  testCaseId: updated.testCaseId || current.testCaseId,
+                  testCaseId:
+                    updated.testCaseId ||
+                    updated.testCase?.id ||
+                    current.testCaseId ||
+                    current.testCase?.id ||
+                    item.testCaseId ||
+                    item.testCase?.id,
                 }
               : item
           )

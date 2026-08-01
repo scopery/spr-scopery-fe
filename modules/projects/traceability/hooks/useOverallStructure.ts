@@ -20,7 +20,11 @@ import {
   type StructureAssignDragPayload,
 } from '../model/structure-assign.rules'
 import { mergeDataEntitiesIntoTree } from '../model/structure-entity-merge'
-import { mergeFunctionalItemsIntoTree } from '../model/structure-function-merge'
+import {
+  filterTreeFunctionsByProject,
+  findFunctionProjectId,
+  mergeFunctionalItemsIntoTree,
+} from '../model/structure-function-merge'
 
 const UNDO_MS = 7000
 
@@ -68,13 +72,14 @@ export function useOverallStructure(
         // keep BE tree entities as-is
       }
 
-      // Map Functions from project catalog (BE tree only has module-assigned FRs).
+      // Map Functions from project catalog (BE tree includes FRs from every project).
       if (projectId) {
         try {
           const listed = await catalogApi.listFunctionalItems(projectId)
           next = mergeFunctionalItemsIntoTree(next, listed.items)
         } catch {
-          // keep BE tree functions as-is
+          // Catalog failed — still drop foreign-project FRs when ownership is known.
+          next = filterTreeFunctionsByProject(next, projectId)
         }
       }
 
@@ -109,6 +114,27 @@ export function useOverallStructure(
       }
 
       let next = normalizeStructureCandidates(raw, focus)
+
+      // Always map Communication candidates from catalog for Function focus.
+      if (focus.type === StructureFocusType.Function) {
+        try {
+          const listed = await api.listCommunicationSpecs(workspaceId, applicationId)
+          next = {
+            ...next,
+            communications: listed.items.map((c) => ({
+              id: c.id,
+              kind: StructureFocusType.Communication,
+              code: c.code,
+              name: c.name,
+              secondary: c.triggerKey ?? c.status ?? null,
+              alreadyLinked: false,
+              hasExistingLink: false,
+            })),
+          }
+        } catch {
+          // keep normalized communications
+        }
+      }
 
       // Always map Entity candidates from catalog for Module focus (ownership via moduleId).
       if (focus.type === StructureFocusType.Module) {
@@ -206,24 +232,45 @@ export function useOverallStructure(
 
       switch (action) {
         case 'link-screen-to-function': {
-          await catalogApi.linkFunctionScreen(projectId!, focusNode.id, {
+          const fnProjectId =
+            findFunctionProjectId(tree, focusNode.id) || projectId!
+          await catalogApi.linkFunctionScreen(fnProjectId, focusNode.id, {
             screenId: payload.id,
           })
           return {
             undo: async () => {
-              await catalogApi.unlinkFunctionScreen(projectId!, focusNode.id, payload.id)
+              await catalogApi.unlinkFunctionScreen(fnProjectId, focusNode.id, payload.id)
             },
             summary: `Linked ${payload.label}`,
           }
         }
         case 'link-api-to-function': {
-          await catalogApi.linkFunctionApiEndpoint(projectId!, focusNode.id, {
+          const fnProjectId =
+            findFunctionProjectId(tree, focusNode.id) || projectId!
+          await catalogApi.linkFunctionApiEndpoint(fnProjectId, focusNode.id, {
             apiEndpointId: payload.id,
           })
           return {
             undo: async () => {
               await catalogApi.unlinkFunctionApiEndpoint(
-                projectId!,
+                fnProjectId,
+                focusNode.id,
+                payload.id
+              )
+            },
+            summary: `Linked ${payload.label}`,
+          }
+        }
+        case 'link-communication-to-function': {
+          const fnProjectId =
+            findFunctionProjectId(tree, focusNode.id) || projectId!
+          await catalogApi.linkFunctionCommunication(fnProjectId, focusNode.id, {
+            communicationId: payload.id,
+          })
+          return {
+            undo: async () => {
+              await catalogApi.unlinkFunctionCommunication(
+                fnProjectId,
                 focusNode.id,
                 payload.id
               )
@@ -332,7 +379,7 @@ export function useOverallStructure(
         }
       }
     },
-    [workspaceId, applicationId, projectId]
+    [workspaceId, applicationId, projectId, tree]
   )
 
   const assignFromDrag = useCallback(
@@ -378,6 +425,14 @@ export function useOverallStructure(
         if (err instanceof ApiError && err.status === 409) {
           setAssignError(
             err.message || 'Conflict while saving — refresh the page and try again.'
+          )
+        } else if (
+          err instanceof ApiError &&
+          (err.problem.code === 'FUNCTIONAL_ITEM_NOT_FOUND' ||
+            /Functional item not found/i.test(err.message))
+        ) {
+          setAssignError(
+            'This Function is not in the selected project. Pick the project that owns it, then link again.'
           )
         } else {
           setAssignError(err instanceof Error ? err.message : 'Assign failed')
@@ -519,6 +574,43 @@ export function useOverallStructure(
     [projectId, loadTree, loadCandidates]
   )
 
+  const unlinkCommunicationFromFunction = useCallback(
+    async (functionId: string, communicationId: string, fnProjectId?: string | null) => {
+      const pid = fnProjectId || projectId
+      if (!pid) {
+        setAssignError('Select a project to unlink.')
+        return
+      }
+      setAssigning(true)
+      try {
+        await catalogApi.unlinkFunctionCommunication(pid, functionId, communicationId)
+        await loadTree()
+        await loadCandidates({ silent: true })
+        toast.success('Communication unlinked', {
+          duration: UNDO_MS,
+          action: {
+            label: 'Undo',
+            onClick: () => {
+              void (async () => {
+                await catalogApi.linkFunctionCommunication(pid, functionId, {
+                  communicationId,
+                })
+                await loadTree()
+                await loadCandidates({ silent: true })
+                toast.message('Restored')
+              })()
+            },
+          },
+        })
+      } catch (err) {
+        setAssignError(err instanceof Error ? err.message : 'Unlink failed')
+      } finally {
+        setAssigning(false)
+      }
+    },
+    [projectId, loadTree, loadCandidates]
+  )
+
   const unlinkComponentFromScreen = useCallback(
     async (screenId: string, componentId: string) => {
       if (!workspaceId) return
@@ -610,6 +702,7 @@ export function useOverallStructure(
     assignMany,
     unlinkScreenFromFunction,
     unlinkApiFromFunction,
+    unlinkCommunicationFromFunction,
     unlinkComponentFromScreen,
     unlinkEntityFromModule,
   }

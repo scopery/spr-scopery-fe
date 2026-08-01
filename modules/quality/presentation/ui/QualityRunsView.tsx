@@ -1,11 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
+  ArrowUp,
   Bug,
   Check,
   CheckCircle2,
+  Crosshair,
   Play,
   Plus,
   RotateCcw,
@@ -28,8 +30,8 @@ import {
 } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { useTestRuns } from '../hooks/useTestRuns'
-import { useRunCaseScript } from '../hooks/useRunCaseScript'
-import { RunCaseScriptPanel } from './RunCaseScriptPanel'
+import { useRunCaseScripts } from '../hooks/useRunCaseScript'
+import { RunCaseScriptInline } from './RunCaseScriptPanel'
 import {
   mapTestRunResultToExecutionRow,
   mapVerificationResultToExecutionRow,
@@ -81,6 +83,10 @@ function resultLabel(result: string): string {
   return labels[result] ?? result
 }
 
+function isOngoingResult(status: string): boolean {
+  return status === 'NOT_RUN' || status === 'QUEUED'
+}
+
 function progress(run: TestRun): number {
   if (!run.total) return 0
   return Math.round(((run.executed ?? 0) / run.total) * 100)
@@ -108,6 +114,7 @@ export function QualityRunsView() {
     caseId: string
   } | null>(null)
   const [defectFromResult, setDefectFromResult] = useState<RunExecutionRow | null>(null)
+  const resultsScrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (runIdFromUrl) testRuns.setSelectedRunId(runIdFromUrl)
@@ -172,10 +179,7 @@ export function QualityRunsView() {
   const isQueuedPreview =
     executionRows.length > 0 && executionRows.every(isMembershipPreviewRow)
 
-  const caseScript = useRunCaseScript(
-    projectId,
-    !isQueuedPreview && focusedRow && !isMembershipPreviewRow(focusedRow) ? focusedRow : null
-  )
+  const caseScripts = useRunCaseScripts(projectId, executionRows)
 
   const applyResult = async (
     row: RunExecutionRow,
@@ -222,6 +226,44 @@ export function QualityRunsView() {
   const onFocusedRowChange = useCallback((row: RunExecutionRow | null) => {
     setFocusedRow(row)
   }, [])
+
+  const scrollResultsToTop = useCallback(() => {
+    resultsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
+
+  const scrollToNearestOngoing = useCallback(() => {
+    const container = resultsScrollRef.current
+    if (!container || executionRows.length === 0) return
+
+    const ongoing = executionRows.filter((row) => isOngoingResult(row.status))
+    if (ongoing.length === 0) {
+      toast.message('No pending cases left in this run')
+      return
+    }
+
+    const viewportTop = container.getBoundingClientRect().top + 8
+    let best: { row: RunExecutionRow; el: Element; dist: number } | null = null
+
+    for (const row of ongoing) {
+      const el = container.querySelector(`[data-row-key="${CSS.escape(row.resultId)}"]`)
+      if (!el) continue
+      const dist = el.getBoundingClientRect().top - viewportTop
+      // Prefer the next pending row at/below the current viewport.
+      if (dist >= -4 && (!best || dist < best.dist)) {
+        best = { row, el, dist }
+      }
+    }
+
+    if (!best) {
+      const row = ongoing[0]
+      const el = container.querySelector(`[data-row-key="${CSS.escape(row.resultId)}"]`)
+      if (!el) return
+      best = { row, el, dist: 0 }
+    }
+
+    best.el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setFocusedRow(best.row)
+  }, [executionRows])
 
   const onRowHotkey = useCallback(
     (row: RunExecutionRow, key: string, event: KeyboardEvent) => {
@@ -303,8 +345,8 @@ export function QualityRunsView() {
   if (testRuns.loadingRuns) return <PageSkeleton variant="list" className="p-lg" />
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white px-3 py-3 lg:px-4 lg:py-3">
-      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-neutral-200 pb-2">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white px-3 py-3 lg:px-4 lg:py-3">
+      <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-neutral-200 pb-2">
         <div>
           <Typography as="h1" size="md" weight="medium">
             Runs
@@ -318,8 +360,8 @@ export function QualityRunsView() {
         </Button>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[20rem_1fr]">
-        <aside className="overflow-y-auto border-r border-neutral-200">
+      <div className="grid min-h-0 flex-1 grid-cols-[20rem_1fr] overflow-hidden">
+        <aside className="min-h-0 overflow-y-auto border-r border-neutral-200">
           {testRuns.runs.length === 0 ? (
             <Typography tone="muted" className="p-lg">
               No runs yet.
@@ -365,10 +407,10 @@ export function QualityRunsView() {
           )}
         </aside>
 
-        <section className="flex min-h-0 flex-col">
+        <section className="relative flex min-h-0 flex-col overflow-hidden">
           {testRuns.selectedRun ? (
             <>
-              <div className="flex flex-wrap items-center gap-2 border-b border-neutral-200 p-3">
+              <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-neutral-200 p-3">
                 <Typography weight="medium">{testRuns.selectedRun.name}</Typography>
                 <Badge
                   size="sm"
@@ -383,6 +425,22 @@ export function QualityRunsView() {
                     {testRunStatusLabel(testRuns.selectedRun.status)}
                   </Badge>
                 <div className="ml-auto flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    icon={<ArrowUp size={14} />}
+                    onClick={scrollResultsToTop}
+                  >
+                    Top
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    icon={<Crosshair size={14} />}
+                    onClick={scrollToNearestOngoing}
+                  >
+                    Next pending
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
@@ -435,7 +493,7 @@ export function QualityRunsView() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 p-3">
+              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-neutral-200 p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="w-52 shrink-0">
                     <Input
@@ -509,45 +567,27 @@ export function QualityRunsView() {
               </div>
 
               {!isQueuedPreview && focusedRow ? (
-                <div className="border-b border-neutral-200 bg-neutral-50">
-                  <div className="flex flex-wrap items-center gap-2 border-b border-neutral-200 bg-neutral-100 px-3 py-2">
-                    <Typography variant="caption" tone="muted" className="shrink-0">
-                      Active case
-                    </Typography>
-                    <button
-                      type="button"
-                      className="inline-flex min-w-0 max-w-full items-center gap-2 text-left hover:underline"
-                      onClick={() =>
-                        setCaseDetail({ kind: focusedRow.kind, caseId: focusedRow.caseId })
-                      }
-                    >
-                      <Typography variant="small" weight="medium" className="font-mono">
-                        {focusedRow.caseCode || '—'}
-                      </Typography>
-                      <Typography variant="small" weight="medium" className="min-w-0 truncate">
-                        {focusedRow.caseTitle}
-                      </Typography>
-                    </button>
-                    <Badge size="sm" variant="solid" tone={resultTone(focusedRow.status)}>
-                      {resultLabel(focusedRow.status)}
-                    </Badge>
-                    <Typography variant="caption" tone="muted" className="ml-auto">
-                      ↑↓ move · P F B S N · click name to open case
-                    </Typography>
-                  </div>
-                  {!isMembershipPreviewRow(focusedRow) ? (
-                    <div className="max-h-56 overflow-y-auto px-3 py-3">
-                      <RunCaseScriptPanel
-                        script={caseScript.script}
-                        loading={caseScript.loading}
-                        error={caseScript.error}
-                      />
-                    </div>
-                  ) : null}
+                <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-neutral-200 bg-neutral-100 px-3 py-2">
+                  <Typography variant="caption" tone="muted" className="shrink-0">
+                    Focus
+                  </Typography>
+                  <Typography variant="small" weight="medium" className="font-mono">
+                    {focusedRow.caseCode || '—'}
+                  </Typography>
+                  <Typography variant="small" weight="medium" className="min-w-0 truncate">
+                    {focusedRow.caseTitle}
+                  </Typography>
+                  <Badge size="sm" variant="solid" tone={resultTone(focusedRow.status)}>
+                    {resultLabel(focusedRow.status)}
+                  </Badge>
+                  <Typography variant="caption" tone="muted" className="ml-auto">
+                    ↑↓ move · P F B S N · script is on each row
+                  </Typography>
                 </div>
               ) : null}
 
               <DataTable
+                ref={resultsScrollRef}
                 className="min-h-0 flex-1"
                 ariaLabel="Run execution results"
                 rows={executionRows}
@@ -557,7 +597,7 @@ export function QualityRunsView() {
                 onSelectedKeysChange={isQueuedPreview ? undefined : setSelectedIds}
                 onRowClick={isQueuedPreview ? undefined : () => undefined}
                 onRowHotkey={isQueuedPreview ? undefined : onRowHotkey}
-                onFocusedRowChange={isQueuedPreview ? undefined : onFocusedRowChange}
+                onFocusedRowChange={onFocusedRowChange}
                 emptyMessage="No cases yet. Click Add cases, then Start to execute."
                 columns={[
                   {
@@ -571,25 +611,38 @@ export function QualityRunsView() {
                   },
                   {
                     id: 'case',
-                    header: 'Case',
+                    header: 'Case · script',
                     kind: 'code',
                     interactive: true,
-                    cell: (row) => (
-                      <button
-                        type="button"
-                        className="min-w-0 text-left hover:underline"
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          setCaseDetail({ kind: row.kind, caseId: row.caseId })
-                        }}
-                      >
-                        <div className="font-medium text-neutral-900">{row.caseCode || '—'}</div>
-                        <div className="text-neutral-700">{row.caseTitle}</div>
-                        <Typography variant="caption" tone="muted">
-                          View case
-                        </Typography>
-                      </button>
-                    ),
+                    truncate: false,
+                    width: '44%',
+                    cellClassName: 'align-top',
+                    cell: (row) => {
+                      const entry = caseScripts.getEntry(row)
+                      return (
+                        <div className="min-w-0 py-0.5">
+                          <button
+                            type="button"
+                            className="min-w-0 text-left hover:underline"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              if (!row.caseId) return
+                              setCaseDetail({ kind: row.kind, caseId: row.caseId })
+                            }}
+                          >
+                            <div className="font-medium text-neutral-900">
+                              {row.caseCode || '—'}
+                            </div>
+                            <div className="text-neutral-700">{row.caseTitle}</div>
+                          </button>
+                          <RunCaseScriptInline
+                            script={entry.script}
+                            loading={entry.loading}
+                            error={entry.error}
+                          />
+                        </div>
+                      )
+                    },
                   },
                   {
                     id: 'result',

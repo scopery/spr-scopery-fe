@@ -56,6 +56,7 @@ export function ApplicationWorkbenchView() {
     apiEndpoints,
     components,
     dataEntities,
+    communications,
     loading,
     error,
     refetch,
@@ -69,6 +70,8 @@ export function ApplicationWorkbenchView() {
     updateComponent,
     createEntity,
     updateEntity,
+    createCommunication,
+    updateCommunication,
   } = useApplicationWorkbench(workspaceId, applicationId)
 
   const [tab, setTab] = useState<MainTab>('browse')
@@ -133,6 +136,8 @@ export function ApplicationWorkbenchView() {
               tableName: i.extra ?? null,
             }))
           )
+        case 'COMMUNICATION':
+          throw new Error('Bulk create is not available for Communication yet — use Single add')
         default:
           throw new Error(`Unsupported catalog kind: ${kind}`)
       }
@@ -182,8 +187,16 @@ export function ApplicationWorkbenchView() {
         status: e.status,
         secondary: e.tableName ?? null,
       })),
+      ...communications.map((c) => ({
+        id: c.id,
+        type: 'COMMUNICATION' as const,
+        code: c.code,
+        name: c.name,
+        status: c.status,
+        secondary: c.triggerKey ?? null,
+      })),
     ]
-  }, [modules, screens, apiEndpoints, components, dataEntities])
+  }, [modules, screens, apiEndpoints, components, dataEntities, communications])
 
   const catalogNodes = useMemo<BrowseCatalogNode[]>(
     () => [...architectureNodes, ...relatedFunctionNodes],
@@ -262,6 +275,12 @@ export function ApplicationWorkbenchView() {
         await updateEntity(node.id, {
           name: payload.name,
           tableName: payload.secondary ?? null,
+        })
+        break
+      case 'COMMUNICATION':
+        await updateCommunication(node.id, {
+          name: payload.name,
+          triggerKey: payload.secondary ?? null,
         })
         break
     }
@@ -393,6 +412,16 @@ export function ApplicationWorkbenchView() {
                               code,
                               name,
                               tableName: extra ?? null,
+                            },
+                            opts
+                          )
+                          break
+                        case 'COMMUNICATION':
+                          await createCommunication(
+                            {
+                              code,
+                              name,
+                              triggerKey: extra ?? null,
                             },
                             opts
                           )

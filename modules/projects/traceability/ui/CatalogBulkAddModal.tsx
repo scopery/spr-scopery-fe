@@ -80,6 +80,11 @@ const COLUMNS_BY_KIND: Record<CatalogAddKind, ColumnDef[]> = {
     { key: 'name', label: 'Name', required: true, placeholder: 'Cart item' },
     { key: 'extra', label: 'Table name', placeholder: 'cart_items' },
   ],
+  COMMUNICATION: [
+    { key: 'code', label: 'Code', required: true, placeholder: 'ORDER_CONFIRMED' },
+    { key: 'name', label: 'Name', required: true, placeholder: 'Order confirmed' },
+    { key: 'extra', label: 'Trigger key', placeholder: 'order.confirmed' },
+  ],
 }
 
 function newRow(): DraftRow {

@@ -7,11 +7,12 @@ import type { FlowMentionAttrs, UseCaseMentionOption } from '../model/flow-menti
 import { FlowMentionEntityType } from '../model/flow-mention'
 
 const TYPE_TABS: Array<{ value: string; label: string }> = [
-  { value: 'SCREEN,COMPONENT,API,ENTITY', label: 'All' },
+  { value: 'SCREEN,COMPONENT,API,ENTITY,COMMUNICATION', label: 'All' },
   { value: 'SCREEN', label: 'Screens' },
   { value: 'COMPONENT', label: 'Components' },
   { value: 'API', label: 'APIs' },
   { value: 'ENTITY', label: 'Entities' },
+  { value: 'COMMUNICATION', label: 'Comms' },
 ]
 
 interface Props {
@@ -94,11 +95,11 @@ export function FlowMentionPicker({
       const el = anchorRef.current
       if (!el) return
       const rect = el.getBoundingClientRect()
-      const width = Math.min(Math.max(rect.width, 280), 420)
+      const width = Math.min(Math.max(rect.width, 360), 560)
       let left = rect.left
       left = Math.max(8, Math.min(left, window.innerWidth - width - 8))
       let top = rect.bottom + 6
-      const panelH = panelRef.current?.offsetHeight ?? 280
+      const panelH = panelRef.current?.offsetHeight ?? 360
       if (top + panelH > window.innerHeight - 8) {
         top = Math.max(8, rect.top - panelH - 6)
       }
@@ -176,7 +177,7 @@ export function FlowMentionPicker({
       style={{
         top: pos?.top ?? 0,
         left: pos?.left ?? 0,
-        width: pos?.width ?? 320,
+        width: pos?.width ?? 420,
         visibility: pos ? 'visible' : 'hidden',
       }}
       className="fixed z-[300] border border-neutral-200 bg-white shadow-lg"
@@ -223,7 +224,7 @@ export function FlowMentionPicker({
           ))}
         </div>
       </div>
-      <div className="max-h-56 overflow-y-auto">
+      <div className="max-h-80 overflow-y-auto">
         {types === 'COMPONENT' && !screenContextId ? (
           <p className="px-3 py-4 text-xs text-neutral-500">
             Select a Screen Context first to mention Components.

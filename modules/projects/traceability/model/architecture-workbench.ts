@@ -4,6 +4,7 @@ export type ArchitectureNodeType =
   | 'API_ENDPOINT'
   | 'COMPONENT'
   | 'DATA_ENTITY'
+  | 'COMMUNICATION'
 
 /** Browse catalog may also list related project Functions (read-only). */
 export type CatalogBrowseNodeType = ArchitectureNodeType | 'FUNCTION'
@@ -20,6 +21,7 @@ export type WorkbenchSection =
   | 'catalogApis'
   | 'catalogComponents'
   | 'catalogEntities'
+  | 'catalogCommunications'
   | 'toolsImport'
 
 interface CatalogNodeBase {
@@ -59,5 +61,6 @@ export const ARCHITECTURE_NODE_TYPE_LABEL: Record<CatalogBrowseNodeType, string>
   API_ENDPOINT: 'API Endpoint',
   COMPONENT: 'Component',
   DATA_ENTITY: 'Data Entity',
+  COMMUNICATION: 'Communication',
   FUNCTION: 'Function',
 }
