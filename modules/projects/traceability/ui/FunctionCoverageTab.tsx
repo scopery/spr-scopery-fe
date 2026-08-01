@@ -65,7 +65,7 @@ export function FunctionCoverageTab({ projectId, initialFilter }: FunctionCovera
           <Select
             size="sm"
             value={coverageStatus}
-            onValueChange={(value) => {
+            onValueChange={(value: string) => {
               setCoverageStatus(value)
               setOffset(0)
             }}

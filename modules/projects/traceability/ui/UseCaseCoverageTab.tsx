@@ -65,7 +65,7 @@ export function UseCaseCoverageTab({ projectId, initialFilter }: UseCaseCoverage
           <Select
             size="sm"
             value={coverageStatus}
-            onValueChange={(value) => {
+            onValueChange={(value: string) => {
               setCoverageStatus(value)
               setOffset(0)
             }}

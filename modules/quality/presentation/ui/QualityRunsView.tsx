@@ -28,6 +28,8 @@ import {
 } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { useTestRuns } from '../hooks/useTestRuns'
+import { useRunCaseScript } from '../hooks/useRunCaseScript'
+import { RunCaseScriptPanel } from './RunCaseScriptPanel'
 import {
   mapTestRunResultToExecutionRow,
   mapVerificationResultToExecutionRow,
@@ -169,6 +171,11 @@ export function QualityRunsView() {
 
   const isQueuedPreview =
     executionRows.length > 0 && executionRows.every(isMembershipPreviewRow)
+
+  const caseScript = useRunCaseScript(
+    projectId,
+    !isQueuedPreview && focusedRow && !isMembershipPreviewRow(focusedRow) ? focusedRow : null
+  )
 
   const applyResult = async (
     row: RunExecutionRow,
@@ -502,30 +509,41 @@ export function QualityRunsView() {
               </div>
 
               {!isQueuedPreview && focusedRow ? (
-                <div className="flex flex-wrap items-center gap-2 border-b border-neutral-200 bg-neutral-100 px-3 py-2">
-                  <Typography variant="caption" tone="muted" className="shrink-0">
-                    Active case
-                  </Typography>
-                  <button
-                    type="button"
-                    className="inline-flex min-w-0 max-w-full items-center gap-2 text-left hover:underline"
-                    onClick={() =>
-                      setCaseDetail({ kind: focusedRow.kind, caseId: focusedRow.caseId })
-                    }
-                  >
-                    <Typography variant="small" weight="medium" className="font-mono">
-                      {focusedRow.caseCode || '—'}
+                <div className="border-b border-neutral-200 bg-neutral-50">
+                  <div className="flex flex-wrap items-center gap-2 border-b border-neutral-200 bg-neutral-100 px-3 py-2">
+                    <Typography variant="caption" tone="muted" className="shrink-0">
+                      Active case
                     </Typography>
-                    <Typography variant="small" weight="medium" className="min-w-0 truncate">
-                      {focusedRow.caseTitle}
+                    <button
+                      type="button"
+                      className="inline-flex min-w-0 max-w-full items-center gap-2 text-left hover:underline"
+                      onClick={() =>
+                        setCaseDetail({ kind: focusedRow.kind, caseId: focusedRow.caseId })
+                      }
+                    >
+                      <Typography variant="small" weight="medium" className="font-mono">
+                        {focusedRow.caseCode || '—'}
+                      </Typography>
+                      <Typography variant="small" weight="medium" className="min-w-0 truncate">
+                        {focusedRow.caseTitle}
+                      </Typography>
+                    </button>
+                    <Badge size="sm" variant="solid" tone={resultTone(focusedRow.status)}>
+                      {resultLabel(focusedRow.status)}
+                    </Badge>
+                    <Typography variant="caption" tone="muted" className="ml-auto">
+                      ↑↓ move · P F B S N · click name to open case
                     </Typography>
-                  </button>
-                  <Badge size="sm" variant="solid" tone={resultTone(focusedRow.status)}>
-                    {resultLabel(focusedRow.status)}
-                  </Badge>
-                  <Typography variant="caption" tone="muted" className="ml-auto">
-                    ↑↓ move · P F B S N · click name to open case
-                  </Typography>
+                  </div>
+                  {!isMembershipPreviewRow(focusedRow) ? (
+                    <div className="max-h-56 overflow-y-auto px-3 py-3">
+                      <RunCaseScriptPanel
+                        script={caseScript.script}
+                        loading={caseScript.loading}
+                        error={caseScript.error}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 
