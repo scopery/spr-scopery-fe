@@ -91,6 +91,7 @@ export function TraceabilityCoverageTab({
   return (
     <div className="space-y-5">
       <PipelineBar
+        className="border border-neutral-200 px-4 py-4"
         stages={[
           { label: 'Requirements', value: data.requirements, tone: 'neutral' },
           {

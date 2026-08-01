@@ -18,9 +18,9 @@ import { TraceExplorerTab } from './TraceExplorerTab'
 
 const TABS: { id: TraceNavTab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
-  { id: 'functional', label: 'Functional Coverage' },
+  { id: 'functional', label: 'Functional' },
   { id: 'implementation', label: 'Implementation' },
-  { id: 'nfr', label: 'NFR Verification' },
+  { id: 'nfr', label: 'NFR' },
   { id: 'explorer', label: 'Explorer' },
 ]
 
@@ -92,17 +92,19 @@ export function RequirementTraceabilityView() {
   return (
     <div className="px-3 py-3 lg:px-4 lg:py-3">
       <div className="mb-2 border-b border-neutral-200 pb-2">
-        <Typography as="h1" size="md" weight="medium">
-          Requirement Traceability
-        </Typography>
-        <Typography variant="caption" tone="muted" className="mt-0.5">
-          Overview, functional coverage, implementation, NFR verification, and explorer.
-        </Typography>
+        <div className="min-w-0">
+          <Typography as="h1" size="md" weight="medium">
+            Requirement Traceability
+          </Typography>
+          <Typography variant="caption" tone="muted" className="mt-0.5">
+            Track requirement analysis, implementation, verification, and release readiness.
+          </Typography>
+        </div>
       </div>
 
       <nav
         aria-label="Traceability sections"
-        className="mb-2 flex flex-wrap gap-1 border-b border-neutral-200"
+        className="mb-3 flex flex-wrap gap-1 border-b border-neutral-200"
       >
         {TABS.map((t) => {
           const active = t.id === tab
@@ -111,7 +113,9 @@ export function RequirementTraceabilityView() {
               key={t.id}
               type="button"
               aria-current={active ? 'page' : undefined}
-              onClick={() => navigate({ tab: t.id, segment: t.id === 'functional' ? segment : undefined })}
+              onClick={() =>
+                navigate({ tab: t.id, segment: t.id === 'functional' ? segment : undefined })
+              }
               className={cn(
                 'border-b-2 px-3 py-2 text-sm transition-colors',
                 active

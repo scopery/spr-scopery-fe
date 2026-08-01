@@ -123,31 +123,73 @@ export function CoveragePath({
   )
 }
 
-export function SummaryStrip({
-  items,
-}: {
-  items: Array<{ label: string; value: string | number; tone?: 'default' | 'success' | 'warning' | 'error' }>
-}) {
+export type SummaryStripTone = 'default' | 'success' | 'warning' | 'error' | 'muted' | 'info'
+
+export interface SummaryStripItem {
+  id?: string
+  label: string
+  value: string | number
+  /** Optional status chip — numbers stay neutral; status uses solid Badge. */
+  status?: { label: string; tone: SummaryStripTone }
+  onClick?: () => void
+}
+
+function summaryStatusTone(
+  tone: SummaryStripTone
+): 'default' | 'success' | 'warning' | 'error' | 'info' | 'neutral' {
+  if (tone === 'muted') return 'neutral'
+  if (tone === 'default') return 'neutral'
+  return tone
+}
+
+export function SummaryStrip({ items }: { items: SummaryStripItem[] }) {
   return (
     <div className="flex flex-wrap items-stretch gap-px border border-neutral-200 bg-neutral-200">
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className="flex min-h-[52px] min-w-[100px] flex-1 items-center gap-3 bg-white px-3 py-2"
-        >
-          <span className="text-xs text-neutral-500">{item.label}</span>
-          <span
-            className={cn(
-              'text-sm font-semibold tabular-nums text-neutral-900',
-              item.tone === 'success' && 'text-success',
-              item.tone === 'warning' && 'text-warning',
-              item.tone === 'error' && 'text-error'
-            )}
-          >
-            {item.value}
-          </span>
-        </div>
-      ))}
+      {items.map((item) => {
+        const clickable = Boolean(item.onClick)
+        const className = cn(
+          'flex min-h-[64px] min-w-[120px] flex-1 flex-col justify-center gap-1.5 bg-white px-3 py-2.5 text-left',
+          clickable &&
+            'transition-colors hover:bg-neutral-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-neutral-400'
+        )
+        const body = (
+          <>
+            <span className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-medium text-neutral-500">{item.label}</span>
+              {item.status ? (
+                <Badge
+                  size="sm"
+                  variant="solid"
+                  tone={summaryStatusTone(item.status.tone)}
+                  className="border-0 text-white"
+                >
+                  {item.status.label}
+                </Badge>
+              ) : null}
+            </span>
+            <span className="text-lg font-semibold tabular-nums leading-none text-neutral-900">
+              {item.value}
+            </span>
+          </>
+        )
+        if (clickable) {
+          return (
+            <button
+              key={item.id ?? item.label}
+              type="button"
+              className={className}
+              onClick={item.onClick}
+            >
+              {body}
+            </button>
+          )
+        }
+        return (
+          <div key={item.id ?? item.label} className={className}>
+            {body}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -155,6 +197,7 @@ export function SummaryStrip({
 export function PipelineBar({
   stages,
   note,
+  className,
 }: {
   stages: Array<{
     label: string
@@ -164,9 +207,10 @@ export function PipelineBar({
     tone?: 'neutral' | 'error' | 'warning' | 'muted' | 'success' | 'info'
   }>
   note?: string
+  className?: string
 }) {
   return (
-    <div className="border border-neutral-200 bg-white px-4 py-4">
+    <div className={cn('bg-white', className)}>
       <div className="flex flex-wrap items-stretch gap-2">
         {stages.map((s, i) => {
           const hollow = Boolean(s.muted) || s.value === '—'
@@ -185,7 +229,7 @@ export function PipelineBar({
                       : 'text-neutral-800'
 
           return (
-            <div key={s.label} className="flex min-w-[7rem] flex-1 items-center gap-2">
+            <div key={s.label} className="flex min-w-[6.5rem] flex-1 items-center gap-2">
               {i > 0 ? (
                 <ArrowRight
                   className="hidden size-3.5 shrink-0 text-neutral-300 sm:block"
