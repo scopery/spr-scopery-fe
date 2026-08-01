@@ -1,10 +1,7 @@
 'use client'
 
-import { Plus, Download, FileOutput, LayoutGrid, List } from 'lucide-react'
+import { Plus, Download, FileOutput } from 'lucide-react'
 import { Button, Typography } from '@/shared/ui'
-import { cn } from '@/utils/cn'
-
-export type DocumentHubViewMode = 'grid' | 'table'
 
 type DocumentHubHeaderProps = {
   canCreateDocument: boolean
@@ -13,8 +10,6 @@ type DocumentHubHeaderProps = {
   selectedCount: number
   totalCount: number
   deliverableLoading: boolean
-  viewMode: DocumentHubViewMode
-  onViewModeChange: (mode: DocumentHubViewMode) => void
   onCreate: () => void
   onExport: () => void
   onDeliverable: () => void
@@ -27,8 +22,6 @@ export function DocumentHubHeader({
   selectedCount,
   totalCount,
   deliverableLoading,
-  viewMode,
-  onViewModeChange,
   onCreate,
   onExport,
   onDeliverable,
@@ -45,41 +38,6 @@ export function DocumentHubHeader({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div
-          className="inline-flex h-8 border border-neutral-200 bg-white"
-          role="group"
-          aria-label="View mode"
-        >
-          <button
-            type="button"
-            aria-pressed={viewMode === 'grid'}
-            title="Grid view"
-            onClick={() => onViewModeChange('grid')}
-            className={cn(
-              'inline-flex h-8 w-8 items-center justify-center transition-colors',
-              viewMode === 'grid'
-                ? 'bg-secondary text-white'
-                : 'text-neutral-600 hover:bg-neutral-50'
-            )}
-          >
-            <LayoutGrid size={14} />
-          </button>
-          <button
-            type="button"
-            aria-pressed={viewMode === 'table'}
-            title="Table view"
-            onClick={() => onViewModeChange('table')}
-            className={cn(
-              'inline-flex h-8 w-8 items-center justify-center border-l border-neutral-200 transition-colors',
-              viewMode === 'table'
-                ? 'bg-secondary text-white'
-                : 'text-neutral-600 hover:bg-neutral-50'
-            )}
-          >
-            <List size={14} />
-          </button>
-        </div>
-
         {canCreateDocument ? (
           <Button size="sm" variant="primary" icon={<Plus size={16} />} onClick={onCreate}>
             New document
@@ -104,7 +62,7 @@ export function DocumentHubHeader({
             loading={deliverableLoading}
             onClick={onDeliverable}
           >
-            {selectedCount > 0 ? 'Create deliverable' : 'Create deliverable'}
+            Create deliverable
           </Button>
         ) : null}
       </div>

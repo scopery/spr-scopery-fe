@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import {
+  BulkJobProgressPanel,
   Button,
   DataTable,
   Input,
@@ -12,6 +13,13 @@ import {
   type DataTableColumn,
 } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
+import {
+  BULK_MAX_ITEMS,
+  BulkJobStatus,
+  type BulkJobResponse,
+} from '@/shared/lib/bulkJobs'
+import { useBulkJobPoller } from '@/shared/lib/useBulkJobPoller'
+import { toast } from 'sonner'
 import { cn } from '@/utils/cn'
 import type { CreateRequirementPayload } from '../model/requirements'
 
@@ -47,8 +55,8 @@ const VALID_PRIORITIES = new Set(['HIGH', 'MEDIUM', 'LOW'])
 interface RequirementBulkAddModalProps {
   open: boolean
   onClose: () => void
-  /** Create one item — prefer no list refresh; batch refreshes via onBatchComplete. */
-  onCreate: (body: CreateRequirementPayload) => Promise<void>
+  /** Async bulk submit — returns job; modal polls for progress. */
+  onSubmitBulk: (items: CreateRequirementPayload[]) => Promise<BulkJobResponse>
   onBatchComplete?: () => Promise<void> | void
 }
 
@@ -88,6 +96,8 @@ function normalizeType(raw: string): string {
   if (!v) return 'FUNCTIONAL'
   if (v === 'FR' || v === 'FUNC') return 'FUNCTIONAL'
   if (v === 'NFR' || v === 'NON-FUNCTIONAL' || v === 'NONFUNCTIONAL') return 'NON_FUNCTIONAL'
+  if (v === 'SECURITY' || v === 'COMPLIANCE') return 'CONSTRAINT'
+  if (v === 'OTHER') return 'BUSINESS'
   if (VALID_TYPES.has(v)) return v
   return v
 }
@@ -95,7 +105,7 @@ function normalizeType(raw: string): string {
 function normalizePriority(raw: string): string {
   const v = raw.trim().toUpperCase()
   if (!v) return 'MEDIUM'
-  if (v === 'P1' || v === 'H') return 'HIGH'
+  if (v === 'CRITICAL' || v === 'P0' || v === 'P1' || v === 'H') return 'HIGH'
   if (v === 'P2' || v === 'M') return 'MEDIUM'
   if (v === 'P3' || v === 'L') return 'LOW'
   if (VALID_PRIORITIES.has(v)) return v
@@ -166,7 +176,7 @@ function mapRowToPayload(row: DraftRow): CreateRequirementPayload {
 export function RequirementBulkAddModal({
   open,
   onClose,
-  onCreate,
+  onSubmitBulk,
   onBatchComplete,
 }: RequirementBulkAddModalProps) {
   const [rows, setRows] = useState<DraftRow[]>([newRow()])
@@ -174,6 +184,8 @@ export function RequirementBulkAddModal({
   const submittingRef = useRef(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [pasteHint, setPasteHint] = useState(false)
+  const [jobId, setJobId] = useState<string | null>(null)
+  const poller = useBulkJobPoller()
 
   useEffect(() => {
     if (!open) return
@@ -182,6 +194,9 @@ export function RequirementBulkAddModal({
     setSubmitting(false)
     submittingRef.current = false
     setPasteHint(false)
+    setJobId(null)
+    poller.reset()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when modal opens
   }, [open])
 
   const validRows = useMemo(() => rows.filter((r) => r.title.trim()), [rows])
@@ -197,6 +212,10 @@ export function RequirementBulkAddModal({
   }
 
   const applyPaste = useCallback((text: string) => {
+    if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+      setFormError('Use JSON Import for JSON payloads. Bulk add accepts Excel/TSV only.')
+      return
+    }
     const pasted = parseRequirementClipboardToRows(text)
     if (pasted.length === 0) return
     setRows((prev) => {
@@ -220,71 +239,91 @@ export function RequirementBulkAddModal({
     return () => document.removeEventListener('paste', onPaste)
   }, [open, applyPaste])
 
-  const handleSubmit = async () => {
+  const buildItems = useCallback((): CreateRequirementPayload[] | null => {
+    const items: CreateRequirementPayload[] = []
+    const nextRows = rows.map((row) => {
+      if (isBlank(row)) return row
+      if (!row.title.trim()) return { ...row, error: 'Title is required' }
+      const type = normalizeType(row.requirementType)
+      const priority = normalizePriority(row.priority)
+      if (row.requirementType.trim() && !VALID_TYPES.has(type)) {
+        return {
+          ...row,
+          error:
+            'Type must be FUNCTIONAL, NON_FUNCTIONAL, BUSINESS, TECHNICAL, or CONSTRAINT',
+        }
+      }
+      if (row.priority.trim() && !VALID_PRIORITIES.has(priority)) {
+        return { ...row, error: 'Priority must be HIGH, MEDIUM, or LOW' }
+      }
+      items.push(mapRowToPayload(row))
+      return { ...row, error: null }
+    })
+    if (nextRows.some((r) => r.error)) {
+      setRows(nextRows)
+      return null
+    }
+    return items
+  }, [rows])
+
+  const runBulk = useCallback(async () => {
     if (submittingRef.current) return
     if (validRows.length === 0) {
       setFormError('Add at least one row with a title.')
       return
     }
-    submittingRef.current = true
-    setSubmitting(true)
-    setFormError(null)
-
-    const remaining: DraftRow[] = []
-    let created = 0
-
-    for (const row of rows) {
-      if (isBlank(row)) continue
-      if (!row.title.trim()) {
-        remaining.push({ ...row, error: 'Title is required' })
-        continue
-      }
-
-      const type = normalizeType(row.requirementType)
-      const priority = normalizePriority(row.priority)
-      if (row.requirementType.trim() && !VALID_TYPES.has(type)) {
-        remaining.push({
-          ...row,
-          error: 'Type must be FUNCTIONAL, NON_FUNCTIONAL, BUSINESS, TECHNICAL, or CONSTRAINT',
-        })
-        continue
-      }
-      if (row.priority.trim() && !VALID_PRIORITIES.has(priority)) {
-        remaining.push({ ...row, error: 'Priority must be HIGH, MEDIUM, or LOW' })
-        continue
-      }
-
-      try {
-        await onCreate(mapRowToPayload(row))
-        created += 1
-      } catch (err: unknown) {
-        const message =
-          err instanceof ApiError && err.status === 409
-            ? 'Already exists or conflict'
-            : err instanceof Error
-              ? err.message
-              : 'Failed'
-        remaining.push({ ...row, error: message })
-      }
+    const items = buildItems()
+    if (!items || items.length === 0) {
+      setFormError('Fix validation errors before submitting.')
+      return
     }
-
-    if (created > 0) await onBatchComplete?.()
-
-    submittingRef.current = false
-    setSubmitting(false)
-
-    if (remaining.length === 0) {
-      onClose()
+    if (items.length > BULK_MAX_ITEMS) {
+      setFormError(`Maximum ${BULK_MAX_ITEMS} items per bulk request.`)
       return
     }
 
-    setRows(remaining.length ? remaining : [newRow()])
-    setFormError(
-      created
-        ? `Created ${created}. Review ${remaining.length} remaining row${remaining.length === 1 ? '' : 's'}.`
-        : `Could not create. Fix ${remaining.length} row${remaining.length === 1 ? '' : 's'}.`
-    )
-  }
+    submittingRef.current = true
+    setSubmitting(true)
+    setFormError(null)
+    poller.reset()
+
+    try {
+      const job = await onSubmitBulk(items)
+      setJobId(job.id)
+      setSubmitting(false)
+      submittingRef.current = false
+      toast.message('Job accepted', { description: 'Processing in the background…' })
+      onClose()
+      const done = await poller.start(job.id, job)
+      if (done.succeededItems > 0) await onBatchComplete?.()
+
+      if (done.status === BulkJobStatus.Succeeded) {
+        toast.success(done.resultSummary ?? `Created ${done.succeededItems} requirements`)
+      } else if (done.status === BulkJobStatus.Partial) {
+        toast.warning(
+          done.resultSummary ??
+            `${done.succeededItems} created, ${done.failedItems} failed. Successful items are already saved.`
+        )
+      } else {
+        toast.error(done.errorMessage ?? done.resultSummary ?? 'Bulk create failed')
+      }
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      const message =
+        err instanceof ApiError
+          ? err.problem.detail || err.message
+          : err instanceof Error
+            ? err.message
+            : 'Failed to submit bulk create'
+      setFormError(message)
+    } finally {
+      submittingRef.current = false
+      setSubmitting(false)
+    }
+  }, [validRows.length, buildItems, onSubmitBulk, onBatchComplete, onClose, poller])
+
+  const jobRunning = poller.isPolling
+  const busy = submitting || jobRunning
 
   return (
     <Modal
@@ -295,17 +334,17 @@ export function RequirementBulkAddModal({
       actions={[
         { label: 'Close', onClick: onClose, variant: 'ghost' },
         {
-          label: submitting ? 'Creating…' : `Create ${validRows.length}`,
-          onClick: () => void handleSubmit(),
+          label: submitting ? 'Submitting…' : jobRunning ? 'Running…' : `Create ${validRows.length}`,
+          onClick: () => void runBulk(),
           variant: 'primary',
-          disabled: submitting || validRows.length === 0,
+          disabled: busy || validRows.length === 0,
           loading: submitting,
         },
       ]}
     >
       <div className="space-y-4">
         <Typography variant="small" tone="muted">
-          Add rows or paste from Excel (Ctrl/Cmd+V) — columns:{' '}
+          Add rows or paste Excel/TSV (Ctrl/Cmd+V) — columns:{' '}
           {COLUMNS.map((c) => c.label).join(' · ')}. Leave Code blank to auto-generate.
         </Typography>
 
@@ -314,6 +353,42 @@ export function RequirementBulkAddModal({
             Pasted — review, edit, or remove rows below.
           </Typography>
         ) : null}
+
+        <BulkJobProgressPanel
+          job={poller.job}
+          percent={poller.percent}
+          isPolling={poller.isPolling}
+          error={poller.error}
+          onRetryFailed={(failedItems) => {
+            void (async () => {
+              setJobId(null)
+              poller.reset()
+              setSubmitting(true)
+              try {
+                const job = await onSubmitBulk(failedItems as unknown as CreateRequirementPayload[])
+                setJobId(job.id)
+                setSubmitting(false)
+                toast.message('Job accepted', { description: 'Processing in the background…' })
+                const done = await poller.start(job.id, job)
+                if (done.succeededItems > 0) await onBatchComplete?.()
+                if (done.status === BulkJobStatus.Succeeded) {
+                  toast.success(done.resultSummary ?? `Created ${done.succeededItems}`)
+                  onClose()
+                } else if (done.status === BulkJobStatus.Partial) {
+                  toast.warning(done.resultSummary ?? `${done.succeededItems} created, ${done.failedItems} failed`)
+                } else {
+                  toast.error(done.errorMessage ?? done.resultSummary ?? 'Bulk create failed')
+                }
+              } catch (err: unknown) {
+                if (err instanceof DOMException && err.name === 'AbortError') return
+                setFormError(err instanceof Error ? err.message : 'Retry failed')
+              } finally {
+                setSubmitting(false)
+              }
+            })()
+          }}
+          onRetry={() => void runBulk()}
+        />
 
         <div className="border border-neutral-200">
           <DataTable
@@ -338,6 +413,7 @@ export function RequirementBulkAddModal({
                       aria-label={`${column.label} row ${index + 1}`}
                       fullWidth
                       size="sm"
+                      disabled={busy}
                     />
                   ),
                 })
@@ -352,6 +428,7 @@ export function RequirementBulkAddModal({
                     className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
                     onClick={() => removeRow(row.id)}
                     aria-label={`Remove row ${index + 1}`}
+                    disabled={busy}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -381,13 +458,19 @@ export function RequirementBulkAddModal({
           </Typography>
         ) : null}
 
+        {jobId ? (
+          <Typography variant="caption" tone="muted">
+            Job {jobId}
+          </Typography>
+        ) : null}
+
         <Stack direction="horizontal" spacing="sm" className="flex-wrap">
-          <Button size="sm" variant="neutral-flat" onClick={addRow} disabled={submitting}>
+          <Button size="sm" variant="neutral-flat" onClick={addRow} disabled={busy}>
             <Plus size={14} className="mr-1 inline" />
             Add row
           </Button>
           <Typography variant="small" tone="muted" className="self-center">
-            Tip: copy cells from Excel then paste in this dialog
+            {validRows.length} ready · max {BULK_MAX_ITEMS}
           </Typography>
         </Stack>
       </div>

@@ -28,6 +28,9 @@ export interface MyWorkTaskItem {
   wbsNodeId: string | null
   isOverdue: boolean
   updatedAt: string
+  /** Instant when task was marked DONE; null if still open. */
+  completedAt?: string | null
+  completedBy?: string | null
 }
 
 export interface MyWorkPageInfo {

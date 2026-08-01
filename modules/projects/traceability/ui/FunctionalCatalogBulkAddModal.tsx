@@ -1,15 +1,31 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { Button, DataTable, Input, Modal, Stack, Typography } from '@/shared/ui'
+import {
+  BulkJobProgressPanel,
+  Button,
+  DataTable,
+  Input,
+  Modal,
+  Stack,
+  Typography,
+} from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
+import {
+  BULK_MAX_ITEMS,
+  BulkJobStatus,
+  type BulkJobResponse,
+} from '@/shared/lib/bulkJobs'
+import { useBulkJobPoller } from '@/shared/lib/useBulkJobPoller'
+import { toast } from 'sonner'
 import { cn } from '@/utils/cn'
 import {
   FunctionalItemPriority,
   FunctionalItemType,
   NonFunctionalCategory,
   NonFunctionalScopeType,
+  type CreateBusinessRuleBody,
 } from '../model/functional-catalog'
 
 export type FunctionalCatalogAddKind = 'FR' | 'NFR'
@@ -23,18 +39,6 @@ interface ColumnDef {
   placeholder?: string
 }
 
-interface DraftRow {
-  id: string
-  code: string
-  title: string
-  priority: string
-  type: string
-  category: string
-  scopeType: string
-  description: string
-  error?: string | null
-}
-
 export interface FunctionalCatalogBulkCreateInput {
   kind: FunctionalCatalogAddKind
   code: string
@@ -44,15 +48,29 @@ export interface FunctionalCatalogBulkCreateInput {
   category?: string
   scopeType?: string
   description?: string
+  acceptanceCriteria?: string[]
+  businessRules?: CreateBusinessRuleBody[]
+  targetMetric?: string
+}
+
+interface DraftRow {
+  id: string
+  code: string
+  title: string
+  priority: string
+  type: string
+  category: string
+  scopeType: string
+  description: string
+  acceptanceCriteria: string[]
+  error?: string | null
 }
 
 interface FunctionalCatalogBulkAddModalProps {
   open: boolean
   kind: FunctionalCatalogAddKind
   onClose: () => void
-  /** Create one item — should not refresh the list (batch refreshes once via onBatchComplete). */
-  onCreate: (input: FunctionalCatalogBulkCreateInput) => Promise<void>
-  /** Called once after the batch finishes if at least one item was created. */
+  onSubmitBulk: (items: FunctionalCatalogBulkCreateInput[]) => Promise<BulkJobResponse>
   onBatchComplete?: () => Promise<void> | void
 }
 
@@ -84,6 +102,7 @@ function newRow(_kind: FunctionalCatalogAddKind): DraftRow {
     category: NonFunctionalCategory.Other,
     scopeType: NonFunctionalScopeType.System,
     description: '',
+    acceptanceCriteria: [],
     error: null,
   }
 }
@@ -137,33 +156,72 @@ function isRowBlank(row: DraftRow, columns: ColumnDef[]): boolean {
   return columns.every((c) => !row[c.key].trim())
 }
 
+function mapRowToInput(row: DraftRow, kind: FunctionalCatalogAddKind): FunctionalCatalogBulkCreateInput {
+  const priority = normalizeEnum(
+    row.priority,
+    Object.values(FunctionalItemPriority),
+    FunctionalItemPriority.Medium
+  )
+  if (kind === 'FR') {
+    return {
+      kind,
+      code: row.code.trim(),
+      title: row.title.trim(),
+      priority,
+      type: normalizeEnum(row.type, Object.values(FunctionalItemType), FunctionalItemType.Functional),
+      description: row.description.trim() || undefined,
+      acceptanceCriteria: row.acceptanceCriteria.length ? row.acceptanceCriteria : undefined,
+    }
+  }
+  return {
+    kind,
+    code: row.code.trim(),
+    title: row.title.trim(),
+    priority,
+    category: normalizeEnum(
+      row.category,
+      Object.values(NonFunctionalCategory),
+      NonFunctionalCategory.Other
+    ),
+    scopeType: normalizeEnum(
+      row.scopeType,
+      Object.values(NonFunctionalScopeType),
+      NonFunctionalScopeType.System
+    ),
+    description: row.description.trim() || undefined,
+  }
+}
+
 export function FunctionalCatalogBulkAddModal({
   open,
   kind,
   onClose,
-  onCreate,
+  onSubmitBulk,
   onBatchComplete,
 }: FunctionalCatalogBulkAddModalProps) {
   const columns = COLUMNS_BY_KIND[kind]
   const [rows, setRows] = useState<DraftRow[]>([newRow(kind)])
   const [submitting, setSubmitting] = useState(false)
+  const submittingRef = useRef(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [pasteHint, setPasteHint] = useState(false)
+  const [jobId, setJobId] = useState<string | null>(null)
+  const poller = useBulkJobPoller()
 
   useEffect(() => {
     if (!open) return
     setRows([newRow(kind)])
     setFormError(null)
     setSubmitting(false)
+    submittingRef.current = false
     setPasteHint(false)
+    setJobId(null)
+    poller.reset()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when modal opens
   }, [open, kind])
 
   const validRows = useMemo(
-    () =>
-      rows.filter((r) => {
-        if (!r.code.trim() || !r.title.trim()) return false
-        return true
-      }),
+    () => rows.filter((r) => r.code.trim() && r.title.trim()),
     [rows]
   )
 
@@ -179,6 +237,10 @@ export function FunctionalCatalogBulkAddModal({
 
   const applyPaste = useCallback(
     (text: string) => {
+      if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+        setFormError('Use JSON Import for JSON payloads. Bulk add accepts Excel/TSV only.')
+        return
+      }
       const pasted = parseClipboardToRows(text, columns, kind)
       if (pasted.length === 0) return
       setRows((prev) => {
@@ -204,94 +266,82 @@ export function FunctionalCatalogBulkAddModal({
     return () => document.removeEventListener('paste', onPaste)
   }, [open, applyPaste])
 
-  const handleSubmit = async () => {
+  const buildItems = useCallback((): FunctionalCatalogBulkCreateInput[] | null => {
+    const items: FunctionalCatalogBulkCreateInput[] = []
+    const nextRows = rows.map((row) => {
+      if (isRowBlank(row, columns)) return row
+      if (!row.code.trim() || !row.title.trim()) {
+        return { ...row, error: 'Code and title are required' }
+      }
+      items.push(mapRowToInput(row, kind))
+      return { ...row, error: null }
+    })
+    if (nextRows.some((r) => r.error)) {
+      setRows(nextRows)
+      return null
+    }
+    return items
+  }, [rows, columns, kind])
+
+  const runBulk = useCallback(async () => {
+    if (submittingRef.current) return
     if (validRows.length === 0) {
       setFormError('Add at least one row with code and title.')
       return
     }
-    setSubmitting(true)
-    setFormError(null)
-
-    const remaining: DraftRow[] = []
-    let created = 0
-
-    for (const row of rows) {
-      if (isRowBlank(row, columns)) continue
-      if (!row.code.trim() || !row.title.trim()) {
-        remaining.push({ ...row, error: 'Code and title are required' })
-        continue
-      }
-
-      const priority = normalizeEnum(
-        row.priority,
-        Object.values(FunctionalItemPriority),
-        FunctionalItemPriority.Medium
-      )
-
-      try {
-        if (kind === 'FR') {
-          await onCreate({
-            kind,
-            code: row.code.trim(),
-            title: row.title.trim(),
-            priority,
-            type: normalizeEnum(
-              row.type,
-              Object.values(FunctionalItemType),
-              FunctionalItemType.Functional
-            ),
-            description: row.description.trim() || undefined,
-          })
-        } else {
-          await onCreate({
-            kind,
-            code: row.code.trim(),
-            title: row.title.trim(),
-            priority,
-            category: normalizeEnum(
-              row.category,
-              Object.values(NonFunctionalCategory),
-              NonFunctionalCategory.Other
-            ),
-            scopeType: normalizeEnum(
-              row.scopeType,
-              Object.values(NonFunctionalScopeType),
-              NonFunctionalScopeType.System
-            ),
-            description: row.description.trim() || undefined,
-          })
-        }
-        created += 1
-      } catch (err: unknown) {
-        const message =
-          err instanceof ApiError && err.status === 409
-            ? 'Already exists'
-            : err instanceof Error
-              ? err.message
-              : 'Failed'
-        remaining.push({ ...row, error: message })
-      }
+    const items = buildItems()
+    if (!items || items.length === 0) {
+      setFormError('Fix validation errors before submitting.')
+      return
     }
-
-    if (created > 0) {
-      await onBatchComplete?.()
-    }
-
-    setSubmitting(false)
-
-    if (remaining.length === 0) {
-      onClose()
+    if (items.length > BULK_MAX_ITEMS) {
+      setFormError(`Maximum ${BULK_MAX_ITEMS} items per bulk request.`)
       return
     }
 
-    setRows(remaining.length ? remaining : [newRow(kind)])
-    setFormError(
-      created
-        ? `Created ${created}. Review ${remaining.length} remaining row${remaining.length === 1 ? '' : 's'}.`
-        : `Could not create. Fix ${remaining.length} row${remaining.length === 1 ? '' : 's'}.`
-    )
-  }
+    submittingRef.current = true
+    setSubmitting(true)
+    setFormError(null)
+    poller.reset()
 
+    try {
+      const job = await onSubmitBulk(items)
+      setJobId(job.id)
+      setSubmitting(false)
+      submittingRef.current = false
+      toast.message('Job accepted', { description: 'Processing in the background…' })
+      onClose()
+      const done = await poller.start(job.id, job)
+      if (done.succeededItems > 0) await onBatchComplete?.()
+
+      const label = kind === 'FR' ? 'functional items' : 'non-functional items'
+      if (done.status === BulkJobStatus.Succeeded) {
+        toast.success(done.resultSummary ?? `Created ${done.succeededItems} ${label}`)
+      } else if (done.status === BulkJobStatus.Partial) {
+        toast.warning(
+          done.resultSummary ??
+            `${done.succeededItems} created, ${done.failedItems} failed. Successful items are already saved.`
+        )
+      } else {
+        toast.error(done.errorMessage ?? done.resultSummary ?? 'Bulk create failed')
+      }
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Failed to submit bulk create'
+      setFormError(message)
+    } finally {
+      submittingRef.current = false
+      setSubmitting(false)
+    }
+  }, [validRows.length, buildItems, onSubmitBulk, onBatchComplete, onClose, poller, kind])
+
+  const jobRunning = poller.isPolling
+  const busy = submitting || jobRunning
   const title = kind === 'FR' ? 'Add functional items' : 'Add non-functional items'
 
   return (
@@ -303,17 +353,17 @@ export function FunctionalCatalogBulkAddModal({
       actions={[
         { label: 'Cancel', onClick: onClose, variant: 'ghost' },
         {
-          label: submitting ? 'Creating…' : `Create ${validRows.length}`,
-          onClick: () => void handleSubmit(),
+          label: submitting ? 'Submitting…' : jobRunning ? 'Running…' : `Create ${validRows.length}`,
+          onClick: () => void runBulk(),
           variant: 'primary',
-          disabled: submitting || validRows.length === 0,
+          disabled: busy || validRows.length === 0,
           loading: submitting,
         },
       ]}
     >
       <div className="space-y-4">
         <Typography variant="small" tone="muted">
-          Add one or more rows. Paste from Excel (Ctrl/Cmd+V) — columns:{' '}
+          Add one or more rows. Paste Excel/TSV (Ctrl/Cmd+V). Use JSON Import for JSON payloads — columns:{' '}
           {columns.map((c) => c.label).join(' · ')}. Empty priority/type/category use defaults.
         </Typography>
 
@@ -322,6 +372,34 @@ export function FunctionalCatalogBulkAddModal({
             Pasted — review, edit, or remove rows below.
           </Typography>
         ) : null}
+
+        <BulkJobProgressPanel
+          job={poller.job}
+          percent={poller.percent}
+          isPolling={poller.isPolling}
+          error={poller.error}
+          onRetryFailed={(failedItems) => {
+            setJobId(null)
+            poller.reset()
+            void (async () => {
+              try {
+                const job = await onSubmitBulk(failedItems as unknown as Parameters<typeof onSubmitBulk>[0])
+                setJobId(job.id)
+                setSubmitting(false)
+                toast.message('Job accepted', { description: 'Processing in the background…' })
+                const done = await poller.start(job.id, job)
+                if (done.succeededItems > 0) await onBatchComplete?.()
+              } catch {
+                /* interceptor / form handles */
+              }
+            })()
+          }}
+          onRetry={() => {
+            setJobId(null)
+            poller.reset()
+            void runBulk()
+          }}
+        />
 
         <DataTable
           className="border border-neutral-200"
@@ -344,6 +422,7 @@ export function FunctionalCatalogBulkAddModal({
                   aria-label={`${col.label} row ${index + 1}`}
                   fullWidth
                   size="sm"
+                  disabled={busy}
                 />
               ),
             })),
@@ -357,6 +436,7 @@ export function FunctionalCatalogBulkAddModal({
                   className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
                   onClick={() => removeRow(row.id)}
                   aria-label={`Remove row ${index + 1}`}
+                  disabled={busy}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -385,13 +465,19 @@ export function FunctionalCatalogBulkAddModal({
           </Typography>
         ) : null}
 
+        {jobId ? (
+          <Typography variant="caption" tone="muted">
+            Job {jobId}
+          </Typography>
+        ) : null}
+
         <Stack direction="horizontal" spacing="sm" className="flex-wrap">
-          <Button size="sm" variant="secondary" onClick={addRow} disabled={submitting}>
+          <Button size="sm" variant="secondary" onClick={addRow} disabled={busy}>
             <Plus size={14} className="mr-1 inline" />
             Add row
           </Button>
           <Typography variant="caption" tone="muted" className="self-center">
-            Tip: copy cells from Excel then paste in this dialog
+            {validRows.length} ready · max {BULK_MAX_ITEMS}
           </Typography>
         </Stack>
       </div>

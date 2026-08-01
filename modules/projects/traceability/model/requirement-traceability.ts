@@ -127,6 +127,19 @@ export interface TraceabilityMatrixRow {
   latestVerificationResult?: string | null
   previews: MatrixPreviews
   previewMore: MatrixPreviewMore
+  functionsCoveredByUseCase?: number
+  useCasesWithTests?: number
+  executionSummary?: ExecutionSummary
+  functionLayerStatus?: string
+  useCaseLayerStatus?: string
+  testLayerStatus?: string
+}
+
+export interface ExecutionSummary {
+  passed: number
+  failed: number
+  blocked: number
+  notRun: number
 }
 
 export interface TraceabilityMatrixResponse {
@@ -185,6 +198,18 @@ export interface RequirementTraceDetailResponse {
   testCases: TracePreviewObject[]
   gaps: TraceGapItem[]
   generatedAt: string
+  /** Req → Function → Use Case → Test Case tree when BE provides it. */
+  coverageChain?: CoverageChainFunction[]
+}
+
+export interface CoverageChainUseCase {
+  useCase: TracePreviewObject
+  testCases: TracePreviewObject[]
+}
+
+export interface CoverageChainFunction {
+  function: TracePreviewObject
+  useCases: CoverageChainUseCase[]
 }
 
 export interface GapsSummary {
@@ -354,14 +379,35 @@ export function gapSeverityTone(
 export function coverageStatusTone(
   status: string
 ): 'success' | 'warning' | 'error' | 'info' | 'default' {
-  if (status === DisplayCoverageStatus.Complete || status === TraceCoverageStatus.Complete) {
+  if (
+    status === DisplayCoverageStatus.Complete ||
+    status === TraceCoverageStatus.Complete ||
+    status === 'COMPLETE' ||
+    status === 'TEST_READY' ||
+    status === 'PASSED'
+  ) {
     return 'success'
   }
-  if (status === DisplayCoverageStatus.Partial || status === TraceCoverageStatus.Partial) {
+  if (
+    status === DisplayCoverageStatus.Partial ||
+    status === TraceCoverageStatus.Partial ||
+    status === 'PARTIAL' ||
+    status === 'INCOMPLETE' ||
+    status === 'MISSING'
+  ) {
     return 'warning'
   }
-  if (status === DisplayCoverageStatus.NotCovered) return 'error'
-  if (status === DisplayCoverageStatus.NotApplicable) return 'default'
+  if (status === DisplayCoverageStatus.NotCovered || status === 'FAILED' || status === 'NOT_MAPPED') {
+    return 'error'
+  }
+  if (
+    status === DisplayCoverageStatus.NotApplicable ||
+    status === 'NOT_APPLICABLE' ||
+    status === 'NOT_EVALUATED' ||
+    status === 'DEPRECATED'
+  ) {
+    return 'default'
+  }
   return 'default'
 }
 
@@ -373,7 +419,18 @@ export function coverageStatusLabel(status: string): string {
   if (status === DisplayCoverageStatus.Partial || status === TraceCoverageStatus.Partial) {
     return 'Partial'
   }
-  if (status === DisplayCoverageStatus.NotApplicable) return 'Not applicable'
+  if (status === DisplayCoverageStatus.NotApplicable || status === 'NOT_APPLICABLE') {
+    return 'Not applicable'
+  }
+  if (status === 'NOT_EVALUATED') return 'Not evaluated'
+  if (status === 'NOT_MAPPED') return 'Not mapped'
+  if (status === 'TEST_READY') return 'Test ready'
+  if (status === 'INCOMPLETE') return 'Incomplete'
+  if (status === 'DEPRECATED') return 'Deprecated'
+  if (status === 'MISSING') return 'Missing'
+  if (status === 'FAILED') return 'Failed'
+  if (status === 'COMPLETE') return 'Complete'
+  if (status === 'PARTIAL') return 'Partial'
   return status
 }
 
@@ -463,7 +520,13 @@ export function evaluateGaps(input: {
     }
 
     if (code === TraceGapCode.MissingTest) {
-      push(code, 'warning', true)
+      // Not actionable / not evaluated when Function or Use Case is still missing.
+      const missingUc = codes.includes(TraceGapCode.MissingUseCase)
+      if (missingFn || missingUc) {
+        push(code, 'blocked', false)
+      } else {
+        push(code, 'warning', true)
+      }
       continue
     }
 
@@ -566,7 +629,13 @@ export function buildLayerSteps(input: {
       key: 'test',
       short: 'T',
       label: 'Test',
-      state: hasTc ? 'ok' : 'missing',
+      state: !hasFn
+        ? 'blocked'
+        : input.requiresUseCaseResolved && !hasUc
+          ? 'blocked'
+          : hasTc
+            ? 'ok'
+            : 'missing',
     },
   ]
 }
@@ -721,4 +790,174 @@ export function groupGapsByRequirement(items: GapsListItem[]): Array<{
       actionLabel: primary ? recommendedActionLabel(primary.gapCode) : 'Review',
     }
   })
+}
+
+/** Multi-view coverage status (never collapse into one badge with execution). */
+export const LayerCoverageStatus = {
+  NotMapped: 'NOT_MAPPED',
+  Partial: 'PARTIAL',
+  Complete: 'COMPLETE',
+  NotApplicable: 'NOT_APPLICABLE',
+  NotEvaluated: 'NOT_EVALUATED',
+  Missing: 'MISSING',
+  Failed: 'FAILED',
+} as const
+export type LayerCoverageStatus = (typeof LayerCoverageStatus)[keyof typeof LayerCoverageStatus]
+
+export const SpecReadinessStatus = {
+  Incomplete: 'INCOMPLETE',
+  TestReady: 'TEST_READY',
+  Deprecated: 'DEPRECATED',
+} as const
+export type SpecReadinessStatus = (typeof SpecReadinessStatus)[keyof typeof SpecReadinessStatus]
+
+export const ExecutionStatus = {
+  NotRun: 'NOT_RUN',
+  Passed: 'PASSED',
+  Failed: 'FAILED',
+  Blocked: 'BLOCKED',
+  Skipped: 'SKIPPED',
+} as const
+export type ExecutionStatus = (typeof ExecutionStatus)[keyof typeof ExecutionStatus]
+
+export interface TraceabilityOverviewResponse {
+  strip: {
+    requirementsMapped: number
+    requirementsTotal: number
+    functionsMissingUseCases: number
+    useCasesMissingTests: number
+    implementationGaps: number
+    nfrsNotVerified: number
+  }
+  functionalPipeline: { kind: string; stages: Array<{ stage: string; count: number }> }
+  nfrPipeline: { kind: string; stages: Array<{ stage: string; count: number }> }
+  needsAttention: Array<{
+    code: string
+    message: string
+    actionLabel: string
+    deepLinkTab: string
+    deepLinkSegment?: string | null
+    deepLinkFilter?: string | null
+  }>
+  generatedAt: string
+}
+
+export interface FunctionCoverageItem {
+  functionId: string
+  code: string
+  title: string
+  linkedRequirementCount: number
+  requirementsCoveredByUseCases: number
+  useCaseCount: number
+  specificationReadyCount: number
+  testedUseCaseCount: number
+  coverageStatus: string
+  nextAction: string
+  requirementCovers: Array<{
+    requirementId: string
+    code: string
+    title: string
+    covered: boolean
+    coveringUseCases: Array<{ id: string; code: string; name: string }>
+  }>
+}
+
+export interface FunctionCoverageListResponse {
+  items: FunctionCoverageItem[]
+  page: { limit: number; offset: number; total: number }
+  generatedAt: string
+}
+
+export interface UseCaseCoverageItem {
+  useCaseId: string
+  key: string
+  name: string
+  parentFunctionId?: string | null
+  parentFunctionCode?: string | null
+  parentFunctionName?: string | null
+  coveredRequirementCount: number
+  specificationStatus: string
+  acceptanceCriteriaCount: number
+  testCaseCount: number
+  latestResult?: string | null
+  coverageStatus: string
+  nextAction: string
+  acceptanceCriteria: Array<{
+    id: string
+    givenText?: string | null
+    whenText?: string | null
+    thenText?: string | null
+    hasTestCase: boolean
+  }>
+  testCases: Array<{ id: string; code: string; name: string }>
+}
+
+export interface UseCaseCoverageListResponse {
+  items: UseCaseCoverageItem[]
+  page: { limit: number; offset: number; total: number }
+  generatedAt: string
+}
+
+export interface ImplementationCoverageItem {
+  functionId: string
+  code: string
+  title: string
+  screenCount: number
+  apiCount: number
+  componentCount: number
+  entityCount: number
+  taskCount: number
+  coverageStatus: string
+  nextAction: string
+  screens: Array<{ id: string; code: string; name: string }>
+  apis: Array<{ id: string; code: string; name: string }>
+}
+
+export interface ImplementationCoverageListResponse {
+  items: ImplementationCoverageItem[]
+  page: { limit: number; offset: number; total: number }
+  generatedAt: string
+}
+
+export interface NfrVerificationItem {
+  requirementId: string
+  code: string
+  title: string
+  qualityAttribute?: string | null
+  targetCount: number
+  verificationCaseCount: number
+  latestMeasurement?: string | null
+  latestResult?: string | null
+  coverageStatus: string
+  nextAction: string
+}
+
+export interface NfrVerificationListResponse {
+  items: NfrVerificationItem[]
+  page: { limit: number; offset: number; total: number }
+  generatedAt: string
+}
+
+export interface TraceExplorerNode {
+  id: string
+  objectType: string
+  code?: string | null
+  name: string
+  status?: string | null
+  latestResult?: string | null
+  children: TraceExplorerNode[]
+}
+
+export interface TraceExplorerResponse {
+  rootType: string
+  rootId: string
+  root: TraceExplorerNode
+  generatedAt: string
+}
+
+export interface CoverageListQuery {
+  q?: string
+  coverageStatus?: string
+  limit?: number
+  offset?: number
 }

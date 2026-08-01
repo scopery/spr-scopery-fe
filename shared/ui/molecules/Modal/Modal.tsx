@@ -185,6 +185,7 @@ export const Modal = React.forwardRef(
                     {actions.map((action, index) => (
                       <Button
                         key={index}
+                        type="button"
                         variant={action.variant || 'primary'}
                         tone={action.tone}
                         disabled={action.disabled}

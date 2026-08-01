@@ -1,17 +1,20 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { Button } from '@/shared/ui'
+import { AnchoredMenu, Button, anchoredMenuItemClassName } from '@/shared/ui'
+import type { BulkJobResponse } from '@/shared/lib/bulkJobs'
 import { cn } from '@/utils/cn'
 import type { CreateRequirementPayload } from '../model/requirements'
 import { CreateRequirementModal } from './CreateRequirementModal'
 import { RequirementBulkAddModal } from './RequirementBulkAddModal'
+import { RequirementJsonImportModal } from './RequirementJsonImportModal'
 
-type AddMode = 'single' | 'bulk'
+type AddMode = 'single' | 'bulk' | 'json'
 
 interface RequirementAddBarProps {
   onCreate: (body: CreateRequirementPayload, opts?: { quiet?: boolean }) => Promise<unknown>
+  onSubmitBulk: (items: CreateRequirementPayload[]) => Promise<BulkJobResponse>
   onBatchComplete?: () => Promise<void> | void
   /** Called after a successful single create with the new id if available. */
   onCreated?: (id: string | null) => void
@@ -20,32 +23,23 @@ interface RequirementAddBarProps {
 
 export function RequirementAddBar({
   onCreate,
+  onSubmitBulk,
   onBatchComplete,
   onCreated,
   className,
 }: RequirementAddBarProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [mode, setMode] = useState<AddMode | null>(null)
-  const rootRef = useRef<HTMLDivElement>(null)
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const closeMenu = useCallback(() => setMenuOpen(false), [])
 
-  useEffect(() => {
-    if (!menuOpen) return
-    const onPointer = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setMenuOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false)
-    }
-    document.addEventListener('mousedown', onPointer)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onPointer)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [menuOpen])
+  const pick = (next: AddMode) => {
+    setMenuOpen(false)
+    setMode(next)
+  }
 
   return (
-    <div ref={rootRef} className={cn('relative', className)}>
+    <div ref={anchorRef} className={cn('relative', className)}>
       <Button
         size="sm"
         variant="secondary"
@@ -60,35 +54,17 @@ export function RequirementAddBar({
         />
       </Button>
 
-      {menuOpen ? (
-        <div
-          role="menu"
-          className="absolute right-0 top-full z-20 mt-1 min-w-[180px] border border-neutral-200 bg-white py-1 shadow-md"
-        >
-          <button
-            type="button"
-            role="menuitem"
-            className="block w-full px-3 py-2 text-left text-sm text-neutral-800 hover:bg-neutral-50"
-            onClick={() => {
-              setMenuOpen(false)
-              setMode('single')
-            }}
-          >
-            Single add
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            className="block w-full px-3 py-2 text-left text-sm text-neutral-800 hover:bg-neutral-50"
-            onClick={() => {
-              setMenuOpen(false)
-              setMode('bulk')
-            }}
-          >
-            Bulk add
-          </button>
-        </div>
-      ) : null}
+      <AnchoredMenu open={menuOpen} onClose={closeMenu} anchorRef={anchorRef}>
+        <button type="button" role="menuitem" className={anchoredMenuItemClassName} onClick={() => pick('single')}>
+          Single add
+        </button>
+        <button type="button" role="menuitem" className={anchoredMenuItemClassName} onClick={() => pick('bulk')}>
+          Bulk add
+        </button>
+        <button type="button" role="menuitem" className={anchoredMenuItemClassName} onClick={() => pick('json')}>
+          JSON import
+        </button>
+      </AnchoredMenu>
 
       <CreateRequirementModal
         open={mode === 'single'}
@@ -106,12 +82,17 @@ export function RequirementAddBar({
       <RequirementBulkAddModal
         open={mode === 'bulk'}
         onClose={() => setMode(null)}
-        onCreate={async (body) => {
-          await onCreate(body, { quiet: true })
-        }}
+        onSubmitBulk={onSubmitBulk}
         onBatchComplete={async () => {
           await onBatchComplete?.()
         }}
+      />
+
+      <RequirementJsonImportModal
+        open={mode === 'json'}
+        onClose={() => setMode(null)}
+        onSubmitBulk={onSubmitBulk}
+        onBatchComplete={onBatchComplete}
       />
     </div>
   )

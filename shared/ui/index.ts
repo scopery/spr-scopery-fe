@@ -186,6 +186,22 @@ export type {
 export { LongRunningJobPanel } from './molecules/LongRunningJobPanel'
 export type { LongRunningJobPanelProps } from './molecules/LongRunningJobPanel'
 
+export { BulkJobProgressPanel } from './molecules/BulkJobProgressPanel'
+export type { BulkJobProgressPanelProps } from './molecules/BulkJobProgressPanel'
+
+export { BulkImportFormatHelp } from './molecules/BulkImportFormatHelp'
+export type { BulkImportFormatHelpProps } from './molecules/BulkImportFormatHelp'
+export { JsonImportModal } from './molecules/JsonImportModal'
+export type {
+  JsonImportModalProps,
+  JsonImportResult,
+  JsonImportSubmitContext,
+} from './molecules/JsonImportModal'
+
+
+export { AnchoredMenu, anchoredMenuItemClassName } from './molecules/AnchoredMenu'
+export type { AnchoredMenuProps } from './molecules/AnchoredMenu'
+
 export { ClassificationBadge, ClassificationLevel } from './atoms/ClassificationBadge'
 export type {
   ClassificationBadgeProps,

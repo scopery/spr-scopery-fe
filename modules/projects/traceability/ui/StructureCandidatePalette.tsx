@@ -298,7 +298,7 @@ export function StructureCandidatePalette({
         className="min-h-0 flex-1 overflow-y-auto p-2"
         onMouseLeave={() => setPreview(null)}
       >
-        {loading ? (
+        {loading && visibleGroups.length === 0 ? (
           <Typography variant="small" tone="muted" className="p-2">
             Loading candidates…
           </Typography>

@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { Button } from '@/shared/ui'
+import { AnchoredMenu, Button, anchoredMenuItemClassName } from '@/shared/ui'
+import type { BulkJobResponse } from '@/shared/lib/bulkJobs'
 import { cn } from '@/utils/cn'
 import {
   FunctionalCatalogBulkAddModal,
@@ -10,48 +11,40 @@ import {
   type FunctionalCatalogBulkCreateInput,
 } from './FunctionalCatalogBulkAddModal'
 import { FunctionalCatalogSingleAddModal } from './FunctionalCatalogSingleAddModal'
+import { FunctionalCatalogJsonImportModal } from './FunctionalCatalogJsonImportModal'
 
-type AddMode = 'single' | 'bulk'
+type AddMode = 'single' | 'bulk' | 'json'
 
 interface FunctionalCatalogAddBarProps {
   /** Prefer opening a specific kind (e.g. current tab). */
   defaultKind?: FunctionalCatalogAddKind
   /** Create one item without list refresh (batch/single complete handler refreshes). */
   onCreate: (input: FunctionalCatalogBulkCreateInput) => Promise<void>
+  onSubmitBulk: (items: FunctionalCatalogBulkCreateInput[]) => Promise<BulkJobResponse>
   onBatchComplete?: (kind: FunctionalCatalogAddKind) => Promise<void> | void
 }
 
 export function FunctionalCatalogAddBar({
   defaultKind = 'FR',
   onCreate,
+  onSubmitBulk,
   onBatchComplete,
 }: FunctionalCatalogAddBarProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [modal, setModal] = useState<{ kind: FunctionalCatalogAddKind; mode: AddMode } | null>(
     null
   )
-  const rootRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!menuOpen) return
-    const onPointer = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setMenuOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false)
-    }
-    document.addEventListener('mousedown', onPointer)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onPointer)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [menuOpen])
-
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const closeMenu = useCallback(() => setMenuOpen(false), [])
   const kindLabel = defaultKind === 'FR' ? 'FR' : 'NFR'
 
+  const pick = (mode: AddMode) => {
+    setMenuOpen(false)
+    setModal({ kind: defaultKind, mode })
+  }
+
   return (
-    <div ref={rootRef} className="relative flex justify-end">
+    <div ref={anchorRef} className="relative flex justify-end">
       <Button
         size="sm"
         variant="secondary"
@@ -66,35 +59,17 @@ export function FunctionalCatalogAddBar({
         />
       </Button>
 
-      {menuOpen ? (
-        <div
-          role="menu"
-          className="absolute right-0 top-full z-20 mt-1 min-w-[180px] border border-neutral-200 bg-white py-1 shadow-md"
-        >
-          <button
-            type="button"
-            role="menuitem"
-            className="block w-full px-3 py-2 text-left text-sm text-neutral-800 hover:bg-neutral-50"
-            onClick={() => {
-              setMenuOpen(false)
-              setModal({ kind: defaultKind, mode: 'single' })
-            }}
-          >
-            Single add
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            className="block w-full px-3 py-2 text-left text-sm text-neutral-800 hover:bg-neutral-50"
-            onClick={() => {
-              setMenuOpen(false)
-              setModal({ kind: defaultKind, mode: 'bulk' })
-            }}
-          >
-            Bulk add
-          </button>
-        </div>
-      ) : null}
+      <AnchoredMenu open={menuOpen} onClose={closeMenu} anchorRef={anchorRef}>
+        <button type="button" role="menuitem" className={anchoredMenuItemClassName} onClick={() => pick('single')}>
+          Single add
+        </button>
+        <button type="button" role="menuitem" className={anchoredMenuItemClassName} onClick={() => pick('bulk')}>
+          Bulk add
+        </button>
+        <button type="button" role="menuitem" className={anchoredMenuItemClassName} onClick={() => pick('json')}>
+          JSON import
+        </button>
+      </AnchoredMenu>
 
       {modal?.mode === 'single' ? (
         <FunctionalCatalogSingleAddModal
@@ -113,12 +88,22 @@ export function FunctionalCatalogAddBar({
           open
           kind={modal.kind}
           onClose={() => setModal(null)}
-          onCreate={onCreate}
+          onSubmitBulk={onSubmitBulk}
           onBatchComplete={async () => {
             await onBatchComplete?.(modal.kind)
           }}
         />
       ) : null}
+
+      <FunctionalCatalogJsonImportModal
+        open={modal?.mode === 'json'}
+        kind={modal?.kind ?? defaultKind}
+        onClose={() => setModal(null)}
+        onSubmitBulk={onSubmitBulk}
+        onBatchComplete={async () => {
+          await onBatchComplete?.(modal?.kind ?? defaultKind)
+        }}
+      />
     </div>
   )
 }

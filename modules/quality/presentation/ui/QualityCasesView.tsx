@@ -6,7 +6,6 @@ import { ClipboardPaste, Plus, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, Input, PageSkeleton, Select, Typography } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
-import { UseCaseSearchSelect } from '@/modules/projects/traceability'
 import { useTestCaseCatalog } from '../hooks/useTestCaseCatalog'
 import { useVerificationCaseCatalog } from '../hooks/useVerificationCaseCatalog'
 import { useQualityAssigneePeople } from '../hooks/useQualityAssigneePeople'
@@ -20,6 +19,7 @@ import { VerificationCaseDetailDrawer } from './VerificationCaseDetailDrawer'
 import { CaseImportFlow } from './cases/CaseImportFlow'
 import { CasesGrid } from './cases/CasesGrid'
 import { QualitySingleAddModal } from './QualitySingleAddModal'
+import { TestCaseJsonImportModal } from './TestCaseJsonImportModal'
 
 type CaseTab = 'functional' | 'nfr'
 
@@ -41,7 +41,6 @@ export function QualityCasesView() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [importOpen, setImportOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
-  const [draftUseCaseId, setDraftUseCaseId] = useState('')
 
   // Hydrate filters from URL once
   useEffect(() => {
@@ -166,7 +165,7 @@ export function QualityCasesView() {
             icon={<ClipboardPaste size={14} />}
             onClick={() => setImportOpen(true)}
           >
-            Import
+            {tab === 'functional' ? 'JSON import' : 'Import'}
           </Button>
           <Button size="sm" icon={<Plus size={14} />} onClick={() => setCreateOpen(true)}>
             Add case
@@ -215,17 +214,6 @@ export function QualityCasesView() {
           options={STATUS_OPTIONS}
           className="w-40"
         />
-        {tab === 'functional' ? (
-          <div className="w-56 min-w-0 shrink-0">
-            <UseCaseSearchSelect
-              projectId={projectId}
-              value={draftUseCaseId}
-              onChange={setDraftUseCaseId}
-              label=""
-              placeholder="Use Case for quick draft"
-            />
-          </div>
-        ) : null}
       </div>
 
       {selectedIds.size > 0 && tab === 'functional' ? (
@@ -267,16 +255,12 @@ export function QualityCasesView() {
         }
         onQuickDraft={
           tab === 'functional'
-            ? async (title) => {
-                if (!draftUseCaseId) {
-                  toast.message('Select a Use Case for the quick draft first')
-                  return
-                }
+            ? async ({ title, code }) => {
                 await functional.create({
                   title,
+                  code: code || null,
                   type: 'FUNCTIONAL',
                   priority: 'MEDIUM',
-                  useCaseId: draftUseCaseId,
                 })
                 toast.success('Draft case created')
               }
@@ -303,18 +287,28 @@ export function QualityCasesView() {
         />
       ) : null}
 
-      <CaseImportFlow
-        open={importOpen}
-        caseKind={tab === 'functional' ? 'FUNCTIONAL' : 'NFR'}
-        projectId={projectId}
-        onClose={() => setImportOpen(false)}
-        onComplete={async () => {
-          setImportOpen(false)
-          if (tab === 'functional') await functional.refetch()
-          else await nfr.refetch()
-          toast.success('Import completed')
-        }}
-      />
+      {tab === 'functional' ? (
+        <TestCaseJsonImportModal
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+          onComplete={async () => {
+            setImportOpen(false)
+            await functional.refetch()
+          }}
+        />
+      ) : (
+        <CaseImportFlow
+          open={importOpen}
+          caseKind="NFR"
+          projectId={projectId}
+          onClose={() => setImportOpen(false)}
+          onComplete={async () => {
+            setImportOpen(false)
+            await nfr.refetch()
+            toast.success('Import completed')
+          }}
+        />
+      )}
 
       <QualitySingleAddModal
         open={createOpen}

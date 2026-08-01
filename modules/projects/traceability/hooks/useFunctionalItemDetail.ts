@@ -6,18 +6,14 @@ import type {
   AddFunctionalItemAnchorBody,
   BusinessRule,
   CreateBusinessRuleBody,
-  CreateCustomPropertyBody,
   FunctionalItemAnchor,
-  FunctionalItemCustomProperty,
   UpdateBusinessRuleBody,
-  UpdateCustomPropertyBody,
 } from '../model/functional-catalog'
 
 export function useFunctionalItemDetail(
   projectId: string | null,
   functionalItemId: string | null
 ) {
-  const [properties, setProperties] = useState<FunctionalItemCustomProperty[]>([])
   const [rules, setRules] = useState<BusinessRule[]>([])
   const [anchors, setAnchors] = useState<FunctionalItemAnchor[]>([])
   const [loading, setLoading] = useState(false)
@@ -25,7 +21,6 @@ export function useFunctionalItemDetail(
 
   const load = useCallback(async () => {
     if (!projectId || !functionalItemId) {
-      setProperties([])
       setRules([])
       setAnchors([])
       return
@@ -33,12 +28,10 @@ export function useFunctionalItemDetail(
     setLoading(true)
     setError(null)
     try {
-      const [propsRes, rulesRes, anchorsRes] = await Promise.all([
-        api.listCustomProperties(projectId, functionalItemId),
+      const [rulesRes, anchorsRes] = await Promise.all([
         api.listBusinessRules(projectId, functionalItemId),
         api.listAnchors(projectId, functionalItemId),
       ])
-      setProperties(propsRes.items ?? [])
       setRules(rulesRes.items ?? [])
       setAnchors(anchorsRes.items ?? [])
     } catch (err) {
@@ -51,42 +44,6 @@ export function useFunctionalItemDetail(
   useEffect(() => {
     void load()
   }, [load])
-
-  const addProperty = useCallback(
-    async (body: CreateCustomPropertyBody) => {
-      if (!projectId || !functionalItemId) return
-      await api.createCustomProperty(projectId, functionalItemId, body)
-      await load()
-    },
-    [projectId, functionalItemId, load]
-  )
-
-  const bulkAddProperties = useCallback(
-    async (items: CreateCustomPropertyBody[]) => {
-      if (!projectId || !functionalItemId || items.length === 0) return
-      await api.bulkCreateCustomProperties(projectId, functionalItemId, items)
-      await load()
-    },
-    [projectId, functionalItemId, load]
-  )
-
-  const updateProperty = useCallback(
-    async (id: string, body: UpdateCustomPropertyBody) => {
-      if (!projectId || !functionalItemId) return
-      await api.updateCustomProperty(projectId, functionalItemId, id, body)
-      await load()
-    },
-    [projectId, functionalItemId, load]
-  )
-
-  const removeProperty = useCallback(
-    async (id: string) => {
-      if (!projectId || !functionalItemId) return
-      await api.deleteCustomProperty(projectId, functionalItemId, id)
-      await load()
-    },
-    [projectId, functionalItemId, load]
-  )
 
   const addRule = useCallback(
     async (body: CreateBusinessRuleBody) => {
@@ -134,16 +91,11 @@ export function useFunctionalItemDetail(
   )
 
   return {
-    properties,
     rules,
     anchors,
     loading,
     error,
     refetch: load,
-    addProperty,
-    bulkAddProperties,
-    updateProperty,
-    removeProperty,
     addRule,
     updateRule,
     removeRule,

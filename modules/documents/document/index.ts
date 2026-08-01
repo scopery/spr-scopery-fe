@@ -34,6 +34,13 @@ export {
   snippet,
 } from './model/document'
 export {
+  DocumentIconGroup,
+  getDocumentIconGroup,
+  getDocumentFileIcon,
+  listDocumentTypesInIconGroup,
+} from './model/document-icon-groups'
+export type { DocumentFileIconSpec } from './model/document-icon-groups'
+export {
   getDocument,
   updateDocument,
   archiveDocument,

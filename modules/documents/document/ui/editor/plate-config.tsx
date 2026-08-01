@@ -1,6 +1,6 @@
 'use client'
 
-import { KEYS } from 'platejs'
+import { ExitBreakPlugin, KEYS } from 'platejs'
 import {
   BasicBlocksPlugin,
   BasicMarksPlugin,
@@ -58,6 +58,7 @@ import {
   LegacyTextHighlightPlugin,
 } from './TextHighlightPlugin'
 import { ChunkedPastePlugin } from './ChunkedPastePlugin'
+import { TableKeyboardPlugin } from './TableKeyboardPlugin'
 
 export { emptyPlateValue } from './empty-plate-value'
 
@@ -134,6 +135,13 @@ function buildEditorPlugins() {
     TableRowPlugin.withComponent(TableRowElement),
     TableCellPlugin.withComponent(TableCellElement),
     TableCellHeaderPlugin.withComponent(TableHeaderCellElement),
+    TableKeyboardPlugin,
+    ExitBreakPlugin.configure({
+      shortcuts: {
+        insert: { keys: 'mod+enter' },
+        insertBefore: { keys: 'mod+shift+enter' },
+      },
+    }),
     ResourceMentionPlugin,
     SyncedBlockPlugin,
     // Last so it wraps Plate's parser insertData / insertFragment

@@ -1,4 +1,5 @@
 import { apiClient } from '@/shared/lib/apiClient'
+import { assertBulkItemCount, type BulkJobResponse } from '@/shared/lib/bulkJobs'
 import { normalizeItemList, type ListPayload } from '@/shared/lib/normalizeListResponse'
 import { QUALITY_ENDPOINTS } from './endpoints'
 import type {
@@ -176,6 +177,14 @@ export async function createTestCase(
   body: CreateTestCasePayload
 ): Promise<TestCase> {
   return apiClient.post(QUALITY_ENDPOINTS.testCases(projectId), body)
+}
+
+export async function submitTestCasesBulk(
+  projectId: string,
+  items: CreateTestCasePayload[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(QUALITY_ENDPOINTS.testCasesBulk(projectId), { items }, { skipGlobalLoading: true })
 }
 
 export async function getTestCase(projectId: string, testCaseId: string): Promise<TestCaseDetail> {

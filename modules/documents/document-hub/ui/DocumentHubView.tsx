@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import { ArrowRight } from 'lucide-react'
 
 import { Button, Modal, Select, Typography } from '@/shared/ui'
-import { DocumentHubHeader, type DocumentHubViewMode } from './DocumentHubHeader'
+import { DocumentHubHeader } from './DocumentHubHeader'
 import { DocumentHubSelectionBar } from './DocumentHubSelectionBar'
 import { DocumentHubFilters } from './DocumentHubFilters'
 import { DocumentHubDocumentList } from './DocumentHubDocumentList'
@@ -41,7 +40,6 @@ export function DocumentHubView({
     canCreateDocument,
     canCreateFromTemplate,
   })
-  const [viewMode, setViewMode] = useState<DocumentHubViewMode>('grid')
 
   return (
     <div className="space-y-5">
@@ -52,8 +50,6 @@ export function DocumentHubView({
         selectedCount={hub.selectedIds.size}
         totalCount={hub.totalCount}
         deliverableLoading={hub.deliverableLoading}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
         onCreate={hub.openCreateFlow}
         onExport={() => hub.setExportOpen(true)}
         onDeliverable={() => void hub.openDeliverableFlow()}
@@ -96,7 +92,6 @@ export function DocumentHubView({
         orgId={orgId}
         items={hub.items}
         loading={hub.loading}
-        viewMode={viewMode}
         canCreateDocument={!!canCreateDocument}
         canExportDocuments={canExportDocuments}
         canRestoreDocument={canRestoreDocument}
@@ -155,7 +150,6 @@ export function DocumentHubView({
           open={hub.createOpen}
           onClose={() => hub.setCreateOpen(false)}
           onSuccess={hub.handleCreateSuccess}
-          canCreateFromTemplate={canCreateFromTemplate}
         />
       )}
 

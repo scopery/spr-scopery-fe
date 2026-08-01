@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
@@ -14,6 +14,8 @@ import type {
 } from '../model/architecture-workbench'
 import { ArchitectureCatalogTable } from './ArchitectureCatalogTable'
 import { CatalogAddBar } from './CatalogAddBar'
+import type { CatalogAddKind, CatalogBulkCreateInput } from './CatalogBulkAddModal'
+import * as traceabilityApi from '../api/traceability.api'
 import { NodeDetailInspector, type NodeEditPayload } from './NodeDetailInspector'
 import { SimpleExcelImportPanel } from './SimpleExcelImportPanel'
 import { OverallStructurePanel } from './OverallStructurePanel'
@@ -78,6 +80,66 @@ export function ApplicationWorkbenchView() {
     tab === 'browse'
   )
 
+  const handleSubmitBulk = useCallback(
+    async (kind: CatalogAddKind, items: CatalogBulkCreateInput[]) => {
+      switch (kind) {
+        case 'MODULE':
+          return traceabilityApi.submitAppModulesBulk(
+            workspaceId,
+            applicationId,
+            items.map((i) => ({
+              code: i.code,
+              name: i.name,
+              description: i.extra ?? null,
+            }))
+          )
+        case 'SCREEN':
+          return traceabilityApi.submitScreensBulk(
+            workspaceId,
+            applicationId,
+            items.map((i) => ({
+              code: i.code,
+              name: i.name,
+              routePath: i.extra ?? null,
+            }))
+          )
+        case 'API_ENDPOINT':
+          return traceabilityApi.submitApiEndpointsBulk(
+            workspaceId,
+            applicationId,
+            items.map((i) => ({
+              method: i.code.toUpperCase(),
+              pathPattern: i.name,
+              name: i.extra ?? null,
+            }))
+          )
+        case 'COMPONENT':
+          return traceabilityApi.submitAppComponentsBulk(
+            workspaceId,
+            applicationId,
+            items.map((i) => ({
+              code: i.code,
+              name: i.name,
+              componentType: i.extra ?? null,
+            }))
+          )
+        case 'DATA_ENTITY':
+          return traceabilityApi.submitDataEntitiesBulk(
+            workspaceId,
+            applicationId,
+            items.map((i) => ({
+              code: i.code,
+              name: i.name,
+              tableName: i.extra ?? null,
+            }))
+          )
+        default:
+          throw new Error(`Unsupported catalog kind: ${kind}`)
+      }
+    },
+    [workspaceId, applicationId]
+  )
+
   const architectureNodes = useMemo<ArchitectureCatalogNode[]>(() => {
     return [
       ...modules.map((m) => ({
@@ -133,10 +195,11 @@ export function ApplicationWorkbenchView() {
     return catalogNodes.find((n) => `${n.type}:${n.id}` === selectedKey) ?? null
   }, [catalogNodes, selectedKey])
 
-  // Clear selection if node was deleted
+  // Clear selection only after catalog has data and the node is truly gone
+  // (avoid wiping FUNCTION selection while related-functions reload).
   useEffect(() => {
-    if (selectedKey && !selectedNode) setSelectedKey(null)
-  }, [selectedKey, selectedNode])
+    if (selectedKey && catalogNodes.length > 0 && !selectedNode) setSelectedKey(null)
+  }, [selectedKey, selectedNode, catalogNodes.length])
 
   if (loading && !application) {
     return <PageSkeleton variant="list" className="h-full p-4" />
@@ -266,7 +329,20 @@ export function ApplicationWorkbenchView() {
             <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(260px,360px)] overflow-hidden border border-neutral-200 bg-white">
               {/* Left: catalog — independent scroll */}
               <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-neutral-200">
-                <div className="shrink-0 space-y-2 border-b border-neutral-100 px-3 py-2">
+                <div className="flex shrink-0 items-center justify-between gap-3 border-b border-neutral-100 px-3 py-2">
+                  <div className="min-w-0 flex-1">
+                    {relatedFunctionNodes.length > 0 ? (
+                      <Typography variant="caption" tone="muted">
+                        {relatedFunctionNodes.length} function
+                        {relatedFunctionNodes.length === 1 ? '' : 's'} linked to this app’s
+                        modules (all projects).
+                      </Typography>
+                    ) : modules.length > 0 ? (
+                      <Typography variant="caption" tone="muted">
+                        No functions assigned to this app’s modules yet. Map them on Structure.
+                      </Typography>
+                    ) : null}
+                  </div>
                   <CatalogAddBar
                     onCreate={async ({ kind, code, name, extra }) => {
                       const opts = { refresh: false as const }
@@ -323,19 +399,9 @@ export function ApplicationWorkbenchView() {
                           break
                       }
                     }}
+                    onSubmitBulk={handleSubmitBulk}
                     onBatchComplete={() => refetch({ silent: true })}
                   />
-                  {relatedFunctionNodes.length > 0 ? (
-                    <Typography variant="caption" tone="muted">
-                      {relatedFunctionNodes.length} function
-                      {relatedFunctionNodes.length === 1 ? '' : 's'} linked to this app’s
-                      modules (all projects).
-                    </Typography>
-                  ) : modules.length > 0 ? (
-                    <Typography variant="caption" tone="muted">
-                      No functions assigned to this app’s modules yet. Map them on Structure.
-                    </Typography>
-                  ) : null}
                 </div>
                 <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
                   <ArchitectureCatalogTable
@@ -397,23 +463,24 @@ export function ApplicationWorkbenchView() {
                   />
                 </div>
                 <Typography variant="small" tone="muted">
-                  One file, one type. Duplicate codes are skipped (409).
+                  One file → one async bulk job. Prefer Catalog Add / JSON Import when available.
                 </Typography>
 
                 {importKind === 'modules' ? (
                   <SimpleExcelImportPanel
                     title="Import modules"
                     spec={MODULE_IMPORT_SPEC}
-                    onImportRow={async (row) => {
-                      await createModule(
-                        {
+                    onSubmitBulk={(rows) =>
+                      traceabilityApi.submitAppModulesBulk(
+                        workspaceId,
+                        applicationId,
+                        rows.map((row) => ({
                           code: row.code,
                           name: row.name,
                           description: row.description || null,
-                        },
-                        { refresh: false }
+                        }))
                       )
-                    }}
+                    }
                     onComplete={() => void refetch({ silent: true })}
                   />
                 ) : null}
@@ -421,16 +488,17 @@ export function ApplicationWorkbenchView() {
                   <SimpleExcelImportPanel
                     title="Import screens"
                     spec={SCREEN_IMPORT_SPEC}
-                    onImportRow={async (row) => {
-                      await createScreen(
-                        {
+                    onSubmitBulk={(rows) =>
+                      traceabilityApi.submitScreensBulk(
+                        workspaceId,
+                        applicationId,
+                        rows.map((row) => ({
                           code: row.code,
                           name: row.name,
                           routePath: row.routePath || null,
-                        },
-                        { refresh: false }
+                        }))
                       )
-                    }}
+                    }
                     onComplete={() => void refetch({ silent: true })}
                   />
                 ) : null}
@@ -439,16 +507,17 @@ export function ApplicationWorkbenchView() {
                     title="Import API endpoints"
                     spec={API_ENDPOINT_IMPORT_SPEC}
                     uniqueKeys={['method', 'pathPattern']}
-                    onImportRow={async (row) => {
-                      await createEndpoint(
-                        {
+                    onSubmitBulk={(rows) =>
+                      traceabilityApi.submitApiEndpointsBulk(
+                        workspaceId,
+                        applicationId,
+                        rows.map((row) => ({
                           method: row.method.toUpperCase(),
                           pathPattern: row.pathPattern,
                           name: row.name || null,
-                        },
-                        { refresh: false }
+                        }))
                       )
-                    }}
+                    }
                     onComplete={() => void refetch({ silent: true })}
                   />
                 ) : null}
@@ -456,17 +525,18 @@ export function ApplicationWorkbenchView() {
                   <SimpleExcelImportPanel
                     title="Import components"
                     spec={COMPONENT_IMPORT_SPEC}
-                    onImportRow={async (row) => {
-                      await createComponent(
-                        {
+                    onSubmitBulk={(rows) =>
+                      traceabilityApi.submitAppComponentsBulk(
+                        workspaceId,
+                        applicationId,
+                        rows.map((row) => ({
                           code: row.code,
                           name: row.name,
                           componentType: row.componentType || null,
                           description: row.description || null,
-                        },
-                        { refresh: false }
+                        }))
                       )
-                    }}
+                    }
                     onComplete={() => void refetch({ silent: true })}
                   />
                 ) : null}
@@ -474,17 +544,18 @@ export function ApplicationWorkbenchView() {
                   <SimpleExcelImportPanel
                     title="Import data entities"
                     spec={DATA_ENTITY_IMPORT_SPEC}
-                    onImportRow={async (row) => {
-                      await createEntity(
-                        {
+                    onSubmitBulk={(rows) =>
+                      traceabilityApi.submitDataEntitiesBulk(
+                        workspaceId,
+                        applicationId,
+                        rows.map((row) => ({
                           code: row.code,
                           name: row.name,
                           tableName: row.tableName || null,
                           description: row.description || null,
-                        },
-                        { refresh: false }
+                        }))
                       )
-                    }}
+                    }
                     onComplete={() => void refetch({ silent: true })}
                   />
                 ) : null}

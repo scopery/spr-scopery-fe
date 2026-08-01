@@ -1,9 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { ConfirmDialog, Modal, SearchableSelect, Textarea } from '@/shared/ui'
+import { toast } from 'sonner'
+import { ConfirmDialog, Modal, SearchableSelect } from '@/shared/ui'
 import { cn } from '@/utils/cn'
+import { useUseCaseFlowScope } from '../hooks/useUseCaseFlowScope'
+import { parseFlowContent } from '../model/flow-mention'
 import { UseCaseFlowType } from '../model/use-case'
 import type {
   AddFlowStepBody,
@@ -12,6 +15,8 @@ import type {
   UseCaseFlow,
   UseCaseFlowStep,
 } from '../model/use-case'
+import { FlowMentionInput } from './FlowMentionInput'
+import { FlowMentionReadonly } from './FlowMentionReadonly'
 
 const FLOW_TYPE_LABELS: Record<string, string> = {
   [UseCaseFlowType.Main]: 'Main Flow',
@@ -38,13 +43,44 @@ interface StepModalProps {
   open: boolean
   initial?: UseCaseFlowStep | null
   saving: boolean
-  onSave: (stepType: string, contentJson: string | null) => Promise<void>
+  hasFunction: boolean
+  hasScreens: boolean
+  functionLabel: string | null
+  screenOptions: Array<{ value: string; label: string }>
+  listMentionOptions: ReturnType<typeof useUseCaseFlowScope>['listMentionOptions']
+  onSave: (
+    stepType: string,
+    contentJson: string | null,
+    screenContextId: string | null
+  ) => Promise<void>
   onClose: () => void
 }
 
-function StepModal({ open, initial, saving, onSave, onClose }: StepModalProps) {
+function StepModal({
+  open,
+  initial,
+  saving,
+  hasFunction,
+  hasScreens,
+  functionLabel,
+  screenOptions,
+  listMentionOptions,
+  onSave,
+  onClose,
+}: StepModalProps) {
   const [stepType, setStepType] = useState(initial?.stepType ?? 'USER_ACTION')
   const [contentJson, setContentJson] = useState(initial?.contentJson ?? '')
+  const [screenContextId, setScreenContextId] = useState(initial?.screenContextId ?? '')
+
+  useEffect(() => {
+    if (!open) return
+    setStepType(initial?.stepType ?? 'USER_ACTION')
+    setContentJson(initial?.contentJson ?? '')
+    setScreenContextId(initial?.screenContextId ?? '')
+  }, [open, initial])
+
+  const structuredMentionsBlocked = !hasFunction
+  const screenPickerDisabled = !hasFunction || !hasScreens
 
   return (
     <Modal
@@ -56,7 +92,8 @@ function StepModal({ open, initial, saving, onSave, onClose }: StepModalProps) {
         { label: 'Cancel', onClick: onClose, variant: 'ghost' },
         {
           label: saving ? 'Saving…' : initial ? 'Save' : 'Add step',
-          onClick: () => void onSave(stepType, contentJson || null),
+          onClick: () =>
+            void onSave(stepType, contentJson || null, screenContextId || null),
           variant: 'primary',
           disabled: saving,
           loading: saving,
@@ -64,6 +101,18 @@ function StepModal({ open, initial, saving, onSave, onClose }: StepModalProps) {
       ]}
     >
       <div className="space-y-4">
+        {!hasFunction ? (
+          <div className="border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            Link a primary Function to enable Screen Context and @mentions. You can still save plain
+            text steps.
+          </div>
+        ) : !hasScreens ? (
+          <div className="border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            Function {functionLabel ?? ''} has no linked Screens yet. Link Screens on the Function
+            before setting Screen Context. @mentions for APIs/Entities remain available.
+          </div>
+        ) : null}
+
         <div>
           <p className="mb-1.5 text-xs text-neutral-500">Step type</p>
           <SearchableSelect
@@ -72,15 +121,45 @@ function StepModal({ open, initial, saving, onSave, onClose }: StepModalProps) {
             onValueChange={setStepType}
           />
         </div>
+
+        <div>
+          <p className="mb-1.5 text-xs text-neutral-500">Screen Context</p>
+          <SearchableSelect
+            options={[
+              { value: '', label: '— None —' },
+              ...screenOptions,
+            ]}
+            value={screenContextId}
+            onValueChange={setScreenContextId}
+            disabled={screenPickerDisabled}
+            placeholder={
+              !hasFunction
+                ? 'Requires primary Function'
+                : !hasScreens
+                  ? 'No Screens linked to Function'
+                  : 'Select screen…'
+            }
+          />
+        </div>
+
         <div>
           <p className="mb-1.5 text-xs text-neutral-500">Content</p>
-          <Textarea
-            rows={3}
-            placeholder="Describe this step…"
-            value={contentJson}
-            onChange={(e) => setContentJson(e.target.value)}
-            fullWidth
-          />
+          {structuredMentionsBlocked ? (
+            <textarea
+              rows={3}
+              placeholder="Describe this step…"
+              value={contentJson}
+              onChange={(e) => setContentJson(e.target.value)}
+              className="w-full border border-neutral-200 px-2 py-2 text-sm outline-none focus:border-primary"
+            />
+          ) : (
+            <FlowMentionInput
+              value={contentJson}
+              screenContextId={screenContextId || null}
+              listMentionOptions={listMentionOptions}
+              onChange={setContentJson}
+            />
+          )}
         </div>
       </div>
     </Modal>
@@ -88,6 +167,8 @@ function StepModal({ open, initial, saving, onSave, onClose }: StepModalProps) {
 }
 
 interface Props {
+  projectId: string
+  useCaseId: string
   flow: UseCaseFlow
   onUpdateFlow: (name: string | null, conditionText: string | null) => Promise<void>
   onDeleteFlow: () => Promise<void>
@@ -98,6 +179,8 @@ interface Props {
 }
 
 export function UseCaseFlowEditor({
+  projectId,
+  useCaseId,
   flow,
   onDeleteFlow,
   onAddStep,
@@ -105,11 +188,23 @@ export function UseCaseFlowEditor({
   onDeleteStep,
   onReorderSteps,
 }: Props) {
+  const { scope, hasFunction, hasScreens, listMentionOptions } = useUseCaseFlowScope(
+    projectId,
+    useCaseId
+  )
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingStep, setEditingStep] = useState<UseCaseFlowStep | null>(null)
   const [modalSaving, setModalSaving] = useState(false)
+
+  const screenOptions =
+    scope?.screens.map((s) => ({
+      value: s.id,
+      label: s.code ? `${s.code} — ${s.name}` : s.name,
+    })) ?? []
+
+  const screenNameById = new Map(scope?.screens.map((s) => [s.id, s.name]) ?? [])
 
   const openAdd = () => {
     setEditingStep(null)
@@ -126,26 +221,33 @@ export function UseCaseFlowEditor({
     setEditingStep(null)
   }
 
-  const handleSave = async (stepType: string, contentJson: string | null) => {
+  const handleSave = async (
+    stepType: string,
+    contentJson: string | null,
+    screenContextId: string | null
+  ) => {
     setModalSaving(true)
     try {
       if (editingStep) {
         await onUpdateStep(editingStep.id, {
           stepType,
           contentJson,
-          screenContextId: editingStep.screenContextId ?? null,
+          screenContextId,
           nextScreenId: editingStep.nextScreenId ?? null,
         })
+        toast.success('Step updated')
       } else {
         await onAddStep({
           stepType,
           contentJson,
-          screenContextId: null,
-          nextScreenId: null,
+          screenContextId,
           displayOrder: flow.steps.length,
         })
+        toast.success('Step added')
       }
       closeModal()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save step')
     } finally {
       setModalSaving(false)
     }
@@ -157,6 +259,10 @@ export function UseCaseFlowEditor({
     reordered.splice(toIndex, 0, moved)
     await onReorderSteps({ stepIds: reordered.map((s) => s.id) })
   }
+
+  const functionLabel = scope?.function
+    ? `${scope.function.code} ${scope.function.name}`.trim()
+    : null
 
   return (
     <div className="bg-white">
@@ -197,58 +303,66 @@ export function UseCaseFlowEditor({
         {flow.steps.length === 0 ? (
           <p className="py-4 text-center text-sm text-neutral-400">No steps yet.</p>
         ) : (
-          flow.steps.map((step, idx) => (
-            <div
-              key={step.id}
-              className="flex items-start gap-2 border border-neutral-100 bg-white p-3"
-            >
-              <div className="flex w-6 shrink-0 items-center justify-center bg-neutral-100 text-xs font-semibold text-neutral-600">
-                {idx + 1}
+          flow.steps.map((step, idx) => {
+            const hasContent = parseFlowContent(step.contentJson).content.length > 0
+            const screenLabel = step.screenContextId
+              ? screenNameById.get(step.screenContextId)
+              : null
+            return (
+              <div
+                key={step.id}
+                className="flex items-start gap-2 border border-neutral-100 bg-white p-3"
+              >
+                <div className="flex w-6 shrink-0 items-center justify-center bg-neutral-100 text-xs font-semibold text-neutral-600">
+                  {idx + 1}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-xs font-medium text-neutral-900 underline">
+                    {STEP_TYPE_OPTIONS.find((o) => o.value === step.stepType)?.label ??
+                      step.stepType}
+                  </span>
+                  {screenLabel ? (
+                    <p className="mt-0.5 text-[11px] text-neutral-400">Screen: {screenLabel}</p>
+                  ) : null}
+                  {hasContent ? <FlowMentionReadonly contentJson={step.contentJson} /> : null}
+                </div>
+                <div className="flex shrink-0 gap-1">
+                  <button
+                    onClick={() => void moveStep(idx, idx - 1)}
+                    disabled={idx === 0}
+                    className={cn(
+                      'p-1 text-neutral-400 hover:text-neutral-700',
+                      idx === 0 && 'cursor-not-allowed opacity-30'
+                    )}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => void moveStep(idx, idx + 1)}
+                    disabled={idx === flow.steps.length - 1}
+                    className={cn(
+                      'p-1 text-neutral-400 hover:text-neutral-700',
+                      idx === flow.steps.length - 1 && 'cursor-not-allowed opacity-30'
+                    )}
+                  >
+                    ↓
+                  </button>
+                  <button
+                    onClick={() => openEdit(step)}
+                    className="p-1 text-neutral-400 hover:text-neutral-700"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    onClick={() => void onDeleteStep(step.id)}
+                    className="p-1 text-red-400 hover:text-red-600"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <span className="text-xs font-medium text-neutral-900 underline">
-                  {STEP_TYPE_OPTIONS.find((o) => o.value === step.stepType)?.label ?? step.stepType}
-                </span>
-                {step.contentJson && (
-                  <p className="mt-0.5 text-sm text-neutral-700">{step.contentJson}</p>
-                )}
-              </div>
-              <div className="flex shrink-0 gap-1">
-                <button
-                  onClick={() => moveStep(idx, idx - 1)}
-                  disabled={idx === 0}
-                  className={cn(
-                    'p-1 text-neutral-400 hover:text-neutral-700',
-                    idx === 0 && 'cursor-not-allowed opacity-30'
-                  )}
-                >
-                  ↑
-                </button>
-                <button
-                  onClick={() => moveStep(idx, idx + 1)}
-                  disabled={idx === flow.steps.length - 1}
-                  className={cn(
-                    'p-1 text-neutral-400 hover:text-neutral-700',
-                    idx === flow.steps.length - 1 && 'cursor-not-allowed opacity-30'
-                  )}
-                >
-                  ↓
-                </button>
-                <button
-                  onClick={() => openEdit(step)}
-                  className="p-1 text-neutral-400 hover:text-neutral-700"
-                >
-                  ✎
-                </button>
-                <button
-                  onClick={() => onDeleteStep(step.id)}
-                  className="p-1 text-red-400 hover:text-red-600"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
 
@@ -257,6 +371,11 @@ export function UseCaseFlowEditor({
         open={modalOpen}
         initial={editingStep}
         saving={modalSaving}
+        hasFunction={hasFunction}
+        hasScreens={hasScreens}
+        functionLabel={functionLabel}
+        screenOptions={screenOptions}
+        listMentionOptions={listMentionOptions}
         onSave={handleSave}
         onClose={closeModal}
       />

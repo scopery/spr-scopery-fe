@@ -28,16 +28,6 @@ export const FunctionalItemStatus = {
 export type FunctionalItemStatus =
   (typeof FunctionalItemStatus)[keyof typeof FunctionalItemStatus]
 
-export const CustomPropertyFieldType = {
-  Text: 'TEXT',
-  Number: 'NUMBER',
-  Date: 'DATE',
-  Boolean: 'BOOLEAN',
-  Url: 'URL',
-} as const
-export type CustomPropertyFieldType =
-  (typeof CustomPropertyFieldType)[keyof typeof CustomPropertyFieldType]
-
 export const FunctionalItemAnchorNodeType = {
   Screen: 'SCREEN',
   ApiEndpoint: 'API_ENDPOINT',
@@ -141,16 +131,6 @@ export interface BusinessRule {
   updatedAt: string
 }
 
-export interface FunctionalItemCustomProperty {
-  id: string
-  functionalItemId: string
-  propKey: string
-  propValue?: string | null
-  fieldType: string
-  createdAt: string
-  updatedAt: string
-}
-
 export interface FunctionalItemAnchor {
   id: string
   functionalItemId: string
@@ -167,6 +147,8 @@ export interface CreateFunctionalItemBody {
   priority: string
   type: string
   acceptanceCriteria?: string[] | null
+  /** Optional nested rules created with the FR (same item / transaction). */
+  businessRules?: CreateBusinessRuleBody[] | null
   workspaceId: string
   moduleId?: string | null
 }
@@ -215,17 +197,6 @@ export interface UpdateBusinessRuleBody {
   description?: string | null
   severity?: string | null
   status?: string | null
-}
-
-export interface CreateCustomPropertyBody {
-  propKey: string
-  propValue?: string | null
-  fieldType: string
-}
-
-export interface UpdateCustomPropertyBody {
-  propValue?: string | null
-  fieldType: string
 }
 
 export interface AddFunctionalItemAnchorBody {

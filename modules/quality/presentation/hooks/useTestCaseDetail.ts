@@ -36,11 +36,17 @@ export function useTestCaseDetail(projectId: string | null, testCaseId: string |
     setLoading(true)
     setError(null)
     try {
-      const [testCase, links] = await Promise.all([
+      const [testCase, links, stepPage] = await Promise.all([
         qualityApi.getTestCase(projectId, testCaseId),
         qualityApi.getTestCaseTraceability(projectId, testCaseId),
+        qualityApi.listTestCaseSteps(projectId, testCaseId).catch(() => null),
       ])
-      setDetail(testCase)
+      const stepsFromDetail = testCase.steps ?? []
+      const steps =
+        stepsFromDetail.length > 0
+          ? stepsFromDetail
+          : (stepPage?.items ?? [])
+      setDetail({ ...testCase, steps })
       setTraceability(links)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load Test Case')

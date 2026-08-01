@@ -1,24 +1,17 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { Input, Modal, SearchableSelect, Textarea, Typography } from '@/shared/ui'
+import { useEffect, useState } from 'react'
+import { Input, Modal, Textarea, Typography } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
 import type { CreateUseCaseBody } from '../model/use-case'
-import type { FunctionalItem } from '../model/functional-catalog'
 
 interface Props {
   open: boolean
-  functionalItems: FunctionalItem[]
   onClose: () => void
   onCreate: (body: CreateUseCaseBody) => Promise<unknown>
 }
 
-export function UseCaseSingleAddModal({ open, functionalItems, onClose, onCreate }: Props) {
-  const functionOptions = useMemo(
-    () => functionalItems.map((fi) => ({ value: fi.id, label: `${fi.code} · ${fi.title}` })),
-    [functionalItems]
-  )
-  const [functionId, setFunctionId] = useState('')
+export function UseCaseSingleAddModal({ open, onClose, onCreate }: Props) {
   const [key, setKey] = useState('')
   const [name, setName] = useState('')
   const [actor, setActor] = useState('')
@@ -28,27 +21,25 @@ export function UseCaseSingleAddModal({ open, functionalItems, onClose, onCreate
 
   useEffect(() => {
     if (!open) return
-    setFunctionId(functionalItems[0]?.id ?? '')
     setKey('')
     setName('')
     setActor('')
     setGoal('')
     setSubmitting(false)
     setError(null)
-  }, [open, functionalItems])
+  }, [open])
 
   const handleSubmit = async () => {
     const k = key.trim()
     const n = name.trim()
-    if (!functionId || !k || !n) {
-      setError('Function, key, and name are required')
+    if (!k || !n) {
+      setError('Key and name are required')
       return
     }
     setSubmitting(true)
     setError(null)
     try {
       await onCreate({
-        primaryFunctionId: functionId,
         key: k,
         name: n,
         goal: goal.trim() || null,
@@ -80,23 +71,15 @@ export function UseCaseSingleAddModal({ open, functionalItems, onClose, onCreate
           label: submitting ? 'Creating…' : 'Create',
           onClick: () => void handleSubmit(),
           variant: 'primary',
-          disabled: submitting || !functionId || !key.trim() || !name.trim(),
+          disabled: submitting || !key.trim() || !name.trim(),
           loading: submitting,
         },
       ]}
     >
       <div className="space-y-3">
-        <div>
-          <Typography variant="small" className="mb-1.5">
-            Function <span className="text-red-500">*</span>
-          </Typography>
-          <SearchableSelect
-            options={functionOptions}
-            value={functionId}
-            onValueChange={setFunctionId}
-            placeholder="Select a function…"
-          />
-        </div>
+        <Typography variant="small" tone="muted">
+          Create the use case shell first. Link a primary Function later via Function → Use Case.
+        </Typography>
 
         <div className="grid grid-cols-2 gap-3">
           <Input

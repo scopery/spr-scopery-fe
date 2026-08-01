@@ -1,8 +1,13 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { Stack, Typography } from '@/shared/ui'
-import { ApiError } from '@/shared/lib/api-types'
+import {
+  BulkJobStatus,
+  pollBulkJobUntilDone,
+  type BulkJobResponse,
+} from '@/shared/lib/bulkJobs'
 import {
   parseAndValidateExcelList,
   type ExcelImportRunSummary,
@@ -16,19 +21,22 @@ interface SimpleExcelImportPanelProps {
   uniqueKeys?: string[]
   disabled?: boolean
   /**
-   * Called only after full-file validation passes.
-   * Throw / reject to mark the row as failed; throw ApiError 409 to skip.
+   * One POST …/bulk for the whole file. FE must not loop per-row creates.
    */
-  onImportRow: (row: Record<string, string>, rowNumber: number) => Promise<void>
+  onSubmitBulk: (rows: Record<string, string>[]) => Promise<BulkJobResponse>
   onComplete?: (summary: ExcelImportRunSummary) => void
 }
 
+/**
+ * Excel list import → validate file → one async bulk job → poll.
+ * Never calls create APIs in a per-row loop (rate-limit safe).
+ */
 export function SimpleExcelImportPanel({
   title = 'Import from Excel',
   spec,
   uniqueKeys,
   disabled,
-  onImportRow,
+  onSubmitBulk,
   onComplete,
 }: SimpleExcelImportPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -63,45 +71,55 @@ export function SimpleExcelImportPanel({
       return
     }
 
-    setBusy(true)
-    const results: ExcelImportRunSummary['results'] = []
-    let created = 0
-    let skipped = 0
-    let failed = 0
-
-    for (let i = 0; i < parsed.rows.length; i++) {
-      const row = parsed.rows[i]
-      const rowNumber = i + 2
-      setProgress(`Importing ${i + 1}/${parsed.rows.length}…`)
-      try {
-        await onImportRow(row, rowNumber)
-        created += 1
-        results.push({ status: 'created', row: rowNumber })
-      } catch (err: unknown) {
-        if (err instanceof ApiError && err.status === 409) {
-          skipped += 1
-          results.push({
-            status: 'skipped',
-            row: rowNumber,
-            reason: 'Already exists (409)',
-          })
-        } else {
-          failed += 1
-          results.push({
-            status: 'failed',
-            row: rowNumber,
-            reason: err instanceof Error ? err.message : 'Import failed',
-          })
-        }
-      }
+    if (parsed.rows.length === 0) {
+      setValidationErrors(['No data rows to import.'])
+      if (inputRef.current) inputRef.current.value = ''
+      return
     }
 
-    const next: ExcelImportRunSummary = { created, skipped, failed, results }
-    setSummary(next)
-    setProgress(null)
-    setBusy(false)
-    onComplete?.(next)
-    if (inputRef.current) inputRef.current.value = ''
+    setBusy(true)
+    setProgress(`Submitting ${parsed.rows.length} rows as one bulk job…`)
+    try {
+      const job = await onSubmitBulk(parsed.rows)
+      toast.message('Job accepted', { description: 'Processing in the background…' })
+      setProgress('Processing bulk job…')
+      const done = await pollBulkJobUntilDone(job.id)
+
+      const next: ExcelImportRunSummary = {
+        created: done.succeededItems,
+        skipped: 0,
+        failed: done.failedItems,
+        results: (done.failures ?? []).map((f) => ({
+          status: 'failed' as const,
+          row: f.index + 2,
+          reason: f.message || f.errorCode || 'Failed',
+        })),
+      }
+      setSummary(next)
+      onComplete?.(next)
+
+      if (done.status === BulkJobStatus.Succeeded) {
+        toast.success(
+          done.resultSummary ??
+            `Created ${done.succeededItems} item${done.succeededItems === 1 ? '' : 's'}`
+        )
+      } else if (done.status === BulkJobStatus.Partial) {
+        toast.warning(
+          done.resultSummary ??
+            `${done.succeededItems} created, ${done.failedItems} failed`
+        )
+      } else {
+        toast.error(done.errorMessage ?? done.resultSummary ?? 'Bulk import failed')
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Import failed'
+      setValidationErrors([message])
+      toast.error(message)
+    } finally {
+      setProgress(null)
+      setBusy(false)
+      if (inputRef.current) inputRef.current.value = ''
+    }
   }
 
   return (
@@ -111,6 +129,9 @@ export function SimpleExcelImportPanel({
       </Typography>
       <Typography variant="caption" tone="muted">
         {spec.instruction}
+      </Typography>
+      <Typography variant="caption" tone="muted">
+        Submits one async bulk job for the whole file (no per-row create loop).
       </Typography>
       <div>
         <input
@@ -154,7 +175,7 @@ export function SimpleExcelImportPanel({
 
       {summary ? (
         <Typography variant="small" tone="muted">
-          Done: {summary.created} created, {summary.skipped} skipped, {summary.failed} failed
+          Done: {summary.created} created, {summary.failed} failed
         </Typography>
       ) : null}
     </Stack>

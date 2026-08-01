@@ -11,13 +11,12 @@ import {
   buildLayerSteps,
   buildNfrLayerSteps,
   evaluateGaps,
-  formatImplementationSummary,
-  formatTestsCell,
   isNfrRequirement,
   primaryActionableGap,
   recommendedActionLabel,
   resolveDisplayCoverageStatus,
   type TraceabilityMatrixRow,
+  type TracePreviewObject,
 } from '../model/requirement-traceability'
 import { RequirementTraceDetailDrawer } from './RequirementTraceDetailDrawer'
 import { CoveragePath, FilterChipBar, StatusBadge } from './TraceabilityStatusBits'
@@ -37,7 +36,7 @@ function CompactCell({ text, empty }: { text: string; empty?: boolean }) {
   return (
     <span
       className={cn(
-        'line-clamp-2 text-xs',
+        'line-clamp-2 text-sm',
         empty ? 'text-neutral-400' : 'font-medium text-neutral-800'
       )}
       title={text}
@@ -45,6 +44,10 @@ function CompactCell({ text, empty }: { text: string; empty?: boolean }) {
       {text}
     </span>
   )
+}
+
+function previewLabel(item: TracePreviewObject): string {
+  return [item.code, item.name].filter(Boolean).join(' · ') || item.name || item.id
 }
 
 function matrixActionLabel(row: TraceabilityMatrixRow): string | null {
@@ -349,7 +352,7 @@ export function TraceabilityFullMatrixTab({
               },
               {
                 id: 'function',
-                header: requirementType === 'NON_FUNCTIONAL' ? 'NFR specification' : 'Function',
+                header: requirementType === 'NON_FUNCTIONAL' ? 'NFR specification' : 'Functions',
                 cell: (row) => {
                   if (isNfrRequirement(row.requirementType)) {
                     const text =
@@ -362,23 +365,22 @@ export function TraceabilityFullMatrixTab({
                       <CompactCell text={text} empty={row.nfrSpecificationConfigured === false} />
                     )
                   }
-                  const preview = row.previews.functions[0]
-                  const text =
-                    row.functionCount === 0
-                      ? '—'
-                      : preview
-                        ? `${preview.name}${
-                            row.previewMore.functions + row.previews.functions.length - 1 > 0
-                              ? ` +${row.previewMore.functions + row.previews.functions.length - 1}`
-                              : ''
-                          }`
-                        : `${row.functionCount} functions`
-                  return <CompactCell text={text} empty={row.functionCount === 0} />
+                  if (row.functionCount === 0) {
+                    return <span className="text-sm text-neutral-400">—</span>
+                  }
+                  return (
+                    <span
+                      className="text-sm font-medium tabular-nums text-neutral-800"
+                      title={row.previews.functions.map(previewLabel).join(', ')}
+                    >
+                      {row.functionCount}
+                    </span>
+                  )
                 },
               },
               {
-                id: 'useCase',
-                header: requirementType === 'NON_FUNCTIONAL' ? 'Verification target' : 'Use Case',
+                id: 'fnUc',
+                header: requirementType === 'NON_FUNCTIONAL' ? 'Verification target' : 'Function→UC',
                 cell: (row) => {
                   if (isNfrRequirement(row.requirementType)) {
                     const count = row.verificationTargetCount
@@ -393,65 +395,90 @@ export function TraceabilityFullMatrixTab({
                       />
                     )
                   }
-                  const preview = row.previews.useCases[0]
-                  const text =
-                    row.useCaseCount === 0
-                      ? '—'
-                      : preview
-                        ? `${preview.name}${
-                            row.previewMore.useCases + row.previews.useCases.length - 1 > 0
-                              ? ` +${row.previewMore.useCases + row.previews.useCases.length - 1}`
-                              : ''
-                          }`
-                        : `${row.useCaseCount} use cases`
-                  return <CompactCell text={text} empty={row.useCaseCount === 0} />
+                  if (row.functionLayerStatus === 'MISSING' || row.functionCount === 0) {
+                    return <span className="text-sm text-neutral-400">Not evaluated</span>
+                  }
+                  const covered = row.functionsCoveredByUseCase ?? 0
+                  return (
+                    <span
+                      className="text-sm tabular-nums"
+                      title={row.previews.useCases.map(previewLabel).join(', ')}
+                    >
+                      {covered}/{row.functionCount} Functions with UC
+                    </span>
+                  )
                 },
               },
               {
-                id: 'implementation',
-                header:
-                  requirementType === 'NON_FUNCTIONAL' ? 'Verification case' : 'Implementation',
-                cell: (row) =>
-                  isNfrRequirement(row.requirementType) ? (
-                    <CompactCell
-                      text={
-                        row.verificationCaseCount === undefined
-                          ? 'Open detail'
-                          : `${row.verificationCaseCount} case${row.verificationCaseCount === 1 ? '' : 's'}`
-                      }
-                      empty={row.verificationCaseCount === 0}
-                    />
-                  ) : (
-                    <CompactCell
-                      text={formatImplementationSummary(
-                        row.previews.implementation,
-                        row.implementationCount
-                      )}
-                      empty={row.implementationCount === 0}
-                    />
-                  ),
+                id: 'ucTest',
+                header: requirementType === 'NON_FUNCTIONAL' ? 'Verification case' : 'UC→Test',
+                cell: (row) => {
+                  if (isNfrRequirement(row.requirementType)) {
+                    return (
+                      <CompactCell
+                        text={
+                          row.verificationCaseCount === undefined
+                            ? 'Open detail'
+                            : `${row.verificationCaseCount} case${row.verificationCaseCount === 1 ? '' : 's'}`
+                        }
+                        empty={row.verificationCaseCount === 0}
+                      />
+                    )
+                  }
+                  if (
+                    row.testLayerStatus === 'NOT_EVALUATED' ||
+                    row.functionCount === 0 ||
+                    (row.requiresUseCaseResolved && row.useCaseCount === 0)
+                  ) {
+                    return <span className="text-sm text-neutral-400">Not evaluated</span>
+                  }
+                  const tested = row.useCasesWithTests ?? 0
+                  return (
+                    <span className="text-sm tabular-nums">
+                      {tested}/{row.useCaseCount} UCs with Test
+                    </span>
+                  )
+                },
               },
               {
-                id: 'tests',
-                header: requirementType === 'NON_FUNCTIONAL' ? 'Measured result' : 'Tests',
-                cell: (row) =>
-                  isNfrRequirement(row.requirementType) ? (
-                    <CompactCell
-                      text={
-                        row.latestVerificationResult ??
-                        (row.verificationResultCount === undefined
-                          ? 'Open detail'
-                          : `${row.verificationResultCount} result${row.verificationResultCount === 1 ? '' : 's'}`)
-                      }
-                      empty={row.verificationResultCount === 0}
-                    />
-                  ) : (
-                    <CompactCell text={formatTestsCell(row)} empty={row.testCaseCount === 0} />
-                  ),
+                id: 'execution',
+                header: requirementType === 'NON_FUNCTIONAL' ? 'Measured result' : 'Execution',
+                cell: (row) => {
+                  if (isNfrRequirement(row.requirementType)) {
+                    return (
+                      <CompactCell
+                        text={
+                          row.latestVerificationResult ??
+                          (row.verificationResultCount === undefined
+                            ? 'Open detail'
+                            : `${row.verificationResultCount} result${row.verificationResultCount === 1 ? '' : 's'}`)
+                        }
+                        empty={row.verificationResultCount === 0}
+                      />
+                    )
+                  }
+                  if (row.testCaseCount === 0) {
+                    return <span className="text-sm text-neutral-400">—</span>
+                  }
+                  const exec = row.executionSummary
+                  if (!exec) {
+                    return (
+                      <span className="text-sm text-neutral-500">{row.latestResult ?? '—'}</span>
+                    )
+                  }
+                  return (
+                    <span
+                      className="text-sm tabular-nums text-neutral-700"
+                      title={row.previews.testCases.map(previewLabel).join(', ')}
+                    >
+                      {exec.passed}P / {exec.failed}F / {exec.blocked}B / {exec.notRun}NR
+                    </span>
+                  )
+                },
               },
               {
                 id: 'coverage',
-                header: 'Coverage path',
+                header: 'Coverage',
                 cell: (row) => {
                   const isNfr = isNfrRequirement(row.requirementType)
                   const status = isNfr ? row.coverageStatus : resolveDisplayCoverageStatus(row)

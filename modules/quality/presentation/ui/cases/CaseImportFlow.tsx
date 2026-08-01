@@ -1,36 +1,39 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Button, Modal, Select, Textarea, Typography } from '@/shared/ui'
+import { toast } from 'sonner'
+import {
+  BulkImportFormatHelp,
+  Modal,
+  Textarea,
+  Typography,
+} from '@/shared/ui'
+import { stringField, tryParseBulkImportJson } from '@/shared/lib/bulkImportFormat'
+import {
+  BULK_MAX_ITEMS,
+  BulkJobStatus,
+} from '@/shared/lib/bulkJobs'
+import { useBulkJobPoller } from '@/shared/lib/useBulkJobPoller'
 import * as qualityApi from '../../../infrastructure/api/quality.api'
 import type {
   CaseKind,
   CreateTestCasePayload,
   CreateVerificationCasePayload,
 } from '../../../domain/model/quality'
+import { TEST_CASE_BULK_IMPORT_GUIDE } from '../../model/quality-bulk-import.guide'
+import {
+  validateTestCaseJsonImport,
+  type ValidatedTestCaseImportItem,
+} from '../../model/test-case-json-import.validation'
 
-type ImportStage = 'paste' | 'mapping' | 'preview'
-
-const FUNCTIONAL_COLUMNS = [
-  { key: 'code', label: 'Code' },
-  { key: 'title', label: 'Title', required: true },
-  { key: 'priority', label: 'Priority' },
-  { key: 'useCaseId', label: 'Use Case reference', required: true },
-  { key: 'type', label: 'Type' },
+/** Fixed TSV column order for NFR — no column-mapping UI. */
+const NFR_TSV_KEYS = [
+  'code',
+  'title',
+  'requirementId',
+  'verificationMethod',
+  'environment',
 ] as const
-
-const NFR_COLUMNS = [
-  { key: 'code', label: 'Code' },
-  { key: 'title', label: 'Title', required: true },
-  { key: 'requirementId', label: 'NFR / Requirement reference', required: true },
-  { key: 'verificationMethod', label: 'Method', required: true },
-  { key: 'environment', label: 'Environment' },
-] as const
-
-interface ParsedRow {
-  values: Record<string, string>
-  errors: string[]
-}
 
 function splitRows(text: string): string[][] {
   return text
@@ -39,6 +42,81 @@ function splitRows(text: string): string[][] {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => line.split('\t').map((cell) => cell.trim()))
+}
+
+function toFunctionalBulkItems(items: ValidatedTestCaseImportItem[]): CreateTestCasePayload[] {
+  return items.map((item) => ({
+    ...item.payload,
+    ...(item.steps.length > 0 ? { steps: item.steps } : {}),
+  }))
+}
+
+function parseNfrPayloads(text: string): {
+  payloads: CreateVerificationCasePayload[]
+  error: string | null
+} {
+  const jsonItems = tryParseBulkImportJson(text)
+  if (jsonItems?.length) {
+    const payloads: CreateVerificationCasePayload[] = []
+    for (let i = 0; i < jsonItems.length; i++) {
+      const item = jsonItems[i]
+      const title = stringField(item, 'title')
+      const requirementId = stringField(item, 'requirementId')
+      const verificationMethod = stringField(item, 'verificationMethod')
+      if (!title || !requirementId || !verificationMethod) {
+        return {
+          payloads: [],
+          error: `items[${i}]: title, requirementId, and verificationMethod are required`,
+        }
+      }
+      payloads.push({
+        title,
+        code: stringField(item, 'code') || null,
+        requirementId,
+        verificationMethod,
+        environment: stringField(item, 'environment') || null,
+      })
+    }
+    return { payloads, error: null }
+  }
+
+  const rows = splitRows(text)
+  if (rows.length < 2) {
+    return { payloads: [], error: 'Paste a header row plus at least one data row (TSV).' }
+  }
+
+  const header = rows[0].map((cell) => cell.toLowerCase())
+  const hasNamedHeader = NFR_TSV_KEYS.some((key) =>
+    header.some((cell) => cell.includes(key.toLowerCase()))
+  )
+
+  const indexOf = (key: string, fallback: number) => {
+    if (!hasNamedHeader) return fallback
+    const idx = header.findIndex((cell) => cell.includes(key.toLowerCase()))
+    return idx >= 0 ? idx : fallback
+  }
+
+  const payloads: CreateVerificationCasePayload[] = []
+  for (let i = 1; i < rows.length; i++) {
+    const cells = rows[i]
+    const title = cells[indexOf('title', 1)] ?? ''
+    const requirementId = cells[indexOf('requirementid', 2)] ?? ''
+    const verificationMethod = cells[indexOf('verificationmethod', 3)] ?? ''
+    if (!title || !requirementId || !verificationMethod) {
+      return {
+        payloads: [],
+        error: `Row ${i + 1}: title, requirementId, and verificationMethod are required`,
+      }
+    }
+    payloads.push({
+      title,
+      code: cells[indexOf('code', 0)] || null,
+      requirementId,
+      verificationMethod,
+      environment: cells[indexOf('environment', 4)] || null,
+    })
+  }
+  return { payloads, error: null }
 }
 
 export function CaseImportFlow({
@@ -54,126 +132,114 @@ export function CaseImportFlow({
   onClose: () => void
   onComplete: () => Promise<void>
 }) {
-  const columns = caseKind === 'FUNCTIONAL' ? FUNCTIONAL_COLUMNS : NFR_COLUMNS
-  const [stage, setStage] = useState<ImportStage>('paste')
   const [raw, setRaw] = useState('')
-  const [mapping, setMapping] = useState<Record<string, number>>({})
   const [saving, setSaving] = useState(false)
-  const [rowErrors, setRowErrors] = useState<ParsedRow[]>([])
+  const [importError, setImportError] = useState<string | null>(null)
+  const poller = useBulkJobPoller()
 
-  const matrix = useMemo(() => splitRows(raw), [raw])
-  const headerCount = matrix[0]?.length ?? 0
-
-  const columnOptions = useMemo(
-    () => [
-      { value: '-1', label: '— skip —' },
-      ...Array.from({ length: headerCount }, (_, index) => ({
-        value: String(index),
-        label: `Column ${index + 1}${matrix[0]?.[index] ? `: ${matrix[0][index]}` : ''}`,
-      })),
-    ],
-    [headerCount, matrix]
-  )
+  const canImport = useMemo(() => {
+    if (tryParseBulkImportJson(raw)?.length) return true
+    return splitRows(raw).length >= 2
+  }, [raw])
 
   const reset = () => {
-    setStage('paste')
     setRaw('')
-    setMapping({})
-    setRowErrors([])
     setSaving(false)
+    setImportError(null)
+    poller.reset()
   }
 
-  const buildRows = (): ParsedRow[] => {
-    const dataRows = matrix.slice(1)
-    return dataRows.map((cells) => {
-      const values: Record<string, string> = {}
-      const errors: string[] = []
-      for (const col of columns) {
-        const index = mapping[col.key]
-        const value = index == null || index < 0 ? '' : (cells[index] ?? '')
-        values[col.key] = value
-        if ('required' in col && col.required && !value) {
-          errors.push(`${col.label} is required`)
-        }
+  const submitFunctionalJson = async (jsonItems: Record<string, unknown>[]) => {
+    const validated = validateTestCaseJsonImport(jsonItems)
+    if (!validated.ok) {
+      setImportError(
+        validated.issues
+          .slice(0, 5)
+          .map((issue) => `${issue.path}: ${issue.message}`)
+          .join(' · ')
+      )
+      return
+    }
+    if (validated.items.length > BULK_MAX_ITEMS) {
+      setImportError(`Maximum ${BULK_MAX_ITEMS} items per bulk request.`)
+      return
+    }
+    setImportError(null)
+    setSaving(true)
+    poller.reset()
+    try {
+      const job = await qualityApi.submitTestCasesBulk(
+        projectId,
+        toFunctionalBulkItems(validated.items)
+      )
+      setSaving(false)
+      toast.message('Job accepted', { description: 'Processing in the background…' })
+      reset()
+      onClose()
+      const done = await poller.start(job.id, job)
+      if (done.succeededItems > 0) await onComplete()
+      if (done.status === BulkJobStatus.Succeeded) {
+        toast.success(
+          done.resultSummary ??
+            `Created ${done.succeededItems} test case${done.succeededItems === 1 ? '' : 's'}`
+        )
+      } else if (done.status === BulkJobStatus.Partial) {
+        toast.warning(
+          done.resultSummary ??
+            `${done.succeededItems} created, ${done.failedItems} failed. Successful items are already saved.`
+        )
+      } else {
+        toast.error(done.errorMessage ?? done.resultSummary ?? 'Bulk import failed')
       }
-      return { values, errors }
-    })
-  }
-
-  const goMapping = () => {
-    if (matrix.length < 2) return
-    const next: Record<string, number> = {}
-    columns.forEach((col, index) => {
-      next[col.key] = index < headerCount ? index : -1
-    })
-    setMapping(next)
-    setStage('mapping')
-  }
-
-  const goPreview = () => {
-    setRowErrors(buildRows())
-    setStage('preview')
-  }
-
-  const downloadErrors = () => {
-    const lines = rowErrors
-      .filter((row) => row.errors.length > 0)
-      .map((row) => `${Object.values(row.values).join('\t')}\t${row.errors.join('; ')}`)
-    const blob = new Blob([['values\terrors', ...lines].join('\n')], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'case-import-errors.csv'
-    a.click()
-    URL.revokeObjectURL(url)
+    } catch (err) {
+      setSaving(false)
+      setImportError(err instanceof Error ? err.message : 'Import failed')
+    }
   }
 
   const submit = async () => {
-    const rows = buildRows()
-    const valid = rows.filter((row) => row.errors.length === 0)
-    if (valid.length === 0) {
-      setRowErrors(rows)
+    if (caseKind === 'FUNCTIONAL') {
+      const jsonItems = tryParseBulkImportJson(raw)
+      if (!jsonItems?.length) {
+        setImportError('Paste JSON { "items": [...] } including optional steps[].')
+        return
+      }
+      await submitFunctionalJson(jsonItems)
       return
     }
+
+    const { payloads, error } = parseNfrPayloads(raw)
+    if (error) {
+      setImportError(error)
+      return
+    }
+    if (payloads.length === 0) {
+      setImportError('No valid rows to import.')
+      return
+    }
+
+    setImportError(null)
     setSaving(true)
     try {
-      if (caseKind === 'FUNCTIONAL') {
-        const payloads: CreateTestCasePayload[] = valid.map((row) => ({
-          title: row.values.title,
-          code: row.values.code || null,
-          priority: row.values.priority || 'MEDIUM',
-          type: row.values.type || 'FUNCTIONAL',
-          useCaseId: row.values.useCaseId,
-        }))
-        await qualityApi.bulkCreateTestCases(projectId, payloads)
-      } else {
-        const payloads: CreateVerificationCasePayload[] = valid.map((row) => ({
-          title: row.values.title,
-          code: row.values.code || null,
-          requirementId: row.values.requirementId,
-          verificationMethod: row.values.verificationMethod || 'MANUAL_REVIEW',
-          environment: row.values.environment || null,
-        }))
-        const batched = await qualityApi.batchCreateVerificationCases(projectId, payloads)
-        if (!batched) {
-          for (const payload of payloads) {
-            await qualityApi.createVerificationCase(projectId, payload)
-          }
-        }
-      }
-      await onComplete()
-      reset()
-    } finally {
+      const created = await qualityApi.batchCreateVerificationCases(projectId, payloads)
       setSaving(false)
+      toast.success(`Created ${created?.length ?? payloads.length} verification cases`)
+      reset()
+      onClose()
+      await onComplete()
+    } catch (err) {
+      setSaving(false)
+      setImportError(err instanceof Error ? err.message : 'Import failed')
     }
   }
 
-  if (!open) return null
+  const busy = saving || poller.isPolling
 
   return (
     <Modal
       open={open}
       onClose={() => {
+        if (busy) return
         reset()
         onClose()
       }}
@@ -187,91 +253,46 @@ export function CaseImportFlow({
             reset()
             onClose()
           },
+          disabled: busy,
         },
-        ...(stage === 'paste'
-          ? [{ label: 'Next: Map columns', onClick: goMapping, disabled: matrix.length < 2 }]
-          : []),
-        ...(stage === 'mapping'
-          ? [
-              { label: 'Back', variant: 'outline' as const, onClick: () => setStage('paste') },
-              { label: 'Next: Preview', onClick: goPreview },
-            ]
-          : []),
-        ...(stage === 'preview'
-          ? [
-              { label: 'Back', variant: 'outline' as const, onClick: () => setStage('mapping') },
-              {
-                label: saving ? 'Importing…' : 'Import valid rows',
-                onClick: () => void submit(),
-                disabled: saving,
-              },
-            ]
-          : []),
+        {
+          label: saving ? 'Submitting…' : 'Import',
+          onClick: () => void submit(),
+          disabled: !canImport || busy,
+          loading: saving,
+        },
       ]}
     >
       <div className="space-y-3">
         <Typography variant="caption" tone="muted">
-          Stage {stage === 'paste' ? '1' : stage === 'mapping' ? '2' : '3'} of 3 — paste TSV, map
-          columns, validate, then batch create.
+          {caseKind === 'FUNCTIONAL'
+            ? 'Paste full JSON — shells + optional steps[] go in one bulk request. No column mapping.'
+            : 'Paste JSON items or TSV with fixed columns (code, title, requirementId, verificationMethod, environment). No column mapping.'}
         </Typography>
 
-        {stage === 'paste' ? (
-          <Textarea
-            value={raw}
-            onChange={(e) => setRaw(e.target.value)}
-            rows={12}
-            placeholder={'code\ttitle\tpriority\tuseCaseId\nTC-1\tLogin works\tHIGH\tuc-id'}
-          />
+        {caseKind === 'FUNCTIONAL' ? (
+          <BulkImportFormatHelp guide={TEST_CASE_BULK_IMPORT_GUIDE} />
         ) : null}
 
-        {stage === 'mapping' ? (
-          <div className="grid gap-2">
-            {columns.map((col) => (
-              <div key={col.key} className="grid grid-cols-[10rem_1fr] items-center gap-2">
-                <Typography variant="small">
-                  {col.label}
-                  {'required' in col && col.required ? ' *' : ''}
-                </Typography>
-                <Select
-                  value={String(mapping[col.key] ?? -1)}
-                  options={columnOptions}
-                  onValueChange={(value: string) =>
-                    setMapping((prev) => ({ ...prev, [col.key]: Number(value) }))
-                  }
-                />
-              </div>
-            ))}
-          </div>
-        ) : null}
+        <Textarea
+          value={raw}
+          onChange={(e) => {
+            setRaw(e.target.value)
+            setImportError(null)
+          }}
+          rows={14}
+          disabled={busy}
+          placeholder={
+            caseKind === 'FUNCTIONAL'
+              ? '{\n  "items": [\n    {\n      "title": "Login works",\n      "code": "TC-1",\n      "priority": "HIGH",\n      "steps": [{ "action": "Open login", "expectedResult": "Form visible" }]\n    }\n  ]\n}'
+              : 'code\ttitle\trequirementId\tverificationMethod\tenvironment\nVC-1\tp95 latency\t<requirement-uuid>\tMANUAL_REVIEW\tstaging'
+          }
+        />
 
-        {stage === 'preview' ? (
-          <div className="space-y-2">
-            <Typography variant="small">
-              {rowErrors.filter((r) => r.errors.length === 0).length} valid ·{' '}
-              {rowErrors.filter((r) => r.errors.length > 0).length} with errors
-            </Typography>
-            {rowErrors.some((r) => r.errors.length > 0) ? (
-              <Button size="sm" variant="outline" onClick={downloadErrors}>
-                Download error rows
-              </Button>
-            ) : null}
-            <ul className="max-h-64 divide-y overflow-auto border border-neutral-200 text-sm">
-              {rowErrors.map((row, index) => (
-                <li key={index} className="px-3 py-2">
-                  <div>{Object.values(row.values).filter(Boolean).join(' · ') || '(empty)'}</div>
-                  {row.errors.length > 0 ? (
-                    <Typography variant="caption" tone="error">
-                      {row.errors.join(' · ')}
-                    </Typography>
-                  ) : (
-                    <Typography variant="caption" tone="muted">
-                      Ready
-                    </Typography>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
+        {importError ? (
+          <Typography variant="small" tone="error">
+            {importError}
+          </Typography>
         ) : null}
       </div>
     </Modal>

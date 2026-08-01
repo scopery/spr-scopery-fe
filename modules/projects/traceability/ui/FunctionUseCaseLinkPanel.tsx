@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, Checkbox, Input, Typography } from '@/shared/ui'
@@ -67,6 +67,7 @@ export function FunctionUseCaseLinkPanel({
   onChanged,
 }: FunctionUseCaseLinkPanelProps) {
   const [functionId, setFunctionId] = useState(initialFunctionId ?? functionalItems[0]?.id ?? '')
+  const seededInitialRef = useRef(initialFunctionId ?? null)
   const [functionQuery, setFunctionQuery] = useState('')
   const [useCaseQuery, setUseCaseQuery] = useState('')
   const [hideLinked, setHideLinked] = useState(true)
@@ -76,22 +77,28 @@ export function FunctionUseCaseLinkPanel({
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  // Deep-link seeds only when URL functionId changes — never fight sidebar focus.
   useEffect(() => {
+    if (initialFunctionId && seededInitialRef.current !== initialFunctionId) {
+      seededInitialRef.current = initialFunctionId
+      setFunctionId(initialFunctionId)
+      return
+    }
     if (functionId || functionalItems.length === 0) return
-    setFunctionId(initialFunctionId ?? functionalItems[0]?.id ?? '')
-  }, [functionId, functionalItems, initialFunctionId])
+    setFunctionId(functionalItems[0]?.id ?? '')
+  }, [initialFunctionId, functionId, functionalItems])
 
-  const loadLinks = useCallback(async () => {
+  const loadLinks = useCallback(async (opts?: { silent?: boolean }) => {
     if (!functionId) {
       setLinkedIds(new Set())
       return
     }
-    setLoading(true)
+    if (!opts?.silent) setLoading(true)
     try {
       const linked = await useCaseApi.listUseCasesByFunction(projectId, functionId)
       setLinkedIds(new Set(linked.map((item) => item.id)))
     } finally {
-      setLoading(false)
+      if (!opts?.silent) setLoading(false)
     }
   }, [functionId, projectId])
 
@@ -121,7 +128,7 @@ export function FunctionUseCaseLinkPanel({
       const linkedHere = linkedIds.has(item.id)
       if (hideLinked && linkedHere) return false
       if (!query) return true
-      return `${item.key} ${item.name} ${item.primaryFunctionName}`
+      return `${item.key} ${item.name} ${item.primaryFunctionName ?? ''}`
         .toLowerCase()
         .includes(query)
     })
@@ -197,8 +204,8 @@ export function FunctionUseCaseLinkPanel({
           Function to Use Case
         </Typography>
         <Typography variant="small" tone="muted">
-          Select a Function, then drag Use Cases onto the drop zone or assign them. {linked.length}{' '}
-          linked to the selected Function.
+          Select a Function, then drag Use Cases onto the drop zone or assign them.{' '}
+          {linked.length} linked to the selected Function.
         </Typography>
       </div>
 
@@ -325,7 +332,7 @@ export function FunctionUseCaseLinkPanel({
                 <Typography variant="small" tone="muted" className="p-2">
                   Select a Function to see assignable Use Cases.
                 </Typography>
-              ) : loading ? (
+              ) : loading && candidates.length === 0 ? (
                 <Typography variant="small" tone="muted" className="p-2">
                   Loading candidates…
                 </Typography>
@@ -371,9 +378,9 @@ export function FunctionUseCaseLinkPanel({
                           }}
                           onDragEnd={() => setActiveUcDrag(null)}
                           onClick={(e) => {
-                            if (e.metaKey || e.ctrlKey || e.shiftKey) {
-                              toggleSelect(item.id, disabled)
-                            }
+                            if (disabled) return
+                            if ((e.target as HTMLElement).closest('input, button, label')) return
+                            toggleSelect(item.id)
                           }}
                           className={cn(
                             'flex items-start gap-2 border border-transparent px-2.5 py-2',
@@ -580,7 +587,9 @@ function FunctionFocusInspector({
           ) : (
             <ul className="divide-y divide-neutral-100">
               {linked.map((item) => {
-                const primary = item.primaryFunctionId === focusFunction.id
+                // Cannot drop a UC↔Function link from here when this Function is the UC's
+                // primaryFunctionId — change primary on the Use Case detail instead.
+                const canUnlinkSupporting = item.primaryFunctionId !== focusFunction.id
                 return (
                   <li
                     key={item.id}
@@ -590,12 +599,9 @@ function FunctionFocusInspector({
                       <div className="truncate text-sm font-medium text-neutral-900">
                         {item.name}
                       </div>
-                      <div className="truncate text-xs text-neutral-500">
-                        {item.key}
-                        {primary ? ' · Primary Function' : ' · Supporting Function'}
-                      </div>
+                      <div className="truncate text-xs text-neutral-500">{item.key}</div>
                     </div>
-                    {!primary ? (
+                    {canUnlinkSupporting ? (
                       <Button
                         size="sm"
                         variant="ghost"

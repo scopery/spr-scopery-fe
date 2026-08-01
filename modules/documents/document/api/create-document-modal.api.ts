@@ -1,12 +1,6 @@
 import type { Document, DocumentType, DocumentVisibility } from '../model/document'
 import { toBeDocumentTypeCode } from '../model/document-type-codes'
 import { createProjectDocument as createWorkbenchDocument } from '@/modules/documents/document-hub/api/document-workbench.api'
-import {
-  createDocumentFromTemplateInProject,
-  previewTemplateVariables,
-} from '@/modules/documents/document-templates/api/document-templates.api'
-
-export { previewTemplateVariables, createDocumentFromTemplateInProject }
 
 /**
  * Hub "New document" → Wave 4.1 NATIVE doc (editable in Plate).
@@ -19,7 +13,6 @@ export async function createBlankProjectDocument(
     title: string
     document_type: DocumentType
     visibility: DocumentVisibility
-    section_id: string | null
   }
 ): Promise<Document> {
   const created = await createWorkbenchDocument(projectId, {

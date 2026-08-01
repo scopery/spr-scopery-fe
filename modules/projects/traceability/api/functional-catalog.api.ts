@@ -1,20 +1,17 @@
 import { apiPath } from '@/shared/lib/api-paths'
 import { apiClient } from '@/shared/lib/apiClient'
-import { type BulkJobResponse, pollBulkJobUntilDone } from '@/shared/lib/bulkJobs'
+import { type BulkJobResponse, assertBulkItemCount } from '@/shared/lib/bulkJobs'
 import { normalizeItemList, type ListPayload } from '@/shared/lib/normalizeListResponse'
 import type {
   AddFunctionalItemAnchorBody,
   BusinessRule,
   CreateBusinessRuleBody,
-  CreateCustomPropertyBody,
   CreateFunctionalItemBody,
   CreateNonFunctionalItemBody,
   FunctionalItem,
   FunctionalItemAnchor,
-  FunctionalItemCustomProperty,
   NonFunctionalItem,
   UpdateBusinessRuleBody,
-  UpdateCustomPropertyBody,
   UpdateFunctionalItemBody,
   UpdateNonFunctionalItemBody,
 } from '../model/functional-catalog'
@@ -36,6 +33,8 @@ import type {
 export const FUNCTIONAL_CATALOG_ENDPOINTS = {
   functionalItems: (projectId: string) =>
     apiPath(`/projects/${projectId}/functional-items`),
+  functionalItemsBulk: (projectId: string) =>
+    apiPath(`/projects/${projectId}/functional-items/bulk`),
   functionalItem: (projectId: string, id: string) =>
     apiPath(`/projects/${projectId}/functional-items/${id}`),
   functionalItemsImportPreview: (projectId: string) =>
@@ -48,18 +47,6 @@ export const FUNCTIONAL_CATALOG_ENDPOINTS = {
     apiPath(
       `/projects/${projectId}/functional-items/${functionalItemId}/business-rules/${id}`
     ),
-  customProperties: (projectId: string, functionalItemId: string) =>
-    apiPath(
-      `/projects/${projectId}/functional-items/${functionalItemId}/custom-properties`
-    ),
-  customPropertiesBulk: (projectId: string, functionalItemId: string) =>
-    apiPath(
-      `/projects/${projectId}/functional-items/${functionalItemId}/custom-properties/bulk`
-    ),
-  customProperty: (projectId: string, functionalItemId: string, id: string) =>
-    apiPath(
-      `/projects/${projectId}/functional-items/${functionalItemId}/custom-properties/${id}`
-    ),
   anchors: (projectId: string, functionalItemId: string) =>
     apiPath(`/projects/${projectId}/functional-items/${functionalItemId}/anchors`),
   anchor: (projectId: string, functionalItemId: string, id: string) =>
@@ -68,6 +55,8 @@ export const FUNCTIONAL_CATALOG_ENDPOINTS = {
     apiPath(`/projects/${projectId}/functional-item-anchors`),
   nonFunctionalItems: (projectId: string) =>
     apiPath(`/projects/${projectId}/non-functional-items`),
+  nonFunctionalItemsBulk: (projectId: string) =>
+    apiPath(`/projects/${projectId}/non-functional-items/bulk`),
   nonFunctionalItem: (projectId: string, id: string) =>
     apiPath(`/projects/${projectId}/non-functional-items/${id}`),
   functionScreens: (projectId: string, functionalItemId: string) =>
@@ -121,6 +110,14 @@ export async function createFunctionalItem(
   return apiClient.post(FUNCTIONAL_CATALOG_ENDPOINTS.functionalItems(projectId), body)
 }
 
+export async function submitFunctionalItemsBulk(
+  projectId: string,
+  items: CreateFunctionalItemBody[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(FUNCTIONAL_CATALOG_ENDPOINTS.functionalItemsBulk(projectId), { items }, { skipGlobalLoading: true })
+}
+
 export async function updateFunctionalItem(
   projectId: string,
   id: string,
@@ -158,6 +155,14 @@ export async function createNonFunctionalItem(
   body: CreateNonFunctionalItemBody
 ): Promise<NonFunctionalItem> {
   return apiClient.post(FUNCTIONAL_CATALOG_ENDPOINTS.nonFunctionalItems(projectId), body)
+}
+
+export async function submitNonFunctionalItemsBulk(
+  projectId: string,
+  items: CreateNonFunctionalItemBody[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(FUNCTIONAL_CATALOG_ENDPOINTS.nonFunctionalItemsBulk(projectId), { items }, { skipGlobalLoading: true })
 }
 
 export async function updateNonFunctionalItem(
@@ -213,64 +218,6 @@ export async function deleteBusinessRule(
   await apiClient.delete(
     FUNCTIONAL_CATALOG_ENDPOINTS.businessRule(projectId, functionalItemId, id)
   )
-}
-
-export async function listCustomProperties(
-  projectId: string,
-  functionalItemId: string
-): Promise<{ items: FunctionalItemCustomProperty[] }> {
-  const res = await apiClient.get<ListPayload<FunctionalItemCustomProperty>>(
-    FUNCTIONAL_CATALOG_ENDPOINTS.customProperties(projectId, functionalItemId)
-  )
-  return normalizeItemList(res)
-}
-
-export async function createCustomProperty(
-  projectId: string,
-  functionalItemId: string,
-  body: CreateCustomPropertyBody
-): Promise<FunctionalItemCustomProperty> {
-  return apiClient.post(
-    FUNCTIONAL_CATALOG_ENDPOINTS.customProperties(projectId, functionalItemId),
-    body
-  )
-}
-
-export async function updateCustomProperty(
-  projectId: string,
-  functionalItemId: string,
-  id: string,
-  body: UpdateCustomPropertyBody
-): Promise<FunctionalItemCustomProperty> {
-  return apiClient.put(
-    FUNCTIONAL_CATALOG_ENDPOINTS.customProperty(projectId, functionalItemId, id),
-    body
-  )
-}
-
-export async function deleteCustomProperty(
-  projectId: string,
-  functionalItemId: string,
-  id: string
-): Promise<void> {
-  await apiClient.delete(
-    FUNCTIONAL_CATALOG_ENDPOINTS.customProperty(projectId, functionalItemId, id)
-  )
-}
-
-export async function bulkCreateCustomProperties(
-  projectId: string,
-  functionalItemId: string,
-  items: CreateCustomPropertyBody[]
-): Promise<void> {
-  const job = await apiClient.post<BulkJobResponse>(
-    FUNCTIONAL_CATALOG_ENDPOINTS.customPropertiesBulk(projectId, functionalItemId),
-    { items }
-  )
-  const done = await pollBulkJobUntilDone(job.id)
-  if (done.status === 'FAILED') {
-    throw new Error(done.errorMessage ?? 'Bulk create failed')
-  }
 }
 
 export async function listAnchors(

@@ -1,8 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Pencil, X } from 'lucide-react'
-import { Button, PageSkeleton, Stack, Typography } from '@/shared/ui'
+import Link from 'next/link'
+import { Pencil, Plus, Trash2, X } from 'lucide-react'
+import { toast } from 'sonner'
+import { Button, Input, PageSkeleton, Stack, Typography } from '@/shared/ui'
+import { ROUTES } from '@/constants/routes'
 import { ApiError } from '@/shared/lib/api-types'
 import { cn } from '@/utils/cn'
 import {
@@ -10,16 +13,17 @@ import {
   type FunctionalItem,
   type UpdateFunctionalItemBody,
 } from '../model/functional-catalog'
+import * as useCaseApi from '../api/use-case.api'
 import { useFunctionalItemDetail } from '../hooks/useFunctionalItemDetail'
 import { useArchitectureNodeCatalog } from '../hooks/useArchitectureNodeCatalog'
 import { labelArchitectureNode } from '../model/anchor-mapping'
 import { ScreenStructureEditor } from './ScreenStructureEditor'
-import { FunctionalItemCustomPropertiesPanel } from './FunctionalItemCustomPropertiesPanel'
 import { useUseCaseCatalog } from '../hooks/useUseCaseCatalog'
 import { UseCaseStatusBadge } from './UseCaseStatusBadge'
 import { UseCaseCompletenessBadge } from './UseCaseCompletenessBadge'
+import { MultiSelectLinkModal } from './MultiSelectLinkModal'
 
-type DetailTab = 'anchors' | 'properties' | 'rules' | 'use-cases'
+type DetailTab = 'acceptance' | 'anchors' | 'rules' | 'use-cases'
 
 interface FunctionalItemDetailPanelProps {
   projectId: string
@@ -134,14 +138,10 @@ export function FunctionalItemDetailPanel({
   onSave,
 }: FunctionalItemDetailPanelProps) {
   const {
-    properties,
     rules,
     anchors,
     loading,
     error,
-    addProperty,
-    updateProperty,
-    removeProperty,
     addRule,
     updateRule,
     removeRule,
@@ -161,10 +161,25 @@ export function FunctionalItemDetailPanel({
     preferredApplicationId || null
   )
 
-  const { useCases: functionUseCases } = useUseCaseCatalog(
-    tab === 'use-cases' ? projectId : null,
-    tab === 'use-cases' ? item.id : null
+  const [addUseCasesOpen, setAddUseCasesOpen] = useState(false)
+  const [linkingUseCases, setLinkingUseCases] = useState(false)
+
+  const {
+    useCases: functionUseCases,
+    loading: linkedUseCasesLoading,
+    refetch: refetchLinkedUseCases,
+  } = useUseCaseCatalog(tab === 'use-cases' ? projectId : null, tab === 'use-cases' ? item.id : null)
+
+  const { useCases: allUseCases, loading: allUseCasesLoading } = useUseCaseCatalog(
+    addUseCasesOpen ? projectId : null
   )
+
+  const [editAcceptance, setEditAcceptance] = useState<string[]>(
+    () => item.acceptanceCriteria ?? []
+  )
+  const [acceptanceDirty, setAcceptanceDirty] = useState(false)
+  const [savingAcceptance, setSavingAcceptance] = useState(false)
+  const [editingAcceptance, setEditingAcceptance] = useState(false)
 
   useEffect(() => {
     setTab(defaultTab)
@@ -174,9 +189,66 @@ export function FunctionalItemDetailPanel({
     setEditDescription(item.description ?? '')
     setEditPriority(item.priority)
     setEditType(item.type)
-  }, [item.id, item.title, item.description, item.priority, item.type, defaultTab])
+    setEditAcceptance(item.acceptanceCriteria ?? [])
+    setAcceptanceDirty(false)
+    setEditingAcceptance(false)
+    setAddUseCasesOpen(false)
+  }, [
+    item.id,
+    item.title,
+    item.description,
+    item.priority,
+    item.type,
+    item.acceptanceCriteria,
+    defaultTab,
+  ])
 
   const canEdit = Boolean(onSave)
+
+  const linkedUseCaseIds = useMemo(
+    () => new Set(functionUseCases.map((uc) => uc.id)),
+    [functionUseCases]
+  )
+
+  const useCaseLinkOptions = useMemo(
+    () =>
+      allUseCases.map((uc) => ({
+        id: uc.id,
+        code: uc.key,
+        label: uc.name,
+        meta: uc.primaryFunctionName
+          ? `Primary: ${uc.primaryFunctionName}`
+          : 'No primary Function yet',
+        disabled: linkedUseCaseIds.has(uc.id),
+      })),
+    [allUseCases, linkedUseCaseIds]
+  )
+
+  const linkUseCases = useCallback(
+    async (ids: string[]) => {
+      setLinkingUseCases(true)
+      try {
+        const toLink = ids.filter((id) => !linkedUseCaseIds.has(id))
+        if (toLink.length === 0) return
+        // Link UC ↔ Function via supporting-functions. Primary Function is set only from Use Case detail.
+        await Promise.all(
+          toLink.map((id) =>
+            useCaseApi.addSupportingFunction(projectId, id, { functionId: item.id })
+          )
+        )
+        toast.success(
+          `${toLink.length} Use Case${toLink.length === 1 ? '' : 's'} linked`
+        )
+        await refetchLinkedUseCases()
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to link Use Cases')
+        throw err
+      } finally {
+        setLinkingUseCases(false)
+      }
+    },
+    [item.id, linkedUseCaseIds, projectId, refetchLinkedUseCases]
+  )
 
   const startEditing = () => {
     if (!canEdit) return
@@ -227,6 +299,7 @@ export function FunctionalItemDetailPanel({
         description: nextDescription,
         priority: editPriority,
         type: editType,
+        acceptanceCriteria: item.acceptanceCriteria ?? null,
       })
       setEditing(false)
     } catch (err: unknown) {
@@ -241,6 +314,34 @@ export function FunctionalItemDetailPanel({
       setSaving(false)
     }
   }, [editDescription, editPriority, editTitle, editType, item, onSave])
+
+  const saveAcceptance = useCallback(async () => {
+    if (!onSave) return
+    const next = editAcceptance.map((line) => line.trim()).filter(Boolean)
+    setSavingAcceptance(true)
+    setFormError(null)
+    try {
+      await onSave({
+        title: item.title,
+        description: item.description ?? null,
+        priority: item.priority,
+        type: item.type,
+        acceptanceCriteria: next.length ? next : [],
+      })
+      setEditAcceptance(next)
+      setAcceptanceDirty(false)
+    } catch (err: unknown) {
+      setFormError(
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Failed to save acceptance criteria'
+      )
+    } finally {
+      setSavingAcceptance(false)
+    }
+  }, [editAcceptance, item, onSave])
 
   const ruleItems = useMemo(
     () =>
@@ -367,8 +468,11 @@ export function FunctionalItemDetailPanel({
           >
             {(
               [
+                {
+                  id: 'acceptance',
+                  label: `Acceptance (${(item.acceptanceCriteria ?? []).length})`,
+                },
                 { id: 'anchors', label: `Anchors (${anchors.length})` },
-                { id: 'properties', label: `Fields (${properties.length})` },
                 { id: 'rules', label: `Rules (${rules.length})` },
                 { id: 'use-cases', label: `Use Cases (${functionUseCases.length})` },
               ] as const
@@ -394,10 +498,7 @@ export function FunctionalItemDetailPanel({
             })}
           </div>
 
-          {loading &&
-          properties.length === 0 &&
-          rules.length === 0 &&
-          anchors.length === 0 ? (
+          {loading && rules.length === 0 && anchors.length === 0 ? (
             <PageSkeleton variant="list" />
           ) : null}
           {error ? <Typography tone="error">{error}</Typography> : null}
@@ -405,6 +506,125 @@ export function FunctionalItemDetailPanel({
             <Typography tone="error" variant="small">
               {formError}
             </Typography>
+          ) : null}
+
+          {tab === 'acceptance' ? (
+            <Stack direction="vertical" spacing="sm">
+              <div className="flex items-start justify-between gap-2">
+                <Typography variant="small" tone="muted">
+                  Acceptance criteria for this Function.
+                </Typography>
+                {canEdit ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={savingAcceptance}
+                    onClick={() => {
+                      if (editingAcceptance) {
+                        setEditAcceptance(item.acceptanceCriteria ?? [])
+                        setAcceptanceDirty(false)
+                      }
+                      setEditingAcceptance((v) => !v)
+                    }}
+                  >
+                    {editingAcceptance ? 'Done' : 'Edit'}
+                  </Button>
+                ) : null}
+              </div>
+              {!editingAcceptance ? (
+                (item.acceptanceCriteria ?? []).length === 0 ? (
+                  <Typography tone="muted" variant="small">
+                    No acceptance criteria yet.
+                  </Typography>
+                ) : (
+                  <ol className="list-decimal space-y-3 pl-5">
+                    {(item.acceptanceCriteria ?? []).map((line, index) => (
+                      <li key={`ac-view-${index}`} className="text-sm text-neutral-800">
+                        <p className="whitespace-pre-wrap break-words">
+                          {line.trim() || '—'}
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
+                )
+              ) : (
+                <>
+                  {editAcceptance.length === 0 ? (
+                    <Typography tone="muted" variant="small">
+                      No acceptance criteria yet.
+                    </Typography>
+                  ) : null}
+                  <div className="space-y-2">
+                    {editAcceptance.map((line, index) => (
+                      <div key={`ac-${index}`} className="flex items-start gap-2">
+                        <Input
+                          size="sm"
+                          fullWidth
+                          value={line}
+                          disabled={savingAcceptance}
+                          placeholder="Acceptance criterion"
+                          aria-label={`Acceptance criterion ${index + 1}`}
+                          onChange={(e) => {
+                            const next = [...editAcceptance]
+                            next[index] = e.target.value
+                            setEditAcceptance(next)
+                            setAcceptanceDirty(true)
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="mt-1 text-neutral-400 hover:text-red-600 disabled:opacity-40"
+                          disabled={savingAcceptance}
+                          aria-label={`Remove criterion ${index + 1}`}
+                          onClick={() => {
+                            setEditAcceptance((prev) => prev.filter((_, i) => i !== index))
+                            setAcceptanceDirty(true)
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={savingAcceptance}
+                      onClick={() => {
+                        setEditAcceptance((prev) => [...prev, ''])
+                        setAcceptanceDirty(true)
+                      }}
+                    >
+                      <Plus size={14} className="mr-1 inline" />
+                      Add criterion
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={!acceptanceDirty || savingAcceptance}
+                      loading={savingAcceptance}
+                      onClick={() => void saveAcceptance()}
+                    >
+                      Save acceptance
+                    </Button>
+                    {acceptanceDirty ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={savingAcceptance}
+                        onClick={() => {
+                          setEditAcceptance(item.acceptanceCriteria ?? [])
+                          setAcceptanceDirty(false)
+                          setFormError(null)
+                        }}
+                      >
+                        Reset
+                      </Button>
+                    ) : null}
+                  </div>
+                </>
+              )}
+            </Stack>
           ) : null}
 
           {tab === 'anchors' ? (
@@ -422,12 +642,16 @@ export function FunctionalItemDetailPanel({
                     const resolved = nodeById.get(a.nodeId)
                     return (
                       <li key={a.id} className="py-2.5">
-                        <Typography variant="small" weight="medium" className="truncate">
+                        <Typography variant="small" weight="medium" className="whitespace-pre-wrap break-words">
                           {a.nodeType}
                           {resolved ? ` · ${labelArchitectureNode(resolved)}` : ''}
                         </Typography>
                         {a.note ? (
-                          <Typography variant="caption" tone="muted" className="truncate">
+                          <Typography
+                            variant="caption"
+                            tone="muted"
+                            className="mt-0.5 block whitespace-pre-wrap break-words"
+                          >
                             {a.note}
                           </Typography>
                         ) : null}
@@ -437,16 +661,6 @@ export function FunctionalItemDetailPanel({
                 </ul>
               )}
             </Stack>
-          ) : null}
-
-          {tab === 'properties' ? (
-            <FunctionalItemCustomPropertiesPanel
-              properties={properties}
-              loading={loading}
-              onAdd={addProperty}
-              onUpdate={updateProperty}
-              onRemove={removeProperty}
-            />
           ) : null}
 
           {tab === 'rules' ? (
@@ -481,7 +695,25 @@ export function FunctionalItemDetailPanel({
 
           {tab === 'use-cases' ? (
             <Stack direction="vertical" spacing="sm">
-              {functionUseCases.length === 0 ? (
+              <div className="flex items-start justify-between gap-2">
+                <Typography variant="small" tone="muted">
+                  Use Cases linked to this Function.
+                </Typography>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<Plus size={14} />}
+                  disabled={linkingUseCases}
+                  onClick={() => setAddUseCasesOpen(true)}
+                >
+                  Add
+                </Button>
+              </div>
+              {linkedUseCasesLoading && functionUseCases.length === 0 ? (
+                <Typography tone="muted" variant="small">
+                  Loading…
+                </Typography>
+              ) : functionUseCases.length === 0 ? (
                 <Typography tone="muted" variant="small">
                   No use cases linked to this function yet.
                 </Typography>
@@ -489,27 +721,44 @@ export function FunctionalItemDetailPanel({
                 <ul className="divide-y divide-neutral-100">
                   {functionUseCases.map((uc) => (
                     <li key={uc.id} className="py-2.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-xs text-neutral-400">{uc.key}</span>
-                            <UseCaseStatusBadge status={uc.status} />
-                            <UseCaseCompletenessBadge completenessStatus={uc.completenessStatus} />
-                          </div>
-                          <Typography variant="small" weight="medium" className="truncate">
-                            {uc.name}
-                          </Typography>
-                          {uc.primaryActorName && (
-                            <Typography variant="caption" tone="muted">
-                              Actor: {uc.primaryActorName}
-                            </Typography>
-                          )}
+                      <Link
+                        href={`${ROUTES.workspace.projectUseCases(workspaceId, projectId)}?useCaseId=${encodeURIComponent(uc.id)}`}
+                        className="block min-w-0 rounded-sm hover:bg-neutral-50"
+                      >
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-mono text-xs text-neutral-400">{uc.key}</span>
+                          <UseCaseStatusBadge status={uc.status} />
+                          <UseCaseCompletenessBadge completenessStatus={uc.completenessStatus} />
                         </div>
-                      </div>
+                        <Typography
+                          variant="small"
+                          weight="medium"
+                          className="whitespace-pre-wrap break-words text-primary underline-offset-2 hover:underline"
+                        >
+                          {uc.name}
+                        </Typography>
+                        {uc.primaryActorName && (
+                          <Typography variant="caption" tone="muted">
+                            Actor: {uc.primaryActorName}
+                          </Typography>
+                        )}
+                      </Link>
                     </li>
                   ))}
                 </ul>
               )}
+              <MultiSelectLinkModal
+                open={addUseCasesOpen}
+                onClose={() => setAddUseCasesOpen(false)}
+                title="Add Use Cases"
+                searchPlaceholder="Search use cases…"
+                options={useCaseLinkOptions}
+                loading={allUseCasesLoading}
+                saving={linkingUseCases}
+                emptyMessage="No use cases in this project yet. Create them from the Use Case catalog."
+                confirmLabel="Add selected"
+                onConfirm={linkUseCases}
+              />
             </Stack>
           ) : null}
         </Stack>

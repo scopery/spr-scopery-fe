@@ -7,6 +7,7 @@ import type {
   Requirement,
   UpdateRequirementPayload,
 } from '../model/requirements'
+import type { BulkJobResponse } from '@/shared/lib/bulkJobs'
 
 export function useRequirements(orgId: string | null, projectId: string | null) {
   const [requirements, setRequirements] = useState<Requirement[]>([])
@@ -62,6 +63,14 @@ export function useRequirements(orgId: string | null, projectId: string | null) 
     [orgId, projectId]
   )
 
+  const submitRequirementsBulk = useCallback(
+    async (items: CreateRequirementPayload[]): Promise<BulkJobResponse> => {
+      if (!orgId || !projectId) throw new Error('Missing project context')
+      return requirementsApi.submitRequirementsBulk(orgId, projectId, items)
+    },
+    [orgId, projectId]
+  )
+
   return {
     requirements,
     loading,
@@ -69,5 +78,6 @@ export function useRequirements(orgId: string | null, projectId: string | null) 
     refetch: load,
     createRequirement,
     updateRequirement,
+    submitRequirementsBulk,
   }
 }

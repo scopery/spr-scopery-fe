@@ -109,8 +109,8 @@ export function RequirementFunctionalLinkPanel({
   const [formError, setFormError] = useState<string | null>(null)
   const [previewId, setPreviewId] = useState<string | null>(null)
 
-  const loadCoversLinks = useCallback(async () => {
-    setLinksLoading(true)
+  const loadCoversLinks = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLinksLoading(true)
     setLinksError(null)
     try {
       const res = await traceApi.listTraceLinks(projectId, {
@@ -124,7 +124,7 @@ export function RequirementFunctionalLinkPanel({
       setLinksError(err instanceof Error ? err.message : 'Failed to load links')
       setCoversLinks([])
     } finally {
-      setLinksLoading(false)
+      if (!opts?.silent) setLinksLoading(false)
     }
   }, [projectId])
 
@@ -294,17 +294,15 @@ export function RequirementFunctionalLinkPanel({
           }
         }
 
-        // Keep FK in sync as primary pointer (first FR / if empty)
+        // Keep FK in sync as primary pointer (first / if empty)
         const focus = requirements.find((r) => r.id === focusReqId)
         if (focus && !focus.functionalItemId && toCreate[0]) {
           await updateRequirement(focusReqId, {
             functionalItemId: toCreate[0].functionalItemId,
           })
-        } else {
-          await refetchRequirements()
         }
 
-        await loadCoversLinks()
+        await loadCoversLinks({ silent: true })
         setSelected(new Set())
         setBulkOpen(false)
       } catch (err: unknown) {
@@ -349,8 +347,7 @@ export function RequirementFunctionalLinkPanel({
             functionalItemId: remaining[0]?.functionalItemId ?? null,
           })
         }
-        await loadCoversLinks()
-        await refetchRequirements()
+        await loadCoversLinks({ silent: true })
       } catch (err: unknown) {
         setFormError(err instanceof Error ? err.message : 'Failed to unlink')
       }
@@ -654,7 +651,7 @@ function FunctionCandidatePalette({
         className="min-h-0 flex-1 overflow-y-auto p-2"
         onMouseLeave={() => onPreview(null)}
       >
-        {loading ? (
+        {loading && candidates.length === 0 ? (
           <Typography variant="small" tone="muted" className="p-2">
             Loading candidates…
           </Typography>
@@ -704,9 +701,9 @@ function FunctionCandidatePalette({
                     }}
                     onDragEnd={() => setActiveFrDrag(null)}
                     onClick={(e) => {
-                      if (e.metaKey || e.ctrlKey || e.shiftKey) {
-                        onToggleSelect(item.id, disabled)
-                      }
+                      if (disabled) return
+                      if ((e.target as HTMLElement).closest('input, button, label')) return
+                      onToggleSelect(item.id)
                     }}
                     className={cn(
                       'flex items-start gap-2 border border-transparent px-2.5 py-2',

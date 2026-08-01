@@ -43,6 +43,7 @@ export const PROJECT_ENDPOINTS = {
     get: (projectId: string, phaseId: string) =>
       apiPath(`/projects/${projectId}/phases/${phaseId}`),
     create: (projectId: string) => apiPath(`/projects/${projectId}/phases`),
+    bulk: (projectId: string) => apiPath(`/projects/${projectId}/phases/bulk`),
     update: (projectId: string, phaseId: string) =>
       apiPath(`/projects/${projectId}/phases/${phaseId}`),
     activate: (projectId: string, phaseId: string) =>
@@ -85,6 +86,7 @@ export const PROJECT_ENDPOINTS = {
     get: (projectId: string, taskId: string) =>
       apiPath(`/projects/${projectId}/tasks/${taskId}`),
     create: (projectId: string) => apiPath(`/projects/${projectId}/tasks`),
+    bulk: (projectId: string) => apiPath(`/projects/${projectId}/tasks/bulk`),
     update: (projectId: string, taskId: string) =>
       apiPath(`/projects/${projectId}/tasks/${taskId}`),
     start: (projectId: string, taskId: string) =>
@@ -129,6 +131,8 @@ export const PROJECT_ENDPOINTS = {
   /* --- Requirements --- */
   requirements: (orgId: string, projectId: string) =>
     apiPath(`/projects/${projectId}/requirements`),
+  requirementsBulk: (_orgId: string, projectId: string) =>
+    apiPath(`/projects/${projectId}/requirements/bulk`),
   requirement: (orgId: string, projectId: string, requirementId: string) =>
     apiPath(`/projects/${projectId}/requirements/${requirementId}`),
   requirementActors: (orgId: string, projectId: string, requirementId: string) =>

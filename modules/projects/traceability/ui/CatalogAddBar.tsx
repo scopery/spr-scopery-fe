@@ -1,15 +1,16 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
-import { Button } from '@/shared/ui'
+import { useCallback, useRef, useState } from 'react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
+import { AnchoredMenu, Button, anchoredMenuItemClassName } from '@/shared/ui'
+import type { BulkJobResponse } from '@/shared/lib/bulkJobs'
 import { cn } from '@/utils/cn'
 import type { ArchitectureNodeType } from '../model/architecture-workbench'
-import { CatalogBulkAddModal, type CatalogAddKind } from './CatalogBulkAddModal'
+import { CatalogBulkAddModal, type CatalogAddKind, type CatalogBulkCreateInput } from './CatalogBulkAddModal'
 import { CatalogSingleAddModal } from './CatalogSingleAddModal'
+import { CatalogJsonImportModal } from './CatalogJsonImportModal'
 
-type AddMode = 'single' | 'bulk'
-type MenuStep = 'kinds' | 'mode'
+type AddMode = 'single' | 'bulk' | 'json'
 
 const KIND_OPTIONS: { value: CatalogAddKind; label: string }[] = [
   { value: 'MODULE', label: 'Module' },
@@ -19,8 +20,11 @@ const KIND_OPTIONS: { value: CatalogAddKind; label: string }[] = [
   { value: 'DATA_ENTITY', label: 'Data Entity' },
 ]
 
-/** Kinds that expose at least one enum field in the create form. */
-const KINDS_WITH_ENUM: ReadonlySet<CatalogAddKind> = new Set(['API_ENDPOINT'])
+const MODE_OPTIONS: { value: AddMode; label: string }[] = [
+  { value: 'single', label: 'Single add' },
+  { value: 'bulk', label: 'Bulk add' },
+  { value: 'json', label: 'JSON import' },
+]
 
 interface CatalogCreateInput {
   kind: ArchitectureNodeType
@@ -32,61 +36,39 @@ interface CatalogCreateInput {
 interface CatalogAddBarProps {
   /** Create one item — prefer `{ refresh: false }` in the hook; batch refreshes once. */
   onCreate: (input: CatalogCreateInput) => Promise<void>
+  onSubmitBulk: (kind: CatalogAddKind, items: CatalogBulkCreateInput[]) => Promise<BulkJobResponse>
   onBatchComplete?: () => Promise<void> | void
 }
 
-export function CatalogAddBar({ onCreate, onBatchComplete }: CatalogAddBarProps) {
+export function CatalogAddBar({ onCreate, onSubmitBulk, onBatchComplete }: CatalogAddBarProps) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const [menuStep, setMenuStep] = useState<MenuStep>('kinds')
-  const [pendingKind, setPendingKind] = useState<CatalogAddKind | null>(null)
+  const [hoveredKind, setHoveredKind] = useState<CatalogAddKind | null>(null)
   const [modal, setModal] = useState<{ kind: CatalogAddKind; mode: AddMode } | null>(null)
-  const rootRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!menuOpen) return
-    const onPointer = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setMenuOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false)
-    }
-    document.addEventListener('mousedown', onPointer)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onPointer)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [menuOpen])
+  const [lastJsonKind, setLastJsonKind] = useState<CatalogAddKind>('MODULE')
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const closeMenu = useCallback(() => {
+    setMenuOpen(false)
+    setHoveredKind(null)
+  }, [])
 
   const openMenu = () => {
-    setMenuStep('kinds')
-    setPendingKind(null)
+    setHoveredKind(null)
     setMenuOpen((v) => !v)
   }
 
-  const pickKind = (kind: CatalogAddKind) => {
-    if (KINDS_WITH_ENUM.has(kind)) {
-      setPendingKind(kind)
-      setMenuStep('mode')
-      return
-    }
+  const pickMode = (kind: CatalogAddKind, mode: AddMode) => {
     setMenuOpen(false)
-    setModal({ kind, mode: 'bulk' })
+    setHoveredKind(null)
+    if (mode === 'json') setLastJsonKind(kind)
+    setModal({ kind, mode })
   }
 
-  const pickMode = (mode: AddMode) => {
-    if (!pendingKind) return
-    setMenuOpen(false)
-    setModal({ kind: pendingKind, mode })
-  }
-
-  const modalTitle =
-    modal != null
-      ? `Add ${KIND_OPTIONS.find((k) => k.value === modal.kind)?.label ?? 'node'}`
-      : 'Add node'
+  const activeKind = modal?.kind ?? lastJsonKind
+  const modalTitle = `Add ${KIND_OPTIONS.find((k) => k.value === activeKind)?.label ?? 'node'}`
+  const activeHover = hoveredKind ?? KIND_OPTIONS[0]?.value ?? null
 
   return (
-    <div ref={rootRef} className="relative flex justify-end">
+    <div ref={anchorRef} className="relative shrink-0">
       <Button
         size="sm"
         variant="secondary"
@@ -101,56 +83,52 @@ export function CatalogAddBar({ onCreate, onBatchComplete }: CatalogAddBarProps)
         />
       </Button>
 
-      {menuOpen ? (
+      <AnchoredMenu open={menuOpen} onClose={closeMenu} anchorRef={anchorRef} minWidth={320}>
         <div
-          role="menu"
-          className="absolute right-0 top-full z-20 mt-1 min-w-[200px] border border-neutral-200 bg-white py-1 shadow-md"
+          className="flex"
+          onMouseLeave={() => setHoveredKind(null)}
+          onClick={(e) => e.stopPropagation()}
         >
-          {menuStep === 'kinds'
-            ? KIND_OPTIONS.map((opt) => (
+          <div className="min-w-[160px] border-r border-neutral-100 py-0.5">
+            {KIND_OPTIONS.map((opt) => {
+              const active = activeHover === opt.value
+              return (
                 <button
                   key={opt.value}
                   type="button"
                   role="menuitem"
-                  className="block w-full px-3 py-2 text-left text-sm text-neutral-800 hover:bg-neutral-50"
-                  onClick={() => pickKind(opt.value)}
+                  className={cn(
+                    anchoredMenuItemClassName,
+                    'flex items-center justify-between gap-2',
+                    active && 'bg-neutral-50'
+                  )}
+                  onMouseEnter={() => setHoveredKind(opt.value)}
+                  onFocus={() => setHoveredKind(opt.value)}
+                  onClick={() => setHoveredKind(opt.value)}
                 >
-                  {opt.label}
-                  {KINDS_WITH_ENUM.has(opt.value) ? (
-                    <span className="ml-1 text-xs text-neutral-400">›</span>
-                  ) : null}
+                  <span>{opt.label}</span>
+                  <ChevronRight size={14} className="shrink-0 text-neutral-400" />
                 </button>
-              ))
-            : (
-                <>
+              )
+            })}
+          </div>
+          <div className="min-w-[140px] py-0.5">
+            {activeHover
+              ? MODE_OPTIONS.map((mode) => (
                   <button
+                    key={mode.value}
                     type="button"
                     role="menuitem"
-                    className="block w-full px-3 py-2 text-left text-xs text-neutral-500 hover:bg-neutral-50"
-                    onClick={() => setMenuStep('kinds')}
+                    className={anchoredMenuItemClassName}
+                    onClick={() => pickMode(activeHover, mode.value)}
                   >
-                    ← {KIND_OPTIONS.find((k) => k.value === pendingKind)?.label}
+                    {mode.label}
                   </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="block w-full px-3 py-2 text-left text-sm text-neutral-800 hover:bg-neutral-50"
-                    onClick={() => pickMode('single')}
-                  >
-                    Single add
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="block w-full px-3 py-2 text-left text-sm text-neutral-800 hover:bg-neutral-50"
-                    onClick={() => pickMode('bulk')}
-                  >
-                    Bulk add
-                  </button>
-                </>
-              )}
+                ))
+              : null}
+          </div>
         </div>
-      ) : null}
+      </AnchoredMenu>
 
       {modal?.mode === 'single' ? (
         <CatalogSingleAddModal
@@ -171,10 +149,19 @@ export function CatalogAddBar({ onCreate, onBatchComplete }: CatalogAddBarProps)
           kind={modal.kind}
           title={modalTitle}
           onClose={() => setModal(null)}
-          onCreate={onCreate}
+          onSubmitBulk={(items) => onSubmitBulk(modal.kind, items)}
           onBatchComplete={onBatchComplete}
         />
       ) : null}
+
+      <CatalogJsonImportModal
+        open={modal?.mode === 'json'}
+        kind={activeKind}
+        title={modalTitle}
+        onClose={() => setModal(null)}
+        onSubmitBulk={(items) => onSubmitBulk(activeKind, items)}
+        onBatchComplete={onBatchComplete}
+      />
     </div>
   )
 }

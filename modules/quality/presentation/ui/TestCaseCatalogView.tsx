@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, useSearchParams } from 'next/navigation'
+import NextLink from 'next/link'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight, ClipboardPaste, Plus, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -10,9 +11,9 @@ import {
   useResolveUsers,
   type PersonIdentity,
 } from '@/modules/platform'
-import { UseCaseSearchSelect } from '@/modules/projects/traceability'
 import {
   Badge,
+  BulkJobProgressPanel,
   Button,
   DataTable,
   Input,
@@ -22,10 +23,17 @@ import {
   Textarea,
   Typography,
 } from '@/shared/ui'
+import {
+  BULK_MAX_ITEMS,
+  BulkJobStatus,
+} from '@/shared/lib/bulkJobs'
+import { useBulkJobPoller } from '@/shared/lib/useBulkJobPoller'
+import * as qualityApi from '../../infrastructure/api/quality.api'
 import { useTestCaseCatalog } from '../hooks/useTestCaseCatalog'
 import { useQualityAssigneePeople } from '../hooks/useQualityAssigneePeople'
+import { qualityCaseLinksHref } from '../quality-routes'
 import { TestCaseDetailDrawer } from './TestCaseDetailDrawer'
-import { UseCaseTestCaseLinkPanel } from './UseCaseTestCaseLinkPanel'
+import { TestCaseJsonImportModal } from './TestCaseJsonImportModal'
 import type { CreateTestCasePayload, TestCase } from '../../domain/model/quality'
 
 const STATUS_OPTIONS = [
@@ -82,39 +90,97 @@ function parseTestCases(text: string): Array<CreateTestCasePayload & { status?: 
     .filter((line) => line.trim())
   if (lines.length === 0) return []
 
+  const knownTypes = new Set(TYPE_OPTIONS.map((option) => option.value))
+  const looksLikeType = (value: string) => knownTypes.has(value.toUpperCase().replace(/\s+/g, '_'))
+
   const rows = lines.map((line) => line.split('\t').map((cell) => cell.trim()))
   const first = rows[0]?.map((cell) => cell.toLowerCase()) ?? []
   const hasHeader = first.some((cell) =>
-    ['title', 'type', 'priority', 'status', 'automation'].some((key) => cell.includes(key))
+    ['code', 'title', 'type', 'priority', 'status', 'automation'].some((key) => cell.includes(key))
   )
+
+  const headerIndex = (aliases: string[]) => {
+    if (!hasHeader) return -1
+    return first.findIndex((cell) => aliases.some((alias) => cell.includes(alias)))
+  }
+
+  const codeIdx = headerIndex(['code'])
+  const titleIdx = headerIndex(['title'])
+  const typeIdx = headerIndex(['type'])
+  const priorityIdx = headerIndex(['priority'])
+  const statusIdx = headerIndex(['status'])
+  const automationIdx = headerIndex(['automation'])
+
+  const at = (cells: string[], namedIdx: number, fallbackIdx: number) =>
+    cells[namedIdx >= 0 ? namedIdx : fallbackIdx] ?? ''
 
   return rows
     .slice(hasHeader ? 1 : 0)
-    .map(([title = '', type = '', priority = '', status = '', automationStatus = '']) => ({
-      title,
-      type: type || undefined,
-      priority: priority || undefined,
-      status: status || undefined,
-      automationStatus: automationStatus || undefined,
-    }))
+    .map((cells) => {
+      if (hasHeader) {
+        return {
+          code: at(cells, codeIdx, 0) || null,
+          title: at(cells, titleIdx, 1),
+          type: at(cells, typeIdx, 2) || undefined,
+          priority: at(cells, priorityIdx, 3) || undefined,
+          status: at(cells, statusIdx, 4) || undefined,
+          automationStatus: at(cells, automationIdx, 5) || undefined,
+        }
+      }
+
+      // No header: prefer Code · Title · Type · … when type sits in column 3;
+      // keep legacy Title · Type · Priority · Status · Automation when type sits in column 2.
+      const withCode = looksLikeType(cells[2] ?? '') || (!looksLikeType(cells[1] ?? '') && cells.length >= 6)
+      if (withCode) {
+        const [code = '', title = '', type = '', priority = '', status = '', automationStatus = ''] =
+          cells
+        return {
+          code: code || null,
+          title,
+          type: type || undefined,
+          priority: priority || undefined,
+          status: status || undefined,
+          automationStatus: automationStatus || undefined,
+        }
+      }
+
+      const [title = '', type = '', priority = '', status = '', automationStatus = ''] = cells
+      return {
+        code: null,
+        title,
+        type: type || undefined,
+        priority: priority || undefined,
+        status: status || undefined,
+        automationStatus: automationStatus || undefined,
+      }
+    })
     .filter((row) => row.title)
 }
 
 export function TestCaseCatalogView() {
   const { workspaceId, projectId } = useParams<{ workspaceId: string; projectId: string }>()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const catalog = useTestCaseCatalog(projectId)
   const { people: assigneePeople } = useQualityAssigneePeople(workspaceId)
+  const linksHref = qualityCaseLinksHref(
+    workspaceId,
+    projectId,
+    searchParams.get('useCaseId') ?? undefined
+  )
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [detailId, setDetailId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
+  const [createCode, setCreateCode] = useState('')
   const [createTitle, setCreateTitle] = useState('')
   const [createType, setCreateType] = useState('FUNCTIONAL')
-  const [createUseCaseId, setCreateUseCaseId] = useState('')
   const [creating, setCreating] = useState(false)
   const [pasteOpen, setPasteOpen] = useState(false)
+  const [jsonOpen, setJsonOpen] = useState(false)
   const [pasteValue, setPasteValue] = useState('')
-  const [pasteUseCaseId, setPasteUseCaseId] = useState('')
+  const [pasteError, setPasteError] = useState<string | null>(null)
+  const [pasteSubmitting, setPasteSubmitting] = useState(false)
+  const pastePoller = useBulkJobPoller()
   const [batchField, setBatchField] = useState('status')
   const [batchValue, setBatchValue] = useState('READY')
   const [assignTarget, setAssignTarget] = useState<{
@@ -124,22 +190,23 @@ export function TestCaseCatalogView() {
   } | null>(null)
   const [assignSaving, setAssignSaving] = useState(false)
   const [assigneeFilterOpen, setAssigneeFilterOpen] = useState(false)
-  const [view, setView] = useState<'catalog' | 'links'>(
-    searchParams.get('tab') === 'links' ? 'links' : 'catalog'
-  )
   const { personFor: filterPersonFor } = useResolveUsers([catalog.assigneeId])
 
   useEffect(() => {
+    if (searchParams.get('tab') !== 'links') return
+    router.replace(linksHref)
+  }, [searchParams, router, linksHref])
+
+  useEffect(() => {
     if (searchParams.get('create') !== '1') return
-    setCreateUseCaseId(searchParams.get('useCaseId') ?? '')
     setCreateOpen(true)
   }, [searchParams])
 
   const pastedRows = useMemo(() => parseTestCases(pasteValue), [pasteValue])
 
   const createTestCase = async () => {
-    if (!createTitle.trim() || !createUseCaseId) {
-      toast.error('Title and Use Case are required')
+    if (!createTitle.trim()) {
+      toast.error('Title is required')
       return
     }
     setCreating(true)
@@ -147,13 +214,13 @@ export function TestCaseCatalogView() {
       const created = await catalog.create({
         title: createTitle.trim(),
         type: createType,
-        useCaseId: createUseCaseId,
+        code: createCode.trim() || null,
       })
       if (created) {
         setCreateOpen(false)
+        setCreateCode('')
         setCreateTitle('')
         setCreateType('FUNCTIONAL')
-        setCreateUseCaseId('')
         setDetailId(created.id)
       }
     } finally {
@@ -178,28 +245,54 @@ export function TestCaseCatalogView() {
   }
 
   const submitPaste = async () => {
-    if (!pasteUseCaseId) {
-      toast.error('Select the Use Case covered by these Test Cases')
-      return
-    }
     if (pastedRows.some((row) => row.type === 'NON_FUNCTIONAL')) {
       toast.error('Use Verification Cases for non-functional requirements')
       return
     }
-    const response = await catalog.bulkCreate(
-      pastedRows.map((row) => ({ ...row, useCaseId: pasteUseCaseId }))
-    )
-    setPasteOpen(false)
-    setPasteValue('')
-    setPasteUseCaseId('')
-    const createdCount = response?.created?.length ?? 0
-    const errorCount = response?.errors?.length ?? 0
-    if (errorCount > 0) {
-      toast.warning(`${createdCount} created, ${errorCount} rows failed validation`)
-    } else {
-      toast.success(`${createdCount} Test Cases created`)
+    if (pastedRows.length > BULK_MAX_ITEMS) {
+      setPasteError(`Maximum ${BULK_MAX_ITEMS} items per bulk request.`)
+      return
+    }
+    setPasteError(null)
+    setPasteSubmitting(true)
+    pastePoller.reset()
+
+    const payloads = pastedRows.map(({ status: _status, ...row }) => row)
+
+    try {
+      const job = await qualityApi.submitTestCasesBulk(projectId, payloads)
+      setPasteSubmitting(false)
+      toast.message('Job accepted', { description: 'Processing in the background…' })
+      setPasteOpen(false)
+      setPasteValue('')
+
+      const done = await pastePoller.start(job.id, job)
+      if (done.succeededItems > 0) await catalog.refetch()
+
+      if (done.status === BulkJobStatus.Succeeded) {
+        toast.success(
+          done.resultSummary ??
+            `Created ${done.succeededItems} Test Case${done.succeededItems === 1 ? '' : 's'}`
+        )
+        pastePoller.reset()
+      } else if (done.status === BulkJobStatus.Partial) {
+        toast.warning(
+          done.resultSummary ??
+            `${done.succeededItems} created, ${done.failedItems} rows failed validation`
+        )
+      } else {
+        toast.error(done.errorMessage ?? done.resultSummary ?? 'Bulk create failed')
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create Test Cases'
+      setPasteError(message)
+    } finally {
+      setPasteSubmitting(false)
     }
   }
+
+  const pasteJobRunning = pastePoller.isPolling
+  const pasteBusy = pasteSubmitting || pasteJobRunning
 
   const saveAssignment = async (assigneeId: string | null) => {
     if (!assignTarget) return
@@ -219,32 +312,6 @@ export function TestCaseCatalogView() {
     }
   }
 
-  if (view === 'links') {
-    return (
-      <div className="flex h-full min-h-0 flex-col bg-white px-3 py-3 lg:px-4 lg:py-3">
-        <header className="flex items-end justify-between border-b border-neutral-200 pb-2">
-          <div>
-            <Typography as="h1" size="md" weight="medium">
-              Use Case → Test Case Links
-            </Typography>
-            <Typography variant="caption" tone="muted" className="mt-0.5">
-              Link existing Test Cases in bulk. Requirement and Function coverage is derived.
-            </Typography>
-          </div>
-          <Button variant="outline" onClick={() => setView('catalog')}>
-            Back to catalog
-          </Button>
-        </header>
-        <div className="min-h-0 flex-1">
-          <UseCaseTestCaseLinkPanel
-            projectId={projectId}
-            initialUseCaseId={searchParams.get('useCaseId')}
-          />
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex h-full min-h-0 flex-col bg-white px-3 py-3 lg:px-4 lg:py-3">
       <header className="border-b border-neutral-200 pb-2">
@@ -258,7 +325,7 @@ export function TestCaseCatalogView() {
             </Typography>
           </div>
           <div className="flex gap-sm">
-            <Button variant="outline" onClick={() => setView('links')}>
+            <Button as={NextLink} href={linksHref} variant="outline">
               Use Case → Test Case
             </Button>
             <Button
@@ -266,10 +333,13 @@ export function TestCaseCatalogView() {
               icon={<ClipboardPaste size={16} />}
               onClick={() => setPasteOpen(true)}
             >
-              Paste from Excel
+              Bulk add (Excel)
+            </Button>
+            <Button variant="outline" onClick={() => setJsonOpen(true)}>
+              JSON import
             </Button>
             <Button icon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>
-              New Test Case
+              Single add
             </Button>
           </div>
         </div>
@@ -613,12 +683,18 @@ export function TestCaseCatalogView() {
             label: creating ? 'Creating…' : 'Create',
             variant: 'primary',
             loading: creating,
-            disabled: creating || !createTitle.trim() || !createUseCaseId,
+            disabled: creating || !createTitle.trim(),
             onClick: () => void createTestCase(),
           },
         ]}
       >
         <div className="space-y-md">
+          <Input
+            label="Code"
+            value={createCode}
+            placeholder="TC-001"
+            onChange={(event) => setCreateCode(event.target.value)}
+          />
           <Input
             label="Title"
             value={createTitle}
@@ -631,55 +707,104 @@ export function TestCaseCatalogView() {
             options={CREATE_TYPE_OPTIONS}
             onValueChange={setCreateType}
           />
-          <UseCaseSearchSelect
-            projectId={projectId}
-            value={createUseCaseId}
-            onChange={setCreateUseCaseId}
-            required
-          />
           <Typography variant="caption" tone="muted">
-            The selected Use Case provides the Requirement and Function traceability path.
+            Creates a Test Case shell. Link Use Cases later from the detail Traceability tab.
           </Typography>
         </div>
       </Modal>
 
       <Modal
         open={pasteOpen}
-        onClose={() => setPasteOpen(false)}
+        onClose={() => {
+          if (pasteBusy) return
+          setPasteOpen(false)
+          setPasteError(null)
+          pastePoller.reset()
+        }}
         title="Paste Test Cases from Excel"
         size="xl"
         actions={[
-          { label: 'Cancel', variant: 'ghost', onClick: () => setPasteOpen(false) },
           {
-            label: `Create ${pastedRows.length}`,
+            label: 'Cancel',
+            variant: 'ghost',
+            onClick: () => {
+              if (pasteBusy) return
+              setPasteOpen(false)
+              setPasteError(null)
+              pastePoller.reset()
+            },
+          },
+          {
+            label: pasteSubmitting
+              ? 'Submitting…'
+              : pasteJobRunning
+                ? 'Running…'
+                : `Create ${pastedRows.length}`,
             variant: 'primary',
-            disabled: pastedRows.length === 0 || !pasteUseCaseId,
+            disabled: pasteBusy || pastedRows.length === 0,
+            loading: pasteSubmitting,
             onClick: () => void submitPaste(),
           },
         ]}
       >
         <div className="space-y-md">
           <Typography variant="small" tone="muted">
-            Paste columns in this order: Title · Type · Priority · Status · Automation.
+            Paste columns in this order: Code · Title · Type · Priority · Status · Automation.
+            Do not include system ID — the backend assigns it. Link Use Cases later from detail.
           </Typography>
-          <UseCaseSearchSelect
-            projectId={projectId}
-            value={pasteUseCaseId}
-            onChange={setPasteUseCaseId}
-            label="Use Case for all pasted Test Cases"
-            required
-          />
           <Textarea
             rows={10}
             value={pasteValue}
-            onChange={(event) => setPasteValue(event.target.value)}
-            placeholder={'Valid login\tFUNCTIONAL\tHIGH\tREADY\tMANUAL'}
+            onChange={(event) => {
+              setPasteValue(event.target.value)
+              setPasteError(null)
+            }}
+            placeholder={'TC-001\tValid login\tFUNCTIONAL\tHIGH\tREADY\tMANUAL'}
+            disabled={pasteBusy}
           />
+          <BulkJobProgressPanel
+            job={pastePoller.job}
+            percent={pastePoller.percent}
+            isPolling={pastePoller.isPolling}
+            error={pastePoller.error}
+            onRetryFailed={(failedItems) => {
+              pastePoller.reset()
+              void (async () => {
+                try {
+                  const job = await qualityApi.submitTestCasesBulk(
+                    projectId,
+                    failedItems as unknown as Parameters<typeof qualityApi.submitTestCasesBulk>[1]
+                  )
+                  toast.message('Job accepted', {
+                    description: 'Processing in the background…',
+                  })
+                  await pastePoller.start(job.id, job)
+                } catch {
+                  /* interceptor */
+                }
+              })()
+            }}
+            onRetry={() => {
+              pastePoller.reset()
+              void submitPaste()
+            }}
+          />
+          {pasteError ? (
+            <Typography variant="small" tone="error">
+              {pasteError}
+            </Typography>
+          ) : null}
           <Typography variant="caption" tone="muted">
-            {pastedRows.length} valid rows detected.
+            {pastedRows.length} valid rows detected · max {BULK_MAX_ITEMS} (async bulk)
           </Typography>
         </div>
       </Modal>
+
+      <TestCaseJsonImportModal
+        open={jsonOpen}
+        onClose={() => setJsonOpen(false)}
+        onComplete={() => catalog.refetch()}
+      />
 
       <UserPickerModal
         open={Boolean(assignTarget)}

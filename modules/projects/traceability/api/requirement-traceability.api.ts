@@ -1,15 +1,22 @@
 import { apiPath } from '@/shared/lib/api-paths'
 import { apiClient } from '@/shared/lib/apiClient'
 import type {
+  CoverageListQuery,
   CoverageSummaryResponse,
+  FunctionCoverageListResponse,
   GapsQuery,
   GapsResponse,
+  ImplementationCoverageListResponse,
   LinkableFunction,
   LinkableUseCase,
+  NfrVerificationListResponse,
   RequirementTraceDetailResponse,
   RequirementTraceHistoryResponse,
   TraceabilityMatrixQuery,
   TraceabilityMatrixResponse,
+  TraceabilityOverviewResponse,
+  TraceExplorerResponse,
+  UseCaseCoverageListResponse,
 } from '../model/requirement-traceability'
 
 function qs(params: Record<string, string | number | boolean | undefined | null>): string {
@@ -25,6 +32,7 @@ function qs(params: Record<string, string | number | boolean | undefined | null>
 export const REQUIREMENT_TRACEABILITY_ENDPOINTS = {
   coverageSummary: (projectId: string) =>
     apiPath(`/projects/${projectId}/traceability/coverage-summary`),
+  overview: (projectId: string) => apiPath(`/projects/${projectId}/traceability/overview`),
   matrix: (projectId: string, params?: TraceabilityMatrixQuery) =>
     apiPath(`/projects/${projectId}/traceability/matrix`) +
     qs({
@@ -36,6 +44,41 @@ export const REQUIREMENT_TRACEABILITY_ENDPOINTS = {
       limit: params?.limit,
       offset: params?.offset,
     }),
+  functions: (projectId: string, params?: CoverageListQuery) =>
+    apiPath(`/projects/${projectId}/traceability/functions`) +
+    qs({
+      q: params?.q,
+      coverageStatus: params?.coverageStatus,
+      limit: params?.limit,
+      offset: params?.offset,
+    }),
+  useCases: (projectId: string, params?: CoverageListQuery) =>
+    apiPath(`/projects/${projectId}/traceability/use-cases`) +
+    qs({
+      q: params?.q,
+      coverageStatus: params?.coverageStatus,
+      limit: params?.limit,
+      offset: params?.offset,
+    }),
+  implementation: (projectId: string, params?: CoverageListQuery) =>
+    apiPath(`/projects/${projectId}/traceability/implementation`) +
+    qs({
+      q: params?.q,
+      coverageStatus: params?.coverageStatus,
+      limit: params?.limit,
+      offset: params?.offset,
+    }),
+  nfrVerification: (projectId: string, params?: CoverageListQuery) =>
+    apiPath(`/projects/${projectId}/traceability/nfr-verification`) +
+    qs({
+      q: params?.q,
+      coverageStatus: params?.coverageStatus,
+      limit: params?.limit,
+      offset: params?.offset,
+    }),
+  explorer: (projectId: string, params: { rootType: string; rootId: string }) =>
+    apiPath(`/projects/${projectId}/traceability/explorer`) +
+    qs({ rootType: params.rootType, rootId: params.rootId }),
   requirementDetail: (projectId: string, requirementId: string) =>
     apiPath(`/projects/${projectId}/traceability/requirements/${requirementId}`),
   gaps: (projectId: string, params?: GapsQuery) =>
@@ -77,12 +120,65 @@ export async function getCoverageSummary(
   )
 }
 
+export async function getTraceabilityOverview(
+  projectId: string
+): Promise<TraceabilityOverviewResponse> {
+  return apiClient.get<TraceabilityOverviewResponse>(
+    REQUIREMENT_TRACEABILITY_ENDPOINTS.overview(projectId)
+  )
+}
+
 export async function getTraceabilityMatrix(
   projectId: string,
   params?: TraceabilityMatrixQuery
 ): Promise<TraceabilityMatrixResponse> {
   return apiClient.get<TraceabilityMatrixResponse>(
     REQUIREMENT_TRACEABILITY_ENDPOINTS.matrix(projectId, params)
+  )
+}
+
+export async function listFunctionCoverage(
+  projectId: string,
+  params?: CoverageListQuery
+): Promise<FunctionCoverageListResponse> {
+  return apiClient.get<FunctionCoverageListResponse>(
+    REQUIREMENT_TRACEABILITY_ENDPOINTS.functions(projectId, params)
+  )
+}
+
+export async function listUseCaseCoverage(
+  projectId: string,
+  params?: CoverageListQuery
+): Promise<UseCaseCoverageListResponse> {
+  return apiClient.get<UseCaseCoverageListResponse>(
+    REQUIREMENT_TRACEABILITY_ENDPOINTS.useCases(projectId, params)
+  )
+}
+
+export async function listImplementationCoverage(
+  projectId: string,
+  params?: CoverageListQuery
+): Promise<ImplementationCoverageListResponse> {
+  return apiClient.get<ImplementationCoverageListResponse>(
+    REQUIREMENT_TRACEABILITY_ENDPOINTS.implementation(projectId, params)
+  )
+}
+
+export async function listNfrVerification(
+  projectId: string,
+  params?: CoverageListQuery
+): Promise<NfrVerificationListResponse> {
+  return apiClient.get<NfrVerificationListResponse>(
+    REQUIREMENT_TRACEABILITY_ENDPOINTS.nfrVerification(projectId, params)
+  )
+}
+
+export async function getTraceExplorer(
+  projectId: string,
+  params: { rootType: string; rootId: string }
+): Promise<TraceExplorerResponse> {
+  return apiClient.get<TraceExplorerResponse>(
+    REQUIREMENT_TRACEABILITY_ENDPOINTS.explorer(projectId, params)
   )
 }
 

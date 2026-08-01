@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, SquareArrowOutUpRight } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
@@ -16,13 +16,24 @@ import { FunctionUseCaseLinkPanel } from './FunctionUseCaseLinkPanel'
 export function UseCaseCatalogView() {
   const { workspaceId, projectId } = useParams<{ workspaceId: string; projectId: string }>()
   const searchParams = useSearchParams()
-  const { useCases, loading, error, refetch, createUseCase } = useUseCaseCatalog(projectId)
+  const { useCases, loading, error, refetch, createUseCase, submitUseCasesBulk } =
+    useUseCaseCatalog(projectId)
   const { functionalItems } = useFunctionalCatalog(projectId)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const useCaseFromQuery = searchParams.get('useCaseId')
+  const seededUseCaseRef = useRef(useCaseFromQuery)
+  const [selectedId, setSelectedId] = useState<string | null>(useCaseFromQuery)
   const [search, setSearch] = useState('')
   const [view, setView] = useState<'catalog' | 'links'>(
     searchParams.get('tab') === 'links' ? 'links' : 'catalog'
   )
+
+  useEffect(() => {
+    if (useCaseFromQuery && seededUseCaseRef.current !== useCaseFromQuery) {
+      seededUseCaseRef.current = useCaseFromQuery
+      setSelectedId(useCaseFromQuery)
+      setView('catalog')
+    }
+  }, [useCaseFromQuery])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -31,7 +42,7 @@ export function UseCaseCatalogView() {
       (uc) =>
         uc.name.toLowerCase().includes(q) ||
         uc.key.toLowerCase().includes(q) ||
-        uc.primaryFunctionName.toLowerCase().includes(q)
+        uc.primaryFunctionName?.toLowerCase().includes(q)
     )
   }, [useCases, search])
 
@@ -49,7 +60,7 @@ export function UseCaseCatalogView() {
                 Function → Use Case Links
               </Typography>
               <Typography variant="caption" tone="muted">
-                Assign existing Use Cases to their Functions in bulk.
+                Assign Use Cases to Functions. Set primary Function from the Use Case detail.
               </Typography>
             </div>
             <Button size="sm" variant="outline" onClick={() => setView('catalog')}>
@@ -99,7 +110,7 @@ export function UseCaseCatalogView() {
               icon={<SquareArrowOutUpRight size={14} />}
               onClick={() => setView('links')}
             >
-              Function → Use Case
+              Bulk link
             </Button>
           </div>
         </header>
@@ -126,8 +137,9 @@ export function UseCaseCatalogView() {
                   />
                 </div>
                 <UseCaseAddBar
-                  functionalItems={functionalItems}
+                  projectId={projectId}
                   onCreate={createUseCase}
+                  onSubmitBulk={submitUseCasesBulk}
                   onBatchComplete={refetch}
                 />
               </div>

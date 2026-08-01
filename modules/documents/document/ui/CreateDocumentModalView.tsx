@@ -1,36 +1,24 @@
 'use client'
 
-import { Modal, Input, Select, Typography, Button } from '@/shared/ui'
+import { Modal, Input, Select, Typography } from '@/shared/ui'
 import {
   DOCUMENT_TYPE_OPTIONS,
   DOCUMENT_VISIBILITY_OPTIONS,
   type DocumentType,
   type DocumentVisibility,
 } from '@/modules/documents/document'
-import { TemplatePicker } from '@/modules/documents/document-templates/ui/TemplatePicker'
-import { TemplateVariableWarnings } from '@/modules/documents/document-templates/ui/TemplateVariableWarnings'
-import { cn } from '@/utils/cn'
 import type { CreateDocumentModalViewProps } from '../model/create-document-modal'
 
 export function CreateDocumentModalView({
-  orgId,
   open,
   onClose,
-  canCreateFromTemplate = true,
-  mode,
   title,
   documentType,
   visibility,
-  selectedTemplate,
   loading,
-  variablePreview,
-  previewLoading,
-  templateHasVariables,
-  onModeChange,
   onTitleChange,
   onDocumentTypeChange,
   onVisibilityChange,
-  onTemplateSelect,
   onSubmit,
 }: CreateDocumentModalViewProps) {
   return (
@@ -46,46 +34,8 @@ export function CreateDocumentModalView({
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <Typography variant="small" tone="muted">
-          Create a blank document{canCreateFromTemplate ? ' or start from a template' : ''}.
+          Create a blank document.
         </Typography>
-
-        <Select
-          value={mode}
-          onValueChange={onModeChange}
-          options={[
-            { value: 'blank', label: 'Blank document' },
-            ...(canCreateFromTemplate
-              ? [{ value: 'template' as const, label: 'From template' }]
-              : []),
-          ]}
-          placeholder="Creation mode"
-        />
-
-        {mode === 'template' && (
-          <div className={cn('border-t border-neutral-200 pt-4')}>
-            <TemplatePicker
-              orgId={orgId}
-              selectedId={selectedTemplate?.id}
-              onSelect={onTemplateSelect}
-            />
-          </div>
-        )}
-
-        {mode === 'template' && selectedTemplate && templateHasVariables && (
-          <div className="space-y-2">
-            <Typography variant="small" tone="muted">
-              {previewLoading
-                ? 'Checking template variables…'
-                : 'Variables will be resolved using this project when the document is created.'}
-            </Typography>
-            {variablePreview && (
-              <TemplateVariableWarnings
-                unknownVariables={variablePreview.unresolved_variables}
-                warnings={variablePreview.warnings}
-              />
-            )}
-          </div>
-        )}
 
         <Input
           label="Title"

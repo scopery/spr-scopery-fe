@@ -1,5 +1,6 @@
 import { apiPath } from '@/shared/lib/api-paths'
 import { apiClient } from '@/shared/lib/apiClient'
+import { assertBulkItemCount, type BulkJobResponse } from '@/shared/lib/bulkJobs'
 import { normalizeItemList, type ListPayload } from '@/shared/lib/normalizeListResponse'
 import type {
   CreateRegistryApiEndpointBody,
@@ -117,24 +118,34 @@ export const TRACEABILITY_ENDPOINTS = {
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}`),
   modules: (workspaceId: string, applicationId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/modules`),
+  modulesBulk: (workspaceId: string, applicationId: string) =>
+    apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/modules/bulk`),
   module: (workspaceId: string, applicationId: string, appModuleId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/modules/${appModuleId}`),
   screens: (workspaceId: string, applicationId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/screens`),
+  screensBulk: (workspaceId: string, applicationId: string) =>
+    apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/screens/bulk`),
   screen: (workspaceId: string, applicationId: string, screenId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/screens/${screenId}`),
   apiEndpoints: (workspaceId: string, applicationId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/api-endpoints`),
+  apiEndpointsBulk: (workspaceId: string, applicationId: string) =>
+    apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/api-endpoints/bulk`),
   apiEndpoint: (workspaceId: string, applicationId: string, endpointId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/api-endpoints/${endpointId}`),
   components: (workspaceId: string, applicationId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/components`),
+  componentsBulk: (workspaceId: string, applicationId: string) =>
+    apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/components/bulk`),
   component: (workspaceId: string, applicationId: string, appComponentId: string) =>
     apiPath(
       `/workspaces/${workspaceId}/applications/${applicationId}/components/${appComponentId}`
     ),
   dataEntities: (workspaceId: string, applicationId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/data-entities`),
+  dataEntitiesBulk: (workspaceId: string, applicationId: string) =>
+    apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/data-entities/bulk`),
   dataEntity: (workspaceId: string, applicationId: string, dataEntityId: string) =>
     apiPath(
       `/workspaces/${workspaceId}/applications/${applicationId}/data-entities/${dataEntityId}`
@@ -458,6 +469,19 @@ export async function createAppModule(
   return apiClient.post(TRACEABILITY_ENDPOINTS.modules(workspaceId, applicationId), body)
 }
 
+export async function submitAppModulesBulk(
+  workspaceId: string,
+  applicationId: string,
+  items: CreateRegistryAppModuleBody[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(
+    TRACEABILITY_ENDPOINTS.modulesBulk(workspaceId, applicationId),
+    { items },
+    { skipGlobalLoading: true }
+  )
+}
+
 export async function updateAppModule(
   workspaceId: string,
   applicationId: string,
@@ -495,6 +519,19 @@ export async function createScreen(
   return apiClient.post(TRACEABILITY_ENDPOINTS.screens(workspaceId, applicationId), body)
 }
 
+export async function submitScreensBulk(
+  workspaceId: string,
+  applicationId: string,
+  items: CreateRegistryScreenBody[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(
+    TRACEABILITY_ENDPOINTS.screensBulk(workspaceId, applicationId),
+    { items },
+    { skipGlobalLoading: true }
+  )
+}
+
 export async function updateScreen(
   workspaceId: string,
   applicationId: string,
@@ -528,6 +565,19 @@ export async function createApiEndpoint(
   body: CreateRegistryApiEndpointBody
 ): Promise<RegistryApiEndpoint> {
   return apiClient.post(TRACEABILITY_ENDPOINTS.apiEndpoints(workspaceId, applicationId), body)
+}
+
+export async function submitApiEndpointsBulk(
+  workspaceId: string,
+  applicationId: string,
+  items: CreateRegistryApiEndpointBody[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(
+    TRACEABILITY_ENDPOINTS.apiEndpointsBulk(workspaceId, applicationId),
+    { items },
+    { skipGlobalLoading: true }
+  )
 }
 
 export async function updateApiEndpoint(
@@ -568,6 +618,19 @@ export async function createAppComponent(
   body: CreateRegistryAppComponentBody
 ): Promise<RegistryAppComponent> {
   return apiClient.post(TRACEABILITY_ENDPOINTS.components(workspaceId, applicationId), body)
+}
+
+export async function submitAppComponentsBulk(
+  workspaceId: string,
+  applicationId: string,
+  items: CreateRegistryAppComponentBody[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(
+    TRACEABILITY_ENDPOINTS.componentsBulk(workspaceId, applicationId),
+    { items },
+    { skipGlobalLoading: true }
+  )
 }
 
 export async function updateAppComponent(
@@ -612,6 +675,19 @@ export async function createDataEntity(
   body: CreateRegistryDataEntityBody
 ): Promise<RegistryDataEntity> {
   return apiClient.post(TRACEABILITY_ENDPOINTS.dataEntities(workspaceId, applicationId), body)
+}
+
+export async function submitDataEntitiesBulk(
+  workspaceId: string,
+  applicationId: string,
+  items: CreateRegistryDataEntityBody[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(
+    TRACEABILITY_ENDPOINTS.dataEntitiesBulk(workspaceId, applicationId),
+    { items },
+    { skipGlobalLoading: true }
+  )
 }
 
 export async function updateDataEntity(

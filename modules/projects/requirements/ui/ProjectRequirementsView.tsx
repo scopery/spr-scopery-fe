@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { ExternalLink, Search, SquareArrowOutUpRight } from 'lucide-react'
 import { Typography, Badge, Button, DataTable, PageSkeleton } from '@/shared/ui'
 import { toast } from 'sonner'
@@ -67,6 +67,7 @@ function formatDate(iso: string | null | undefined) {
 
 export function ProjectRequirementsView() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const orgId = params.workspaceId as string
   const projectId = params.projectId as string
 
@@ -77,11 +78,14 @@ export function ProjectRequirementsView() {
     requirements,
     loading: reqLoading,
     createRequirement,
+    submitRequirementsBulk,
     refetch,
   } = useRequirements(orgId, projectId)
 
   const loading = projectLoading || orgLoading || permsLoading || reqLoading
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => searchParams.get('requirementId')
+  )
   const [evidenceCounts, setEvidenceCounts] = useState<Record<string, number>>({})
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<EvidenceFilter>('all')
@@ -183,6 +187,11 @@ export function ProjectRequirementsView() {
   }, [requirements, evidenceCounts, filter, search])
 
   useEffect(() => {
+    const fromQuery = searchParams.get('requirementId')
+    if (fromQuery) setSelectedId(fromQuery)
+  }, [searchParams])
+
+  useEffect(() => {
     if (filtered.length === 0) {
       setSelectedId(null)
       return
@@ -247,9 +256,9 @@ export function ProjectRequirementsView() {
         throw err
       }
     },
+    onSubmitBulk: submitRequirementsBulk,
     onBatchComplete: async () => {
       await refetch()
-      toast.success('Requirements created')
     },
     onCreated: (id: string | null) => {
       if (id) setSelectedId(id)

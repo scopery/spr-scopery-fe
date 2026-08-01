@@ -1,45 +1,37 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { Button } from '@/shared/ui'
+import { AnchoredMenu, Button, anchoredMenuItemClassName } from '@/shared/ui'
 import { cn } from '@/utils/cn'
-import type { CreateUseCaseBody } from '../model/use-case'
-import type { FunctionalItem } from '../model/functional-catalog'
+import type { BulkJobResponse } from '@/shared/lib/bulkJobs'
+import type { CreateUseCaseBody, BulkCreateUseCaseItem } from '../model/use-case'
 import { UseCaseSingleAddModal } from './UseCaseSingleAddModal'
 import { UseCaseBulkAddModal } from './UseCaseBulkAddModal'
+import { UseCaseJsonImportModal } from './UseCaseJsonImportModal'
 
-type AddMode = 'single' | 'bulk'
+type AddMode = 'single' | 'bulk' | 'json'
 
 interface Props {
-  functionalItems: FunctionalItem[]
+  projectId: string
   onCreate: (body: CreateUseCaseBody) => Promise<unknown>
+  onSubmitBulk: (items: BulkCreateUseCaseItem[]) => Promise<BulkJobResponse>
   onBatchComplete?: () => Promise<void> | void
 }
 
-export function UseCaseAddBar({ functionalItems, onCreate, onBatchComplete }: Props) {
+export function UseCaseAddBar({ projectId, onCreate, onSubmitBulk, onBatchComplete }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [mode, setMode] = useState<AddMode | null>(null)
-  const rootRef = useRef<HTMLDivElement>(null)
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const closeMenu = useCallback(() => setMenuOpen(false), [])
 
-  useEffect(() => {
-    if (!menuOpen) return
-    const onPointer = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setMenuOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false)
-    }
-    document.addEventListener('mousedown', onPointer)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onPointer)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [menuOpen])
+  const pick = (next: AddMode) => {
+    setMenuOpen(false)
+    setMode(next)
+  }
 
   return (
-    <div ref={rootRef} className="relative flex justify-end">
+    <div ref={anchorRef} className="relative flex justify-end">
       <Button
         size="sm"
         variant="secondary"
@@ -54,39 +46,20 @@ export function UseCaseAddBar({ functionalItems, onCreate, onBatchComplete }: Pr
         />
       </Button>
 
-      {menuOpen ? (
-        <div
-          role="menu"
-          className="absolute right-0 top-full z-20 mt-1 min-w-[180px] border border-neutral-200 bg-white py-1 shadow-md"
-        >
-          <button
-            type="button"
-            role="menuitem"
-            className="block w-full px-3 py-2 text-left text-sm text-neutral-800 hover:bg-neutral-50"
-            onClick={() => {
-              setMenuOpen(false)
-              setMode('single')
-            }}
-          >
-            Single add
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            className="block w-full px-3 py-2 text-left text-sm text-neutral-800 hover:bg-neutral-50"
-            onClick={() => {
-              setMenuOpen(false)
-              setMode('bulk')
-            }}
-          >
-            Bulk add
-          </button>
-        </div>
-      ) : null}
+      <AnchoredMenu open={menuOpen} onClose={closeMenu} anchorRef={anchorRef}>
+        <button type="button" role="menuitem" className={anchoredMenuItemClassName} onClick={() => pick('single')}>
+          Single add
+        </button>
+        <button type="button" role="menuitem" className={anchoredMenuItemClassName} onClick={() => pick('bulk')}>
+          Bulk add
+        </button>
+        <button type="button" role="menuitem" className={anchoredMenuItemClassName} onClick={() => pick('json')}>
+          JSON import
+        </button>
+      </AnchoredMenu>
 
       <UseCaseSingleAddModal
         open={mode === 'single'}
-        functionalItems={functionalItems}
         onClose={() => setMode(null)}
         onCreate={async (body) => {
           await onCreate(body)
@@ -96,9 +69,16 @@ export function UseCaseAddBar({ functionalItems, onCreate, onBatchComplete }: Pr
 
       <UseCaseBulkAddModal
         open={mode === 'bulk'}
-        functionalItems={functionalItems}
         onClose={() => setMode(null)}
-        onCreate={onCreate}
+        onSubmitBulk={onSubmitBulk}
+        onBatchComplete={onBatchComplete}
+      />
+
+      <UseCaseJsonImportModal
+        open={mode === 'json'}
+        projectId={projectId}
+        onClose={() => setMode(null)}
+        onSubmitBulk={onSubmitBulk}
         onBatchComplete={onBatchComplete}
       />
     </div>

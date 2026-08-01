@@ -1,5 +1,6 @@
 import { PROJECT_ENDPOINTS } from '../../../endpoints'
 import { apiClient } from '@/shared/lib/apiClient'
+import { assertBulkItemCount, type BulkJobResponse } from '@/shared/lib/bulkJobs'
 import type {
   CreateProjectPhasePayload,
   ProjectPhase,
@@ -23,6 +24,14 @@ export async function createPhase(
   body: CreateProjectPhasePayload
 ): Promise<ProjectPhase> {
   return apiClient.post<ProjectPhase>(PROJECT_ENDPOINTS.phases.create(projectId), body)
+}
+
+export async function submitPhasesBulk(
+  projectId: string,
+  items: CreateProjectPhasePayload[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(PROJECT_ENDPOINTS.phases.bulk(projectId), { items }, { skipGlobalLoading: true })
 }
 
 export async function updatePhase(

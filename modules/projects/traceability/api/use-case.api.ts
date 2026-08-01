@@ -1,5 +1,11 @@
 import { apiPath } from '@/shared/lib/api-paths'
 import { apiClient } from '@/shared/lib/apiClient'
+import { assertBulkItemCount, type BulkJobResponse } from '@/shared/lib/bulkJobs'
+import type {
+  PrimaryFunctionChangeImpact,
+  UseCaseFlowScope,
+  UseCaseMentionOptionsResponse,
+} from '../model/flow-mention'
 import type {
   AddFlowStepBody,
   AddSupportingFunctionBody,
@@ -7,6 +13,7 @@ import type {
   AddUseCaseBusinessRuleBody,
   AddUseCaseConditionBody,
   CreateUseCaseBody,
+  BulkCreateUseCaseItem,
   CreateUseCaseFlowBody,
   LinkRequirementBody,
   ReorderFlowStepsBody,
@@ -27,7 +34,10 @@ import type {
 
 export const USE_CASE_ENDPOINTS = {
   list: (pId: string) => apiPath(`/projects/${pId}/use-cases`),
+  bulk: (pId: string) => apiPath(`/projects/${pId}/use-cases/bulk`),
   detail: (pId: string, ucId: string) => apiPath(`/projects/${pId}/use-cases/${ucId}`),
+  nestedImport: (pId: string, ucId: string) =>
+    apiPath(`/projects/${pId}/use-cases/${ucId}/nested-import`),
   byFunction: (pId: string, fId: string) =>
     apiPath(`/projects/${pId}/functional-items/${fId}/use-cases`),
   supportingFns: (pId: string, ucId: string) =>
@@ -63,6 +73,12 @@ export const USE_CASE_ENDPOINTS = {
     apiPath(`/projects/${pId}/functional-items/${fId}/requirements`),
   fnRequirement: (pId: string, fId: string, rId: string) =>
     apiPath(`/projects/${pId}/functional-items/${fId}/requirements/${rId}`),
+  flowScope: (pId: string, ucId: string) =>
+    apiPath(`/projects/${pId}/use-cases/${ucId}/flow-scope`),
+  mentionOptions: (pId: string, ucId: string) =>
+    apiPath(`/projects/${pId}/use-cases/${ucId}/mention-options`),
+  primaryFunctionChangeImpact: (pId: string, ucId: string) =>
+    apiPath(`/projects/${pId}/use-cases/${ucId}/primary-function-change-impact`),
 } as const
 
 export async function listUseCases(projectId: string): Promise<UseCase[]> {
@@ -76,11 +92,34 @@ export async function createUseCase(
   return apiClient.post<UseCaseDetail>(USE_CASE_ENDPOINTS.list(projectId), body)
 }
 
+export async function submitUseCasesBulk(
+  projectId: string,
+  items: BulkCreateUseCaseItem[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(USE_CASE_ENDPOINTS.bulk(projectId), { items }, { skipGlobalLoading: true })
+}
+
 export async function getUseCaseDetail(
   projectId: string,
   useCaseId: string
 ): Promise<UseCaseDetail> {
   return apiClient.get<UseCaseDetail>(USE_CASE_ENDPOINTS.detail(projectId, useCaseId))
+}
+
+/** One-shot nested import for an existing Use Case — BE applies all parts. */
+export async function importUseCaseNested(
+  projectId: string,
+  useCaseId: string,
+  body: {
+    flows?: BulkCreateUseCaseItem['flows']
+    conditions?: BulkCreateUseCaseItem['conditions']
+    businessRules?: BulkCreateUseCaseItem['businessRules']
+    acceptanceCriteria?: BulkCreateUseCaseItem['acceptanceCriteria']
+    supportingFunctionIds?: string[]
+  }
+): Promise<{ useCaseId: string; createdParts: number }> {
+  return apiClient.post(USE_CASE_ENDPOINTS.nestedImport(projectId, useCaseId), body)
 }
 
 export async function updateUseCase(
@@ -332,5 +371,46 @@ export async function unlinkRequirementFromFunction(
 ): Promise<void> {
   await apiClient.delete(
     USE_CASE_ENDPOINTS.fnRequirement(projectId, functionId, requirementId)
+  )
+}
+
+export async function getFlowScope(
+  projectId: string,
+  useCaseId: string
+): Promise<UseCaseFlowScope> {
+  return apiClient.get<UseCaseFlowScope>(USE_CASE_ENDPOINTS.flowScope(projectId, useCaseId))
+}
+
+export async function getMentionOptions(
+  projectId: string,
+  useCaseId: string,
+  params: {
+    query?: string
+    types?: string
+    screenId?: string
+    mode?: 'browse' | 'search'
+    limit?: number
+  } = {}
+): Promise<UseCaseMentionOptionsResponse> {
+  const sp = new URLSearchParams()
+  if (params.query) sp.set('query', params.query)
+  if (params.types) sp.set('types', params.types)
+  if (params.screenId) sp.set('screenId', params.screenId)
+  if (params.mode) sp.set('mode', params.mode)
+  if (params.limit != null) sp.set('limit', String(params.limit))
+  const qs = sp.toString()
+  return apiClient.get<UseCaseMentionOptionsResponse>(
+    USE_CASE_ENDPOINTS.mentionOptions(projectId, useCaseId) + (qs ? `?${qs}` : '')
+  )
+}
+
+export async function getPrimaryFunctionChangeImpact(
+  projectId: string,
+  useCaseId: string,
+  newFunctionId: string
+): Promise<PrimaryFunctionChangeImpact> {
+  const sp = new URLSearchParams({ newFunctionId })
+  return apiClient.get<PrimaryFunctionChangeImpact>(
+    `${USE_CASE_ENDPOINTS.primaryFunctionChangeImpact(projectId, useCaseId)}?${sp}`
   )
 }

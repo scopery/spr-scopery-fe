@@ -45,3 +45,14 @@ export function qualityReleasesHref(workspaceId: string, projectId: string): str
     ? ROUTES.workspace.projectQualityReleases(workspaceId, projectId)
     : ROUTES.workspace.projectReleases(workspaceId, projectId)
 }
+
+export function qualityCaseLinksHref(
+  workspaceId: string,
+  projectId: string,
+  useCaseId?: string
+): string {
+  if (FEATURES.qualitySimplifiedWorkflow) {
+    return ROUTES.workspace.projectQualityCaseLinks(workspaceId, projectId, useCaseId)
+  }
+  return ROUTES.workspace.projectTestCaseLinks(workspaceId, projectId, useCaseId)
+}

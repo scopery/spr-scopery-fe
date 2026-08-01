@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Calendar, Plus, Trash2 } from 'lucide-react'
 import {
+  BulkJobProgressPanel,
   Button,
   DataTable,
   Input,
@@ -13,6 +14,12 @@ import {
 } from '@/shared/ui'
 import { toast } from 'sonner'
 import { ApiError } from '@/shared/lib/api-types'
+import {
+  BULK_MAX_ITEMS,
+  BulkJobStatus,
+  type BulkJobResponse,
+} from '@/shared/lib/bulkJobs'
+import { useBulkJobPoller } from '@/shared/lib/useBulkJobPoller'
 import { cn } from '@/utils/cn'
 import type { CreateProjectPhasePayload } from '../../domain/model/phase'
 
@@ -47,9 +54,7 @@ interface PhaseBulkAddModalProps {
   open: boolean
   nextDisplayOrder: number
   onClose: () => void
-  /** Create one phase — should not refresh the list (batch refreshes once via onBatchComplete). */
-  onCreate: (payload: CreateProjectPhasePayload) => Promise<void>
-  /** Called once after the batch finishes if at least one phase was created. */
+  onSubmitBulk: (items: CreateProjectPhasePayload[]) => Promise<BulkJobResponse>
   onBatchComplete?: () => Promise<void> | void
 }
 
@@ -250,20 +255,27 @@ export function PhaseBulkAddModal({
   open,
   nextDisplayOrder,
   onClose,
-  onCreate,
+  onSubmitBulk,
   onBatchComplete,
 }: PhaseBulkAddModalProps) {
   const [rows, setRows] = useState<DraftRow[]>([newRow()])
   const [submitting, setSubmitting] = useState(false)
+  const submittingRef = useRef(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [pasteHint, setPasteHint] = useState(false)
+  const [jobId, setJobId] = useState<string | null>(null)
+  const poller = useBulkJobPoller()
 
   useEffect(() => {
     if (!open) return
     setRows([newRow()])
     setFormError(null)
     setSubmitting(false)
+    submittingRef.current = false
     setPasteHint(false)
+    setJobId(null)
+    poller.reset()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when modal opens
   }, [open])
 
   const validRows = useMemo(() => rows.filter((r) => r.code.trim() && r.name.trim()), [rows])
@@ -279,6 +291,10 @@ export function PhaseBulkAddModal({
   }
 
   const applyPaste = useCallback((text: string) => {
+    if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+      setFormError('Use JSON Import for JSON payloads. Bulk add accepts Excel/TSV only.')
+      return
+    }
     const pasted = parseClipboardToRows(text)
     if (pasted.length === 0) return
     setRows((prev) => {
@@ -302,25 +318,14 @@ export function PhaseBulkAddModal({
     return () => document.removeEventListener('paste', onPaste)
   }, [open, applyPaste])
 
-  const handleSubmit = async () => {
-    if (validRows.length === 0) {
-      setFormError('Add at least one row with code and name.')
-      return
-    }
-
-    setSubmitting(true)
-    setFormError(null)
-
+  const buildItems = useCallback((): CreateProjectPhasePayload[] | null => {
     const usedOrders = new Set<number>()
     let autoOrder = nextDisplayOrder
-    const remaining: DraftRow[] = []
-    let created = 0
-
-    for (const row of rows) {
-      if (isBlank(row)) continue
+    const items: CreateProjectPhasePayload[] = []
+    const nextRows = rows.map((row) => {
+      if (isBlank(row)) return row
       if (!row.code.trim() || !row.name.trim()) {
-        remaining.push({ ...row, error: 'Code and name are required' })
-        continue
+        return { ...row, error: 'Code and name are required' }
       }
 
       let order: number
@@ -328,8 +333,7 @@ export function PhaseBulkAddModal({
       if (rawOrder) {
         order = Number.parseInt(rawOrder, 10)
         if (!Number.isFinite(order) || order < 1) {
-          remaining.push({ ...row, error: 'Order must be a positive number' })
-          continue
+          return { ...row, error: 'Order must be a positive number' }
         }
       } else {
         while (usedOrders.has(autoOrder)) autoOrder += 1
@@ -338,66 +342,98 @@ export function PhaseBulkAddModal({
       }
 
       if (usedOrders.has(order)) {
-        remaining.push({ ...row, error: `Order ${order} already used in this batch` })
-        continue
+        return { ...row, error: `Order ${order} already used in this batch` }
       }
       usedOrders.add(order)
 
       const start = row.plannedStartDate.trim()
       const end = row.plannedEndDate.trim()
       if (start && !isValidIsoDate(start)) {
-        remaining.push({ ...row, error: 'Start must be a valid date (YYYY-MM-DD)' })
-        continue
+        return { ...row, error: 'Start must be a valid date (YYYY-MM-DD)' }
       }
       if (end && !isValidIsoDate(end)) {
-        remaining.push({ ...row, error: 'End must be a valid date (YYYY-MM-DD)' })
-        continue
+        return { ...row, error: 'End must be a valid date (YYYY-MM-DD)' }
       }
       if (start && end && end < start) {
-        remaining.push({ ...row, error: 'End must be on or after start' })
-        continue
+        return { ...row, error: 'End must be on or after start' }
       }
 
-      try {
-        await onCreate({
-          code: row.code.trim().toUpperCase(),
-          name: row.name.trim(),
-          description: row.description.trim() || null,
-          displayOrder: order,
-          plannedStartDate: start || null,
-          plannedEndDate: end || null,
-        })
-        created += 1
-      } catch (err: unknown) {
-        const message =
-          err instanceof ApiError && err.status === 409
-            ? 'Code or order already exists'
-            : err instanceof Error
-              ? err.message
-              : 'Failed'
-        remaining.push({ ...row, error: message })
-      }
+      items.push({
+        code: row.code.trim().toUpperCase(),
+        name: row.name.trim(),
+        description: row.description.trim() || null,
+        displayOrder: order,
+        plannedStartDate: start || null,
+        plannedEndDate: end || null,
+      })
+      return { ...row, error: null }
+    })
+
+    if (nextRows.some((r) => r.error)) {
+      setRows(nextRows)
+      return null
     }
+    return items
+  }, [rows, nextDisplayOrder])
 
-    if (created > 0) {
-      await onBatchComplete?.()
+  const runBulk = useCallback(async () => {
+    if (submittingRef.current) return
+    if (validRows.length === 0) {
+      setFormError('Add at least one row with code and name.')
+      return
     }
-
-    setSubmitting(false)
-
-    if (remaining.length === 0) {
-      toast.success(created === 1 ? 'Phase created' : `${created} phases created`)
-      onClose()
+    const items = buildItems()
+    if (!items || items.length === 0) {
+      setFormError('Fix validation errors before submitting.')
+      return
+    }
+    if (items.length > BULK_MAX_ITEMS) {
+      setFormError(`Maximum ${BULK_MAX_ITEMS} items per bulk request.`)
       return
     }
 
-    setRows(remaining.length ? remaining : [newRow()])
-    setFormError(
-      created
-        ? `Created ${created}. Review ${remaining.length} remaining row${remaining.length === 1 ? '' : 's'}.`
-        : `Could not create. Fix ${remaining.length} row${remaining.length === 1 ? '' : 's'}.`
-    )
-  }
+    submittingRef.current = true
+    setSubmitting(true)
+    setFormError(null)
+    poller.reset()
+
+    try {
+      const job = await onSubmitBulk(items)
+      setJobId(job.id)
+      setSubmitting(false)
+      submittingRef.current = false
+      toast.message('Job accepted', { description: 'Processing in the background…' })
+      onClose()
+      const done = await poller.start(job.id, job)
+      if (done.succeededItems > 0) await onBatchComplete?.()
+
+      if (done.status === BulkJobStatus.Succeeded) {
+        toast.success(done.resultSummary ?? `Created ${done.succeededItems} phases`)
+      } else if (done.status === BulkJobStatus.Partial) {
+        toast.warning(
+          done.resultSummary ??
+            `${done.succeededItems} created, ${done.failedItems} failed. Successful items are already saved.`
+        )
+      } else {
+        toast.error(done.errorMessage ?? done.resultSummary ?? 'Bulk create failed')
+      }
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Failed to submit bulk create'
+      setFormError(message)
+    } finally {
+      submittingRef.current = false
+      setSubmitting(false)
+    }
+  }, [validRows.length, buildItems, onSubmitBulk, onBatchComplete, onClose, poller])
+
+  const jobRunning = poller.isPolling
+  const busy = submitting || jobRunning
 
   return (
     <Modal
@@ -408,17 +444,17 @@ export function PhaseBulkAddModal({
       actions={[
         { label: 'Cancel', onClick: onClose, variant: 'ghost' },
         {
-          label: submitting ? 'Creating…' : `Create ${validRows.length}`,
-          onClick: () => void handleSubmit(),
+          label: submitting ? 'Submitting…' : jobRunning ? 'Running…' : `Create ${validRows.length}`,
+          onClick: () => void runBulk(),
           variant: 'primary',
-          disabled: submitting || validRows.length === 0,
+          disabled: busy || validRows.length === 0,
           loading: submitting,
         },
       ]}
     >
       <div className="space-y-4">
         <Typography variant="small" tone="muted">
-          Add one or more phases. Paste from Excel (Ctrl/Cmd+V) — columns: Code · Name · Description
+          Add one or more phases. Paste Excel/TSV (Ctrl/Cmd+V). Use JSON Import for JSON payloads — columns: Code · Name · Description
           · Order · Start · End. Dates accept paste or the calendar icon. Empty order auto-fills
           from {nextDisplayOrder}.
         </Typography>
@@ -428,6 +464,34 @@ export function PhaseBulkAddModal({
             Pasted — review, edit, or remove rows below.
           </Typography>
         ) : null}
+
+        <BulkJobProgressPanel
+          job={poller.job}
+          percent={poller.percent}
+          isPolling={poller.isPolling}
+          error={poller.error}
+          onRetryFailed={(failedItems) => {
+            setJobId(null)
+            poller.reset()
+            void (async () => {
+              try {
+                const job = await onSubmitBulk(failedItems as unknown as Parameters<typeof onSubmitBulk>[0])
+                setJobId(job.id)
+                setSubmitting(false)
+                toast.message('Job accepted', { description: 'Processing in the background…' })
+                const done = await poller.start(job.id, job)
+                if (done.succeededItems > 0) await onBatchComplete?.()
+              } catch {
+                /* interceptor / form handles */
+              }
+            })()
+          }}
+          onRetry={() => {
+            setJobId(null)
+            poller.reset()
+            void runBulk()
+          }}
+        />
 
         <div className="border border-neutral-200">
           <DataTable
@@ -468,6 +532,7 @@ export function PhaseBulkAddModal({
                         aria-label={`${column.label} row ${index + 1}`}
                         fullWidth
                         size="sm"
+                        disabled={busy}
                       />
                     ),
                 })
@@ -482,6 +547,7 @@ export function PhaseBulkAddModal({
                     className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
                     onClick={() => removeRow(row.id)}
                     aria-label={`Remove row ${index + 1}`}
+                    disabled={busy}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -511,13 +577,19 @@ export function PhaseBulkAddModal({
           </Typography>
         ) : null}
 
+        {jobId ? (
+          <Typography variant="caption" tone="muted">
+            Job {jobId}
+          </Typography>
+        ) : null}
+
         <Stack direction="horizontal" spacing="sm" className="flex-wrap">
-          <Button size="sm" variant="secondary" onClick={addRow} disabled={submitting}>
+          <Button size="sm" variant="secondary" onClick={addRow} disabled={busy}>
             <Plus size={14} className="mr-1 inline" />
             Add row
           </Button>
           <Typography variant="caption" tone="muted" className="self-center">
-            Tip: copy cells from Excel then paste in this dialog
+            {validRows.length} ready · max {BULK_MAX_ITEMS}
           </Typography>
         </Stack>
       </div>

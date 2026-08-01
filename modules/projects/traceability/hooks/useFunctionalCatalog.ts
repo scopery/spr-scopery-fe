@@ -108,6 +108,22 @@ export function useFunctionalCatalog(projectId: string | null) {
     [projectId, load]
   )
 
+  const submitFunctionalItemsBulk = useCallback(
+    async (items: CreateFunctionalItemBody[]) => {
+      if (!projectId) throw new Error('Project required')
+      return api.submitFunctionalItemsBulk(projectId, items)
+    },
+    [projectId]
+  )
+
+  const submitNonFunctionalItemsBulk = useCallback(
+    async (items: CreateNonFunctionalItemBody[]) => {
+      if (!projectId) throw new Error('Project required')
+      return api.submitNonFunctionalItemsBulk(projectId, items)
+    },
+    [projectId]
+  )
+
   return {
     functionalItems,
     nonFunctionalItems,
@@ -120,5 +136,7 @@ export function useFunctionalCatalog(projectId: string | null) {
     createNfr,
     updateNfr,
     removeNfr,
+    submitFunctionalItemsBulk,
+    submitNonFunctionalItemsBulk,
   }
 }

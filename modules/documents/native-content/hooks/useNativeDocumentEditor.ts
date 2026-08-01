@@ -49,6 +49,7 @@ export function useNativeDocumentEditor(projectId: string, documentId: string) {
   const autosaveDueAtRef = useRef<number | null>(null)
   const payloadRef = useRef({ plateValue: emptyPlateValue() as Value, revisionNo: 0 })
   const nativeUnsupportedRef = useRef(false)
+  const saveInFlightRef = useRef(false)
   const [autosaveInSeconds, setAutosaveInSeconds] = useState<number | null>(null)
 
   const clearAutosaveTimer = useCallback(() => {
@@ -140,6 +141,9 @@ export function useNativeDocumentEditor(projectId: string, documentId: string) {
         return
       }
 
+      if (saveInFlightRef.current) return
+      saveInFlightRef.current = true
+
       const token = ++saveTokenRef.current
       const snapshot = { ...payloadRef.current }
       setSaveStatus('saving')
@@ -200,6 +204,10 @@ export function useNativeDocumentEditor(projectId: string, documentId: string) {
 
         setSaveStatus('error')
         toast.error(getProblemToastMessage(err))
+      } finally {
+        if (token === saveTokenRef.current) {
+          saveInFlightRef.current = false
+        }
       }
     },
     [projectId, documentId, schemaVersion, clearAutosaveTimer]

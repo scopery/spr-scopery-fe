@@ -14,7 +14,6 @@ export type {
   FunctionalItem,
   NonFunctionalItem,
   BusinessRule,
-  FunctionalItemCustomProperty,
   FunctionalItemAnchor,
 } from './model/functional-catalog'
 export { TraceabilityMatrixView } from './ui/TraceabilityMatrixView'
@@ -42,7 +41,6 @@ export { useStructureRelations } from './hooks/useStructureRelations'
 export type { StructureRelation } from './model/structure-relation'
 export { StructureRelationType, StructureRelationNodeType } from './model/structure-relation'
 export { OverallStructurePanel } from './ui/OverallStructurePanel'
-export { FunctionalItemCustomPropertiesPanel } from './ui/FunctionalItemCustomPropertiesPanel'
 export { ProjectApplicationStructureView } from './ui/ProjectApplicationStructureView'
 export { useOverallStructure } from './hooks/useOverallStructure'
 export type {

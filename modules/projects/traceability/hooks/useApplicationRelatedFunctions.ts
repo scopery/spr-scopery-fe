@@ -109,7 +109,7 @@ export function useApplicationRelatedFunctions(
       setItems(nodes)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load related functions')
-      setItems([])
+      // Keep previous items so selection/dock does not flash empty mid-reload.
     } finally {
       setLoading(false)
     }

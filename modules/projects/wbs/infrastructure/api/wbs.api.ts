@@ -1,4 +1,5 @@
 import { apiClient } from '@/shared/lib/apiClient'
+import { assertBulkItemCount, type BulkJobResponse } from '@/shared/lib/bulkJobs'
 import { WBS_ENDPOINTS } from './endpoints'
 import type {
   CreateWbsNodePayload,
@@ -22,6 +23,15 @@ export async function createWbsNode(
   body: CreateWbsNodePayload
 ): Promise<WbsNode> {
   return apiClient.post<WbsNode>(WBS_ENDPOINTS.create(projectId), body)
+}
+
+/** Wave-1 stub — no bulk UI yet; submit only, poll in caller. */
+export async function submitWbsNodesBulk(
+  projectId: string,
+  items: CreateWbsNodePayload[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(WBS_ENDPOINTS.bulk(projectId), { items }, { skipGlobalLoading: true })
 }
 
 export async function updateWbsNode(

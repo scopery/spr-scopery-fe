@@ -278,7 +278,6 @@ export function ProjectDocumentsView() {
         }}
         onSuccess={handleCreateSuccess}
         sectionId={createSectionId}
-        canCreateFromTemplate={docPerms.canCreateFromTemplate}
       />
 
       <AttachDocumentModal

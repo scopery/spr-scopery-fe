@@ -46,8 +46,9 @@ export type UseCaseConditionType =
 export interface UseCase {
   id: string
   projectId: string
-  primaryFunctionId: string
-  primaryFunctionName: string
+  /** Null until linked via Function → Use Case. */
+  primaryFunctionId?: string | null
+  primaryFunctionName?: string | null
   key: string
   name: string
   goal?: string | null
@@ -134,12 +135,45 @@ export interface UseCaseDetail {
 }
 
 export interface CreateUseCaseBody {
-  primaryFunctionId: string
+  /** Optional — create shell first, link Function later. */
+  primaryFunctionId?: string | null
   key: string
   name: string
   goal?: string | null
   primaryActorName?: string | null
   triggerText?: string | null
+}
+
+/** POST …/use-cases/bulk item — shell + optional nested (BE applies nested server-side). */
+export interface BulkCreateUseCaseItem extends CreateUseCaseBody {
+  flows?: Array<{
+    flowType: string
+    name?: string | null
+    conditionText?: string | null
+    steps?: Array<{
+      stepType: string
+      content?: string | null
+      contentJson?: string | null
+      displayOrder?: number
+    }>
+  }>
+  conditions?: Array<{
+    conditionType: string
+    content: string
+    displayOrder?: number
+  }>
+  businessRules?: Array<{
+    ruleCode: string
+    description: string
+    displayOrder?: number
+  }>
+  acceptanceCriteria?: Array<{
+    title: string
+    givenText?: string | null
+    whenText?: string | null
+    thenText?: string | null
+    displayOrder?: number
+  }>
 }
 
 export interface UpdateUseCaseBody {
@@ -148,6 +182,8 @@ export interface UpdateUseCaseBody {
   primaryActorName?: string | null
   triggerText?: string | null
   status: string
+  /** Set after link — mark which Function is primary for this Use Case. */
+  primaryFunctionId?: string | null
 }
 
 export interface CreateUseCaseFlowBody {

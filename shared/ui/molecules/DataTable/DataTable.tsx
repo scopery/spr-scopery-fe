@@ -144,7 +144,8 @@ function DataTableInner<T>(
   }, [focusedIndex, onFocusedRowChange, rowKey, rows])
 
   const stickyOffsets = useMemo(() => {
-    let offset = 0
+    // Selectable checkbox column sits before sticky cells — include its width in left offsets.
+    let offset = selectable ? 40 : 0
     return columns.map((column) => {
       if (!column.sticky) return undefined
       const current = `${offset}px`
@@ -152,7 +153,7 @@ function DataTableInner<T>(
       offset += Number.isFinite(parsedWidth) ? parsedWidth : 0
       return current
     })
-  }, [columns])
+  }, [columns, selectable])
 
   const toggleAll = () => {
     if (!selectedKeys || !onSelectedKeysChange) return
@@ -219,7 +220,7 @@ function DataTableInner<T>(
         <thead className={cn(stickyHeader && 'sticky top-0 z-10 bg-white')}>
           <tr className="border-b border-neutral-200 text-neutral-500">
             {selectable ? (
-              <th className="w-10 bg-white px-3 py-2">
+              <th className="sticky left-0 z-30 w-10 bg-white px-3 py-2">
                 <Checkbox
                   size="sm"
                   checked={allVisibleSelected}
@@ -304,7 +305,10 @@ function DataTableInner<T>(
                   }}
                 >
                   {selectable ? (
-                    <td className="w-10 px-3 py-2" onClick={(event) => event.stopPropagation()}>
+                    <td
+                      className="sticky left-0 z-[2] w-10 bg-inherit px-3 py-2"
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       <Checkbox
                         size="sm"
                         checked={selectedKeys?.has(key) ?? false}

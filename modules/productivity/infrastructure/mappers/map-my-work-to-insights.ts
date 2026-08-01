@@ -105,6 +105,16 @@ function toCurrentWorkRow(t: MyWorkTaskItem, todayIso: string): MyInsightsTaskRo
   }
 }
 
+function isDone(status: string) {
+  return status === 'DONE' || status === 'COMPLETED'
+}
+
+/** Calendar day for completion activity — prefer BE completedAt (UTC date). */
+function completionDay(t: MyWorkTaskItem): string | null {
+  if (!isDone(t.status)) return null
+  return parseDay(t.completedAt) ?? parseDay(t.updatedAt)
+}
+
 function buildHeatmap(items: MyWorkTaskItem[], today: Date): MyInsightsResponse['heatmap'] {
   const byDay = new Map<
     string,
@@ -134,11 +144,11 @@ function buildHeatmap(items: MyWorkTaskItem[], today: Date): MyInsightsResponse[
   }
 
   for (const t of items) {
-    const day = parseDay(t.updatedAt) ?? t.dueDate ?? t.plannedStartDate
-    if (!day || !byDay.has(day)) continue
-    const bucket = byDay.get(day)!
-    bucket.projects.add(t.projectId)
-    if (isTerminal(t.status) && (t.status === 'DONE' || t.status === 'COMPLETED')) {
+    if (isDone(t.status)) {
+      const day = completionDay(t)
+      if (!day || !byDay.has(day)) continue
+      const bucket = byDay.get(day)!
+      bucket.projects.add(t.projectId)
       bucket.completedTasks += 1
       bucket.completedEffortHours += t.estimateHours ?? 0
       if (t.isOverdue || (t.dueDate && t.dueDate < day)) bucket.overdueResolved += 1
@@ -149,8 +159,15 @@ function buildHeatmap(items: MyWorkTaskItem[], today: Date): MyInsightsResponse[
         title: t.title,
         estimateHours: t.estimateHours,
       })
-    } else if (isOpen(t.status)) {
-      // Treat open-task activity on updated day as light activity signal
+      continue
+    }
+
+    if (isOpen(t.status)) {
+      // Light activity signal for open-task updates (not counted as completed).
+      const day = parseDay(t.updatedAt)
+      if (!day || !byDay.has(day)) continue
+      const bucket = byDay.get(day)!
+      bucket.projects.add(t.projectId)
       bucket.completedEffortHours += (t.estimateHours ?? 0) * 0.15
     }
   }
@@ -213,13 +230,8 @@ function buildPlannedVsCompleted(items: MyWorkTaskItem[], today: Date): MyInsigh
     for (const t of items) {
       const due = t.dueDate ?? t.plannedStartDate
       if (due && due >= from && due <= to) plannedHours += t.estimateHours ?? 0
-      const updated = parseDay(t.updatedAt)
-      if (
-        updated &&
-        updated >= from &&
-        updated <= to &&
-        (t.status === 'DONE' || t.status === 'COMPLETED')
-      ) {
+      const doneDay = completionDay(t)
+      if (doneDay && doneDay >= from && doneDay <= to) {
         completedHours += t.estimateHours ?? 0
       }
     }
@@ -237,7 +249,7 @@ function buildPlannedVsCompleted(items: MyWorkTaskItem[], today: Date): MyInsigh
 function buildConsistency(items: MyWorkTaskItem[], today: Date): MyInsightsResponse['consistency'] {
   const active = new Set<string>()
   for (const t of items) {
-    const day = parseDay(t.updatedAt)
+    const day = completionDay(t) ?? parseDay(t.updatedAt)
     if (day) active.add(day)
   }
   const workingDays = 22

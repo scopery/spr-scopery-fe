@@ -6,18 +6,20 @@ import { ArrowUpRight, FileText, Plus, RotateCcw } from 'lucide-react'
 import { Badge, Button, Checkbox, PageSkeleton, Typography } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { AIGeneratedBadge, originLabel } from '@/modules/ai-document-intelligence'
-import { DocumentTypeBadge, WorkflowStatusBadge } from '@/modules/documents/document'
+import {
+  DocumentTypeBadge,
+  WorkflowStatusBadge,
+  getDocumentFileIcon,
+} from '@/modules/documents/document'
 import { cn } from '@/utils/cn'
 import { knowledgeApi, type DocumentIndexStatus } from '@/modules/knowledge'
 import type { DocumentHubSelectionMode } from '../model/document-hub'
 import type { DocumentHubItem } from '../hooks/useDocumentHub'
-import type { DocumentHubViewMode } from './DocumentHubHeader'
 
 type DocumentHubDocumentListProps = {
   orgId: string
   items: DocumentHubItem[]
   loading: boolean
-  viewMode: DocumentHubViewMode
   canCreateDocument: boolean
   canExportDocuments: boolean
   canRestoreDocument: boolean
@@ -44,17 +46,6 @@ function formatDocDate(value: string) {
   return d.toLocaleDateString()
 }
 
-function DocMetaLine({ doc }: { doc: DocumentHubItem }) {
-  return (
-    <Typography as="div" variant="small" tone="muted" className="flex flex-wrap gap-x-2 gap-y-0.5">
-      {doc.project_name ? <span>{doc.project_name}</span> : null}
-      {doc.section_name ? <span>· {doc.section_name}</span> : null}
-      {doc.creator_display_name ? <span>· {doc.creator_display_name}</span> : null}
-      <span>· {formatDocDate(doc.updated_at)}</span>
-    </Typography>
-  )
-}
-
 function DocumentIndexBadge({ projectId, documentId }: { projectId: string; documentId: string }) {
   const [status, setStatus] = useState<DocumentIndexStatus | null>(null)
 
@@ -62,7 +53,9 @@ function DocumentIndexBadge({ projectId, documentId }: { projectId: string; docu
     knowledgeApi
       .getDocumentIndexStatus(projectId, documentId)
       .then(setStatus)
-      .catch(() => {/* non-critical */})
+      .catch(() => {
+        /* non-critical */
+      })
   }, [projectId, documentId])
 
   if (!status) return null
@@ -73,165 +66,32 @@ function DocumentIndexBadge({ projectId, documentId }: { projectId: string; docu
     </Badge>
   ) : (
     <Badge variant="soft" tone="neutral" size="sm">
-      {status.totalChunks > 0 ? `Partial ${status.embeddedChunks}/${status.totalChunks}` : 'Not indexed'}
+      {status.totalChunks > 0
+        ? `Partial ${status.embeddedChunks}/${status.totalChunks}`
+        : 'Not indexed'}
     </Badge>
   )
 }
 
-function DocBadges({ doc }: { doc: DocumentHubItem }) {
-  const isArchived = doc.status === 'archived'
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <DocumentTypeBadge type={doc.document_type} />
-      {doc.workflow_status ? <WorkflowStatusBadge status={doc.workflow_status} /> : null}
-      {isArchived ? (
-        <Badge variant="soft" tone="warning" size="sm">
-          Archived
-        </Badge>
-      ) : null}
-      <AIGeneratedBadge generatedByAI={doc.generated_by_ai} originType={doc.origin_type} />
-      {doc.origin_type && doc.origin_type !== 'manual' ? (
-        <Badge variant="soft" tone="neutral" size="sm">
-          {originLabel(doc.origin_type)}
-        </Badge>
-      ) : null}
-      {(doc.link_count ?? 0) > 0 ? (
-        <Badge variant="soft" tone="info" size="sm">
-          {doc.link_count} link{(doc.link_count ?? 0) === 1 ? '' : 's'}
-        </Badge>
-      ) : null}
-      {doc.project_id ? (
-        <DocumentIndexBadge projectId={doc.project_id} documentId={doc.id} />
-      ) : null}
-    </div>
-  )
-}
-
-function DocumentGridCard({
-  orgId,
-  doc,
-  canExportDocuments,
-  canRestoreDocument,
-  isSelected,
-  restoringId,
-  onToggleSelect,
-  onRestoreDocument,
+function FileTypeIcon({
+  documentType,
+  title,
 }: {
-  orgId: string
-  doc: DocumentHubItem
-  canExportDocuments: boolean
-  canRestoreDocument: boolean
-  isSelected: boolean
-  restoringId: string | null
-  onToggleSelect: (documentId: string) => void
-  onRestoreDocument: (doc: DocumentHubItem) => void | Promise<void>
+  documentType: string
+  title: string
 }) {
-  const isArchived = doc.status === 'archived'
-  const href = docHref(orgId, doc)
-
-  const body = (
-    <>
-      <div className="relative z-[1] flex min-h-0 flex-1 flex-col gap-2 p-4 pb-12">
-        <div className="flex items-start gap-2">
-          {canExportDocuments ? (
-            <Checkbox
-              checked={isSelected}
-              onChange={() => onToggleSelect(doc.id)}
-              onClick={(e) => e.stopPropagation()}
-              aria-label={`Select ${doc.title}`}
-              className="mt-0.5"
-            />
-          ) : null}
-          <div className="min-w-0 flex-1 space-y-2">
-            <Typography
-              as="h3"
-              weight="semibold"
-              className="line-clamp-2 text-base transition-colors group-hover:text-white"
-            >
-              {doc.title}
-            </Typography>
-            <div className="transition-opacity group-hover:opacity-90">
-              <DocBadges doc={doc} />
-            </div>
-            <div className="transition-colors group-hover:[&_span]:text-white/80">
-              <DocMetaLine doc={doc} />
-            </div>
-            {doc.snippet ? (
-              <Typography
-                variant="small"
-                tone="muted"
-                className="line-clamp-2 transition-colors group-hover:text-white/75"
-              >
-                {doc.snippet}
-              </Typography>
-            ) : null}
-          </div>
-        </div>
-
-        {canRestoreDocument && isArchived && doc.project_id ? (
-          <Button
-            size="sm"
-            variant="outline"
-            icon={<RotateCcw size={14} />}
-            loading={restoringId === doc.id}
-            className="relative z-[2] w-fit"
-            onClick={(e: React.MouseEvent) => {
-              e.preventDefault()
-              e.stopPropagation()
-              void onRestoreDocument(doc)
-            }}
-          >
-            Restore
-          </Button>
-        ) : null}
-      </div>
-
-      <span
-        aria-hidden
-        className={cn(
-          'absolute bottom-3 right-3 z-[2] inline-flex h-9 w-9 items-center justify-center',
-          'border border-neutral-200 bg-transparent text-neutral-800',
-          'transition-all duration-300 ease-out',
-          'group-hover:border-white group-hover:bg-white group-hover:text-neutral-900',
-          'group-hover:translate-x-0.5 group-hover:-translate-y-0.5'
-        )}
-      >
-        <ArrowUpRight
-          size={16}
-          className="transition-transform duration-300 ease-out group-hover:translate-x-px group-hover:-translate-y-px group-hover:scale-110"
-        />
-      </span>
-    </>
-  )
-
-  const shellClass = cn(
-    'group relative flex min-h-[180px] flex-col overflow-hidden border border-neutral-200 bg-white',
-    'transition-[border-color,box-shadow] duration-300',
-    'hover:border-transparent hover:shadow-md',
-    isArchived && 'bg-neutral-50'
-  )
-
-  const hoverBg = (
-    <div
-      className="pointer-events-none absolute inset-0 bg-[url('/illustrations/card_bg.svg')] bg-cover bg-right-bottom opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-      aria-hidden
-    />
-  )
-
-  if (isArchived) {
-    return (
-      <div className={shellClass}>
-        {hoverBg}
-        {body}
-      </div>
-    )
-  }
-
+  const icon = getDocumentFileIcon(documentType)
   return (
-    <Link href={href} className={shellClass}>
-      {hoverBg}
-      {body}
-    </Link>
+    // eslint-disable-next-line @next/next/no-img-element -- static illustration from /public
+    <img
+      src={icon.src}
+      alt=""
+      width={28}
+      height={34}
+      className={cn('h-[34px] w-7 object-contain', icon.className)}
+      aria-hidden
+      title={`${title} · ${icon.label}`}
+    />
   )
 }
 
@@ -239,7 +99,6 @@ export function DocumentHubDocumentList({
   orgId,
   items,
   loading,
-  viewMode,
   canCreateDocument,
   canExportDocuments,
   canRestoreDocument,
@@ -291,59 +150,49 @@ export function DocumentHubDocumentList({
         </div>
       ) : null}
 
-      {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {items.map((doc) => (
-            <DocumentGridCard
-              key={doc.id}
-              orgId={orgId}
-              doc={doc}
-              canExportDocuments={canExportDocuments}
-              canRestoreDocument={canRestoreDocument}
-              isSelected={selectionMode === 'filtered_all' || selectedIds.has(doc.id)}
-              restoringId={restoringId}
-              onToggleSelect={onToggleSelect}
-              onRestoreDocument={onRestoreDocument}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="overflow-x-auto border border-neutral-200 bg-white">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-neutral-200 bg-neutral-50 text-neutral-500">
-              <tr>
-                {canExportDocuments ? <th className="w-10 px-3 py-2.5" /> : null}
-                <th className="px-3 py-2.5 font-medium">Title</th>
-                <th className="px-3 py-2.5 font-medium">Type</th>
-                <th className="px-3 py-2.5 font-medium">Status</th>
-                <th className="px-3 py-2.5 font-medium">Project</th>
-                <th className="px-3 py-2.5 font-medium">Updated</th>
-                <th className="w-12 px-3 py-2.5" />
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((doc) => {
-                const isArchived = doc.status === 'archived'
-                const isSelected = selectionMode === 'filtered_all' || selectedIds.has(doc.id)
-                const href = docHref(orgId, doc)
-                return (
-                  <tr
-                    key={doc.id}
-                    className={cn(
-                      'border-b border-neutral-100 last:border-0',
-                      isArchived ? 'bg-neutral-50' : 'hover:bg-neutral-50'
-                    )}
-                  >
-                    {canExportDocuments ? (
-                      <td className="px-3 py-2.5">
-                        <Checkbox
-                          checked={isSelected}
-                          onChange={() => onToggleSelect(doc.id)}
-                          aria-label={`Select ${doc.title}`}
-                        />
-                      </td>
-                    ) : null}
+      <div className="overflow-x-auto border border-neutral-200 bg-white">
+        <table className="min-w-full text-left text-sm">
+          <thead className="border-b border-neutral-200 bg-neutral-50 text-neutral-500">
+            <tr>
+              {canExportDocuments ? <th className="w-10 px-3 py-2.5" scope="col" /> : null}
+              <th className="w-12 px-2 py-2.5" scope="col">
+                <span className="sr-only">File</span>
+              </th>
+              <th className="px-3 py-2.5 font-medium">Title</th>
+              <th className="px-3 py-2.5 font-medium">Type</th>
+              <th className="px-3 py-2.5 font-medium">Status</th>
+              <th className="px-3 py-2.5 font-medium">Project</th>
+              <th className="px-3 py-2.5 font-medium">Updated</th>
+              <th className="w-12 px-3 py-2.5" scope="col" />
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((doc) => {
+              const isArchived = doc.status === 'archived'
+              const isSelected = selectionMode === 'filtered_all' || selectedIds.has(doc.id)
+              const href = docHref(orgId, doc)
+              return (
+                <tr
+                  key={doc.id}
+                  className={cn(
+                    'border-b border-neutral-100 last:border-0',
+                    isArchived ? 'bg-neutral-50' : 'hover:bg-neutral-50'
+                  )}
+                >
+                  {canExportDocuments ? (
                     <td className="px-3 py-2.5">
+                      <Checkbox
+                        checked={isSelected}
+                        onChange={() => onToggleSelect(doc.id)}
+                        aria-label={`Select ${doc.title}`}
+                      />
+                    </td>
+                  ) : null}
+                  <td className="px-2 py-2">
+                    <FileTypeIcon documentType={doc.document_type} title={doc.title} />
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <div className="space-y-1.5">
                       {isArchived ? (
                         <Typography weight="medium">{doc.title}</Typography>
                       ) : (
@@ -351,47 +200,68 @@ export function DocumentHubDocumentList({
                           {doc.title}
                         </Link>
                       )}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <DocumentTypeBadge type={doc.document_type} />
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {doc.workflow_status ? (
-                        <WorkflowStatusBadge status={doc.workflow_status} />
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 text-neutral-600">{doc.project_name ?? '—'}</td>
-                    <td className="px-3 py-2.5 text-neutral-600">
-                      {formatDocDate(doc.updated_at)}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {isArchived && canRestoreDocument && doc.project_id ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          icon={<RotateCcw size={14} />}
-                          loading={restoringId === doc.id}
-                          onClick={() => void onRestoreDocument(doc)}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <AIGeneratedBadge
+                          generatedByAI={doc.generated_by_ai}
+                          originType={doc.origin_type}
                         />
-                      ) : !isArchived ? (
-                        <Link
-                          href={href}
-                          className="inline-flex h-8 w-8 items-center justify-center border border-neutral-200 text-neutral-700 transition-all hover:-translate-y-0.5 hover:translate-x-0.5 hover:bg-neutral-900 hover:text-white"
-                          aria-label={`Open ${doc.title}`}
-                        >
-                          <ArrowUpRight size={14} />
-                        </Link>
-                      ) : null}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                        {doc.origin_type && doc.origin_type !== 'manual' ? (
+                          <Badge variant="soft" tone="neutral" size="sm">
+                            {originLabel(doc.origin_type)}
+                          </Badge>
+                        ) : null}
+                        {(doc.link_count ?? 0) > 0 ? (
+                          <Badge variant="soft" tone="info" size="sm">
+                            {doc.link_count} link{(doc.link_count ?? 0) === 1 ? '' : 's'}
+                          </Badge>
+                        ) : null}
+                        {doc.project_id ? (
+                          <DocumentIndexBadge projectId={doc.project_id} documentId={doc.id} />
+                        ) : null}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <DocumentTypeBadge type={doc.document_type} />
+                  </td>
+                  <td className="px-3 py-2.5">
+                    {doc.workflow_status ? (
+                      <WorkflowStatusBadge status={doc.workflow_status} />
+                    ) : isArchived ? (
+                      <Badge variant="soft" tone="warning" size="sm">
+                        Archived
+                      </Badge>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5 text-neutral-600">{doc.project_name ?? '—'}</td>
+                  <td className="px-3 py-2.5 text-neutral-600">{formatDocDate(doc.updated_at)}</td>
+                  <td className="px-3 py-2.5">
+                    {isArchived && canRestoreDocument && doc.project_id ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={<RotateCcw size={14} />}
+                        loading={restoringId === doc.id}
+                        onClick={() => void onRestoreDocument(doc)}
+                      />
+                    ) : !isArchived ? (
+                      <Link
+                        href={href}
+                        className="inline-flex h-8 w-8 items-center justify-center border border-neutral-200 text-neutral-700 transition-all hover:-translate-y-0.5 hover:translate-x-0.5 hover:bg-neutral-900 hover:text-white"
+                        aria-label={`Open ${doc.title}`}
+                      >
+                        <ArrowUpRight size={14} />
+                      </Link>
+                    ) : null}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

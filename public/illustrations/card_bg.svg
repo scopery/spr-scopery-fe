@@ -1,9 +1,9 @@
-<svg width="658" height="356" viewBox="0 0 658 356" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="658" height="356" fill="#001F6D"/>
-<rect x="590" y="152" width="68" height="68" fill="#E84200"/>
-<rect x="522" y="220" width="68" height="68" fill="#0787E2"/>
-<rect x="590" y="220" width="68" height="68" fill="white"/>
-<rect x="454" y="288" width="68" height="68" fill="white"/>
-<rect x="522" y="288" width="68" height="68" fill="#E84200"/>
-<rect x="590" y="288" width="68" height="68" fill="#0787E2"/>
+<svg width="1295" height="477" viewBox="0 0 1295 477" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="1295" height="477" fill="#3D3C3C"/>
+<path d="M981 372.333V477H1085.67V372.333H981Z" fill="#8F8F8F"/>
+<rect width="104.667" height="104.667" transform="matrix(0 1 1 0 1085.67 267.667)" fill="#79BBEA"/>
+<rect width="104.667" height="104.667" transform="matrix(0 1 1 0 1085.67 372.333)" fill="#001F6D"/>
+<rect width="104.667" height="104.667" transform="matrix(0 1 1 0 1190.33 163)" fill="#8F8F8F"/>
+<rect width="104.667" height="104.667" transform="matrix(0 1 1 0 1190.33 267.667)" fill="#001F6D"/>
+<rect width="104.667" height="104.667" transform="matrix(0 1 1 0 1190.33 372.333)" fill="#79BBEA"/>
 </svg>

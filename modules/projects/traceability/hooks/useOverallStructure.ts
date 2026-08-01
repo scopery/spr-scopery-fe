@@ -91,12 +91,12 @@ export function useOverallStructure(
     void loadTree()
   }, [loadTree])
 
-  const loadCandidates = useCallback(async () => {
+  const loadCandidates = useCallback(async (opts?: { silent?: boolean }) => {
     if (!workspaceId || !applicationId || !focus) {
       setCandidates(null)
       return
     }
-    setCandidatesLoading(true)
+    if (!opts?.silent) setCandidatesLoading(true)
     try {
       let raw: StructureCandidatesResponse | Record<string, unknown> | null = null
       try {
@@ -176,7 +176,7 @@ export function useOverallStructure(
     } catch {
       setCandidates(null)
     } finally {
-      setCandidatesLoading(false)
+      if (!opts?.silent) setCandidatesLoading(false)
     }
   }, [workspaceId, applicationId, focus, projectId])
 
@@ -357,7 +357,7 @@ export function useOverallStructure(
       try {
         const result = await runAssign(payload, focus)
         await loadTree()
-        await loadCandidates()
+        await loadCandidates({ silent: true })
         if (result) {
           toast.success(result.summary, {
             duration: UNDO_MS,
@@ -367,7 +367,7 @@ export function useOverallStructure(
                 void (async () => {
                   await result.undo()
                   await loadTree()
-                  await loadCandidates()
+                  await loadCandidates({ silent: true })
                   toast.message('Undone')
                 })()
               },
@@ -419,7 +419,7 @@ export function useOverallStructure(
           }
         }
         await loadTree()
-        await loadCandidates()
+        await loadCandidates({ silent: true })
         if (ok > 0) {
           toast.success(`Assigned ${ok} item${ok === 1 ? '' : 's'}`, {
             duration: UNDO_MS,
@@ -429,7 +429,7 @@ export function useOverallStructure(
                 void (async () => {
                   for (const u of undos.reverse()) await u()
                   await loadTree()
-                  await loadCandidates()
+                  await loadCandidates({ silent: true })
                   toast.message('Bulk assign undone')
                 })()
               },
@@ -458,7 +458,7 @@ export function useOverallStructure(
       try {
         await catalogApi.unlinkFunctionScreen(pid, functionId, screenId)
         await loadTree()
-        await loadCandidates()
+        await loadCandidates({ silent: true })
         toast.success('Screen unlinked', {
           duration: UNDO_MS,
           action: {
@@ -467,7 +467,7 @@ export function useOverallStructure(
               void (async () => {
                 await catalogApi.linkFunctionScreen(pid, functionId, { screenId })
                 await loadTree()
-                await loadCandidates()
+                await loadCandidates({ silent: true })
                 toast.message('Restored')
               })()
             },
@@ -493,7 +493,7 @@ export function useOverallStructure(
       try {
         await catalogApi.unlinkFunctionApiEndpoint(pid, functionId, apiEndpointId)
         await loadTree()
-        await loadCandidates()
+        await loadCandidates({ silent: true })
         toast.success('API unlinked', {
           duration: UNDO_MS,
           action: {
@@ -504,7 +504,7 @@ export function useOverallStructure(
                   apiEndpointId,
                 })
                 await loadTree()
-                await loadCandidates()
+                await loadCandidates({ silent: true })
                 toast.message('Restored')
               })()
             },
@@ -526,7 +526,7 @@ export function useOverallStructure(
       try {
         await api.unlinkScreenComponent(workspaceId, screenId, componentId)
         await loadTree()
-        await loadCandidates()
+        await loadCandidates({ silent: true })
         toast.success('Component unlinked', {
           duration: UNDO_MS,
           action: {
@@ -535,7 +535,7 @@ export function useOverallStructure(
               void (async () => {
                 await api.linkScreenComponent(workspaceId, screenId, { componentId })
                 await loadTree()
-                await loadCandidates()
+                await loadCandidates({ silent: true })
                 toast.message('Restored')
               })()
             },
@@ -565,7 +565,7 @@ export function useOverallStructure(
           moduleId: null,
         })
         await loadTree()
-        await loadCandidates()
+        await loadCandidates({ silent: true })
         toast.success('Entity unassigned', {
           duration: UNDO_MS,
           action: {
@@ -579,7 +579,7 @@ export function useOverallStructure(
                   moduleId,
                 })
                 await loadTree()
-                await loadCandidates()
+                await loadCandidates({ silent: true })
                 toast.message('Restored')
               })()
             },

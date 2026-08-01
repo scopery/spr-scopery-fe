@@ -3,9 +3,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Plus, Trash2 } from 'lucide-react'
-import { Button, DataTable, Input, Modal, Typography } from '@/shared/ui'
+import { toast } from 'sonner'
+import {
+  BulkJobProgressPanel,
+  Button,
+  DataTable,
+  Input,
+  Modal,
+  Typography,
+} from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
-import { UseCaseSearchSelect } from '@/modules/projects/traceability'
+import {
+  BULK_MAX_ITEMS,
+  BulkJobStatus,
+} from '@/shared/lib/bulkJobs'
+import { useBulkJobPoller } from '@/shared/lib/useBulkJobPoller'
+import * as qualityApi from '../../infrastructure/api/quality.api'
 import { cn } from '@/utils/cn'
 import {
   emptyDraftValues,
@@ -90,7 +103,7 @@ export function QualityBulkAddModal({
   const submittingRef = useRef(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [pasteHint, setPasteHint] = useState(false)
-  const [useCaseId, setUseCaseId] = useState('')
+  const poller = useBulkJobPoller()
 
   useEffect(() => {
     if (!open) return
@@ -99,7 +112,8 @@ export function QualityBulkAddModal({
     setSubmitting(false)
     submittingRef.current = false
     setPasteHint(false)
-    setUseCaseId('')
+    poller.reset()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when modal opens
   }, [open, kind])
 
   const validRows = useMemo(() => rows.filter((r) => isDraftRowValid(kind, r.values)), [rows, kind])
@@ -120,6 +134,10 @@ export function QualityBulkAddModal({
 
   const applyPaste = useCallback(
     (text: string) => {
+      if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+        setFormError('Use JSON Import for JSON payloads. Bulk add accepts Excel/TSV only.')
+        return
+      }
       const pasted = parseClipboardToRows(text, kind)
       if (pasted.length === 0) return
       setRows((prev) => {
@@ -151,63 +169,104 @@ export function QualityBulkAddModal({
       setFormError('Add at least one row with required fields.')
       return
     }
-    if (kind === 'TEST_CASE' && !useCaseId) {
-      setFormError('Select the Use Case covered by these Test Cases.')
-      return
-    }
     if (kind === 'TEST_CASE' && validRows.some((row) => row.values.type === 'NON_FUNCTIONAL')) {
       setFormError('Use Verification Cases for non-functional requirements.')
       return
     }
-    submittingRef.current = true
-    setSubmitting(true)
-    setFormError(null)
-
-    const remaining: DraftRow[] = []
-    let created = 0
-
-    for (const row of rows) {
-      if (isDraftRowBlank(kind, row.values)) continue
-      if (!isDraftRowValid(kind, row.values)) {
-        remaining.push({ ...row, error: 'Missing required fields' })
-        continue
-      }
-      try {
-        await onCreate(
-          mapDraftToCreateInput(
-            kind,
-            kind === 'TEST_CASE' ? { ...row.values, useCaseId } : row.values
-          )
-        )
-        created += 1
-      } catch (err: unknown) {
-        const message =
-          err instanceof ApiError && err.status === 409
-            ? 'Already exists or conflict'
-            : err instanceof Error
-              ? err.message
-              : 'Failed'
-        remaining.push({ ...row, error: message })
-      }
-    }
-
-    if (created > 0) await onBatchComplete?.()
-
-    submittingRef.current = false
-    setSubmitting(false)
-
-    if (remaining.length === 0) {
-      onClose()
+    if (kind === 'TEST_CASE' && validRows.length > BULK_MAX_ITEMS) {
+      setFormError(`Maximum ${BULK_MAX_ITEMS} items per bulk request.`)
       return
     }
 
-    setRows(remaining.length ? remaining : [newRow(kind)])
-    setFormError(
-      created
-        ? `Created ${created}. Review ${remaining.length} remaining row${remaining.length === 1 ? '' : 's'}.`
-        : `Could not create. Fix ${remaining.length} row${remaining.length === 1 ? '' : 's'}.`
+    if (kind === 'TEST_CASE') {
+      submittingRef.current = true
+      setSubmitting(true)
+      setFormError(null)
+      poller.reset()
+
+      const payloads = validRows.map((row) => {
+        const input = mapDraftToCreateInput(kind, row.values)
+        return input.kind === 'TEST_CASE' ? input.payload : null
+      }).filter((payload): payload is NonNullable<typeof payload> => payload != null)
+
+      try {
+        const job = await qualityApi.submitTestCasesBulk(projectId, payloads)
+        setSubmitting(false)
+        submittingRef.current = false
+        toast.message('Job accepted', { description: 'Processing in the background…' })
+        onClose()
+
+        const done = await poller.start(job.id, job)
+        if (done.succeededItems > 0) await onBatchComplete?.()
+
+        if (done.status === BulkJobStatus.Succeeded) {
+          toast.success(
+            done.resultSummary ??
+              `Created ${done.succeededItems} test case${done.succeededItems === 1 ? '' : 's'}`
+          )
+        } else if (done.status === BulkJobStatus.Partial) {
+          toast.warning(
+            done.resultSummary ??
+              `${done.succeededItems} created, ${done.failedItems} failed. Successful items are already saved.`
+          )
+        } else {
+          toast.error(done.errorMessage ?? done.resultSummary ?? 'Bulk create failed')
+        }
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        const message =
+          err instanceof ApiError
+            ? err.problem.detail || err.message
+            : err instanceof Error
+              ? err.message
+              : 'Failed to create test cases'
+        setFormError(message)
+      } finally {
+        submittingRef.current = false
+        setSubmitting(false)
+      }
+      return
+    }
+
+    // Other quality kinds: no async /bulk on BE — never FE-loop create.
+    // Single row may use the normal create API; multi-row requires the bulk endpoint.
+    const actionable = rows.filter(
+      (row) => !isDraftRowBlank(kind, row.values) && isDraftRowValid(kind, row.values)
     )
+    if (actionable.length === 0) {
+      setFormError('Add at least one row with required fields.')
+      return
+    }
+    if (actionable.length > 1) {
+      setFormError(
+        `Async bulk create (POST …/bulk) is only available for Test Cases. For ${QUALITY_BULK_TITLES[kind]}, create one row at a time or wait for a BE bulk API.`
+      )
+      return
+    }
+
+    submittingRef.current = true
+    setSubmitting(true)
+    setFormError(null)
+    try {
+      await onCreate(mapDraftToCreateInput(kind, actionable[0]!.values))
+      await onBatchComplete?.()
+      onClose()
+    } catch (err: unknown) {
+      const message =
+        err instanceof ApiError && err.status === 409
+          ? 'Already exists or conflict'
+          : err instanceof Error
+            ? err.message
+            : 'Failed'
+      setFormError(message)
+    } finally {
+      submittingRef.current = false
+      setSubmitting(false)
+    }
   }
+
+  const jobRunning = poller.isPolling
+  const busy = submitting || jobRunning
 
   return (
     <Modal
@@ -218,18 +277,21 @@ export function QualityBulkAddModal({
       actions={[
         { label: 'Cancel', onClick: onClose, variant: 'ghost' },
         {
-          label: submitting ? 'Creating…' : `Create ${validRows.length}`,
+          label: submitting ? 'Submitting…' : jobRunning ? 'Running…' : `Create ${validRows.length}`,
           onClick: () => void handleSubmit(),
           variant: 'primary',
-          disabled: submitting || validRows.length === 0 || (kind === 'TEST_CASE' && !useCaseId),
+          disabled: busy || validRows.length === 0,
           loading: submitting,
         },
       ]}
     >
       <div className="space-y-4">
         <Typography variant="small" tone="muted">
-          Add rows or paste from Excel (Ctrl/Cmd+V) — columns:{' '}
+          Add rows or paste Excel/TSV (Ctrl/Cmd+V) — columns:{' '}
           {columns.map((c) => c.label).join(' · ')}.
+          {kind === 'TEST_CASE'
+            ? ' Use code (business key), never system id. Use JSON Import for full JSON payloads.'
+            : ' Use JSON Import for full JSON payloads.'}
         </Typography>
         {pasteHint ? (
           <Typography variant="caption" tone="muted">
@@ -237,13 +299,51 @@ export function QualityBulkAddModal({
           </Typography>
         ) : null}
         {kind === 'TEST_CASE' ? (
-          <UseCaseSearchSelect
-            projectId={projectId}
-            value={useCaseId}
-            onChange={setUseCaseId}
-            label="Use Case for all Test Cases"
-            required
+          <BulkJobProgressPanel
+            job={poller.job}
+            percent={poller.percent}
+            isPolling={poller.isPolling}
+            error={poller.error}
+            onRetryFailed={(failedItems) => {
+              poller.reset()
+              void (async () => {
+                try {
+                  const job = await qualityApi.submitTestCasesBulk(
+                    projectId,
+                    failedItems as unknown as Parameters<typeof qualityApi.submitTestCasesBulk>[1]
+                  )
+                  toast.message('Job accepted', {
+                    description: 'Processing in the background…',
+                  })
+                  const done = await poller.start(job.id, job)
+                  if (done.succeededItems > 0) await onBatchComplete?.()
+                  if (done.status === BulkJobStatus.Succeeded) {
+                    toast.success(done.resultSummary ?? `Created ${done.succeededItems}`)
+                    onClose()
+                  } else if (done.status === BulkJobStatus.Partial) {
+                    toast.warning(
+                      done.resultSummary ??
+                        `${done.succeededItems} created, ${done.failedItems} failed`
+                    )
+                  } else {
+                    toast.error(done.errorMessage ?? done.resultSummary ?? 'Bulk create failed')
+                  }
+                } catch (err: unknown) {
+                  if (err instanceof DOMException && err.name === 'AbortError') return
+                  setFormError(err instanceof Error ? err.message : 'Retry failed')
+                }
+              })()
+            }}
+            onRetry={() => {
+              poller.reset()
+              void handleSubmit()
+            }}
           />
+        ) : null}
+        {kind === 'TEST_CASE' ? (
+          <Typography variant="small" tone="muted">
+            Create shells only (code, title, type, priority). Link Use Cases later from Test Case detail.
+          </Typography>
         ) : null}
         {formError ? (
           <Typography variant="small" tone="error">
@@ -269,8 +369,9 @@ export function QualityBulkAddModal({
                   fullWidth
                   value={row.values[col.key] ?? ''}
                   placeholder={col.placeholder}
-                  onChange={(event) => updateCell(row.id, col.key, event.target.value)}
-                />
+                      onChange={(event) => updateCell(row.id, col.key, event.target.value)}
+                      disabled={busy}
+                    />
               ),
             })),
             {
@@ -283,6 +384,7 @@ export function QualityBulkAddModal({
                   variant="ghost"
                   aria-label="Remove row"
                   onClick={() => removeRow(row.id)}
+                  disabled={busy}
                 >
                   <Trash2 size={14} />
                 </Button>
@@ -305,9 +407,22 @@ export function QualityBulkAddModal({
           </ul>
         ) : null}
 
-        <Button size="sm" variant="secondary" icon={<Plus size={14} />} onClick={addRow}>
+        <Button size="sm" variant="secondary" icon={<Plus size={14} />} onClick={addRow} disabled={busy}>
           Add row
         </Button>
+        {kind === 'TEST_CASE' ? (
+          <Typography variant="small" tone="muted">
+          {kind === 'TEST_CASE' ? (
+            <Typography variant="caption" tone="muted">
+              {validRows.length} ready · max {BULK_MAX_ITEMS} (async bulk)
+            </Typography>
+          ) : (
+            <Typography variant="caption" tone="muted">
+              Multi-row async bulk is only for Test Cases. Other kinds: one row per submit.
+            </Typography>
+          )}
+          </Typography>
+        ) : null}
       </div>
     </Modal>
   )

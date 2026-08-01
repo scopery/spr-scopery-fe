@@ -225,6 +225,16 @@ export const WORKSPACE_ROUTES = {
     `/workspace/${workspaceId}/projects/${projectId}/quality/test-plans`,
   projectTestCases: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/quality/test-cases`,
+  projectTestCaseLinks: (workspaceId: string, projectId: string, useCaseId?: string) => {
+    const base = `/workspace/${workspaceId}/projects/${projectId}/quality/test-cases/links`
+    if (useCaseId) return `${base}?useCaseId=${encodeURIComponent(useCaseId)}`
+    return base
+  },
+  projectQualityCaseLinks: (workspaceId: string, projectId: string, useCaseId?: string) => {
+    const base = `/workspace/${workspaceId}/projects/${projectId}/quality/cases/links`
+    if (useCaseId) return `${base}?useCaseId=${encodeURIComponent(useCaseId)}`
+    return base
+  },
   projectVerificationCases: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/quality/verification-cases`,
   projectTestRuns: (workspaceId: string, projectId: string) =>

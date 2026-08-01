@@ -1,0 +1,149 @@
+'use client'
+
+import React, { useCallback, useId, useState } from 'react'
+import { Check, CircleHelp, Copy } from 'lucide-react'
+import { toast } from 'sonner'
+import { cn } from '@/utils/cn'
+import { formatBulkImportGuideForAgent, formatBulkImportSampleJson } from '@/shared/lib/bulkImportFormat'
+import { Button } from '../../atoms/Button'
+import { Typography } from '../../atoms/Typography'
+import type { BulkImportFormatHelpProps } from './BulkImportFormatHelp.types'
+
+/**
+ * "?" control that opens an English JSON import format guide with Copy.
+ * Pass a domain-specific `guide` from the calling module (design-system stays domain-free).
+ */
+export const BulkImportFormatHelp = React.forwardRef<HTMLDivElement, BulkImportFormatHelpProps>(
+  ({ guide, className, defaultOpen = false }, ref) => {
+    const [open, setOpen] = useState(defaultOpen)
+    const [copied, setCopied] = useState(false)
+    const panelId = useId()
+    const sampleJson = formatBulkImportSampleJson(guide)
+    const guideText = formatBulkImportGuideForAgent(guide)
+
+    const handleCopy = useCallback(async () => {
+      try {
+        await navigator.clipboard.writeText(guideText)
+        setCopied(true)
+        toast.success('Import guide copied')
+        window.setTimeout(() => setCopied(false), 2000)
+      } catch {
+        toast.error('Could not copy to clipboard')
+      }
+    }, [guideText])
+
+    return (
+      <div ref={ref} className={cn('relative', className)}>
+        <div className="flex items-center gap-1.5">
+          <Typography variant="small" tone="muted">
+            JSON import format
+          </Typography>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            iconOnly
+            icon={<CircleHelp size={16} />}
+            aria-label={`Show ${guide.entityLabel} JSON import format`}
+            aria-expanded={open}
+            aria-controls={panelId}
+            onClick={() => setOpen((v) => !v)}
+            className="text-neutral-500 hover:text-neutral-800"
+          />
+        </div>
+
+        {open ? (
+          <div
+            id={panelId}
+            className="mt-2 space-y-3 border border-neutral-200 bg-neutral-50 p-3"
+            role="region"
+            aria-label={`${guide.entityLabel} JSON import format guide`}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0 flex-1 space-y-1">
+                <Typography variant="small" weight="medium">
+                  {guide.entityLabel} — JSON bulk payload
+                </Typography>
+                <Typography variant="caption" tone="muted">
+                  Copy the full guide (field rules, enums, required notes, and sample JSON). Give it
+                  to a third-party agent to fill with your data, then paste the JSON back into this
+                  JSON Import dialog.
+                </Typography>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void handleCopy()}
+                icon={copied ? <Check size={14} /> : <Copy size={14} />}
+              >
+                {copied ? 'Copied' : 'Copy guide'}
+              </Button>
+            </div>
+
+            {guide.notes?.length ? (
+              <ul className="list-disc space-y-1 pl-4">
+                {guide.notes.map((note) => (
+                  <li key={note}>
+                    <Typography variant="caption" tone="muted">
+                      {note}
+                    </Typography>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            {guide.maxItems != null ? (
+              <Typography variant="caption" tone="muted">
+                Maximum {guide.maxItems} items per request.
+              </Typography>
+            ) : null}
+
+            <div className="overflow-x-auto border border-neutral-200 bg-white">
+              <table className="w-full min-w-[520px] text-left text-xs">
+                <thead className="border-b border-neutral-200 bg-neutral-50 text-neutral-600">
+                  <tr>
+                    <th className="px-2 py-1.5 font-medium">Field</th>
+                    <th className="px-2 py-1.5 font-medium">Required</th>
+                    <th className="px-2 py-1.5 font-medium">Type</th>
+                    <th className="px-2 py-1.5 font-medium">Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {guide.fields.map((field) => (
+                    <tr key={field.name} className="border-b border-neutral-100 align-top">
+                      <td className="px-2 py-1.5 font-mono text-neutral-900">{field.name}</td>
+                      <td className="px-2 py-1.5">
+                        {field.required ? (
+                          <span className="font-medium text-error">Required</span>
+                        ) : (
+                          <span className="text-neutral-500">Optional</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-1.5 text-neutral-700">{field.type}</td>
+                      <td className="px-2 py-1.5 text-neutral-700">
+                        <div>{field.description}</div>
+                        {field.enumValues?.length ? (
+                          <div className="mt-1 font-mono text-[11px] text-neutral-500">
+                            Enum: {field.enumValues.join(' | ')}
+                            {field.enumNotes ? ` — ${field.enumNotes}` : ''}
+                          </div>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <pre className="max-h-56 overflow-auto border border-neutral-200 bg-white p-2 font-mono text-[11px] leading-relaxed text-neutral-800">
+              {sampleJson}
+            </pre>
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+)
+
+BulkImportFormatHelp.displayName = 'BulkImportFormatHelp'

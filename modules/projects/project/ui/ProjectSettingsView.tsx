@@ -33,6 +33,7 @@ import { useProjectLifecycle } from '../hooks/useProjectLifecycle'
 import * as projectsApi from '../api/projects.api'
 import { useProjectPhases } from '../../phase/presentation/hooks/useProjectPhases'
 import { PhaseBulkAddModal } from '../../phase/presentation/ui/PhaseBulkAddModal'
+import { PhaseJsonImportModal } from '../../phase/presentation/ui/PhaseJsonImportModal'
 import { ProjectStatusBadge } from '../presentation/ui/ProjectStatusBadge'
 import { ProjectLifecycleMenu } from '../presentation/ui/ProjectLifecycleMenu'
 import {
@@ -92,7 +93,7 @@ export function ProjectSettingsView() {
   const {
     phases,
     loading: phasesLoading,
-    createPhase,
+    submitPhasesBulk,
     updatePhase,
     runLifecycle: runPhaseLifecycle,
     actingId: phaseActingId,
@@ -108,6 +109,7 @@ export function ProjectSettingsView() {
   const [plannedEnd, setPlannedEnd] = useState('')
   const [saving, setSaving] = useState(false)
   const [phaseModalOpen, setPhaseModalOpen] = useState(false)
+  const [phaseJsonOpen, setPhaseJsonOpen] = useState(false)
   const [editingPhase, setEditingPhase] = useState<ProjectPhase | null>(null)
   const [editPhaseName, setEditPhaseName] = useState('')
   const [editPhaseDescription, setEditPhaseDescription] = useState('')
@@ -277,14 +279,19 @@ export function ProjectSettingsView() {
           <Typography as="h2" weight="semibold">
             Phases
           </Typography>
-          <Button
-            size="sm"
-            variant="secondary"
-            icon={<Plus size={14} />}
-            onClick={() => setPhaseModalOpen(true)}
-          >
-            Add phases
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Plus size={14} />}
+              onClick={() => setPhaseModalOpen(true)}
+            >
+              Bulk add
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setPhaseJsonOpen(true)}>
+              JSON import
+            </Button>
+          </div>
         </div>
         <DataTable
           ariaLabel="Project phases"
@@ -421,9 +428,17 @@ export function ProjectSettingsView() {
         open={phaseModalOpen}
         nextDisplayOrder={nextPhaseOrder}
         onClose={() => setPhaseModalOpen(false)}
-        onCreate={async (payload) => {
-          await createPhase(payload, { refresh: false })
+        onSubmitBulk={submitPhasesBulk}
+        onBatchComplete={async () => {
+          await refetchPhases({ silent: true })
         }}
+      />
+
+      <PhaseJsonImportModal
+        open={phaseJsonOpen}
+        nextDisplayOrder={nextPhaseOrder}
+        onClose={() => setPhaseJsonOpen(false)}
+        onSubmitBulk={submitPhasesBulk}
         onBatchComplete={async () => {
           await refetchPhases({ silent: true })
         }}

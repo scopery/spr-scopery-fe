@@ -9,7 +9,6 @@ import {
   Button,
   Checkbox,
   DetailDrawer,
-  Input,
   PageSkeleton,
   Select,
   Typography,
@@ -39,6 +38,7 @@ import {
   resolveDisplayCoverageStatus,
   type LayerStepState,
   type TracePreviewObject,
+  type CoverageChainFunction,
 } from '../model/requirement-traceability'
 
 type DrawerMode = 'summary' | 'function' | 'useCase' | 'testCase' | 'manageFunction'
@@ -164,6 +164,63 @@ function CoveragePipeline({ steps }: { steps: LayerStepState[] }) {
         })}
       </div>
     </section>
+  )
+}
+
+function objectLabel(item: TracePreviewObject): string {
+  return [item.code, item.name].filter(Boolean).join(' · ') || item.name || item.id
+}
+
+function CoverageChainTree({ chain }: { chain: CoverageChainFunction[] }) {
+  if (chain.length === 0) {
+    return (
+      <Typography variant="small" tone="muted" className="px-3 py-3">
+        No Function → Use Case → Test Case chain yet. Link a Function to start.
+      </Typography>
+    )
+  }
+
+  return (
+    <ul className="divide-y divide-neutral-100">
+      {chain.map((fnNode) => (
+        <li key={fnNode.function.id} className="px-3 py-3">
+          <Typography variant="small" weight="semibold">
+            Function · {objectLabel(fnNode.function)}
+          </Typography>
+          {fnNode.useCases.length === 0 ? (
+            <Typography variant="caption" tone="muted" className="mt-1 block pl-3">
+              No Use Case under this Function
+            </Typography>
+          ) : (
+            <ul className="mt-2 space-y-2 border-l border-neutral-200 pl-3">
+              {fnNode.useCases.map((ucNode) => (
+                <li key={ucNode.useCase.id}>
+                  <Typography variant="small">
+                    Use Case · {objectLabel(ucNode.useCase)}
+                  </Typography>
+                  {ucNode.testCases.length === 0 ? (
+                    <Typography variant="caption" tone="muted" className="mt-0.5 block pl-3">
+                      No Test Case
+                    </Typography>
+                  ) : (
+                    <ul className="mt-1 space-y-0.5 border-l border-neutral-100 pl-3">
+                      {ucNode.testCases.map((tc) => (
+                        <li key={tc.id}>
+                          <Typography variant="caption" className="text-neutral-700">
+                            TC · {objectLabel(tc)}
+                            {tc.latestResult ? ` · ${tc.latestResult}` : ''}
+                          </Typography>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -454,7 +511,7 @@ export function RequirementTraceDetailDrawer({
           const result = await requirementTraceabilityApi.listLinkableFunctions(
             projectId,
             requirementId,
-            { q: query.trim() || undefined, limit: 50 }
+            { q: query.trim() || undefined, limit: 200 }
           )
           items = result.map((item) => ({
             id: item.id,
@@ -466,7 +523,7 @@ export function RequirementTraceDetailDrawer({
           const result = await requirementTraceabilityApi.listLinkableUseCases(
             projectId,
             requirementId,
-            { q: query.trim() || undefined, limit: 50 }
+            { q: query.trim() || undefined, limit: 200 }
           )
           items = result.map((item) => ({
             id: item.id,
@@ -477,7 +534,7 @@ export function RequirementTraceDetailDrawer({
         } else {
           const result = await traceabilityApi.listLinkableTestCases(projectId, requirementId, {
             q: query.trim() || undefined,
-            limit: 50,
+            limit: 200,
           })
           items = result.items.map((item) => ({
             id: item.id,
@@ -534,6 +591,21 @@ export function RequirementTraceDetailDrawer({
       const next = new Set(current)
       if (next.has(id)) next.delete(id)
       else next.add(id)
+      return next
+    })
+  }
+
+  const allFilteredSelected =
+    filteredOptions.length > 0 && filteredOptions.every((item) => selected.has(item.id))
+
+  const toggleSelectAllFiltered = () => {
+    setSelected((current) => {
+      const next = new Set(current)
+      if (allFilteredSelected) {
+        for (const item of filteredOptions) next.delete(item.id)
+      } else {
+        for (const item of filteredOptions) next.add(item.id)
+      }
       return next
     })
   }
@@ -805,6 +877,16 @@ export function RequirementTraceDetailDrawer({
             </div>
           ) : (
             <section className="border border-neutral-200">
+              <div className="border-b border-neutral-100 px-3 py-2.5">
+                <Typography variant="small" weight="semibold">
+                  Coverage chain
+                </Typography>
+                <Typography variant="caption" tone="muted" className="mt-0.5 block">
+                  Requirement → Function → Use Case → Test Case (including links through Functions /
+                  Use Cases, not only direct Requirement links).
+                </Typography>
+              </div>
+              <CoverageChainTree chain={data.coverageChain ?? []} />
               <LinkedObjectRow
                 label="Functions"
                 items={data.functions}
@@ -836,7 +918,7 @@ export function RequirementTraceDetailDrawer({
                 label="Test Cases"
                 items={data.testCases}
                 actionLabel="Open Catalog"
-                note="Test Cases inherit Requirement and Function coverage through their Use Case."
+                note="Includes Test Cases linked via Use Case (FK / coverage), not only direct TESTED_BY."
                 onAction={openTestCaseCatalog}
               />
             </section>
@@ -879,12 +961,18 @@ export function RequirementTraceDetailDrawer({
             </Typography>
             <Typography weight="medium">{title}</Typography>
           </div>
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={MODE_COPY[mode as LinkMode].search}
-            prefix={<Search size={14} />}
-          />
+
+          <div className="flex items-center gap-2 border border-neutral-200 bg-white px-2.5 py-2">
+            <Search size={14} className="shrink-0 text-neutral-400" aria-hidden />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={MODE_COPY[mode as LinkMode].search}
+              className="w-full bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
+              aria-label={MODE_COPY[mode as LinkMode].search}
+            />
+          </div>
 
           {mode === 'testCase' ? (
             <div className="grid grid-cols-2 gap-2">
@@ -898,9 +986,22 @@ export function RequirementTraceDetailDrawer({
           ) : null}
 
           <div>
-            <Typography variant="small" weight="semibold" className="mb-2">
-              {MODE_COPY[mode as LinkMode].available}
-            </Typography>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <Typography variant="small" weight="semibold">
+                {MODE_COPY[mode as LinkMode].available}
+              </Typography>
+              {filteredOptions.length > 0 ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-auto px-0 font-normal"
+                  disabled={saving || pickerLoading}
+                  onClick={toggleSelectAllFiltered}
+                >
+                  {allFilteredSelected ? 'Clear all' : 'Select all'}
+                </Button>
+              ) : null}
+            </div>
             {pickerLoading ? (
               <Typography variant="small" tone="muted">
                 Loading…
@@ -939,28 +1040,40 @@ export function RequirementTraceDetailDrawer({
               <ul className="max-h-[48vh] overflow-y-auto border border-neutral-200">
                 {filteredOptions.map((item) => (
                   <li key={item.id} className="border-b border-neutral-100 last:border-b-0">
-                    <label
+                    <div
+                      role="button"
+                      tabIndex={0}
                       className={cn(
                         'flex cursor-pointer items-start gap-3 px-3 py-2.5 hover:bg-neutral-50',
                         selected.has(item.id) && 'bg-neutral-50'
                       )}
+                      onClick={() => toggleSelected(item.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          toggleSelected(item.id)
+                        }
+                      }}
                     >
                       <Checkbox
                         size="sm"
                         checked={selected.has(item.id)}
                         onChange={() => toggleSelected(item.id)}
+                        onClick={(event) => event.stopPropagation()}
                         className="mt-0.5"
                         aria-label={item.label}
                       />
                       <span className="min-w-0">
-                        <Typography variant="small">{item.label}</Typography>
+                        <Typography variant="small" className="whitespace-normal break-words">
+                          {item.label}
+                        </Typography>
                         {item.status || item.type ? (
                           <Typography variant="caption" tone="muted" className="mt-0.5 block">
                             {[item.status, item.type].filter(Boolean).join(' · ')}
                           </Typography>
                         ) : null}
                       </span>
-                    </label>
+                    </div>
                   </li>
                 ))}
               </ul>

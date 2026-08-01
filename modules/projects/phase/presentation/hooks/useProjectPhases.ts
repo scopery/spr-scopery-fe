@@ -57,6 +57,14 @@ export function useProjectPhases(projectId: string | null) {
     [projectId, load]
   )
 
+  const submitPhasesBulk = useCallback(
+    async (items: CreateProjectPhasePayload[]) => {
+      if (!projectId) throw new Error('Project required')
+      return phasesApi.submitPhasesBulk(projectId, items)
+    },
+    [projectId]
+  )
+
   const updatePhase = useCallback(
     async (phaseId: string, body: UpdateProjectPhasePayload) => {
       if (!projectId) return null
@@ -91,6 +99,7 @@ export function useProjectPhases(projectId: string | null) {
     actingId,
     refetch: load,
     createPhase,
+    submitPhasesBulk,
     updatePhase,
     runLifecycle,
   }

@@ -1,12 +1,26 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { Button, DataTable, Input, Modal, SearchableSelect, Stack, Typography } from '@/shared/ui'
+import {
+  BulkJobProgressPanel,
+  Button,
+  DataTable,
+  Input,
+  Modal,
+  Stack,
+  Typography,
+} from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
+import {
+  BULK_MAX_ITEMS,
+  BulkJobStatus,
+  type BulkJobResponse,
+} from '@/shared/lib/bulkJobs'
+import { useBulkJobPoller } from '@/shared/lib/useBulkJobPoller'
+import { toast } from 'sonner'
 import { cn } from '@/utils/cn'
-import type { CreateUseCaseBody } from '../model/use-case'
-import type { FunctionalItem } from '../model/functional-catalog'
+import type { CreateUseCaseBody, BulkCreateUseCaseItem } from '../model/use-case'
 
 interface DraftRow {
   id: string
@@ -14,14 +28,14 @@ interface DraftRow {
   name: string
   actor: string
   goal: string
+  trigger: string
   error?: string | null
 }
 
 interface Props {
   open: boolean
-  functionalItems: FunctionalItem[]
   onClose: () => void
-  onCreate: (body: CreateUseCaseBody) => Promise<unknown>
+  onSubmitBulk: (items: BulkCreateUseCaseItem[]) => Promise<BulkJobResponse>
   onBatchComplete?: () => Promise<void> | void
 }
 
@@ -30,6 +44,7 @@ const COLUMNS = [
   { key: 'name', label: 'Name', required: true, placeholder: 'Use case name' },
   { key: 'actor', label: 'Actor', placeholder: 'End user' },
   { key: 'goal', label: 'Goal', placeholder: 'Optional' },
+  { key: 'trigger', label: 'Trigger', placeholder: 'Optional' },
 ] as const
 
 function newRow(): DraftRow {
@@ -39,6 +54,7 @@ function newRow(): DraftRow {
     name: '',
     actor: '',
     goal: '',
+    trigger: '',
     error: null,
   }
 }
@@ -65,6 +81,7 @@ function parseClipboard(text: string): DraftRow[] {
     row.name = cells[1] ?? ''
     row.actor = cells[2] ?? ''
     row.goal = cells[3] ?? ''
+    row.trigger = cells[4] ?? ''
     if (row.key || row.name) rows.push(row)
   }
   return rows
@@ -72,29 +89,29 @@ function parseClipboard(text: string): DraftRow[] {
 
 export function UseCaseBulkAddModal({
   open,
-  functionalItems,
   onClose,
-  onCreate,
+  onSubmitBulk,
   onBatchComplete,
 }: Props) {
-  const functionOptions = useMemo(
-    () => functionalItems.map((fi) => ({ value: fi.id, label: `${fi.code} · ${fi.title}` })),
-    [functionalItems]
-  )
-  const [functionId, setFunctionId] = useState('')
   const [rows, setRows] = useState<DraftRow[]>([newRow()])
   const [submitting, setSubmitting] = useState(false)
+  const submittingRef = useRef(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [pasteHint, setPasteHint] = useState(false)
+  const [jobId, setJobId] = useState<string | null>(null)
+  const poller = useBulkJobPoller()
 
   useEffect(() => {
     if (!open) return
-    setFunctionId(functionalItems[0]?.id ?? '')
     setRows([newRow()])
     setSubmitting(false)
+    submittingRef.current = false
     setFormError(null)
     setPasteHint(false)
-  }, [open, functionalItems])
+    setJobId(null)
+    poller.reset()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when modal opens
+  }, [open])
 
   const validRows = useMemo(() => rows.filter((r) => r.key.trim() && r.name.trim()), [rows])
 
@@ -107,6 +124,10 @@ export function UseCaseBulkAddModal({
     setRows((prev) => (prev.length <= 1 ? [newRow()] : prev.filter((r) => r.id !== id)))
 
   const applyPaste = useCallback((text: string) => {
+    if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+      setFormError('Use JSON Import for JSON payloads. Bulk add accepts Excel/TSV only.')
+      return
+    }
     const pasted = parseClipboard(text)
     if (!pasted.length) return
     setRows((prev) => {
@@ -130,62 +151,100 @@ export function UseCaseBulkAddModal({
     return () => document.removeEventListener('paste', onPaste)
   }, [open, applyPaste])
 
-  const handleSubmit = async () => {
-    if (!functionId) {
-      setFormError('Select a function first.')
-      return
+  const buildItems = useCallback((): CreateUseCaseBody[] | null => {
+    const items: CreateUseCaseBody[] = []
+    const nextRows = rows.map((row) => {
+      if (!row.key.trim() && !row.name.trim()) return row
+      if (!row.key.trim() || !row.name.trim()) {
+        return { ...row, error: 'Key and name are required' }
+      }
+      items.push({
+        key: row.key.trim(),
+        name: row.name.trim(),
+        primaryActorName: row.actor.trim() || null,
+        goal: row.goal.trim() || null,
+        triggerText: row.trigger.trim() || null,
+      })
+      return { ...row, error: null }
+    })
+    if (nextRows.some((r) => r.error)) {
+      setRows(nextRows)
+      return null
     }
+    return items
+  }, [rows])
+
+  const executeBulk = useCallback(
+    async (items: CreateUseCaseBody[]) => {
+      if (submittingRef.current || poller.isPolling) return
+      if (items.length === 0) {
+        setFormError('No items to submit.')
+        return
+      }
+      if (items.length > BULK_MAX_ITEMS) {
+        setFormError(`Maximum ${BULK_MAX_ITEMS} items per bulk request.`)
+        return
+      }
+
+      submittingRef.current = true
+      setSubmitting(true)
+      setFormError(null)
+      setJobId(null)
+      poller.reset()
+
+      try {
+        const job = await onSubmitBulk(items)
+        setJobId(job.id)
+        // Job accepted — stop button spinner; close grid; follow in background.
+        submittingRef.current = false
+        setSubmitting(false)
+        toast.message('Job accepted', { description: 'Processing in the background…' })
+        onClose()
+
+        const done = await poller.start(job.id, job)
+        if (done.succeededItems > 0) await onBatchComplete?.()
+
+        if (done.status === BulkJobStatus.Succeeded) {
+          toast.success(done.resultSummary ?? `Created ${done.succeededItems} use cases`)
+        } else if (done.status === BulkJobStatus.Partial) {
+          toast.warning(
+            done.resultSummary ??
+              `${done.succeededItems} created, ${done.failedItems} failed. Successful items are already saved.`
+          )
+        } else {
+          toast.error(done.errorMessage ?? done.resultSummary ?? 'Bulk create failed')
+        }
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : 'Failed to submit bulk create'
+        setFormError(message)
+      } finally {
+        submittingRef.current = false
+        setSubmitting(false)
+      }
+    },
+    [onSubmitBulk, onBatchComplete, onClose, poller]
+  )
+
+  const runBulk = useCallback(async () => {
     if (validRows.length === 0) {
       setFormError('Add at least one row with key and name.')
       return
     }
-    setSubmitting(true)
-    setFormError(null)
-
-    const remaining: DraftRow[] = []
-    let created = 0
-
-    for (const row of rows) {
-      if (!row.key.trim() && !row.name.trim()) continue
-      if (!row.key.trim() || !row.name.trim()) {
-        remaining.push({ ...row, error: 'Key and name are required' })
-        continue
-      }
-      try {
-        await onCreate({
-          primaryFunctionId: functionId,
-          key: row.key.trim(),
-          name: row.name.trim(),
-          primaryActorName: row.actor.trim() || null,
-          goal: row.goal.trim() || null,
-        })
-        created++
-      } catch (err: unknown) {
-        const message =
-          err instanceof ApiError && err.status === 409
-            ? 'Key already exists'
-            : err instanceof Error
-              ? err.message
-              : 'Failed'
-        remaining.push({ ...row, error: message })
-      }
-    }
-
-    if (created > 0) await onBatchComplete?.()
-    setSubmitting(false)
-
-    if (remaining.length === 0) {
-      onClose()
+    const items = buildItems()
+    if (!items || items.length === 0) {
+      setFormError('Fix validation errors before submitting.')
       return
     }
-
-    setRows(remaining)
-    setFormError(
-      created
-        ? `Created ${created}. Review ${remaining.length} remaining row${remaining.length === 1 ? '' : 's'}.`
-        : `Could not create. Fix ${remaining.length} row${remaining.length === 1 ? '' : 's'}.`
-    )
-  }
+    await executeBulk(items)
+  }, [validRows.length, buildItems, executeBulk])
+  const jobRunning = poller.isPolling
+  const locked = submitting || jobRunning
 
   return (
     <Modal
@@ -196,31 +255,23 @@ export function UseCaseBulkAddModal({
       actions={[
         { label: 'Cancel', onClick: onClose, variant: 'ghost' },
         {
-          label: submitting ? 'Creating…' : `Create ${validRows.length}`,
-          onClick: () => void handleSubmit(),
+          label: submitting
+            ? 'Submitting…'
+            : jobRunning
+              ? 'Running…'
+              : `Create ${validRows.length}`,
+          onClick: () => void runBulk(),
           variant: 'primary',
-          disabled: submitting || !functionId || validRows.length === 0,
+          disabled: locked || validRows.length === 0,
           loading: submitting,
         },
       ]}
     >
       <div className="space-y-4">
-        <div>
-          <Typography variant="small" className="mb-1.5">
-            Function <span className="text-red-500">*</span>{' '}
-            <span className="font-normal text-neutral-400">(applies to all rows)</span>
-          </Typography>
-          <SearchableSelect
-            options={functionOptions}
-            value={functionId}
-            onValueChange={setFunctionId}
-            placeholder="Select a function…"
-          />
-        </div>
-
         <Typography variant="small" tone="muted">
-          Add one or more rows. Paste from Excel (Ctrl/Cmd+V) — columns:{' '}
-          {COLUMNS.map((c) => c.label).join(' · ')}.
+          Create shells with key + name. Link Functions later via Function → Use Case. Paste
+          Excel/TSV (Ctrl/Cmd+V) — columns: {COLUMNS.map((c) => c.label).join(' · ')}. Use JSON
+          Import for full JSON payloads.
         </Typography>
 
         {pasteHint ? (
@@ -228,6 +279,17 @@ export function UseCaseBulkAddModal({
             Pasted — review, edit, or remove rows below.
           </Typography>
         ) : null}
+
+        <BulkJobProgressPanel
+          job={poller.job}
+          percent={poller.percent}
+          isPolling={poller.isPolling}
+          error={poller.error}
+          onRetryFailed={(failedItems) => {
+            void executeBulk(failedItems as unknown as CreateUseCaseBody[])
+          }}
+          onRetry={() => void runBulk()}
+        />
 
         <DataTable
           className="border border-neutral-200"
@@ -250,6 +312,7 @@ export function UseCaseBulkAddModal({
                   aria-label={`${col.label} row ${index + 1}`}
                   fullWidth
                   size="sm"
+                  disabled={locked}
                 />
               ),
             })),
@@ -263,6 +326,7 @@ export function UseCaseBulkAddModal({
                   className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
                   onClick={() => removeRow(row.id)}
                   aria-label={`Remove row ${index + 1}`}
+                  disabled={locked}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -291,13 +355,19 @@ export function UseCaseBulkAddModal({
           </Typography>
         ) : null}
 
+        {jobId ? (
+          <Typography variant="caption" tone="muted">
+            Job {jobId}
+          </Typography>
+        ) : null}
+
         <Stack direction="horizontal" spacing="sm" className="flex-wrap">
-          <Button size="sm" variant="secondary" onClick={addRow} disabled={submitting}>
+          <Button size="sm" variant="secondary" onClick={addRow} disabled={locked}>
             <Plus size={14} className="mr-1 inline" />
             Add row
           </Button>
           <Typography variant="caption" tone="muted" className="self-center">
-            Tip: copy cells from Excel then paste in this dialog
+            {validRows.length} ready · max {BULK_MAX_ITEMS}
           </Typography>
         </Stack>
       </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Search, SquareArrowOutUpRight } from 'lucide-react'
 import { useParams, useSearchParams } from 'next/navigation'
@@ -20,6 +20,7 @@ import { FunctionalCatalogAddBar } from './FunctionalCatalogAddBar'
 import type { FunctionalCatalogBulkCreateInput } from './FunctionalCatalogBulkAddModal'
 import { FunctionalItemDetailPanel } from './FunctionalItemDetailPanel'
 import { RequirementFunctionalLinkPanel } from './RequirementFunctionalLinkPanel'
+import { RequirementNonFunctionalLinkPanel } from './RequirementNonFunctionalLinkPanel'
 import { ImportFunctionalItemsModal } from './ImportFunctionalItemsModal'
 import { SimpleExcelImportPanel } from './SimpleExcelImportPanel'
 import { NON_FUNCTIONAL_ITEM_IMPORT_SPEC } from '../lib/excelImportSpecs'
@@ -40,6 +41,7 @@ export function FunctionalCatalogView() {
   const searchParams = useSearchParams()
   const frFromQuery = searchParams.get('fr')
   const tabFromQuery = searchParams.get('tab')
+  const seededFrRef = useRef<string | null>(null)
 
   const { project, loading: projectLoading } = useProject(workspaceId, projectId)
   const {
@@ -51,11 +53,14 @@ export function FunctionalCatalogView() {
     updateFr,
     createNfr,
     refetch,
+    submitFunctionalItemsBulk,
+    submitNonFunctionalItemsBulk,
   } = useFunctionalCatalog(projectId)
   const { frWithoutAnchors, refetch: refetchCoverage } = useFunctionalAnchorCoverage(projectId)
 
-  const [tab, setTab] = useState<MainTab | 'map'>(() => {
+  const [tab, setTab] = useState<MainTab | 'map' | 'map-nfr'>(() => {
     if (tabFromQuery === 'map') return 'map'
+    if (tabFromQuery === 'map-nfr') return 'map-nfr'
     if (tabFromQuery === 'nfr' || tabFromQuery === 'import') return tabFromQuery
     return 'fr'
   })
@@ -99,7 +104,9 @@ export function FunctionalCatalogView() {
 
   useEffect(() => {
     if (!frFromQuery) return
+    if (seededFrRef.current === frFromQuery) return
     if (!functionalItems.some((i) => i.id === frFromQuery)) return
+    seededFrRef.current = frFromQuery
     setTab('fr')
     setSelectedFrId(frFromQuery)
   }, [frFromQuery, functionalItems])
@@ -156,6 +163,50 @@ export function FunctionalCatalogView() {
     [refetch, refetchCoverage]
   )
 
+  const handleSubmitBulk = useCallback(
+    async (items: FunctionalCatalogBulkCreateInput[]) => {
+      const kind = items[0]?.kind ?? 'FR'
+      if (kind === 'FR') {
+        return submitFunctionalItemsBulk(
+          items.map((input) => ({
+            code: input.code,
+            title: input.title,
+            description: input.description ?? null,
+            priority:
+              (input.priority as typeof FunctionalItemPriority.Medium) ||
+              FunctionalItemPriority.Medium,
+            type:
+              (input.type as typeof FunctionalItemType.Functional) ||
+              FunctionalItemType.Functional,
+            acceptanceCriteria: input.acceptanceCriteria?.length
+              ? input.acceptanceCriteria
+              : null,
+            businessRules: input.businessRules?.length ? input.businessRules : null,
+            workspaceId,
+          }))
+        )
+      }
+      return submitNonFunctionalItemsBulk(
+        items.map((input) => ({
+          code: input.code,
+          title: input.title,
+          description: input.description ?? null,
+          category:
+            (input.category as typeof NonFunctionalCategory.Other) ||
+            NonFunctionalCategory.Other,
+          priority:
+            (input.priority as typeof FunctionalItemPriority.Medium) ||
+            FunctionalItemPriority.Medium,
+          scopeType:
+            (input.scopeType as typeof NonFunctionalScopeType.System) ||
+            NonFunctionalScopeType.System,
+          targetMetric: input.targetMetric ?? null,
+        }))
+      )
+    },
+    [submitFunctionalItemsBulk, submitNonFunctionalItemsBulk, workspaceId]
+  )
+
   if (
     (loading || projectLoading) &&
     functionalItems.length === 0 &&
@@ -175,17 +226,23 @@ export function FunctionalCatalogView() {
     <div className="flex h-full min-h-0 flex-col bg-white px-3 py-3 lg:px-4 lg:py-3">
       <div className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col">
         <header className="shrink-0">
-          {tab === 'map' ? (
+          {tab === 'map' || tab === 'map-nfr' ? (
             <div className="mb-2 flex items-end justify-between border-b border-neutral-200 pb-2">
               <div>
                 <Typography as="h1" size="md" weight="medium">
-                  Requirement → Function
+                  {tab === 'map' ? 'Requirement → Function' : 'Requirement → NFR'}
                 </Typography>
                 <Typography variant="caption" tone="muted">
-                  Link requirements to functional items.
+                  {tab === 'map'
+                    ? 'Link requirements to functional items.'
+                    : 'Link requirements to non-functional items.'}
                 </Typography>
               </div>
-              <Button size="sm" variant="outline" onClick={() => setTab('fr')}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setTab(tab === 'map' ? 'fr' : 'nfr')}
+              >
                 Back to catalog
               </Button>
             </div>
@@ -207,14 +264,24 @@ export function FunctionalCatalogView() {
                     {metaBits.join(' · ') || 'Project catalog'}
                   </Typography>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  icon={<SquareArrowOutUpRight size={14} />}
-                  onClick={() => setTab('map')}
-                >
-                  Requirement → Function
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    icon={<SquareArrowOutUpRight size={14} />}
+                    onClick={() => setTab('map')}
+                  >
+                    Requirement → Function
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    icon={<SquareArrowOutUpRight size={14} />}
+                    onClick={() => setTab('map-nfr')}
+                  >
+                    Requirement → NFR
+                  </Button>
+                </div>
               </div>
 
               <nav aria-label="Catalog" className="mt-1 flex gap-0.5 border-b border-neutral-200">
@@ -275,6 +342,7 @@ export function FunctionalCatalogView() {
                     <FunctionalCatalogAddBar
                       defaultKind="FR"
                       onCreate={handleBulkCreate}
+                      onSubmitBulk={handleSubmitBulk}
                       onBatchComplete={handleBatchComplete}
                     />
                   </div>
@@ -352,6 +420,7 @@ export function FunctionalCatalogView() {
                   <FunctionalCatalogAddBar
                     defaultKind="NFR"
                     onCreate={handleBulkCreate}
+                    onSubmitBulk={handleSubmitBulk}
                     onBatchComplete={handleBatchComplete}
                   />
                 </div>
@@ -472,6 +541,16 @@ export function FunctionalCatalogView() {
             </div>
           ) : null}
 
+          {tab === 'map-nfr' ? (
+            <div className="h-full min-h-0 overflow-hidden bg-white">
+              <RequirementNonFunctionalLinkPanel
+                workspaceId={workspaceId}
+                projectId={projectId}
+                nonFunctionalItems={nonFunctionalItems}
+              />
+            </div>
+          ) : null}
+
           {tab === 'import' ? (
             <div className="h-full min-h-0 overflow-y-auto border border-neutral-300 bg-white p-3">
               <Stack direction="vertical" spacing="md">
@@ -499,26 +578,25 @@ export function FunctionalCatalogView() {
                 ) : (
                   <>
                     <Typography variant="small" tone="muted">
-                      One file. Duplicate codes are skipped (409). For quick multi-row add, prefer
-                      Add NFR (paste from Excel).
+                      One file → one async bulk job. Duplicate codes fail as job item errors. Prefer
+                      Add NFR (paste from Excel) for quick multi-row add.
                     </Typography>
                     <SimpleExcelImportPanel
                       title="Import NFRs"
                       spec={NON_FUNCTIONAL_ITEM_IMPORT_SPEC}
-                      onImportRow={async (row) => {
-                        await createNfr(
-                          {
+                      onSubmitBulk={(rows) =>
+                        submitNonFunctionalItemsBulk(
+                          rows.map((row) => ({
                             code: row.code,
                             title: row.title,
                             description: row.description || null,
-                            category: row.category,
-                            priority: row.priority,
-                            scopeType: row.scopeType,
+                            category: row.category as never,
+                            priority: row.priority as never,
+                            scopeType: row.scopeType as never,
                             targetMetric: row.targetMetric || null,
-                          },
-                          { refresh: false }
+                          }))
                         )
-                      }}
+                      }
                       onComplete={async () => {
                         await refetch({ silent: true })
                         setTab('nfr')

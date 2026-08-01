@@ -1,19 +1,20 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { ChevronDown, Plus } from 'lucide-react'
-import { Button } from '@/shared/ui'
+import { AnchoredMenu, Button, anchoredMenuItemClassName } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { QualityBulkAddModal } from './QualityBulkAddModal'
 import { QualitySingleAddModal } from './QualitySingleAddModal'
 import { TraceLinkBulkAddModal } from './TraceLinkBulkAddModal'
+import { TestCaseJsonImportModal } from './TestCaseJsonImportModal'
 import {
   QUALITY_ADD_LABELS,
   type QualityBulkKind,
   type QualityCreateInput,
 } from './quality-bulk.model'
 
-type AddMode = 'single' | 'bulk'
+type AddMode = 'single' | 'bulk' | 'json'
 
 interface QualityAddBarProps {
   kind: QualityBulkKind
@@ -33,27 +34,18 @@ export function QualityAddBar({
 }: QualityAddBarProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [modal, setModal] = useState<AddMode | null>(null)
-  const rootRef = useRef<HTMLDivElement>(null)
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const closeMenu = useCallback(() => setMenuOpen(false), [])
   const buttonLabel = label ?? QUALITY_ADD_LABELS[kind]
+  const showJson = kind === 'TEST_CASE'
 
-  useEffect(() => {
-    if (!menuOpen) return
-    const onPointer = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setMenuOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false)
-    }
-    document.addEventListener('mousedown', onPointer)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onPointer)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [menuOpen])
+  const pick = (next: AddMode) => {
+    setMenuOpen(false)
+    setModal(next)
+  }
 
   return (
-    <div ref={rootRef} className="relative inline-flex">
+    <div ref={anchorRef} className="relative inline-flex">
       <Button
         size="sm"
         variant="secondary"
@@ -70,35 +62,19 @@ export function QualityAddBar({
         />
       </Button>
 
-      {menuOpen ? (
-        <div
-          role="menu"
-          className="absolute right-0 top-full z-20 mt-1 min-w-[180px] border border-neutral-200 bg-white py-1 shadow-md"
-        >
-          <button
-            type="button"
-            role="menuitem"
-            className="block w-full px-3 py-2 text-left text-sm text-neutral-800 hover:bg-neutral-50"
-            onClick={() => {
-              setMenuOpen(false)
-              setModal('single')
-            }}
-          >
-            Single add
+      <AnchoredMenu open={menuOpen} onClose={closeMenu} anchorRef={anchorRef}>
+        <button type="button" role="menuitem" className={anchoredMenuItemClassName} onClick={() => pick('single')}>
+          Single add
+        </button>
+        <button type="button" role="menuitem" className={anchoredMenuItemClassName} onClick={() => pick('bulk')}>
+          Bulk add
+        </button>
+        {showJson ? (
+          <button type="button" role="menuitem" className={anchoredMenuItemClassName} onClick={() => pick('json')}>
+            JSON import
           </button>
-          <button
-            type="button"
-            role="menuitem"
-            className="block w-full px-3 py-2 text-left text-sm text-neutral-800 hover:bg-neutral-50"
-            onClick={() => {
-              setMenuOpen(false)
-              setModal('bulk')
-            }}
-          >
-            Bulk add
-          </button>
-        </div>
-      ) : null}
+        ) : null}
+      </AnchoredMenu>
 
       {modal === 'single' ? (
         <QualitySingleAddModal
@@ -128,6 +104,14 @@ export function QualityAddBar({
           onClose={() => setModal(null)}
           onCreate={onCreate}
           onBatchComplete={onBatchComplete}
+        />
+      ) : null}
+
+      {showJson ? (
+        <TestCaseJsonImportModal
+          open={modal === 'json'}
+          onClose={() => setModal(null)}
+          onComplete={onBatchComplete}
         />
       ) : null}
     </div>

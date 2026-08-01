@@ -9,6 +9,8 @@ export { DefectCenterView } from './presentation/ui/DefectCenterView'
 export { ReleaseCenterView } from './presentation/ui/ReleaseCenterView'
 export { TestManagementView } from './presentation/ui/TestManagementView'
 export { TestCaseCatalogView } from './presentation/ui/TestCaseCatalogView'
+export { UseCaseTestCaseLinkPanel } from './presentation/ui/UseCaseTestCaseLinkPanel'
+export { UseCaseTestCaseLinksView } from './presentation/ui/UseCaseTestCaseLinksView'
 export { VerificationCaseCatalogView } from './presentation/ui/VerificationCaseCatalogView'
 export { NfrSpecificationPanel } from './presentation/ui/NfrSpecificationPanel'
 export { DeploymentCenterView } from './presentation/ui/DeploymentCenterView'
@@ -53,6 +55,7 @@ export {
 } from './domain/enums/quality.enum'
 export {
   qualityCasesHref,
+  qualityCaseLinksHref,
   qualityRunsHref,
   qualityDefectsHref,
   qualityReleasesHref,

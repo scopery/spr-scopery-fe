@@ -150,10 +150,13 @@ export interface CreateTestCasePayload {
   expectedResult?: string | null
   assigneeId?: string | null
   automationStatus?: AutomationStatus | string
+  /** Optional — BE applies after shell create on POST …/bulk. */
+  steps?: CreateTestCaseStepPayload[]
 }
 
 export interface UpdateTestCasePayload {
   title?: string
+  code?: string | null
   type?: TestCaseType | string
   priority?: TestCasePriority | string
   status?: TestCaseStatus | string

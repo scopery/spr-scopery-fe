@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import * as api from '../api/use-case.api'
-import type { CreateUseCaseBody, UseCase } from '../model/use-case'
+import type { BulkCreateUseCaseItem, CreateUseCaseBody, UseCase } from '../model/use-case'
 
 export function useUseCaseCatalog(projectId: string | null, functionId?: string | null) {
   const [useCases, setUseCases] = useState<UseCase[]>([])
@@ -42,6 +42,14 @@ export function useUseCaseCatalog(projectId: string | null, functionId?: string 
     [projectId, load]
   )
 
+  const submitUseCasesBulk = useCallback(
+    async (items: BulkCreateUseCaseItem[]) => {
+      if (!projectId) throw new Error('Project required')
+      return api.submitUseCasesBulk(projectId, items)
+    },
+    [projectId]
+  )
+
   const deleteUseCase = useCallback(
     async (useCaseId: string) => {
       if (!projectId) return
@@ -51,5 +59,13 @@ export function useUseCaseCatalog(projectId: string | null, functionId?: string 
     [projectId, load]
   )
 
-  return { useCases, loading, error, refetch: load, createUseCase, deleteUseCase }
+  return {
+    useCases,
+    loading,
+    error,
+    refetch: load,
+    createUseCase,
+    submitUseCasesBulk,
+    deleteUseCase,
+  }
 }

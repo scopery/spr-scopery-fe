@@ -450,12 +450,14 @@ export function ScreenStructureEditor({
                 <span className="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400">
                   {index + 1}
                 </span>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm text-neutral-900">
+                  <div className="min-w-0 flex-1">
+                  <div className="whitespace-pre-wrap break-words text-sm text-neutral-900">
                     {primaryLabel(item, columns)}
                   </div>
                   {secondary ? (
-                    <div className="truncate text-xs text-neutral-500">{secondary}</div>
+                    <div className="mt-0.5 whitespace-pre-wrap break-words text-xs text-neutral-500">
+                      {secondary}
+                    </div>
                   ) : null}
                 </div>
               </li>

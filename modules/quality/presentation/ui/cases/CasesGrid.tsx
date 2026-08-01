@@ -44,8 +44,9 @@ export function CasesGrid({
     id: string,
     changes: { status?: string; priority?: string; title?: string }
   ) => Promise<void>
-  onQuickDraft?: (title: string) => Promise<void>
+  onQuickDraft?: (input: { title: string; code?: string | null }) => Promise<void>
 }) {
+  const [draftCode, setDraftCode] = useState('')
   const [draftTitle, setDraftTitle] = useState('')
   const [draftSaving, setDraftSaving] = useState(false)
 
@@ -53,7 +54,11 @@ export function CasesGrid({
     if (!onQuickDraft || !draftTitle.trim()) return
     setDraftSaving(true)
     try {
-      await onQuickDraft(draftTitle.trim())
+      await onQuickDraft({
+        title: draftTitle.trim(),
+        code: draftCode.trim() || null,
+      })
+      setDraftCode('')
       setDraftTitle('')
     } finally {
       setDraftSaving(false)
@@ -82,14 +87,35 @@ export function CasesGrid({
       beforeRows={
         onQuickDraft ? (
           <tr className="bg-neutral-50/60 border-b border-dashed border-neutral-200">
-            <td className="px-3 py-2" />
-            <td className="px-3 py-2 text-xs text-neutral-400">DRAFT</td>
-            <td className="px-3 py-2" colSpan={tab === 'functional' ? 5 : 7}>
-              <div className="flex gap-2">
+            <td className="sticky left-0 z-[2] w-10 bg-neutral-50/60 px-3 py-2" />
+            <td
+              className="sticky z-[2] w-[120px] max-w-[120px] bg-neutral-50/60 px-3 py-2"
+              style={{ left: '40px' }}
+            >
+              <Input
+                size="sm"
+                fullWidth
+                className="min-w-0"
+                value={draftCode}
+                onChange={(e) => setDraftCode(e.target.value)}
+                placeholder="TC-001"
+                aria-label="Draft code"
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void submitDraft()
+                }}
+              />
+            </td>
+            <td className="min-w-0 px-3 py-2" colSpan={tab === 'functional' ? 5 : 7}>
+              <div className="flex min-w-0 gap-2">
                 <Input
+                  size="sm"
+                  fullWidth
+                  className="min-w-0"
                   value={draftTitle}
                   onChange={(e) => setDraftTitle(e.target.value)}
                   placeholder="Quick draft title — Enter to create"
+                  onClick={(event) => event.stopPropagation()}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') void submitDraft()
                   }}
@@ -97,6 +123,7 @@ export function CasesGrid({
                 <Button
                   size="sm"
                   variant="outline"
+                  className="shrink-0"
                   disabled={!draftTitle.trim() || draftSaving}
                   onClick={() => void submitDraft()}
                 >

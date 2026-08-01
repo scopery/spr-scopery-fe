@@ -33,7 +33,9 @@ export function UseCaseSearchSelect({
         .filter((useCase) => useCase.status !== 'ARCHIVED')
         .map((useCase) => ({
           value: useCase.id,
-          label: `${useCase.key} · ${useCase.name} · ${useCase.primaryFunctionName}`,
+          label: `${useCase.key} · ${useCase.name}${
+            useCase.primaryFunctionName ? ` · ${useCase.primaryFunctionName}` : ''
+          }`,
         })),
     [useCases]
   )

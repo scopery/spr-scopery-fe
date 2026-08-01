@@ -105,7 +105,7 @@ export function CoveragePath({
   const title = steps.map((s) => `${s.label}: ${s.state}`).join('\n')
   return (
     <div
-      className={cn('flex flex-wrap items-center gap-1 text-[11px] font-semibold', className)}
+      className={cn('flex flex-wrap items-center gap-1 text-sm font-semibold', className)}
       title={title}
     >
       {steps.map((s, i) => (

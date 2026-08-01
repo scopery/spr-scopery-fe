@@ -109,6 +109,7 @@ export function TestCaseDetailDrawer({
   const [tab, setTab] = useState<DetailTab>('overview')
   const [pasteOpen, setPasteOpen] = useState(false)
   const [pasteValue, setPasteValue] = useState('')
+  const [editingSteps, setEditingSteps] = useState(false)
   const [linkKind, setLinkKind] = useState<TestCaseLinkKind | null>(null)
   const [linkOptions, setLinkOptions] = useState<TestCaseLinkOption[]>([])
   const [selectedLinkIds, setSelectedLinkIds] = useState<Set<string>>(new Set())
@@ -121,6 +122,7 @@ export function TestCaseDetailDrawer({
     setTab('overview')
     setPasteOpen(false)
     setPasteValue('')
+    setEditingSteps(false)
     setLinkKind(null)
     setLinkOptions([])
     setSelectedLinkIds(new Set())
@@ -272,6 +274,13 @@ export function TestCaseDetailDrawer({
                   </div>
                 ) : null}
                 <Input
+                  label="Code"
+                  value={detail.code ?? ''}
+                  disabled
+                  readOnly
+                  placeholder="—"
+                />
+                <Input
                   label="Title"
                   defaultValue={detail.title}
                   disabled={saving}
@@ -364,18 +373,42 @@ export function TestCaseDetailDrawer({
               <div className="space-y-md">
                 <div className="flex items-center justify-between gap-sm">
                   <Typography variant="small" tone="muted">
-                    Edit action and expected result inline.
+                    {editingSteps
+                      ? 'Edit action and expected result, then leave Edit when done.'
+                      : 'Steps are shown read-only. Press Edit to change them.'}
                   </Typography>
                   <div className="flex gap-xs">
-                    <Button size="sm" variant="ghost" onClick={() => setPasteOpen((open) => !open)}>
-                      Paste steps
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setEditingSteps((v) => !v)
+                        setPasteOpen(false)
+                      }}
+                    >
+                      {editingSteps ? 'Done' : 'Edit'}
                     </Button>
-                    <Button size="sm" icon={<Plus size={14} />} onClick={() => void addBlankStep()}>
-                      Add step
-                    </Button>
+                    {editingSteps ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setPasteOpen((open) => !open)}
+                        >
+                          Paste steps
+                        </Button>
+                        <Button
+                          size="sm"
+                          icon={<Plus size={14} />}
+                          onClick={() => void addBlankStep()}
+                        >
+                          Add step
+                        </Button>
+                      </>
+                    ) : null}
                   </div>
                 </div>
-                {pasteOpen ? (
+                {editingSteps && pasteOpen ? (
                   <div className="space-y-sm border border-neutral-200 bg-neutral-50 p-md">
                     <Typography variant="caption" tone="muted">
                       Paste tab-separated columns: Action · Expected result.
@@ -416,45 +449,60 @@ export function TestCaseDetailDrawer({
                         <Typography variant="caption" tone="muted" className="pt-sm">
                           {stepOrder(step, index)}
                         </Typography>
-                        <div className="grid gap-sm">
-                          <Input
-                            aria-label={`Step ${index + 1} action`}
-                            defaultValue={stepAction(step)}
-                            onBlur={(event) =>
-                              void updateStep(step.id, {
-                                action: event.target.value,
-                                version: step.version,
-                              })
-                            }
-                          />
-                          <Input
-                            aria-label={`Step ${index + 1} expected result`}
-                            defaultValue={step.expectedResult ?? ''}
-                            onBlur={(event) =>
-                              void updateStep(step.id, {
-                                expectedResult: event.target.value,
-                                version: step.version,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="flex flex-col gap-xs">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            icon={<Copy size={14} />}
-                            aria-label="Duplicate step"
-                            onClick={() => void duplicateStep(step.id)}
-                          />
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            tone="error"
-                            icon={<Trash2 size={14} />}
-                            aria-label="Archive step"
-                            onClick={() => void archiveStep(step.id)}
-                          />
-                        </div>
+                        {editingSteps ? (
+                          <div className="grid gap-sm">
+                            <Input
+                              aria-label={`Step ${index + 1} action`}
+                              defaultValue={stepAction(step)}
+                              onBlur={(event) =>
+                                void updateStep(step.id, {
+                                  action: event.target.value,
+                                  version: step.version,
+                                })
+                              }
+                            />
+                            <Input
+                              aria-label={`Step ${index + 1} expected result`}
+                              defaultValue={step.expectedResult ?? ''}
+                              onBlur={(event) =>
+                                void updateStep(step.id, {
+                                  expectedResult: event.target.value,
+                                  version: step.version,
+                                })
+                              }
+                            />
+                          </div>
+                        ) : (
+                          <div className="min-w-0 space-y-1">
+                            <p className="whitespace-pre-wrap break-words text-sm text-neutral-900">
+                              {stepAction(step) || '—'}
+                            </p>
+                            <p className="whitespace-pre-wrap break-words text-xs text-neutral-600">
+                              Expected: {step.expectedResult?.trim() || '—'}
+                            </p>
+                          </div>
+                        )}
+                        {editingSteps ? (
+                          <div className="flex flex-col gap-xs">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => void duplicateStep(step.id)}
+                            >
+                              Duplicate
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              tone="error"
+                              onClick={() => void archiveStep(step.id)}
+                            >
+                              Archive
+                            </Button>
+                          </div>
+                        ) : (
+                          <span />
+                        )}
                       </div>
                     ))}
                   </div>

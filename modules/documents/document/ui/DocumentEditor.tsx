@@ -19,6 +19,7 @@ import { DocumentCollaborationPanel } from '@/modules/collaboration'
 import { DocumentAIPanel, AIGeneratedBadge } from '@/modules/ai-document-intelligence'
 import type { DocumentEditorProps } from '../model/document-editor'
 import { useDocumentEditor } from '../hooks/useDocumentEditor'
+import { useModSSaveShortcut } from '../hooks/useModSSaveShortcut'
 import { PlateEditorBody } from './editor/PlateEditor'
 import { DocumentReadOnlyRenderer } from './editor/DocumentReadOnlyRenderer'
 
@@ -71,6 +72,8 @@ export function DocumentEditor({
     onArchived,
   })
 
+  useModSSaveShortcut(handleManualSave, canEdit && saveStatus !== 'saving')
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
       <div>
@@ -85,7 +88,11 @@ export function DocumentEditor({
             <Button
               variant="primary"
               loading={saveStatus === 'saving'}
-              onClick={handleManualSave} icon={<Save size={16} />}>
+              onClick={handleManualSave}
+              icon={<Save size={16} />}
+              title="Save (Ctrl/⌘S)"
+              aria-keyshortcuts="Control+S Meta+S"
+            >
               Save
             </Button>
           )}

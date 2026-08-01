@@ -69,39 +69,34 @@ export function TraceLinkBulkAddModal({
       setFormError('Select both entities for every Trace Link.')
       return
     }
-    setSubmitting(true)
-    setFormError(null)
-    const remaining: TraceLinkDraft[] = []
-    let created = 0
-    for (const row of rows) {
-      try {
-        await onCreate({
-          kind: 'TRACE_LINK',
-          payload: {
-            sourceType: row.sourceType,
-            sourceId: row.sourceId,
-            targetType: row.targetType,
-            targetId: row.targetId,
-            linkType: row.linkType,
-          },
-        })
-        created += 1
-      } catch (error) {
-        remaining.push({
-          ...row,
-          error: error instanceof Error ? error.message : 'Failed to create link',
-        })
-      }
-    }
-    if (created > 0) await onBatchComplete?.()
-    setSubmitting(false)
-    if (remaining.length === 0) {
-      setRows([newDraft()])
-      onClose()
+    if (rows.length > 1) {
+      setFormError(
+        'Async bulk create is not available for Trace Links yet. Add one link at a time (no FE loop).'
+      )
       return
     }
-    setRows(remaining)
-    setFormError(`Created ${created}. Review ${remaining.length} failed link(s).`)
+    setSubmitting(true)
+    setFormError(null)
+    const row = rows[0]!
+    try {
+      await onCreate({
+        kind: 'TRACE_LINK',
+        payload: {
+          sourceType: row.sourceType,
+          sourceId: row.sourceId,
+          targetType: row.targetType,
+          targetId: row.targetId,
+          linkType: row.linkType,
+        },
+      })
+      await onBatchComplete?.()
+      setRows([newDraft()])
+      onClose()
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Failed to create link')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (

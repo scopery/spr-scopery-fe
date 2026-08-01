@@ -230,11 +230,12 @@ export function mapDraftToCreateInput(
         payload: {
           title: g('title'),
           code: g('code') || null,
+          description: g('description') || null,
           type: enumOr(g('type'), Object.values(TestCaseType), TestCaseType.Functional),
           priority: enumOr(g('priority'), Object.values(TestCasePriority), TestCasePriority.Medium),
-          useCaseId: g('useCaseId') || null,
           preconditions: g('preconditions') || null,
           expectedResult: g('expectedResult') || null,
+          automationStatus: g('automationStatus') || undefined,
         },
       }
     case 'TEST_RUN':

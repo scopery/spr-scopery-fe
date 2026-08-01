@@ -39,6 +39,7 @@ import { MentionAccessBanner } from './MentionAccessBanner'
 import { DocumentAutosaveIndicator } from './DocumentAutosaveIndicator'
 import { DocumentEditorRightPanel } from './DocumentEditorRightPanel'
 import { cn } from '@/utils/cn'
+import { useModSSaveShortcut } from '@/modules/documents/document/hooks/useModSSaveShortcut'
 import {
   createResourceMentionNode,
   createSyncedBlockNode,
@@ -128,6 +129,14 @@ export function NativeDocumentEditorView({
   const skipTitleCommitRef = useRef(false)
   const hubHref = WORKSPACE_ROUTES.documentHub(workspaceId)
   const backHref = hubHref
+
+  useModSSaveShortcut(
+    editor.handleManualSave,
+    !editor.loading &&
+      !editor.nativeUnsupported &&
+      editor.saveStatus !== 'conflict' &&
+      editor.saveStatus !== 'saving'
+  )
 
   const startEditTitle = useCallback(() => {
     skipTitleCommitRef.current = false
@@ -438,6 +447,8 @@ export function NativeDocumentEditorView({
                 editor.saveStatus === 'conflict'
               }
               onClick={editor.handleManualSave}
+              title="Save (Ctrl/⌘S)"
+              aria-keyshortcuts="Control+S Meta+S"
             >
               Save
             </Button>

@@ -1,5 +1,6 @@
 import { PROJECT_ENDPOINTS } from '../../../endpoints'
 import { apiClient } from '@/shared/lib/apiClient'
+import { assertBulkItemCount, type BulkJobResponse } from '@/shared/lib/bulkJobs'
 import type {
   CreateTaskPayload,
   ListTasksParams,
@@ -57,6 +58,15 @@ export async function createTask(
   body: CreateTaskPayload
 ): Promise<ProjectTask> {
   return apiClient.post<ProjectTask>(PROJECT_ENDPOINTS.tasks.create(projectId), body)
+}
+
+/** Wave-1 stub — no bulk UI yet; submit only, poll in caller. */
+export async function submitTasksBulk(
+  projectId: string,
+  items: CreateTaskPayload[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(PROJECT_ENDPOINTS.tasks.bulk(projectId), { items }, { skipGlobalLoading: true })
 }
 
 export async function updateTask(

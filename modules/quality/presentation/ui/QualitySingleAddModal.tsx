@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Input, Modal, Select, Textarea, Typography } from '@/shared/ui'
-import { UseCaseSearchSelect } from '@/modules/projects/traceability'
 import {
   DefectCategory,
   DefectPriority,
@@ -118,8 +117,7 @@ export function QualitySingleAddModal({
     setValues((prev) => ({ ...prev, [key]: value }))
   }
 
-  const canSubmit =
-    isDraftRowValid(kind, values) && (kind !== 'TEST_CASE' || Boolean(values.useCaseId))
+  const canSubmit = isDraftRowValid(kind, values)
 
   return (
     <Modal
@@ -245,6 +243,7 @@ export function QualitySingleAddModal({
               fullWidth
               value={values.code ?? ''}
               onChange={(e) => set('code', e.target.value)}
+              placeholder="TC-001"
             />
             <Input
               label="Title"
@@ -279,11 +278,15 @@ export function QualitySingleAddModal({
                 />
               </div>
             </div>
-            <UseCaseSearchSelect
-              projectId={projectId}
-              value={values.useCaseId ?? ''}
-              onChange={(useCaseId) => set('useCaseId', useCaseId)}
-              required
+            <Typography variant="small" tone="muted">
+              Create the shell only. Link Use Cases later from the Test Case detail (Traceability).
+            </Typography>
+            <Textarea
+              label="Description"
+              fullWidth
+              rows={2}
+              value={values.description ?? ''}
+              onChange={(e) => set('description', e.target.value)}
             />
             <Textarea
               label="Preconditions"

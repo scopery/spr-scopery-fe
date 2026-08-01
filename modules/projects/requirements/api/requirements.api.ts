@@ -1,5 +1,6 @@
 import { PROJECT_ENDPOINTS } from '../../endpoints'
 import { apiClient } from '@/shared/lib/apiClient'
+import { assertBulkItemCount, type BulkJobResponse } from '@/shared/lib/bulkJobs'
 import type {
   CreateRequirementPayload,
   Requirement,
@@ -28,6 +29,16 @@ export async function createRequirement(
   body: CreateRequirementPayload
 ): Promise<Requirement> {
   return apiClient.post<Requirement>(PROJECT_ENDPOINTS.requirements(orgId, projectId), body)
+}
+
+/** Async bulk — returns job immediately; caller polls via useBulkJobPoller. */
+export async function submitRequirementsBulk(
+  orgId: string,
+  projectId: string,
+  items: CreateRequirementPayload[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(PROJECT_ENDPOINTS.requirementsBulk(orgId, projectId), { items }, { skipGlobalLoading: true })
 }
 
 export async function updateRequirement(

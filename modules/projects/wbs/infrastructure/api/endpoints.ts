@@ -17,6 +17,8 @@ export const WBS_ENDPOINTS = {
     }),
   list: (projectId: string) => apiPath(`/projects/${projectId}/wbs-nodes`),
   create: (projectId: string) => apiPath(`/projects/${projectId}/wbs-nodes`),
+  /** Wave-1 stub — no bulk UI yet; BE path is /wbs-nodes/bulk. */
+  bulk: (projectId: string) => apiPath(`/projects/${projectId}/wbs-nodes/bulk`),
   update: (projectId: string, id: string) =>
     apiPath(`/projects/${projectId}/wbs-nodes/${id}`),
   move: (projectId: string, id: string) =>

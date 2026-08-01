@@ -57,6 +57,7 @@ export function useDocumentEditor({
   const saveTokenRef = useRef(0)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const autosaveDueAtRef = useRef<number | null>(null)
+  const saveInFlightRef = useRef(false)
   const [autosaveInSeconds, setAutosaveInSeconds] = useState<number | null>(null)
   const payloadRef = useRef({
     title: initialDoc.title,
@@ -80,11 +81,14 @@ export function useDocumentEditor({
   const performSave = useCallback(
     async (source: 'manual' | 'autosave') => {
       if (!canEdit) return
+      if (saveInFlightRef.current) return
+      saveInFlightRef.current = true
 
       const token = ++saveTokenRef.current
       const snapshot = { ...payloadRef.current }
 
       if (!snapshot.title.trim()) {
+        saveInFlightRef.current = false
         setSaveStatus('error')
         toast.error('Title is required')
         return
@@ -115,6 +119,10 @@ export function useDocumentEditor({
         if (token !== saveTokenRef.current) return
         setSaveStatus('error')
         toast.error(getProblemToastMessage(err))
+      } finally {
+        if (token === saveTokenRef.current) {
+          saveInFlightRef.current = false
+        }
       }
     },
     [canEdit, orgId, initialDoc.id, projectId]

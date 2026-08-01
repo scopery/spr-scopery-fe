@@ -139,7 +139,7 @@ export function PlateEditorToolbar({ editor, className }: PlateEditorToolbarProp
         onClick={() => editor.tf.insertNodes([{ type: KEYS.hr, children: [{ text: '' }] }])}
       />
       <ToolbarButton
-        label="Table"
+        label="Table — Enter: new line in cell · Tab: next · ⌘↵: exit · ⌥↵: row"
         icon={<Table2 size={15} />}
         onClick={() => insertTable(editor, { rowCount: 3, colCount: 3 })}
       />
