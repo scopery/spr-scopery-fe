@@ -233,9 +233,11 @@ export type {
 export { WbsNodeStatus, WbsNodeType } from './wbs/domain/enums/wbs.enum'
 
 export { ProjectGanttView } from './gantt/presentation/ui/ProjectGanttView'
-/** @deprecated Prefer ProjectGanttView — same timeline page. */
-export { ProjectGanttView as ProjectTimelineView } from './gantt/presentation/ui/ProjectGanttView'
+export { CellTimelineView } from './gantt/presentation/ui/CellTimelineView'
+/** @deprecated Prefer CellTimelineView — Excel-like cell timeline. */
+export { CellTimelineView as ProjectTimelineView } from './gantt/presentation/ui/CellTimelineView'
 export { useProjectGantt } from './gantt/presentation/hooks/useProjectGantt'
+export { useCellTimeline } from './gantt/presentation/hooks/useCellTimeline'
 export * as ganttApi from './gantt/infrastructure/api/gantt.api'
 export type {
   GanttItem,

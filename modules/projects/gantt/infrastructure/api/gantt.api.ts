@@ -49,8 +49,48 @@ export async function getGanttIssues(projectId: string): Promise<GanttIssue[]> {
   return apiClient.get<GanttIssue[]>(GANTT_ENDPOINTS.issues(projectId))
 }
 
+/** BE returns `{ projectId, scheduleRunId, tasks, criticalTaskIds }`, not a bare array. */
+interface CriticalPathApiTask {
+  taskId: string
+  title?: string
+  taskTitle?: string
+  plannedStartDate?: string | null
+  plannedFinishDate?: string | null
+  startDate?: string | null
+  endDate?: string | null
+  slackDays?: number
+  slack?: number
+  critical?: boolean
+}
+
+interface CriticalPathApiResponse {
+  tasks?: CriticalPathApiTask[]
+  criticalTaskIds?: string[]
+}
+
 export async function getCriticalPath(projectId: string): Promise<CriticalPathItem[]> {
-  return apiClient.get<CriticalPathItem[]>(GANTT_ENDPOINTS.criticalPath(projectId))
+  const res = await apiClient.get<CriticalPathApiResponse | CriticalPathItem[]>(
+    GANTT_ENDPOINTS.criticalPath(projectId)
+  )
+
+  if (Array.isArray(res)) return res
+
+  const tasks = res?.tasks
+  if (!Array.isArray(tasks)) return []
+
+  const criticalIds = new Set(
+    Array.isArray(res.criticalTaskIds) ? res.criticalTaskIds.map(String) : []
+  )
+
+  return tasks
+    .filter((t) => t.critical === true || criticalIds.has(String(t.taskId)))
+    .map((t) => ({
+      taskId: String(t.taskId),
+      taskTitle: t.taskTitle ?? t.title ?? '',
+      startDate: t.startDate ?? t.plannedStartDate ?? null,
+      endDate: t.endDate ?? t.plannedFinishDate ?? null,
+      slack: t.slack ?? t.slackDays ?? 0,
+    }))
 }
 
 export async function exportGantt(

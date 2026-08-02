@@ -1,0 +1,5 @@
+export { UserGuideModal } from './presentation/ui/UserGuideModal'
+export type { UserGuideModalProps } from './presentation/ui/UserGuideModal'
+export type { GuideArticle, GuideStep, GuideGroup } from './domain/model/guide'
+export { GUIDE_ARTICLES, DEFAULT_GUIDE_ID } from './domain/content/articles'
+export { GUIDE_GROUPS } from './domain/content/groups'

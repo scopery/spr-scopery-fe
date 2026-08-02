@@ -1,4 +1,6 @@
 export { TaskSearchSelect } from './presentation/ui/TaskSearchSelect'
+export { CreateTaskModal } from './presentation/ui/CreateTaskModal'
+export { TaskDetailDrawer } from './presentation/ui/TaskDetailDrawer'
 export { useProjectTasks } from './presentation/hooks/useProjectTasks'
 export type { ProjectTask, CreateTaskPayload, UpdateTaskPayload } from './domain/model/task'
 export * as tasksApi from './infrastructure/api/tasks.api'

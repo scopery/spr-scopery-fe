@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { CircleHelp, LogOut, Settings } from 'lucide-react'
+import { BookOpen, LogOut, Settings } from 'lucide-react'
 import { Avatar, Button, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { AdminAppModeSwitch } from './AdminAppModeSwitch'
@@ -185,8 +185,8 @@ export function UserOrganizationMenu({
                     onOpenHelp()
                   }}
                 >
-                  <CircleHelp size={14} className="text-neutral-500" />
-                  Help
+                  <BookOpen size={14} className="text-neutral-500" />
+                  Guideline
                 </button>
                 <Button
                   variant="ghost"

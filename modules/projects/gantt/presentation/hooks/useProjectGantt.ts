@@ -6,6 +6,7 @@ import * as ganttApi from '../../infrastructure/api/gantt.api'
 import {
   buildGanttTree,
   computeGanttDateRange,
+  resolveRecalculatePlanningWindow,
 } from '../../domain/rules/gantt.rules'
 import type {
   CreateGanttDependencyPayload,
@@ -68,13 +69,27 @@ export function useProjectGantt(projectId: string | null, params?: GanttViewPara
       if (!projectId) return
       setRecalculating(true)
       try {
-        const next = await ganttApi.recalculateGantt(projectId, body)
+        const scheduleRun = view?.scheduleRun as
+          | { planningStartDate?: string | null; planningEndDate?: string | null }
+          | null
+          | undefined
+        const window = resolveRecalculatePlanningWindow({
+          planningStartDate: body.planningStartDate,
+          planningEndDate: body.planningEndDate,
+          scheduleRun,
+          items: view?.items ?? items,
+        })
+        const next = await ganttApi.recalculateGantt(projectId, {
+          ...body,
+          ...window,
+          markAsCurrent: body.markAsCurrent ?? true,
+        })
         setView(next)
       } finally {
         setRecalculating(false)
       }
     },
-    [projectId]
+    [projectId, view, items]
   )
 
   const moveTask = useCallback(
@@ -129,8 +144,12 @@ export function useProjectGantt(projectId: string | null, params?: GanttViewPara
 
   const loadCriticalPath = useCallback(async () => {
     if (!projectId) return
-    const cp = await ganttApi.getCriticalPath(projectId)
-    setCriticalPath(cp ?? [])
+    try {
+      const cp = await ganttApi.getCriticalPath(projectId)
+      setCriticalPath(Array.isArray(cp) ? cp : [])
+    } catch {
+      setCriticalPath([])
+    }
   }, [projectId])
 
   return {

@@ -10,6 +10,8 @@ import type { ProjectPhase } from '../../../phase/domain/model/phase'
 interface CreateTaskModalProps {
   open: boolean
   phases: ProjectPhase[]
+  /** Prefill phase when opening from a Phase row / drawer. */
+  initialPhaseId?: string | null
   onClose: () => void
   onSubmit: (body: CreateTaskPayload) => Promise<void>
 }
@@ -21,7 +23,13 @@ const PRIORITY_OPTIONS = [
   { value: TaskPriority.Critical, label: 'Critical' },
 ]
 
-export function CreateTaskModal({ open, phases, onClose, onSubmit }: CreateTaskModalProps) {
+export function CreateTaskModal({
+  open,
+  phases,
+  initialPhaseId = null,
+  onClose,
+  onSubmit,
+}: CreateTaskModalProps) {
   const [title, setTitle] = useState('')
   const [code, setCode] = useState('')
   const [description, setDescription] = useState('')
@@ -37,10 +45,16 @@ export function CreateTaskModal({ open, phases, onClose, onSubmit }: CreateTaskM
     setCode('')
     setDescription('')
     setPriority(TaskPriority.Medium)
-    setPhaseId(phases[0]?.id ?? '')
+    const preferred =
+      (initialPhaseId && phases.some((p) => p.id === initialPhaseId)
+        ? initialPhaseId
+        : null) ??
+      phases[0]?.id ??
+      ''
+    setPhaseId(preferred)
     setEstimateHours('1')
     setDueDate('')
-  }, [open, phases])
+  }, [open, phases, initialPhaseId])
 
   const handleSubmit = async () => {
     const trimmedTitle = title.trim()

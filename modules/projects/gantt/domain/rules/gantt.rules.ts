@@ -1,4 +1,10 @@
 import type { GanttItem, GanttTreeItem } from '../model/gantt'
+import {
+  addLocalDays,
+  formatLocalDate,
+  parseLocalDate,
+  todayLocal,
+} from './working-calendar.rules'
 
 /** Build a parent/child tree from the flat Gantt items list (`parentItemId`). */
 export function buildGanttTree(items: GanttItem[]): GanttTreeItem[] {
@@ -115,6 +121,64 @@ export function toDateOnly(value: string | null | undefined): string | null {
   if (!value) return null
   const m = /^(\d{4}-\d{2}-\d{2})/.exec(value.trim())
   return m ? m[1] : null
+}
+
+/**
+ * BE `POST .../gantt/recalculate` requires non-null planning window.
+ * Prefer explicit payload → current schedule run → scheduled item span → today±pad.
+ */
+export function resolveRecalculatePlanningWindow(args: {
+  planningStartDate?: string | null
+  planningEndDate?: string | null
+  scheduleRun?: {
+    planningStartDate?: string | null
+    planningEndDate?: string | null
+  } | null
+  items?: Array<{ startDate: string | null; endDate: string | null }>
+  padDays?: number
+}): { planningStartDate: string; planningEndDate: string } {
+  const explicitStart = toDateOnly(args.planningStartDate)
+  const explicitEnd = toDateOnly(args.planningEndDate)
+  if (explicitStart && explicitEnd) {
+    return explicitStart <= explicitEnd
+      ? { planningStartDate: explicitStart, planningEndDate: explicitEnd }
+      : { planningStartDate: explicitEnd, planningEndDate: explicitStart }
+  }
+
+  const runStart = toDateOnly(args.scheduleRun?.planningStartDate)
+  const runEnd = toDateOnly(args.scheduleRun?.planningEndDate)
+  if (runStart && runEnd) {
+    return runStart <= runEnd
+      ? { planningStartDate: runStart, planningEndDate: runEnd }
+      : { planningStartDate: runEnd, planningEndDate: runStart }
+  }
+
+  let min: string | null = null
+  let max: string | null = null
+  for (const item of args.items ?? []) {
+    const s = toDateOnly(item.startDate)
+    const e = toDateOnly(item.endDate)
+    if (s != null && (min == null || s < min)) min = s
+    if (e != null && (max == null || e > max)) max = e
+    if (s != null && e == null && (max == null || s > max)) max = s
+  }
+
+  const pad = args.padDays ?? 14
+  const today = formatLocalDate(todayLocal())
+  if (!min || !max) {
+    return {
+      planningStartDate: formatLocalDate(addLocalDays(todayLocal(), -pad)),
+      planningEndDate: formatLocalDate(addLocalDays(todayLocal(), Math.max(pad * 4, 60))),
+    }
+  }
+
+  const startD = parseLocalDate(min)!
+  const endD = parseLocalDate(max)!
+  let start = formatLocalDate(addLocalDays(startD, -pad))
+  let end = formatLocalDate(addLocalDays(endD, pad))
+  if (today < start) start = formatLocalDate(addLocalDays(parseLocalDate(today)!, -pad))
+  if (today > end) end = formatLocalDate(addLocalDays(parseLocalDate(today)!, pad))
+  return { planningStartDate: start, planningEndDate: end }
 }
 
 export function formatGanttDate(value: string | null | undefined): string {

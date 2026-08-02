@@ -1,0 +1,215 @@
+import type { GanttTreeItem } from '../model/gantt'
+import type { TimelineFlatRow } from '../model/timeline'
+import { resolvePhaseDisplay } from './phase-display.rules'
+import { emptyPhaseSummary, summarizePhaseSubtree } from './phase-row-summary.rules'
+
+export interface TaskEnrichment {
+  estimateHours: number | null
+  status: string | null
+  inChargeUserId: string | null
+  progressPercent: number | null
+  atRisk: boolean
+}
+
+export interface PhaseEnrichment {
+  code: string
+  name: string
+  status: string | null
+  statusLabel: string | null
+  description: string | null
+}
+
+/**
+ * Flatten gantt tree into left-grid rows (phase → tasks → + Add task).
+ * Collapsed phase ids hide children + add row.
+ */
+export function flattenTimelineRows(
+  tree: GanttTreeItem[],
+  options: {
+    collapsedPhaseIds: Set<string>
+    hideUnscheduled: boolean
+    taskById: Map<string, TaskEnrichment>
+    phaseById?: Map<string, PhaseEnrichment>
+    includeAddRows?: boolean
+  }
+): TimelineFlatRow[] {
+  const rows: TimelineFlatRow[] = []
+  const includeAdd = options.includeAddRows !== false
+  const phaseById = options.phaseById ?? new Map()
+
+  const visit = (
+    nodes: GanttTreeItem[],
+    depth: number,
+    parentPhaseSourceId: string | null
+  ) => {
+    for (const node of nodes) {
+      const isPhase = node.itemType === 'PHASE'
+      const isTask = node.itemType === 'TASK'
+      const isMilestone = node.itemType === 'MILESTONE'
+
+      if (isTask && options.hideUnscheduled && !node.startDate && !node.endDate) {
+        continue
+      }
+
+      const enrichment = node.sourceEntityId
+        ? options.taskById.get(node.sourceEntityId)
+        : undefined
+
+      if (isPhase) {
+        const phaseKey = node.sourceEntityId ?? node.phaseId
+        const phaseMeta = phaseKey ? phaseById.get(phaseKey) : undefined
+        const display = resolvePhaseDisplay({
+          ganttTitle: node.title,
+          code: phaseMeta?.code,
+          name: phaseMeta?.name,
+          statusLabel: phaseMeta?.statusLabel,
+        })
+        const summary = summarizePhaseSubtree(node, options.taskById)
+        rows.push({
+          id: node.id,
+          kind: 'phase',
+          depth,
+          title: node.title,
+          displayPrimary: display.primary,
+          displaySecondary: display.secondary,
+          phaseCode: display.code,
+          itemType: node.itemType,
+          sourceEntityId: node.sourceEntityId,
+          phaseId: node.phaseId ?? node.sourceEntityId,
+          parentPhaseSourceId: null,
+          scheduleStatus: node.scheduleStatus,
+          assigneeUserId: node.assigneeUserId,
+          estimateHours: null,
+          status: phaseMeta?.status ?? null,
+          progressPercent: summary.progressPercent,
+          atRisk: summary.atRiskCount > 0,
+          startDate: node.startDate,
+          endDate: node.endDate,
+          collapsed: options.collapsedPhaseIds.has(node.id),
+          phaseSummary: summary,
+          phaseDescription: phaseMeta?.description ?? null,
+        })
+        if (!options.collapsedPhaseIds.has(node.id)) {
+          visit(node.children, depth + 1, node.sourceEntityId)
+          if (includeAdd) {
+            rows.push({
+              id: `add:${node.id}`,
+              kind: 'add',
+              depth: depth + 1,
+              title: '',
+              displayPrimary: '',
+              displaySecondary: null,
+              phaseCode: null,
+              itemType: 'ADD',
+              sourceEntityId: null,
+              phaseId: node.phaseId ?? node.sourceEntityId,
+              parentPhaseSourceId: node.sourceEntityId,
+              scheduleStatus: '',
+              assigneeUserId: null,
+              estimateHours: null,
+              status: null,
+              progressPercent: null,
+              atRisk: false,
+              startDate: null,
+              endDate: null,
+            })
+          }
+        }
+        continue
+      }
+
+      if (isTask || isMilestone) {
+        rows.push({
+          id: node.id,
+          kind: isMilestone ? 'milestone' : 'task',
+          depth,
+          title: node.title,
+          displayPrimary: node.title,
+          displaySecondary: null,
+          phaseCode: null,
+          itemType: node.itemType,
+          sourceEntityId: node.sourceEntityId,
+          phaseId: node.phaseId,
+          parentPhaseSourceId,
+          scheduleStatus: node.scheduleStatus,
+          assigneeUserId: enrichment?.inChargeUserId ?? node.assigneeUserId,
+          estimateHours: enrichment?.estimateHours ?? null,
+          status: enrichment?.status ?? null,
+          progressPercent: enrichment?.progressPercent ?? null,
+          atRisk: enrichment?.atRisk ?? false,
+          startDate: node.startDate,
+          endDate: node.endDate,
+        })
+        if (node.children.length) visit(node.children, depth + 1, parentPhaseSourceId)
+      } else {
+        // WBS / PROJECT summary — show as phase-like group without add row
+        const display = resolvePhaseDisplay({ ganttTitle: node.title })
+        const summary =
+          node.children.length > 0
+            ? summarizePhaseSubtree(node, options.taskById)
+            : emptyPhaseSummary()
+        rows.push({
+          id: node.id,
+          kind: 'phase',
+          depth,
+          title: node.title,
+          displayPrimary: display.primary,
+          displaySecondary: display.secondary,
+          phaseCode: display.code,
+          itemType: node.itemType,
+          sourceEntityId: node.sourceEntityId,
+          phaseId: node.phaseId,
+          parentPhaseSourceId,
+          scheduleStatus: node.scheduleStatus,
+          assigneeUserId: node.assigneeUserId,
+          estimateHours: null,
+          status: null,
+          progressPercent: summary.progressPercent,
+          atRisk: summary.atRiskCount > 0,
+          startDate: node.startDate,
+          endDate: node.endDate,
+          collapsed: options.collapsedPhaseIds.has(node.id),
+          phaseSummary: summary,
+          phaseDescription: null,
+        })
+        if (!options.collapsedPhaseIds.has(node.id) && node.children.length) {
+          visit(node.children, depth + 1, parentPhaseSourceId)
+        }
+      }
+    }
+  }
+
+  visit(tree, 0, null)
+  return rows
+}
+
+export function applyDraftToRows(
+  rows: TimelineFlatRow[],
+  draft: Map<string, { startDate: string; endDate: string }>
+): TimelineFlatRow[] {
+  if (draft.size === 0) return rows
+  return rows.map((row) => {
+    const patch = draft.get(row.id)
+    if (!patch) return row
+    return { ...row, startDate: patch.startDate, endDate: patch.endDate }
+  })
+}
+
+/** Filter flat rows to a focused phase and its descendants (until next peer phase). */
+export function filterRowsToFocusedPhase(
+  allRows: TimelineFlatRow[],
+  focusedPhaseRowId: string
+): TimelineFlatRow[] {
+  const start = allRows.findIndex((r) => r.id === focusedPhaseRowId)
+  if (start < 0) return allRows
+  const focus = allRows[start]
+  if (!focus || focus.kind !== 'phase') return allRows
+  const out: TimelineFlatRow[] = [focus]
+  for (let i = start + 1; i < allRows.length; i++) {
+    const row = allRows[i]
+    if (!row) break
+    if (row.kind === 'phase' && row.depth <= focus.depth) break
+    out.push(row)
+  }
+  return out
+}

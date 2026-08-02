@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { ArrowRight, Check, Minus, X } from 'lucide-react'
-import { Badge, Typography } from '@/shared/ui'
+import { Badge, Card, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import {
   coverageStatusLabel,
@@ -144,7 +144,7 @@ function summaryStatusTone(
 
 export function SummaryStrip({ items }: { items: SummaryStripItem[] }) {
   return (
-    <div className="flex flex-wrap items-stretch gap-px border border-neutral-200 bg-neutral-200">
+    <Card className="flex flex-wrap items-stretch gap-px bg-neutral-200">
       {items.map((item) => {
         const clickable = Boolean(item.onClick)
         const className = cn(
@@ -190,7 +190,7 @@ export function SummaryStrip({ items }: { items: SummaryStripItem[] }) {
           </div>
         )
       })}
-    </div>
+    </Card>
   )
 }
 

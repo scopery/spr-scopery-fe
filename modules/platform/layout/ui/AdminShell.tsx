@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import NextLink from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { ChevronsUpDown, CircleHelp, LogOut, Settings } from 'lucide-react'
+import { BookOpen, ChevronsUpDown, LogOut, Settings } from 'lucide-react'
 import { Typography, Avatar, Button, Link as DesignLink, Box } from '@/shared/ui'
 import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import {
@@ -192,9 +192,9 @@ export function AdminShell({ children }: AdminShellProps) {
             variant="ghost"
             onClick={() => setHelpOpen(true)}
             className="rounded-none text-neutral-600"
-            icon={<CircleHelp size={16} />}
+            icon={<BookOpen size={16} />}
           >
-            Guide
+            Guideline
           </Button>
 
           <Box as="div" className="relative">

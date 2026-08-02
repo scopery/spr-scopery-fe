@@ -1,7 +1,7 @@
 'use client'
 
-import { ProjectGanttView } from '@/modules/projects/gantt/presentation/ui/ProjectGanttView'
+import { CellTimelineView } from '@/modules/projects'
 
 export default function ProjectTimelinePage() {
-  return <ProjectGanttView />
+  return <CellTimelineView />
 }
