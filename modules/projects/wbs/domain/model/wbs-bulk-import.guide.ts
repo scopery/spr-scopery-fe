@@ -102,13 +102,11 @@ export function buildWbsBulkImportGuide(
           .map((p) => `${p.label} → ${p.value}`)
           .join(' | ')}`
 
-  const baseItems = WBS_BULK_IMPORT_GUIDE.sample.items as Array<Record<string, unknown>>
-
   return {
     ...WBS_BULK_IMPORT_GUIDE,
-    notes: [...WBS_BULK_IMPORT_GUIDE.notes, phaseNotes],
+    notes: [...(WBS_BULK_IMPORT_GUIDE.notes ?? []), phaseNotes],
     sample: {
-      items: baseItems.map((item, index) => ({
+      items: WBS_BULK_IMPORT_GUIDE.sample.items.map((item, index) => ({
         ...item,
         phaseId: firstId,
         ...(index === 1 ? { parentId: '<parent-element-uuid-or-null>' } : {}),
