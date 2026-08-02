@@ -127,7 +127,9 @@ Task **không có** cả `dueDate` lẫn `plannedStartDate`:
       "estimatedStartDate": "2026-07-21",
       "estimatedFinishDate": "2026-07-23",
       "isOverdue": false,
-      "updatedAt": "2026-07-22T04:12:00Z"
+      "updatedAt": "2026-07-22T04:12:00Z",
+      "completedAt": null,
+      "completedBy": null
     }
   ],
   "page": {
@@ -156,6 +158,8 @@ Task **không có** cả `dueDate` lẫn `plannedStartDate`:
 | `items[].scheduleStatus`, `estimatedStartDate`, `estimatedFinishDate` | optional | Timeline hint; omit/null OK nếu không có schedule run |
 | `items[].inChargeUserId` | yes | Always current user for this API |
 | `items[].updatedAt` | yes | Sort / freshness |
+| `items[].completedAt` | nullable | Instant mark DONE; null if open — My Insights heatmap |
+| `items[].completedBy` | nullable | Actor who completed |
 | `page` | yes | Pagination |
 
 ### TypeScript shapes (FE target)
@@ -199,6 +203,8 @@ export interface MyWorkTaskItem {
   estimatedFinishDate?: string | null
   isOverdue: boolean
   updatedAt: string
+  completedAt?: string | null
+  completedBy?: string | null
 }
 
 export interface MyWorkResponse {

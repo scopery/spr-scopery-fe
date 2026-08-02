@@ -22,6 +22,24 @@
 
 ## 0. Product goal + UI tab map
 
+### 0.0 Multi-view IA (2026-08 redesign)
+
+```text
+Traceability
+├── Overview                    GET …/traceability/overview
+├── Functional Coverage
+│   ├── Requirements            GET …/traceability/matrix (+ coverageChain on detail)
+│   ├── Functions               GET …/traceability/functions
+│   └── Use Cases               GET …/traceability/use-cases
+├── Implementation              GET …/traceability/implementation
+├── NFR Verification            GET …/traceability/nfr-verification
+└── Explorer                    GET …/traceability/explorer?rootType=&rootId=
+```
+
+**Gap stacking rule:** If `MISSING_FUNCTION`, do not emit downstream `MISSING_USE_CASE` / `MISSING_TEST` as actionable — downstream is Not evaluated. Same for UC before Test.
+
+**AC↔TC:** `quality_test_case_acceptance_criterion` join table for criterion-level coverage on Use Case expand.
+
 ### 0.1 Problem with current Traceability UI
 
 Current page answers only:

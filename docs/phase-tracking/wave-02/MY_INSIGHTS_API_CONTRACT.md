@@ -22,11 +22,11 @@ Mapper: `modules/productivity/infrastructure/mappers/map-my-work-to-insights.ts`
 
 ### Derived / approximate (until dedicated BE)
 
-- Heatmap intensity from `updatedAt` / estimates (not true daily completion ledger)
-- Planned vs completed weekly from due/planned vs DONE `updatedAt`
+- Heatmap intensity for **DONE** tasks from `completedAt` (UTC date); open-task light signal still uses `updatedAt`
+- Planned vs completed weekly: planned from due/planned; completed hours from `completedAt`
 - Work distribution from `estimateHours` by project
 - Work health rates from open vs completed snapshot
-- Consistency streaks from unique activity days
+- Consistency streaks from unique activity days (`completedAt` for DONE, else `updatedAt`)
 - **AI review** hidden (`available: false`) until a real review API exists
 - **Current workload** removed from UI (capacity API not wired)
 

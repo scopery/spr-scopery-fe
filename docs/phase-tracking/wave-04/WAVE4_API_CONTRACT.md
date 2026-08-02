@@ -1640,7 +1640,32 @@ Cùng endpoints với Project Subscriptions. Response field thêm `taskId`.
 | ------ | ------------------------------------------------------ | ------------------------------------------------------------- |
 | `GET`  | `/api/v1/projects/{projectId}/reports/coverage-matrix` | Test Execution coverage matrix (Req ↔ Test ↔ Result ↔ Defect) |
 
-**Full-chain Requirement Traceability** (Coverage / Matrix / Gaps / requirement detail — Function → Use Case → Implementation → Test): proposed under `/api/projects/{projectId}/traceability/*`. See [`REQUIREMENT_TRACEABILITY_BE_API_REQUIREMENTS.md`](./REQUIREMENT_TRACEABILITY_BE_API_REQUIREMENTS.md). Test-only matrix details: [`TRACEABILITY_COVERAGE_BE_API_REQUIREMENTS.md`](./TRACEABILITY_COVERAGE_BE_API_REQUIREMENTS.md).
+**Full-chain Requirement Traceability** (Overview / Functional Coverage / Implementation / NFR / Explorer):
+
+| Method | Path | Notes |
+| ------ | ---- | ----- |
+| `GET` | `/api/projects/{projectId}/traceability/overview` | Strip + dual pipelines + needs attention |
+| `GET` | `/api/projects/{projectId}/traceability/coverage-summary` | Legacy summary KPIs |
+| `GET` | `/api/projects/{projectId}/traceability/matrix` | Requirement rows + ratios + executionSummary + layer statuses |
+| `GET` | `/api/projects/{projectId}/traceability/functions` | Function pivot coverage |
+| `GET` | `/api/projects/{projectId}/traceability/use-cases` | Use Case pivot coverage (+ AC hasTestCase via join) |
+| `GET` | `/api/projects/{projectId}/traceability/implementation` | Per-function Screen/API coverage |
+| `GET` | `/api/projects/{projectId}/traceability/nfr-verification` | NFR verification table |
+| `GET` | `/api/projects/{projectId}/traceability/explorer` | `?rootType=&rootId=` tree |
+| `GET` | `/api/projects/{projectId}/traceability/requirements/{id}` | Detail + `coverageChain` |
+| `GET` | `/api/projects/{projectId}/traceability/gaps` | Gap queue |
+
+Gap stacking: missing Function ⇒ do not stack Missing Test. See [`REQUIREMENT_TRACEABILITY_BE_API_REQUIREMENTS.md`](./REQUIREMENT_TRACEABILITY_BE_API_REQUIREMENTS.md). Test-only matrix details: [`TRACEABILITY_COVERAGE_BE_API_REQUIREMENTS.md`](./TRACEABILITY_COVERAGE_BE_API_REQUIREMENTS.md).
+
+**Use Case Flow scope & @mentions** (Function-scoped; no project-wide object search):
+
+| Method | Path | Notes |
+| ------ | ---- | ----- |
+| `GET` | `/api/projects/{projectId}/use-cases/{useCaseId}/flow-scope` | Parent Function + linked Screens/APIs/Entities (no Components) |
+| `GET` | `/api/projects/{projectId}/use-cases/{useCaseId}/mention-options` | `?query=&types=&screenId=&mode=browse\|search&limit=` |
+| `GET` | `/api/projects/{projectId}/use-cases/{useCaseId}/primary-function-change-impact` | `?newFunctionId=` — mentions that would leave scope |
+
+`contentJson` stores structured doc JSON (`{ type: "doc", content: [text\|mention] }`) with mentions keyed by `entityId`. Screen Context on a step must be a Screen linked to the UC primary Function (`USE_CASE_FUNCTION_REQUIRED` / screen-not-linked otherwise). See [`USE_CASE_FLOW_SCOPE_MENTIONS_BE_API_REQUIREMENTS.md`](./USE_CASE_FLOW_SCOPE_MENTIONS_BE_API_REQUIREMENTS.md).
 
 ---
 
