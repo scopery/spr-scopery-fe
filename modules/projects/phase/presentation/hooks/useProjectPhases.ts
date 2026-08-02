@@ -8,6 +8,7 @@ import type {
   ProjectPhase,
   UpdateProjectPhasePayload,
 } from '../../domain/model/phase'
+import { mergePhaseUpdatePayload } from '../../domain/rules/phase-update.rules'
 import type { PhaseLifecycleAction } from '../../domain/rules/phase.rules'
 
 type LoadOpts = { silent?: boolean }
@@ -68,11 +69,19 @@ export function useProjectPhases(projectId: string | null) {
   const updatePhase = useCallback(
     async (phaseId: string, body: UpdateProjectPhasePayload) => {
       if (!projectId) return null
-      const updated = await phasesApi.updatePhase(projectId, phaseId, body)
+      // BE PUT requires non-blank name + displayOrder. Always hydrate from GET so
+      // date-only schedule applies (timeline drag) never send name: "".
+      const cached = phases.find((p) => p.id === phaseId) ?? null
+      const current =
+        cached?.name?.trim() && cached.displayOrder != null
+          ? cached
+          : await phasesApi.getPhase(projectId, phaseId)
+      const payload = mergePhaseUpdatePayload(current, body)
+      const updated = await phasesApi.updatePhase(projectId, phaseId, payload)
       await load({ silent: true })
       return updated
     },
-    [projectId, load]
+    [projectId, load, phases]
   )
 
   const runLifecycle = useCallback(

@@ -11,6 +11,7 @@ import { Badge, Button, PageSkeleton, Select, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import * as phasesApi from '../../../phase/infrastructure/api/phases.api'
+import { mergePhaseUpdatePayload } from '../../../phase/domain/rules/phase-update.rules'
 import { useProject } from '../../../project/hooks/useProject'
 import { useProjectGantt } from '../hooks/useProjectGantt'
 import { downloadGanttExcel } from '../exportGanttExcel'
@@ -281,10 +282,15 @@ export function ProjectGanttView() {
         if (summaryTask.itemType === 'PHASE') {
           const phaseId = resolveSourceEntityId(summaryTask)
           if (phaseId) {
-            await phasesApi.updatePhase(projectId, phaseId, {
-              plannedStartDate: start,
-              plannedEndDate: end,
-            })
+            const current = await phasesApi.getPhase(projectId, phaseId)
+            await phasesApi.updatePhase(
+              projectId,
+              phaseId,
+              mergePhaseUpdatePayload(current, {
+                plannedStartDate: start,
+                plannedEndDate: end,
+              })
+            )
           }
         }
 
@@ -415,10 +421,15 @@ export function ProjectGanttView() {
         )
         toast.success('Task schedule updated')
       } else {
-        await phasesApi.updatePhase(projectId, scheduleModal.entityId, {
-          plannedStartDate: body.startDate,
-          plannedEndDate: body.endDate,
-        })
+        const current = await phasesApi.getPhase(projectId, scheduleModal.entityId)
+        await phasesApi.updatePhase(
+          projectId,
+          scheduleModal.entityId,
+          mergePhaseUpdatePayload(current, {
+            plannedStartDate: body.startDate,
+            plannedEndDate: body.endDate,
+          })
+        )
         await refetch()
         toast.success('Phase dates updated')
       }

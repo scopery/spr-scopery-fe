@@ -412,7 +412,12 @@ export function useCellTimeline(projectId: string | null) {
         if (base?.startDate) {
           await shiftDescendantTasks(p.itemId, base.startDate, p.startDate)
         }
-        await phasesHook.updatePhase(p.sourceTaskId, {
+        const phaseId = row?.sourceEntityId ?? p.sourceTaskId
+        const phase = phasesHook.phases.find((ph) => ph.id === phaseId)
+        await phasesHook.updatePhase(phaseId, {
+          name: phase?.name || row?.title || row?.displayPrimary,
+          displayOrder: phase?.displayOrder,
+          description: phase?.description ?? row?.phaseDescription ?? null,
           plannedStartDate: p.startDate,
           plannedEndDate: p.endDate,
         })
@@ -480,8 +485,10 @@ export function useCellTimeline(projectId: string | null) {
       }
 
       if (row.itemType === 'PHASE' && row.sourceEntityId) {
+        const phase = phasesHook.phases.find((ph) => ph.id === row.sourceEntityId)
         await phasesHook.updatePhase(row.sourceEntityId, {
-          name: values.title,
+          name: values.title.trim() || phase?.name || row.title || row.displayPrimary,
+          displayOrder: phase?.displayOrder,
           description: values.description || null,
           plannedStartDate: startDate,
           plannedEndDate: endDate,

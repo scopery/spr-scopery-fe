@@ -891,18 +891,6 @@ export function CellTimelineView() {
           ? `${kind} updated · ${result.shiftedTasks} task${result.shiftedTasks === 1 ? '' : 's'} shifted`
           : `${kind} updated`
       )
-      const datesChanged =
-        (values.startDate || null) !== (containerEditRow.startDate || null) ||
-        (values.endDate || null) !== (containerEditRow.endDate || null)
-      if (datesChanged && (values.startDate || values.endDate)) {
-        tl.fitToPhase(
-          {
-            startDate: values.startDate || containerEditRow.startDate,
-            endDate: values.endDate || containerEditRow.endDate,
-          },
-          { adjustGranularity: false }
-        )
-      }
       setContainerEditRowId(null)
     } catch (err) {
       toast.error(getProblemToastMessage(err))
