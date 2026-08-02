@@ -169,6 +169,7 @@ export function resolveNavCapabilityForPath(
 
   const workspaceRules: Array<{ prefix: string; key: string }> = [
     { prefix: '/capacity', key: NavCapabilityKey.WorkspaceCapacity },
+    { prefix: '/resource-timeline', key: NavCapabilityKey.WorkspaceCapacity },
     { prefix: '/clients', key: NavCapabilityKey.WorkspaceClients },
     { prefix: '/applications', key: NavCapabilityKey.WorkspaceApplications },
     { prefix: '/support', key: NavCapabilityKey.WorkspaceSupport },

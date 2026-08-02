@@ -141,14 +141,16 @@ export function ganttExcelBarFillHex(item: GanttItem): string {
   if (status === 'UNSCHEDULED') return 'D4D4D8' // zinc-300
   if (status === 'AT_RISK' || status === 'DELAYED') return 'F59E0B' // amber-500
   switch ((item.itemType ?? '').toUpperCase()) {
-    case 'PHASE':
     case 'PROJECT':
+      return 'E4EA94'
+    case 'PHASE':
+      return 'AEE2DD'
     case 'WBS_NODE':
-      return '64748B' // slate-500
+      return 'EDCFEA'
     case 'MILESTONE':
       return '8B5CF6' // violet-500
     case 'TASK':
     default:
-      return '60A5FA' // blue-400
+      return 'A8B8FC'
   }
 }

@@ -71,6 +71,8 @@ export function buildTimelineColumns(
         periodEnd: iso,
         isWeekend: isWeekend(d),
         isToday: iso === today,
+        // Skip index 0 — left edge of the grid already has a pane border.
+        isMonthBoundary: monthChanged && index > 0,
       }
     })
   }
@@ -114,6 +116,7 @@ export function buildTimelineColumns(
         periodEnd: pe,
         isWeekend: false,
         isToday: today >= ps && today <= pe,
+        isMonthBoundary: monthChanged && cols.length > 0,
       })
       cursor = addLocalDays(weekEnd, 1)
     }
@@ -142,6 +145,8 @@ export function buildTimelineColumns(
         periodEnd: pe,
         isWeekend: false,
         isToday: today >= ps && today <= pe,
+        // Only year changes — every quarter already reads as its own unit.
+        isMonthBoundary: showYear && cols.length > 0,
       })
       cursor = addLocalDays(qEnd, 1)
     }
@@ -168,6 +173,8 @@ export function buildTimelineColumns(
       periodEnd: pe,
       isWeekend: false,
       isToday: today >= ps && today <= pe,
+      // Each col is already a month — only emphasize year changes.
+      isMonthBoundary: showYear && cols.length > 0,
     })
     cursor = addLocalDays(monthEnd, 1)
   }
@@ -300,7 +307,8 @@ export function buildBucketsForRow(
 }
 
 export function cellWidthPx(granularity: Granularity): number {
-  if (granularity === TimelineGranularity.Day) return 44
+  /** Day +10px (44→54) — clearer month context without +20 bloat. */
+  if (granularity === TimelineGranularity.Day) return 54
   if (granularity === TimelineGranularity.Week) return 100
   if (granularity === TimelineGranularity.Quarter) return 160
   return 128

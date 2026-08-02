@@ -30,7 +30,7 @@ export function WbsNodeSearchSelect({
 }: WbsNodeSearchSelectProps) {
   const { tree, loading } = useProjectWbs(projectId || null)
   const options = useMemo(
-    () => [...(optional ? [{ value: '', label: 'No WBS node' }] : []), ...flatten(tree)],
+    () => [...(optional ? [{ value: '', label: 'No planning element' }] : []), ...flatten(tree)],
     [optional, tree]
   )
 
@@ -39,8 +39,8 @@ export function WbsNodeSearchSelect({
       value={value}
       options={options}
       disabled={!projectId}
-      placeholder={loading ? 'Loading WBS nodes…' : 'Select WBS node'}
-      searchPlaceholder="Search WBS nodes…"
+      placeholder={loading ? 'Loading planning elements…' : 'Select planning element'}
+      searchPlaceholder="Search planning elements…"
       onValueChange={onChange}
     />
   )

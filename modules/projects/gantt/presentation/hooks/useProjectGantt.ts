@@ -32,9 +32,9 @@ export function useProjectGantt(projectId: string | null, params?: GanttViewPara
 
   const paramsKey = JSON.stringify(params ?? {})
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!projectId) return
-    setLoading(true)
+    if (!opts?.silent) setLoading(true)
     setError(null)
     setForbidden(false)
     try {
@@ -51,7 +51,7 @@ export function useProjectGantt(projectId: string | null, params?: GanttViewPara
       setError(err instanceof Error ? err.message : 'Failed to load timeline')
       setView(null)
     } finally {
-      setLoading(false)
+      if (!opts?.silent) setLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- paramsKey captures params
   }, [projectId, paramsKey])

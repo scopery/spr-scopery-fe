@@ -3,22 +3,41 @@
 import { CircleHelp } from 'lucide-react'
 import { Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
+import {
+  TIMELINE_BAR_COLORS,
+  TIMELINE_PHASE_HATCH_BACKGROUND,
+} from '../../domain/model/timeline-bar-colors'
 
 const LEGEND_ITEMS = [
   {
-    swatch: 'bg-sky-300',
+    background: TIMELINE_BAR_COLORS.project,
+    title: 'Project',
+    note: 'Root span — double-click or calendar icon to edit dates.',
+  },
+  {
+    background: TIMELINE_PHASE_HATCH_BACKGROUND,
+    title: 'Phase',
+    note: 'Drag edges to resize, or edit dates from the calendar icon.',
+  },
+  {
+    background: TIMELINE_BAR_COLORS.wbs,
+    title: 'Planning Element',
+    note: 'Structure bar under a phase.',
+  },
+  {
+    background: TIMELINE_BAR_COLORS.milestone,
+    title: 'Planning Element · Milestone',
+    note: 'WBS node typed as Milestone.',
+  },
+  {
+    background: TIMELINE_BAR_COLORS.task,
     title: 'Task',
-    note: 'Drag the bar or double-click to edit dates.',
+    note: 'Drag the bar or paint cells to schedule.',
   },
   {
-    swatch: 'bg-slate-300',
-    title: 'Phase / WBS',
-    note: 'Drag to shift all child tasks together.',
-  },
-  {
-    swatch: 'bg-amber-200',
-    title: 'Unscheduled',
-    note: 'Placeholder only — no real dates yet.',
+    background: TIMELINE_BAR_COLORS.taskUnassigned,
+    title: 'Unassigned task',
+    note: 'Scheduled but no person assigned yet.',
   },
 ] as const
 
@@ -53,7 +72,8 @@ export function TimelineLegendHint({ className }: { className?: string }) {
           {LEGEND_ITEMS.map((item) => (
             <li key={item.title} className="flex gap-2.5">
               <span
-                className={cn('mt-1 inline-block h-2.5 w-6 shrink-0', item.swatch)}
+                className="mt-1 inline-block h-2.5 w-6 shrink-0 border border-neutral-300"
+                style={{ background: item.background }}
                 aria-hidden
               />
               <div className="min-w-0">

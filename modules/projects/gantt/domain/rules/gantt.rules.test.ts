@@ -1,5 +1,73 @@
 import { describe, expect, it } from 'vitest'
-import { resolveRecalculatePlanningWindow } from './gantt.rules'
+import {
+  buildGanttTree,
+  repairGanttWbsParents,
+  resolveRecalculatePlanningWindow,
+} from './gantt.rules'
+import type { GanttItem } from '../model/gantt'
+
+function item(partial: Partial<GanttItem> & Pick<GanttItem, 'id' | 'itemType'>): GanttItem {
+  return {
+    sourceEntityType: partial.itemType,
+    sourceEntityId: partial.sourceEntityId ?? partial.id.split(':')[1] ?? partial.id,
+    parentItemId: partial.parentItemId ?? null,
+    title: partial.title ?? partial.id,
+    startDate: partial.startDate ?? null,
+    endDate: partial.endDate ?? null,
+    scheduleStatus: 'NOT_APPLICABLE',
+    assigneeUserId: null,
+    phaseId: partial.phaseId ?? null,
+    wbsNodeId: partial.wbsNodeId ?? null,
+    sortOrder: partial.sortOrder ?? 0,
+    zeroDuration: false,
+    metadata: {},
+    ...partial,
+  }
+}
+
+describe('repairGanttWbsParents', () => {
+  it('nests child planning elements under their parent WBS id', () => {
+    const items = [
+      item({ id: 'PROJECT:p', itemType: 'PROJECT', sourceEntityId: 'p', parentItemId: null }),
+      item({
+        id: 'PHASE:ph',
+        itemType: 'PHASE',
+        sourceEntityId: 'ph',
+        parentItemId: 'PROJECT:p',
+      }),
+      // Child emitted before parent, wrongly attached to phase (legacy BE bug shape)
+      item({
+        id: 'WBS:child',
+        itemType: 'WBS_NODE',
+        sourceEntityId: 'child',
+        parentItemId: 'PHASE:ph',
+        phaseId: 'ph',
+        wbsNodeId: 'child',
+      }),
+      item({
+        id: 'WBS:parent',
+        itemType: 'WBS_NODE',
+        sourceEntityId: 'parent',
+        parentItemId: 'PHASE:ph',
+        phaseId: 'ph',
+        wbsNodeId: 'parent',
+      }),
+    ]
+    const meta = new Map([
+      ['parent', { parentId: null, phaseId: 'ph' }],
+      ['child', { parentId: 'parent', phaseId: 'ph' }],
+    ])
+    const repaired = repairGanttWbsParents(items, meta)
+    expect(repaired.find((i) => i.id === 'WBS:child')?.parentItemId).toBe('WBS:parent')
+    expect(repaired.find((i) => i.id === 'WBS:parent')?.parentItemId).toBe('PHASE:ph')
+
+    const tree = buildGanttTree(repaired)
+    const phase = tree[0]?.children.find((c) => c.id === 'PHASE:ph')
+    const parent = phase?.children.find((c) => c.id === 'WBS:parent')
+    expect(parent?.children.some((c) => c.id === 'WBS:child')).toBe(true)
+  })
+})
+
 
 describe('resolveRecalculatePlanningWindow', () => {
   it('uses explicit dates when provided', () => {

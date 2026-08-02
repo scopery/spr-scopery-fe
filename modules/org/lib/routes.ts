@@ -38,7 +38,7 @@ export const WORKSPACE_ROUTES = {
   },
   projectWorkTask: (workspaceId: string, projectId: string, taskId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/work/${taskId}`,
-  /** Wave 2 P2: Work breakdown structure tree. */
+  /** Wave 2 P2: Plan Structure (planning elements tree). URL keeps /wbs for BE compatibility. */
   projectWbs: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/wbs`,
   /** Wave 2 P2: Gantt timeline (read-only). */
@@ -157,6 +157,8 @@ export const WORKSPACE_ROUTES = {
   capacity: (workspaceId: string) => `/workspace/${workspaceId}/capacity`,
   capacityResources: (workspaceId: string) => `/workspace/${workspaceId}/capacity/resources`,
   capacityAllocations: (workspaceId: string) => `/workspace/${workspaceId}/capacity/allocations`,
+  /** Wave 4: Cross-project team schedule (resource timeline). */
+  resourceTimeline: (workspaceId: string) => `/workspace/${workspaceId}/resource-timeline`,
   /** Wave 3 P1a: Capacity setup (settings). */
   settingsCapacity: (workspaceId: string) => `/workspace/${workspaceId}/settings/capacity`,
   settingsCapacityCalendars: (workspaceId: string) =>

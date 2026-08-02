@@ -14,6 +14,8 @@ export interface WbsNode {
   level: number
   path: string
   sortOrder: number
+  plannedStartDate?: string | null
+  plannedEndDate?: string | null
   status: string
   version: number
   createdAt: string
@@ -42,6 +44,8 @@ export interface UpdateWbsNodePayload {
   description?: string | null
   nodeType?: string
   sortOrder?: number
+  plannedStartDate?: string | null
+  plannedEndDate?: string | null
 }
 
 export interface MoveWbsNodePayload {

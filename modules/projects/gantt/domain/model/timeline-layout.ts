@@ -8,7 +8,8 @@ export const TIMELINE_ROW_HEIGHT = {
   TASK: 40,
   MILESTONE: 40,
   ADD_TASK: 36,
-  HEADER: 44,
+  /** +10px vs prior 44 — room for clearer month context in the date header. */
+  HEADER: 54,
 } as const
 
 export const TIMELINE_LEFT_COLS = {

@@ -65,6 +65,20 @@ export function useTimelineDraft() {
     setUndoStack([])
   }, [])
 
+  /** Drop draft patches for specific rows (e.g. after a modal persist). */
+  const clearItems = useCallback((itemIds: string[]) => {
+    if (itemIds.length === 0) return
+    const idSet = new Set(itemIds)
+    setDraft((prev) => {
+      let changed = false
+      const next = new Map(prev)
+      for (const id of idSet) {
+        if (next.delete(id)) changed = true
+      }
+      return changed ? next : prev
+    })
+  }, [])
+
   const dirtyPatches = useCallback((): TimelineDraftPatch[] => {
     return [...draft.entries()].map(([itemId, v]) => ({
       itemId,
@@ -90,6 +104,7 @@ export function useTimelineDraft() {
     setSchedules,
     undo,
     clear,
+    clearItems,
     dirtyPatches,
     scheduleByItemId,
   }

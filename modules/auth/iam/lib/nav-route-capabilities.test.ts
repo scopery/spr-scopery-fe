@@ -11,6 +11,11 @@ describe('resolveNavCapabilityForPath', () => {
     expect(req?.fallbackHref).toBe(`/workspace/${WS}/projects`)
   })
 
+  it('gates resource timeline with workspace capacity', () => {
+    const req = resolveNavCapabilityForPath(`/workspace/${WS}/resource-timeline`, WS)
+    expect(req?.key).toBe(NavCapabilityKey.WorkspaceCapacity)
+  })
+
   it('gates project financials to project overview', () => {
     const req = resolveNavCapabilityForPath(
       `/workspace/${WS}/projects/p1/financials/scenario-1`,

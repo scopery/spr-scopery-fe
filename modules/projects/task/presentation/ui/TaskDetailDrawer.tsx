@@ -160,7 +160,7 @@ export function TaskDetailDrawer({
 
   const wbsOptions = useMemo(
     () => [
-      { value: '', label: 'No WBS node' },
+      { value: '', label: 'No planning element' },
       ...flattenWbsOptions(wbsTree, 0, wbsNodeId || null),
     ],
     [wbsTree, wbsNodeId]
@@ -314,7 +314,7 @@ export function TaskDetailDrawer({
               )}
               <div>
                 <Typography variant="small" className="mb-1.5">
-                  WBS node
+                  Planning element
                 </Typography>
                 <Select value={wbsNodeId} onValueChange={setWbsNodeId} options={wbsOptions} />
               </div>

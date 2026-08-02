@@ -31,6 +31,8 @@ export interface JsonImportModalProps<T> {
   guide: BulkImportFormatGuide
   /** Short helper under the title (before the guide). */
   description?: string
+  /** Optional content under the description (e.g. id reference lists). */
+  extra?: React.ReactNode
   /**
    * Domain validator — runs after JSON parse, before any BE call.
    * Must return typed items or a full issues list.
@@ -64,6 +66,7 @@ export function JsonImportModal<T>({
   title,
   guide,
   description,
+  extra,
   validate,
   onImport,
   maxItems,
@@ -205,6 +208,8 @@ export function JsonImportModal<T>({
             for field rules. Spreadsheet rows belong in Bulk add — not here.
           </Typography>
         )}
+
+        {extra}
 
         {progress}
 

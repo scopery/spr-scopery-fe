@@ -13,6 +13,8 @@ export interface TimelineColumn {
   periodEnd: string
   isWeekend: boolean
   isToday: boolean
+  /** True when this column starts a new calendar month (vs previous column). */
+  isMonthBoundary: boolean
 }
 
 export interface TimelineBucketCell {
@@ -75,6 +77,17 @@ export interface TimelineFlatRow {
   collapsed?: boolean
   phaseSummary?: TimelinePhaseSummary | null
   phaseDescription?: string | null
+  /** WBS nodeType when itemType is WBS_NODE. */
+  wbsNodeType?: string | null
+}
+
+/** Editable fields for phase / WBS / project from the timeline page. */
+export interface TimelineContainerEditValues {
+  title: string
+  description: string
+  startDate: string
+  endDate: string
+  nodeType?: string
 }
 
 export type { TimelineGranularity, TimelineMetric, TimelineMode }

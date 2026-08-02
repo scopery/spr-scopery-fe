@@ -1,6 +1,5 @@
 'use client'
 
-import { Badge } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 
 type Props = {
@@ -16,18 +15,17 @@ type Props = {
   className?: string
 }
 
+const STAT_PILL =
+  'inline-flex shrink-0 items-center rounded-none bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-900'
+
 function StatBadge({
   label,
   count,
-  tone,
-  variant = 'solid',
   onClick,
   disabled,
 }: {
   label: string
   count: number
-  tone: 'neutral' | 'success' | 'warning' | 'error' | 'info'
-  variant?: 'soft' | 'solid' | 'outline'
   onClick?: () => void
   disabled?: boolean
 }) {
@@ -37,14 +35,12 @@ function StatBadge({
       disabled={disabled || !onClick}
       onClick={onClick}
       className={cn(
-        'inline-flex shrink-0 items-center',
-        onClick && !disabled && 'cursor-pointer hover:opacity-80',
+        STAT_PILL,
+        onClick && !disabled && 'cursor-pointer hover:bg-neutral-200',
         (!onClick || disabled) && 'cursor-default'
       )}
     >
-      <Badge tone={tone} size="sm" variant={variant}>
-        {count} {label}
-      </Badge>
+      {count} {label}
     </button>
   )
 }
@@ -69,35 +65,15 @@ export function TimelineScheduleHealthBar({
       className={cn('flex flex-wrap items-center gap-1.5', className)}
       aria-label="Schedule summary"
     >
-      <Badge tone="neutral" size="sm" variant="solid">
+      <span className={STAT_PILL}>
         {itemCount} tasks
-      </Badge>
-      <StatBadge
-        label="scheduled"
-        count={scheduledCount}
-        tone="info"
-        variant="solid"
-        onClick={onOpenScheduled}
-      />
-      <StatBadge
-        label="unscheduled"
-        count={unscheduledCount}
-        tone={unscheduledCount > 0 ? 'warning' : 'neutral'}
-        variant="solid"
-        onClick={onOpenUnscheduled}
-      />
-      <StatBadge
-        label="issues"
-        count={issueCount}
-        tone={issueCount > 0 ? 'error' : 'neutral'}
-        variant="solid"
-        onClick={onOpenIssues}
-      />
+      </span>
+      <StatBadge label="scheduled" count={scheduledCount} onClick={onOpenScheduled} />
+      <StatBadge label="unscheduled" count={unscheduledCount} onClick={onOpenUnscheduled} />
+      <StatBadge label="issues" count={issueCount} onClick={onOpenIssues} />
       <StatBadge
         label="at risk"
         count={atRiskCount}
-        tone={atRiskCount > 0 ? 'error' : 'neutral'}
-        variant="solid"
         onClick={onOpenAtRisk}
         disabled={!onOpenAtRisk}
       />

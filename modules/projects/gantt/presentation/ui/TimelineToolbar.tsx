@@ -184,16 +184,6 @@ export function TimelineToolbar({
                 Fit to focused phase
               </button>
             )}
-            <button
-              type="button"
-              className={anchoredMenuItemClassName}
-              onClick={() => {
-                setFitOpen(false)
-                onToday()
-              }}
-            >
-              Center on today
-            </button>
           </AnchoredMenu>
         </div>
 

@@ -104,9 +104,9 @@ export function buildProjectSetupChecklist(input: {
     },
     {
       id: 'phases',
-      label: 'Create project phases / WBS',
+      label: 'Create project phases / Plan Structure',
       description: 'Structure unlocks planning and schedule views.',
-      actionLabel: 'Open WBS',
+      actionLabel: 'Open Plan Structure',
       done: hasTasks || input.hasScheduleData,
       href: input.routes.wbs,
     },

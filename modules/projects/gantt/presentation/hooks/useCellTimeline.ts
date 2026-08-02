@@ -5,15 +5,27 @@ import { useProjectGantt } from './useProjectGantt'
 import { useProjectTasks } from '../../../task/presentation/hooks/useProjectTasks'
 import { useProjectPhases } from '../../../phase/presentation/hooks/useProjectPhases'
 import { useProjectWbs } from '../../../wbs/presentation/hooks/useProjectWbs'
+import * as projectsApi from '../../../project/api/projects.api'
 import { phaseWatchStatusLabel } from '../../../phase/domain/rules/phase-watch.rules'
 import type { WbsTreeNode } from '../../../wbs/domain/model/wbs'
 import { useTaskProgressSnapshots } from './useTaskProgressSnapshots'
 import { useTaskAllocations } from './useTaskAllocations'
-import { TimelineGranularity, TimelineMetric, TimelineMode } from '../../domain/enums/timeline.enum'
-import type { TimelineGranularity as Granularity, TimelineMetric as Metric, TimelineMode as Mode } from '../../domain/enums/timeline.enum'
+import {
+  TimelineCollapseMode,
+  TimelineGranularity,
+  TimelineMetric,
+  TimelineMode,
+} from '../../domain/enums/timeline.enum'
+import type {
+  TimelineCollapseMode as CollapseMode,
+  TimelineGranularity as Granularity,
+  TimelineMetric as Metric,
+  TimelineMode as Mode,
+} from '../../domain/enums/timeline.enum'
 import { buildTimelineColumns, cellWidthPx } from '../../domain/rules/timeline-buckets.rules'
 import {
   applyDraftToRows,
+  collectProjectCollapseIds,
   filterRowsToFocusedPhase,
   flattenTimelineRows,
   type PhaseEnrichment,
@@ -21,13 +33,22 @@ import {
   type WbsEnrichment,
 } from '../../domain/rules/timeline-rows.rules'
 import {
+  ensureTodayInViewport,
   pickFitGranularity,
   resolveTimelineViewport,
-  viewportAroundToday,
 } from '../../domain/rules/timeline-viewport.rules'
 import { plannedVsActualToday } from '../../domain/rules/progress-tracking.rules'
+import {
+  buildGanttTree,
+  collectDescendantScheduledTasks,
+  repairGanttWbsParents,
+} from '../../domain/rules/gantt.rules'
+import { parseLocalDate, shiftDateRange } from '../../domain/rules/working-calendar.rules'
 import { useTimelineDraft } from './useTimelineDraft'
-import type { TimelineFlatRow } from '../../domain/model/timeline'
+import type {
+  TimelineContainerEditValues,
+  TimelineFlatRow,
+} from '../../domain/model/timeline'
 
 export function useCellTimeline(projectId: string | null) {
   const gantt = useProjectGantt(projectId, { includeUnscheduled: true })
@@ -46,6 +67,9 @@ export function useCellTimeline(projectId: string | null) {
   const [metric, setMetric] = useState<Metric>(TimelineMetric.Schedule)
   const [granularity, setGranularity] = useState<Granularity>(TimelineGranularity.Week)
   const [hideUnscheduled, setHideUnscheduled] = useState(false)
+  const [collapseMode, setCollapseModeState] = useState<CollapseMode>(
+    TimelineCollapseMode.Expand
+  )
   const [collapsedPhaseIds, setCollapsedPhaseIds] = useState<Set<string>>(() => new Set())
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
   const [focusedPhaseRowId, setFocusedPhaseRowId] = useState<string | null>(null)
@@ -105,6 +129,10 @@ export function useCellTimeline(projectId: string | null) {
         map.set(n.id, {
           description: n.description ?? null,
           code: n.code ?? null,
+          nodeType: n.nodeType ?? null,
+          title: n.title ?? null,
+          plannedStartDate: n.plannedStartDate ?? null,
+          plannedEndDate: n.plannedEndDate ?? null,
         })
         if (n.children.length) visit(n.children)
       }
@@ -113,17 +141,49 @@ export function useCellTimeline(projectId: string | null) {
     return map
   }, [wbsHook.tree])
 
+  /** parentId / phaseId from Plan Structure — used to nest WBS rows correctly on Timeline. */
+  const wbsParentById = useMemo(() => {
+    const map = new Map<string, { parentId: string | null; phaseId: string | null }>()
+    const visit = (nodes: WbsTreeNode[]) => {
+      for (const n of nodes) {
+        map.set(n.id, {
+          parentId: n.parentId ?? null,
+          phaseId: n.projectPhaseId ?? null,
+        })
+        if (n.children.length) visit(n.children)
+      }
+    }
+    visit(wbsHook.tree)
+    return map
+  }, [wbsHook.tree])
+
+  const timelineTree = useMemo(
+    () => buildGanttTree(repairGanttWbsParents(gantt.items, wbsParentById)),
+    [gantt.items, wbsParentById]
+  )
+
+  const hideTaskRows = collapseMode === TimelineCollapseMode.Structure
+
   const baseRows = useMemo(
     () =>
-      flattenTimelineRows(gantt.tree, {
+      flattenTimelineRows(timelineTree, {
         collapsedPhaseIds,
         hideUnscheduled,
         taskById,
         phaseById,
         wbsById,
         includeAddRows: true,
+        hideTaskRows,
       }),
-    [gantt.tree, collapsedPhaseIds, hideUnscheduled, taskById, phaseById, wbsById]
+    [
+      timelineTree,
+      collapsedPhaseIds,
+      hideUnscheduled,
+      taskById,
+      phaseById,
+      wbsById,
+      hideTaskRows,
+    ]
   )
 
   const draftDateMap = useMemo(() => {
@@ -182,6 +242,16 @@ export function useCellTimeline(projectId: string | null) {
     [allRows]
   )
 
+  const groupRowIds = useMemo(
+    () => allRows.filter((r) => r.kind === 'phase').map((r) => r.id),
+    [allRows]
+  )
+
+  const hasCollapsedGroups = useMemo(
+    () => groupRowIds.some((id) => collapsedPhaseIds.has(id)),
+    [groupRowIds, collapsedPhaseIds]
+  )
+
   const togglePhase = useCallback((phaseRowId: string) => {
     setCollapsedPhaseIds((prev) => {
       const next = new Set(prev)
@@ -200,6 +270,27 @@ export function useCellTimeline(projectId: string | null) {
     })
   }, [])
 
+  const setCollapseMode = useCallback(
+    (next: CollapseMode) => {
+      setCollapseModeState(next)
+      if (next === TimelineCollapseMode.Project) {
+        setCollapsedPhaseIds(collectProjectCollapseIds(timelineTree))
+      } else {
+        // EXPAND + STRUCTURE start with groups open; STRUCTURE hides leaves via hideTaskRows.
+        setCollapsedPhaseIds(new Set())
+      }
+    },
+    [timelineTree]
+  )
+
+  const expandAll = useCallback(() => {
+    setCollapseMode(TimelineCollapseMode.Expand)
+  }, [setCollapseMode])
+
+  const collapseAll = useCallback(() => {
+    setCollapseMode(TimelineCollapseMode.Project)
+  }, [setCollapseMode])
+
   const collapseOtherPhases = useCallback((keepPhaseRowId: string) => {
     setCollapsedPhaseIds(() => {
       const next = new Set<string>()
@@ -210,16 +301,25 @@ export function useCellTimeline(projectId: string | null) {
     })
   }, [allRows])
 
-  const fitToProject = useCallback(() => {
-    const vp = resolveTimelineViewport(gantt.items, { padDays: 3 })
-    setViewport(vp)
-    setGranularity(pickFitGranularity(vp.start, vp.end))
-  }, [gantt.items])
+  const fitToProject = useCallback(
+    (opts?: { adjustGranularity?: boolean }) => {
+      const vp = resolveTimelineViewport(gantt.items, { padDays: 3 })
+      setViewport(vp)
+      // Default zoom stays Week; only Fit menu actions may auto-pick granularity.
+      if (opts?.adjustGranularity) {
+        setGranularity(pickFitGranularity(vp.start, vp.end))
+      }
+    },
+    [gantt.items]
+  )
 
   const fitToPhase = useCallback(
-    (phase: Pick<TimelineFlatRow, 'startDate' | 'endDate'>) => {
+    (
+      phase: Pick<TimelineFlatRow, 'startDate' | 'endDate'>,
+      opts?: { adjustGranularity?: boolean }
+    ) => {
       if (!phase.startDate || !phase.endDate) {
-        fitToProject()
+        fitToProject(opts)
         return
       }
       const pad = 2
@@ -232,14 +332,17 @@ export function useCellTimeline(projectId: string | null) {
         end: end.toISOString().slice(0, 10),
       }
       setViewport(vp)
-      setGranularity(pickFitGranularity(vp.start, vp.end))
+      if (opts?.adjustGranularity) {
+        setGranularity(pickFitGranularity(vp.start, vp.end))
+      }
     },
     [fitToProject]
   )
 
-  const jumpToToday = useCallback(() => {
-    setViewport(viewportAroundToday(granularity === TimelineGranularity.Day ? 21 : 42))
-  }, [granularity])
+  /** Keep the full plan range; only expand if today sits outside the current window. */
+  const ensureTodayVisible = useCallback(() => {
+    setViewport((prev) => ensureTodayInViewport(prev ?? initialViewport))
+  }, [initialViewport])
 
   const focusPhase = useCallback(
     (phaseRowId: string) => {
@@ -260,9 +363,79 @@ export function useCellTimeline(projectId: string | null) {
     return new Set(path.map((c) => c.taskId))
   }, [gantt.criticalPath])
 
-  const applyChanges = useCallback(async () => {
+  const shiftDescendantTasks = useCallback(
+    async (rowId: string, oldStart: string | null, newStart: string) => {
+      if (!oldStart || oldStart === newStart) return 0
+      const from = parseLocalDate(oldStart)
+      const to = parseLocalDate(newStart)
+      if (!from || !to) return 0
+      const deltaDays = Math.round((to.getTime() - from.getTime()) / 86400000)
+      if (deltaDays === 0) return 0
+      const descendants = collectDescendantScheduledTasks(timelineTree, rowId)
+      for (const d of descendants) {
+        const next = shiftDateRange(d.startDate, d.endDate, deltaDays)
+        await gantt.moveTask(
+          d.taskId,
+          {
+            manualStartDate: next.start,
+            manualFinishDate: next.end,
+            reason: 'Timeline container date edit',
+            recalculate: false,
+          },
+          { refresh: false }
+        )
+      }
+      return descendants.length
+    },
+    [gantt, timelineTree]
+  )
+
+  const applyChanges = useCallback(async (): Promise<{ skippedWbs: number }> => {
     const patches = draftApi.dirtyPatches()
+    const rowById = new Map(allRows.map((r) => [r.id, r]))
+    const baseById = new Map(baseRows.map((r) => [r.id, r]))
+    let skippedWbs = 0
     for (const p of patches) {
+      const row = rowById.get(p.itemId)
+      const base = baseById.get(p.itemId)
+      const itemType = row?.itemType
+      if (itemType === 'PHASE') {
+        if (base?.startDate) {
+          await shiftDescendantTasks(p.itemId, base.startDate, p.startDate)
+        }
+        await phasesHook.updatePhase(p.sourceTaskId, {
+          plannedStartDate: p.startDate,
+          plannedEndDate: p.endDate,
+        })
+        continue
+      }
+      if (itemType === 'PROJECT' && projectId) {
+        if (base?.startDate) {
+          await shiftDescendantTasks(p.itemId, base.startDate, p.startDate)
+        }
+        await projectsApi.updateProject(projectId, {
+          plannedStartDate: p.startDate,
+          plannedEndDate: p.endDate,
+        })
+        continue
+      }
+      if (itemType === 'WBS_NODE') {
+        if (base?.startDate && p.startDate !== base.startDate) {
+          await shiftDescendantTasks(p.itemId, base.startDate, p.startDate)
+        }
+        if (row?.sourceEntityId) {
+          await wbsHook.updateNode(row.sourceEntityId, {
+            title: row.displayPrimary || row.title,
+            description: row.phaseDescription ?? null,
+            nodeType: row.wbsNodeType || 'WORK_PACKAGE',
+            plannedStartDate: p.startDate,
+            plannedEndDate: p.endDate,
+          })
+        } else {
+          skippedWbs += 1
+        }
+        continue
+      }
       await gantt.moveTask(
         p.sourceTaskId,
         {
@@ -275,10 +448,91 @@ export function useCellTimeline(projectId: string | null) {
       )
     }
     draftApi.clear()
-    await gantt.refetch()
+    // Silent refresh keeps the board mounted so scroll position is preserved.
+    await gantt.refetch({ silent: true })
     await tasksHook.refetch()
-    await phasesHook.refetch()
-  }, [draftApi, gantt, tasksHook, phasesHook])
+    await phasesHook.refetch({ silent: true })
+    await wbsHook.refetch()
+    return { skippedWbs }
+  }, [draftApi, gantt, tasksHook, phasesHook, wbsHook, allRows, baseRows, projectId, shiftDescendantTasks])
+
+  const updateContainerDetails = useCallback(
+    async (row: TimelineFlatRow, values: TimelineContainerEditValues) => {
+      if (!row.sourceEntityId && row.itemType !== 'PROJECT') {
+        return { shiftedTasks: 0, updated: false as const }
+      }
+
+      const startDate = values.startDate || null
+      const endDate = values.endDate || null
+      let shiftedTasks = 0
+
+      if (startDate && row.startDate && startDate !== row.startDate) {
+        shiftedTasks = await shiftDescendantTasks(row.id, row.startDate, startDate)
+      }
+
+      if (row.itemType === 'PHASE' && row.sourceEntityId) {
+        await phasesHook.updatePhase(row.sourceEntityId, {
+          name: values.title,
+          description: values.description || null,
+          plannedStartDate: startDate,
+          plannedEndDate: endDate,
+        })
+      } else if (row.itemType === 'WBS_NODE' && row.sourceEntityId) {
+        await wbsHook.updateNode(row.sourceEntityId, {
+          title: values.title,
+          description: values.description || null,
+          nodeType: values.nodeType || row.wbsNodeType || 'WORK_PACKAGE',
+          plannedStartDate: startDate,
+          plannedEndDate: endDate,
+        })
+      } else if (row.itemType === 'PROJECT' && projectId) {
+        await projectsApi.updateProject(projectId, {
+          name: values.title,
+          description: values.description || null,
+          plannedStartDate: startDate,
+          plannedEndDate: endDate,
+        })
+      } else {
+        return { shiftedTasks: 0, updated: false as const }
+      }
+
+      // Drop stale local drafts so they don't overlay the persisted schedule.
+      draftApi.clearItems([row.id])
+
+      await wbsHook.refetch()
+      await gantt.refetch({ silent: true })
+      await phasesHook.refetch({ silent: true })
+      return { shiftedTasks, updated: true as const }
+    },
+    [shiftDescendantTasks, phasesHook, wbsHook, gantt, projectId, draftApi]
+  )
+
+  const updateContainerDates = useCallback(
+    async (
+      row: Pick<TimelineFlatRow, 'id' | 'itemType' | 'sourceEntityId' | 'startDate'>,
+      body: { startDate: string; endDate: string }
+    ) => {
+      const full = allRows.find((r) => r.id === row.id)
+      if (!full) {
+        if (row.itemType === 'PHASE' && row.sourceEntityId) {
+          await phasesHook.updatePhase(row.sourceEntityId, {
+            plannedStartDate: body.startDate,
+            plannedEndDate: body.endDate,
+          })
+          await gantt.refetch({ silent: true })
+        }
+        return
+      }
+      await updateContainerDetails(full, {
+        title: full.displayPrimary,
+        description: full.phaseDescription ?? '',
+        startDate: body.startDate,
+        endDate: body.endDate,
+        nodeType: full.wbsNodeType ?? undefined,
+      })
+    },
+    [allRows, updateContainerDetails, phasesHook, gantt]
+  )
 
   const createPhase = useCallback(
     async (body: Parameters<typeof phasesHook.createPhase>[0]) => {
@@ -342,13 +596,20 @@ export function useCellTimeline(projectId: string | null) {
     atRiskCount,
     togglePhase,
     expandPhase,
+    expandAll,
+    collapseAll,
+    hasCollapsedGroups,
+    collapseMode,
+    setCollapseMode,
     collapseOtherPhases,
+    updateContainerDates,
+    updateContainerDetails,
     focusedPhaseRowId,
     focusPhase,
     exitFocus,
     fitToProject,
     fitToPhase,
-    jumpToToday,
+    ensureTodayVisible,
     draft: draftApi,
     applyChanges,
     progressSnapshots: progress.snapshots,
@@ -360,6 +621,8 @@ export function useCellTimeline(projectId: string | null) {
     baseline: allocations.baseline,
     captureBaseline: allocations.captureBaseline,
     criticalTaskIds,
+    ganttDependencies: gantt.ganttDependencies,
+    issues: gantt.issues,
     addDependency: gantt.addDependency,
     removeDependency: gantt.removeDependency,
     recalculate: gantt.recalculate,

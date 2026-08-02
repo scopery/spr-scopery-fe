@@ -6,6 +6,47 @@ import {
   todayLocal,
 } from './working-calendar.rules'
 
+/**
+ * Re-parent WBS_NODE gantt rows from Plan Structure (parentId / phaseId).
+ * Guards against BE returning a flat list when child nodes are emitted before parents.
+ */
+export function repairGanttWbsParents(
+  items: GanttItem[],
+  wbsMetaById: Map<string, { parentId: string | null; phaseId: string | null }>
+): GanttItem[] {
+  if (wbsMetaById.size === 0) return items
+
+  const projectItemId = items.find((i) => i.itemType === 'PROJECT')?.id ?? null
+  const phaseItemIdByPhase = new Map<string, string>()
+  const wbsItemIds = new Set<string>()
+  for (const item of items) {
+    if (item.itemType === 'PHASE' && item.sourceEntityId) {
+      phaseItemIdByPhase.set(item.sourceEntityId, item.id)
+    }
+    if (item.itemType === 'WBS_NODE') {
+      wbsItemIds.add(item.id)
+    }
+  }
+
+  return items.map((item) => {
+    if (item.itemType !== 'WBS_NODE' || !item.sourceEntityId) return item
+    const meta = wbsMetaById.get(item.sourceEntityId)
+    if (!meta) return item
+
+    let parentItemId: string | null = null
+    if (meta.parentId) {
+      const parentWbsId = `WBS:${meta.parentId}`
+      if (wbsItemIds.has(parentWbsId)) parentItemId = parentWbsId
+    }
+    if (!parentItemId && meta.phaseId) {
+      parentItemId = phaseItemIdByPhase.get(meta.phaseId) ?? null
+    }
+    if (!parentItemId) parentItemId = projectItemId
+    if (!parentItemId || parentItemId === item.parentItemId) return item
+    return { ...item, parentItemId }
+  })
+}
+
 /** Build a parent/child tree from the flat Gantt items list (`parentItemId`). */
 export function buildGanttTree(items: GanttItem[]): GanttTreeItem[] {
   const byId = new Map<string, GanttTreeItem>()
@@ -96,12 +137,49 @@ export function ganttItemTypeLabel(itemType: string): string {
     case 'MILESTONE':
       return 'Milestone'
     case 'WBS_NODE':
-      return 'WBS'
+      return 'Planning Element'
     case 'PROJECT':
       return 'Project'
     default:
       return itemType
   }
+}
+
+/** Scheduled task descendants under a gantt tree node (excludes the root itself). */
+export function collectDescendantScheduledTasks(
+  tree: GanttTreeItem[],
+  rootId: string
+): Array<{ taskId: string; startDate: string; endDate: string }> {
+  const find = (nodes: GanttTreeItem[]): GanttTreeItem | null => {
+    for (const n of nodes) {
+      if (n.id === rootId) return n
+      const hit = find(n.children)
+      if (hit) return hit
+    }
+    return null
+  }
+  const root = find(tree)
+  if (!root) return []
+  const out: Array<{ taskId: string; startDate: string; endDate: string }> = []
+  const walk = (nodes: GanttTreeItem[]) => {
+    for (const n of nodes) {
+      if (
+        (n.itemType === 'TASK' || n.itemType === 'MILESTONE') &&
+        n.sourceEntityId &&
+        n.startDate &&
+        n.endDate
+      ) {
+        out.push({
+          taskId: n.sourceEntityId,
+          startDate: n.startDate.slice(0, 10),
+          endDate: n.endDate.slice(0, 10),
+        })
+      }
+      if (n.children.length) walk(n.children)
+    }
+  }
+  walk(root.children)
+  return out
 }
 
 export type GanttTimeScale = 'day' | 'week' | 'month'

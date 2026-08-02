@@ -443,7 +443,7 @@ export function changeItemTargetLabel(targetType: string): string {
     case 'PROJECT_PHASE':
       return 'Project phase'
     case 'WBS_NODE':
-      return 'WBS node'
+      return 'Planning Element'
     case 'TASK':
       return 'Task'
     case 'TASK_DEPENDENCY':

@@ -9,6 +9,7 @@ export interface TaskEnrichment {
   inChargeUserId: string | null
   progressPercent: number | null
   atRisk: boolean
+  description?: string | null
 }
 
 export interface PhaseEnrichment {
@@ -22,11 +23,34 @@ export interface PhaseEnrichment {
 export interface WbsEnrichment {
   description: string | null
   code: string | null
+  nodeType: string | null
+  title: string | null
+  plannedStartDate: string | null
+  plannedEndDate: string | null
+}
+
+/** Collect gantt row ids for PROJECT items (and top-level PHASE when no PROJECT). */
+export function collectProjectCollapseIds(tree: GanttTreeItem[]): Set<string> {
+  const ids = new Set<string>()
+  let hasProject = false
+  for (const node of tree) {
+    if (node.itemType === 'PROJECT') {
+      hasProject = true
+      ids.add(node.id)
+    }
+  }
+  if (!hasProject) {
+    for (const node of tree) {
+      if (node.itemType === 'PHASE') ids.add(node.id)
+    }
+  }
+  return ids
 }
 
 /**
  * Flatten gantt tree into left-grid rows (phase → tasks → + Add task).
  * Collapsed phase ids hide children + add row.
+ * `hideTaskRows` keeps Project/Phase/WBS but skips TASK/MILESTONE/add rows.
  */
 export function flattenTimelineRows(
   tree: GanttTreeItem[],
@@ -37,10 +61,12 @@ export function flattenTimelineRows(
     phaseById?: Map<string, PhaseEnrichment>
     wbsById?: Map<string, WbsEnrichment>
     includeAddRows?: boolean
+    hideTaskRows?: boolean
   }
 ): TimelineFlatRow[] {
   const rows: TimelineFlatRow[] = []
-  const includeAdd = options.includeAddRows !== false
+  const includeAdd = options.includeAddRows !== false && !options.hideTaskRows
+  const hideTaskRows = options.hideTaskRows === true
   const phaseById = options.phaseById ?? new Map()
   const wbsById = options.wbsById ?? new Map()
 
@@ -53,6 +79,10 @@ export function flattenTimelineRows(
       const isPhase = node.itemType === 'PHASE'
       const isTask = node.itemType === 'TASK'
       const isMilestone = node.itemType === 'MILESTONE'
+
+      if ((isTask || isMilestone) && hideTaskRows) {
+        continue
+      }
 
       if (isTask && options.hideUnscheduled && !node.startDate && !node.endDate) {
         continue
@@ -95,6 +125,7 @@ export function flattenTimelineRows(
           collapsed: options.collapsedPhaseIds.has(node.id),
           phaseSummary: summary,
           phaseDescription: phaseMeta?.description ?? null,
+          wbsNodeType: null,
         })
         if (!options.collapsedPhaseIds.has(node.id)) {
           visit(node.children, depth + 1, node.sourceEntityId)
@@ -126,13 +157,14 @@ export function flattenTimelineRows(
       }
 
       if (isTask || isMilestone) {
+        const description = enrichment?.description?.trim() || null
         rows.push({
           id: node.id,
           kind: isMilestone ? 'milestone' : 'task',
           depth,
           title: node.title,
           displayPrimary: node.title,
-          displaySecondary: null,
+          displaySecondary: description,
           phaseCode: null,
           itemType: node.itemType,
           sourceEntityId: node.sourceEntityId,
@@ -153,19 +185,24 @@ export function flattenTimelineRows(
         const wbsMeta = node.sourceEntityId
           ? wbsById.get(node.sourceEntityId)
           : undefined
+        const wbsTitle = wbsMeta?.title?.trim() || node.title
         const display = resolvePhaseDisplay({
-          ganttTitle: node.title,
+          ganttTitle: wbsTitle,
           code: wbsMeta?.code ?? undefined,
+          name: wbsTitle,
         })
         const summary =
           node.children.length > 0
             ? summarizePhaseSubtree(node, options.taskById)
             : emptyPhaseSummary()
+        // Prefer Plan Structure stored dates so modal saves show immediately after WBS refetch.
+        const startDate = wbsMeta?.plannedStartDate ?? node.startDate
+        const endDate = wbsMeta?.plannedEndDate ?? node.endDate
         rows.push({
           id: node.id,
           kind: 'phase',
           depth,
-          title: node.title,
+          title: wbsTitle,
           displayPrimary: display.primary,
           displaySecondary: display.secondary,
           phaseCode: display.code,
@@ -179,11 +216,12 @@ export function flattenTimelineRows(
           status: null,
           progressPercent: summary.progressPercent,
           atRisk: summary.atRiskCount > 0,
-          startDate: node.startDate,
-          endDate: node.endDate,
+          startDate,
+          endDate,
           collapsed: options.collapsedPhaseIds.has(node.id),
           phaseSummary: summary,
           phaseDescription: wbsMeta?.description ?? null,
+          wbsNodeType: wbsMeta?.nodeType ?? null,
         })
         if (!options.collapsedPhaseIds.has(node.id) && node.children.length) {
           visit(node.children, depth + 1, parentPhaseSourceId)

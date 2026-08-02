@@ -48,23 +48,47 @@ export function resolveTimelineViewport(
   return { start, end }
 }
 
+/** Prefer Week as the default planning zoom; Day only for very short Fit ranges. */
 export function pickFitGranularity(start: string, end: string): Granularity {
   const s = parseLocalDate(start)
   const e = parseLocalDate(end)
   if (!s || !e) return TimelineGranularity.Week
   const days =
     Math.round((e.getTime() - s.getTime()) / (24 * 60 * 60 * 1000)) + 1
-  if (days <= 21) return TimelineGranularity.Day
-  if (days <= 90) return TimelineGranularity.Week
+  if (days <= 10) return TimelineGranularity.Day
+  if (days <= 120) return TimelineGranularity.Week
   return TimelineGranularity.Month
 }
 
-/** Center viewport around today with roughly `spanDays` visible. */
-export function viewportAroundToday(spanDays = 28): { start: string; end: string } {
-  const t = todayLocal()
-  const half = Math.floor(spanDays / 2)
-  return {
-    start: formatLocalDate(addLocalDays(t, -half)),
-    end: formatLocalDate(addLocalDays(t, spanDays - half)),
+/**
+ * Expand viewport just enough so today is included.
+ * Never shrinks the existing plan range.
+ */
+export function ensureTodayInViewport(
+  viewport: { start: string; end: string },
+  padDays = 3
+): { start: string; end: string } {
+  return ensureDateInViewport(viewport, formatLocalDate(todayLocal()), padDays)
+}
+
+/**
+ * Expand viewport just enough so `date` is included.
+ * Never shrinks the existing plan range.
+ */
+export function ensureDateInViewport(
+  viewport: { start: string; end: string },
+  date: string,
+  padDays = 3
+): { start: string; end: string } {
+  const day = date.slice(0, 10)
+  let { start, end } = viewport
+  if (day < start) {
+    const t = parseLocalDate(day)
+    if (t) start = formatLocalDate(addLocalDays(t, -padDays))
   }
+  if (day > end) {
+    const t = parseLocalDate(day)
+    if (t) end = formatLocalDate(addLocalDays(t, padDays))
+  }
+  return { start, end }
 }

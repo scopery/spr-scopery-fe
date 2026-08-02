@@ -17,7 +17,7 @@ export function useScopeMappings(scopeItemId: string | null) {
       const data = await scopeMappingsApi.listWbsMappings(scopeItemId)
       setWbsMappings(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load WBS mappings')
+      setError(err instanceof Error ? err.message : 'Failed to load planning element mappings')
     } finally {
       setLoading(false)
     }

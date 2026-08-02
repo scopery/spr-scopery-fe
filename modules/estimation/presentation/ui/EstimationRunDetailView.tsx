@@ -44,7 +44,7 @@ import type { TaskEstimateSnapshot } from '../../domain/model/estimation'
 const TABS: { id: EstimationRunDetailTab; label: string }[] = [
   { id: 'summary', label: 'Summary' },
   { id: 'tasks', label: 'Tasks' },
-  { id: 'wbs', label: 'WBS Rollup' },
+  { id: 'wbs', label: 'Planning Element Rollup' },
   { id: 'phase', label: 'Phase Rollup' },
   { id: 'issues', label: 'Issues' },
   { id: 'assumptions', label: 'Assumptions' },
@@ -416,14 +416,14 @@ export function EstimationRunDetailView() {
 
       {tab === 'wbs' ? (
         <DataTable
-          ariaLabel="WBS rollups"
+          ariaLabel="Planning element rollups"
           rows={wbsRollups}
           rowKey={(row) => row.id ?? row.wbsNodeId}
-          emptyMessage="No WBS rollups"
+          emptyMessage="No planning element rollups"
           columns={[
             {
               id: 'wbs',
-              header: 'WBS',
+              header: 'Planning Element',
               kind: 'code',
               cell: (row) => (
                 <>

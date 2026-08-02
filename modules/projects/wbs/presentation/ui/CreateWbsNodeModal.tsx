@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Input, Modal, Select, Textarea, Typography } from '@/shared/ui'
-import { WbsNodeType } from '../../domain/enums/wbs.enum'
+import { WBS_NODE_TYPE_OPTIONS, WbsNodeType } from '../../domain/enums/wbs.enum'
 import type { CreateWbsNodePayload } from '../../domain/model/wbs'
 
 interface PhaseOption {
@@ -20,13 +20,6 @@ interface CreateWbsNodeModalProps {
   onSubmit: (body: CreateWbsNodePayload) => Promise<void>
 }
 
-const NODE_TYPE_OPTIONS = [
-  { value: WbsNodeType.Summary, label: 'Summary' },
-  { value: WbsNodeType.WorkPackage, label: 'Work package' },
-  { value: WbsNodeType.Deliverable, label: 'Deliverable' },
-  { value: WbsNodeType.Milestone, label: 'Milestone' },
-]
-
 export function CreateWbsNodeModal({
   open,
   onClose,
@@ -40,7 +33,7 @@ export function CreateWbsNodeModal({
   const [code, setCode] = useState('')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [nodeType, setNodeType] = useState<string>(WbsNodeType.Deliverable)
+  const [nodeType, setNodeType] = useState<string>(WbsNodeType.WorkPackage)
   const [sortOrder, setSortOrder] = useState('1')
   const [loading, setLoading] = useState(false)
 
@@ -50,7 +43,7 @@ export function CreateWbsNodeModal({
     setCode('')
     setTitle('')
     setDescription('')
-    setNodeType(WbsNodeType.Deliverable)
+    setNodeType(WbsNodeType.WorkPackage)
     setSortOrder('1')
   }, [open, defaultPhaseId, phaseOptions])
 
@@ -58,7 +51,7 @@ export function CreateWbsNodeModal({
     const trimmedTitle = title.trim()
     const trimmedCode =
       code.trim() ||
-      `WBS_${trimmedTitle
+      `PE_${trimmedTitle
         .toUpperCase()
         .replace(/[^A-Z0-9]+/g, '_')
         .slice(0, 20)}`
@@ -84,7 +77,7 @@ export function CreateWbsNodeModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={parentId ? 'Add child node' : 'Add WBS node'}
+      title={parentId ? 'Add child element' : 'Add planning element'}
       size="md"
       actions={[
         { label: 'Cancel', onClick: onClose, variant: 'ghost' },
@@ -130,9 +123,13 @@ export function CreateWbsNodeModal({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Typography variant="small" className="mb-1.5">
-              Node type
+              Element type
             </Typography>
-            <Select value={nodeType} onValueChange={setNodeType} options={NODE_TYPE_OPTIONS} />
+            <Select
+              value={nodeType}
+              onValueChange={setNodeType}
+              options={[...WBS_NODE_TYPE_OPTIONS]}
+            />
           </div>
           <Input
             label="Sort order"

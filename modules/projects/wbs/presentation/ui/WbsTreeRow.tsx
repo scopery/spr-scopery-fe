@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
 import { Badge, Button, Typography } from '@/shared/ui'
 import { canArchiveWbsNode, wbsNodeStatusLabel } from '../../domain/rules/wbs.rules'
 import type { WbsTreeNode } from '../../domain/model/wbs'
+import { WbsNodeTypeBadge } from './WbsNodeTypeBadge'
 
 interface WbsTreeRowProps {
   node: WbsTreeNode
@@ -53,9 +54,7 @@ export function WbsTreeRow({
           </div>
         </td>
         <td className="px-4 py-3">
-          <Typography variant="small" tone="muted">
-            {node.nodeType}
-          </Typography>
+          <WbsNodeTypeBadge nodeType={node.nodeType} />
         </td>
         <td className="px-4 py-3">
           <Badge tone={node.status === 'ARCHIVED' ? 'neutral' : 'success'}>
@@ -76,7 +75,7 @@ export function WbsTreeRow({
               disabled={actingId === node.id}
               onClick={() => onAddChild(node)}
             >
-              Add child
+              Add child element
             </Button>
             {canArchiveWbsNode(node) && (
               <Button

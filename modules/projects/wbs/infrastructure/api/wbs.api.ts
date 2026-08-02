@@ -25,7 +25,7 @@ export async function createWbsNode(
   return apiClient.post<WbsNode>(WBS_ENDPOINTS.create(projectId), body)
 }
 
-/** Wave-1 stub — no bulk UI yet; submit only, poll in caller. */
+/** Async bulk create — returns job; UI polls GET /bulk-jobs/{id}. */
 export async function submitWbsNodesBulk(
   projectId: string,
   items: CreateWbsNodePayload[]

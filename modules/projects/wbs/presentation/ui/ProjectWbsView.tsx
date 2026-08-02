@@ -11,8 +11,10 @@ import { useProject } from '../../../project/hooks/useProject'
 import { useProjectPhases } from '../../../phase/presentation/hooks/useProjectPhases'
 import { useProjectWbs } from '../hooks/useProjectWbs'
 import { CreateWbsNodeModal } from './CreateWbsNodeModal'
+import { WbsAddBar } from './WbsAddBar'
 import type { WbsTreeNode } from '../../domain/model/wbs'
 import { canArchiveWbsNode, wbsNodeStatusLabel } from '../../domain/rules/wbs.rules'
+import { WbsNodeTypeBadge } from './WbsNodeTypeBadge'
 
 function collectIds(nodes: WbsTreeNode[]): string[] {
   const ids: string[] = []
@@ -32,8 +34,17 @@ export function ProjectWbsView() {
   const projectId = params.projectId as string
   const { project } = useProject(workspaceId, projectId)
   const { phases } = useProjectPhases(projectId)
-  const { tree, loading, forbidden, error, actingId, createNode, archiveNode } =
-    useProjectWbs(projectId)
+  const {
+    tree,
+    loading,
+    forbidden,
+    error,
+    actingId,
+    createNode,
+    submitWbsNodesBulk,
+    archiveNode,
+    refetch,
+  } = useProjectWbs(projectId)
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [createOpen, setCreateOpen] = useState(false)
@@ -75,7 +86,7 @@ export function ProjectWbsView() {
   if (forbidden) {
     return (
       <div className="border border-neutral-200 bg-white p-8 text-center">
-        <Typography weight="medium">You don’t have access to WBS</Typography>
+        <Typography weight="medium">You don’t have access to Plan Structure</Typography>
       </div>
     )
   }
@@ -85,28 +96,37 @@ export function ProjectWbsView() {
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}
-        current="WBS"
+        current="Plan Structure"
       />
       <div className="mb-2 mt-1 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
           <Typography as="h1" size="md" weight="medium">
-            Work breakdown structure
+            Plan Structure
           </Typography>
           <Typography variant="caption" tone="muted" className="mt-0.5">
-            Hierarchical deliverables and work packages
+            Organize work into planning elements under each phase
           </Typography>
         </div>
-        <Button
-          variant="primary"
-          icon={<Plus size={16} />}
-          onClick={() => {
-            setParentNode(null)
-            setCreateOpen(true)
-          }}
+        <WbsAddBar
+          phaseOptions={phaseOptions}
+          defaultPhaseId={phases[0]?.id ?? null}
+          parentId={null}
+          parentTitle={null}
           disabled={phaseOptions.length === 0}
-        >
-          Add node
-        </Button>
+          onCreate={async (body) => {
+            try {
+              await createNode(body)
+              toast.success('Planning element created')
+            } catch (err) {
+              toast.error(getProblemToastMessage(err))
+              throw err
+            }
+          }}
+          onSubmitBulk={submitWbsNodesBulk}
+          onBatchComplete={async () => {
+            await refetch()
+          }}
+        />
       </div>
 
       {error ? (
@@ -120,21 +140,21 @@ export function ProjectWbsView() {
       {phaseOptions.length === 0 ? (
         <div className="mb-4 border border-amber-200 bg-amber-50 p-3">
           <Typography variant="small" className="text-amber-800">
-            Create at least one project phase before adding WBS nodes.
+            Create at least one project phase before adding planning elements.
           </Typography>
         </div>
       ) : null}
 
       <div className="border border-neutral-200 bg-white">
         <DataTable
-          ariaLabel="Work breakdown structure"
+          ariaLabel="Plan Structure"
           rows={visibleNodes}
           rowKey={({ node }) => node.id}
-          emptyMessage="No WBS nodes yet"
+          emptyMessage="No planning elements yet"
           columns={[
             {
               id: 'node',
-              header: 'Node',
+              header: 'Element',
               cell: ({ node, depth }) => {
                 const hasChildren = node.children.length > 0
                 const isExpanded = expanded.has(node.id)
@@ -161,7 +181,11 @@ export function ProjectWbsView() {
               },
               kind: 'code',
             },
-            { id: 'type', header: 'Type', accessor: ({ node }) => node.nodeType },
+            {
+              id: 'type',
+              header: 'Type',
+              cell: ({ node }) => <WbsNodeTypeBadge nodeType={node.nodeType} />,
+            },
             {
               id: 'status',
               header: 'Status',
@@ -187,7 +211,7 @@ export function ProjectWbsView() {
                       setCreateOpen(true)
                     }}
                   >
-                    Add child
+                    Add child element
                   </Button>
                   {canArchiveWbsNode(node) ? (
                     <Button
@@ -211,9 +235,13 @@ export function ProjectWbsView() {
         />
       </div>
 
+      {/* Child-row "Add child" still uses the single-create modal. */}
       <CreateWbsNodeModal
         open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onClose={() => {
+          setCreateOpen(false)
+          setParentNode(null)
+        }}
         phaseOptions={phaseOptions}
         defaultPhaseId={parentNode?.projectPhaseId ?? phases[0]?.id}
         parentId={parentNode?.id ?? null}
@@ -221,7 +249,7 @@ export function ProjectWbsView() {
         onSubmit={async (body) => {
           try {
             await createNode(body)
-            toast.success('WBS node created')
+            toast.success('Planning element created')
           } catch (err) {
             toast.error(getProblemToastMessage(err))
             throw err

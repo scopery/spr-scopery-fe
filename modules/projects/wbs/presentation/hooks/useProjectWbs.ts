@@ -4,7 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ApiError } from '@/shared/lib/api-types'
 import * as wbsApi from '../../infrastructure/api/wbs.api'
 import { buildWbsTree } from '../../domain/rules/wbs.rules'
-import type { CreateWbsNodePayload, WbsTreeNode } from '../../domain/model/wbs'
+import type { BulkJobResponse } from '@/shared/lib/bulkJobs'
+import type {
+  CreateWbsNodePayload,
+  UpdateWbsNodePayload,
+  WbsTreeNode,
+} from '../../domain/model/wbs'
 
 export function useProjectWbs(projectId: string | null) {
   const [raw, setRaw] = useState<Awaited<ReturnType<typeof wbsApi.getWbsTree>>>([])
@@ -24,7 +29,7 @@ export function useProjectWbs(projectId: string | null) {
       setRaw(await wbsApi.getWbsTree(projectId))
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) setForbidden(true)
-      setError(err instanceof Error ? err.message : 'Failed to load WBS')
+      setError(err instanceof Error ? err.message : 'Failed to load Plan Structure')
       setRaw([])
     } finally {
       setLoading(false)
@@ -40,6 +45,24 @@ export function useProjectWbs(projectId: string | null) {
       if (!projectId) return
       await wbsApi.createWbsNode(projectId, body)
       await load()
+    },
+    [projectId, load]
+  )
+
+  const submitWbsNodesBulk = useCallback(
+    async (items: CreateWbsNodePayload[]): Promise<BulkJobResponse> => {
+      if (!projectId) throw new Error('Missing project')
+      return wbsApi.submitWbsNodesBulk(projectId, items)
+    },
+    [projectId]
+  )
+
+  const updateNode = useCallback(
+    async (id: string, body: UpdateWbsNodePayload) => {
+      if (!projectId) return null
+      const updated = await wbsApi.updateWbsNode(projectId, id, body)
+      await load()
+      return updated
     },
     [projectId, load]
   )
@@ -66,6 +89,8 @@ export function useProjectWbs(projectId: string | null) {
     actingId,
     refetch: load,
     createNode,
+    submitWbsNodesBulk,
+    updateNode,
     archiveNode,
   }
 }

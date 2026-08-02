@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { ChevronDown, ChevronRight, MoreHorizontal } from 'lucide-react'
+import {
+  Calendar,
+  ChevronDown,
+  ChevronRight,
+  MoreHorizontal,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Badge,
@@ -22,13 +27,19 @@ import { CreateTaskModal, TaskDetailDrawer, canAssignTask } from '@/modules/proj
 import type { CreateTaskPayload, ProjectTask, UpdateTaskPayload } from '@/modules/projects/task'
 import { CreatePhaseModal } from '@/modules/projects/phase'
 import type { CreateProjectPhasePayload } from '@/modules/projects/phase'
-import { CreateWbsNodeModal } from '@/modules/projects/wbs'
+import { CreateWbsNodeModal, WbsNodeTypeBadge } from '@/modules/projects/wbs'
 import { useWorkspaceMembers } from '@/modules/org/workspace'
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
 import type { PersonIdentity } from '@/modules/platform'
 import { useProject } from '../../../project/hooks/useProject'
-import { TimelineGranularity, TimelineMetric, TimelineMode } from '../../domain/enums/timeline.enum'
+import {
+  TimelineGranularity,
+  TimelineMetric,
+  TimelineMode,
+} from '../../domain/enums/timeline.enum'
+import { TimelineCollapseModeButton } from './TimelineCollapseModeButton'
 import { buildBucketsForRow } from '../../domain/rules/timeline-buckets.rules'
+import { formatTimelineMetricLabel } from '../../domain/rules/timeline-metric-label.rules'
 import {
   addWorkingDays,
   compareDateOnly,
@@ -63,11 +74,16 @@ import { UnscheduledWorkDrawer } from './UnscheduledWorkDrawer'
 import { ProgressUpdatePopover } from './ProgressUpdatePopover'
 import { AllocationEditorPanel } from './AllocationEditorPanel'
 import { TimelineDependenciesPanel } from './TimelineDependenciesPanel'
+import { TimelineDependencyLinks } from './TimelineDependencyLinks'
 import { TimelineToolbar } from './TimelineToolbar'
 import { PhaseDetailDrawer } from './PhaseDetailDrawer'
 import { PhaseJumpSelect } from './PhaseJumpSelect'
 import { PhaseRichTooltip } from './PhaseRichTooltip'
-import { ScheduleBucketSegment } from './ScheduleBucketSegment'
+import {
+  ScheduleBucketSegment,
+  scheduleFillKindForRow,
+} from './ScheduleBucketSegment'
+import { TimelineContainerEditModal } from './TimelineContainerEditModal'
 import { buildBucketSegment } from '../../domain/rules/bucket-segment.rules'
 import {
   TIMELINE_LEFT_COLS,
@@ -83,10 +99,33 @@ import {
 const HEADER_H = TIMELINE_ROW_HEIGHT.HEADER
 
 /** Current period column (today / this week / month / quarter). */
-const TODAY_COL = 'bg-sky-50'
+const TODAY_COL = 'bg-sky-50 !border-l !border-r !border-l-sky-300 !border-r-sky-300'
+/** Shared hover wash across left label + canvas row. */
+const ROW_HOVER = 'bg-sky-50/70'
+/** Month separator — one step darker than column grid for clear month breaks. */
+const MONTH_BOUNDARY = 'border-l border-l-neutral-400'
 
 function rowHeight(kind: TimelineFlatRow['kind'], itemType?: string): number {
   return timelineRowHeight(kind, itemType)
+}
+
+/** Tasks + phase/project/WBS bars can be dragged on Day/Week. */
+function canDragSchedule(row: TimelineFlatRow): boolean {
+  if (row.kind === 'task' || row.kind === 'milestone') return true
+  if (
+    row.kind === 'phase' &&
+    (row.itemType === 'PHASE' || row.itemType === 'PROJECT' || row.itemType === 'WBS_NODE')
+  ) {
+    return true
+  }
+  return false
+}
+
+function canEditContainer(row: TimelineFlatRow): boolean {
+  return (
+    row.kind === 'phase' &&
+    (row.itemType === 'PHASE' || row.itemType === 'PROJECT' || row.itemType === 'WBS_NODE')
+  )
 }
 
 type DragKind = 'paint' | 'move' | 'resize-start' | 'resize-end'
@@ -108,41 +147,6 @@ type FillDragState = {
 }
 
 type CopiedDates = { startDate: string; endDate: string }
-
-function cellLabel(
-  metric: string,
-  scheduled: boolean,
-  plannedMinutes: number,
-  contribution: number | null,
-  actual: number | null,
-  variance: number | null,
-  carryForward: boolean,
-  occupancy: number | null
-): string {
-  if (!scheduled) return ''
-  if (metric === TimelineMetric.Effort) {
-    if (plannedMinutes <= 0) return ''
-    const h = plannedMinutes / 60
-    return Number.isInteger(h) ? `${h}h` : `${h.toFixed(1)}h`
-  }
-  if (metric === TimelineMetric.PlannedPercent) {
-    return contribution != null ? String(Math.round(contribution)) : ''
-  }
-  if (metric === TimelineMetric.ActualPercent) {
-    if (actual == null) return ''
-    return carryForward ? `~${Math.round(actual)}` : String(Math.round(actual))
-  }
-  if (metric === TimelineMetric.Variance) {
-    if (variance == null) return ''
-    const rounded = Math.round(variance)
-    return rounded > 0 ? `+${rounded}` : String(rounded)
-  }
-  if (metric === TimelineMetric.Occupancy) {
-    if (occupancy == null) return ''
-    return `${Math.round(occupancy)}%`
-  }
-  return ''
-}
 
 function daysPerColumn(granularity: string): number {
   if (granularity === TimelineGranularity.Day) return 1
@@ -190,6 +194,8 @@ export function CellTimelineView() {
   const [editingEstimateId, setEditingEstimateId] = useState<string | null>(null)
   const [estimateDraft, setEstimateDraft] = useState('')
   const [hoverRowId, setHoverRowId] = useState<string | null>(null)
+  const [containerEditRowId, setContainerEditRowId] = useState<string | null>(null)
+  const [containerSaving, setContainerSaving] = useState(false)
   const [rowMenuId, setRowMenuId] = useState<string | null>(null)
   const [progressTaskId, setProgressTaskId] = useState<string | null>(null)
   const [progressAnchorRowId, setProgressAnchorRowId] = useState<string | null>(null)
@@ -347,6 +353,36 @@ export function CellTimelineView() {
     [tl.colWidth, syncHeaderScroll]
   )
 
+  const pendingScrollToTodayRef = useRef(false)
+
+  const scrollCanvasToTodayColumn = useCallback(() => {
+    const canvas = canvasScrollRef.current
+    if (!canvas) return false
+    const todayIndex = tl.columns.findIndex((c) => c.isToday)
+    if (todayIndex < 0) return false
+    const targetLeft = Math.max(
+      0,
+      todayIndex * tl.colWidth - canvas.clientWidth / 2 + tl.colWidth / 2
+    )
+    canvas.scrollTo({ left: targetLeft, behavior: 'smooth' })
+    syncHeaderScroll(targetLeft)
+    return true
+  }, [tl.columns, tl.colWidth, syncHeaderScroll])
+
+  /** Scroll to today — keeps full plan; only expands if today was outside the window. */
+  const scrollToToday = useCallback(() => {
+    pendingScrollToTodayRef.current = true
+    tl.ensureTodayVisible()
+    requestAnimationFrame(() => {
+      if (scrollCanvasToTodayColumn()) pendingScrollToTodayRef.current = false
+    })
+  }, [tl, scrollCanvasToTodayColumn])
+
+  useEffect(() => {
+    if (!pendingScrollToTodayRef.current) return
+    if (scrollCanvasToTodayColumn()) pendingScrollToTodayRef.current = false
+  }, [tl.columns, scrollCanvasToTodayColumn])
+
   const panDragRef = useRef<{ startX: number; startScroll: number } | null>(null)
 
   // Non-passive wheel so we can map mouse-wheel → horizontal pan on desktop.
@@ -397,7 +433,7 @@ export function CellTimelineView() {
 
       if (row.kind === 'phase') {
         tl.setSelectedRowId(rowId)
-        openPhaseDrawer(rowId)
+        if (canEditContainer(row)) setContainerEditRowId(rowId)
         return
       }
 
@@ -428,7 +464,7 @@ export function CellTimelineView() {
       setSelectedIds(new Set([rowId]))
       setAnchorId(rowId)
     },
-    [anchorId, taskRows, tl, openPhaseDrawer]
+    [anchorId, taskRows, tl]
   )
 
   const previewRows = useMemo(() => {
@@ -534,8 +570,7 @@ export function CellTimelineView() {
       const hasScheduled = tl.rows.some(
         (r) => (r.kind === 'task' || r.kind === 'phase') && r.startDate && r.endDate
       )
-      if (hasScheduled) tl.fitToProject()
-      else tl.jumpToToday()
+      tl.fitToProject()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tl.loading, tl.rows.length])
@@ -678,8 +713,20 @@ export function CellTimelineView() {
     copiedDates,
   ])
 
+  const openContainerEdit = useCallback((row: TimelineFlatRow) => {
+    if (!canEditContainer(row)) return
+    if (row.itemType !== 'PROJECT' && !row.sourceEntityId) return
+    setContainerEditRowId(row.id)
+  }, [])
+
+  const containerEditRow = useMemo(
+    () => tl.allRows.find((r) => r.id === containerEditRowId) ?? null,
+    [tl.allRows, containerEditRowId]
+  )
+
   const startPaint = (row: TimelineFlatRow, colIndex: number) => {
-    if (!canEditSchedule || row.kind !== 'task' || !row.sourceEntityId) return
+    if (!canEditSchedule || !canDragSchedule(row) || !row.sourceEntityId) return
+    if (row.kind === 'phase' && row.startDate) return
     if (tl.granularity === TimelineGranularity.Month) return
     const col = tl.columns[colIndex]
     if (!col) return
@@ -696,7 +743,15 @@ export function CellTimelineView() {
   }
 
   const startMove = (row: TimelineFlatRow, colIndex: number) => {
-    if (!canEditSchedule || !row.startDate || !row.endDate || !row.sourceEntityId) return
+    if (
+      !canEditSchedule ||
+      !canDragSchedule(row) ||
+      !row.startDate ||
+      !row.endDate ||
+      !row.sourceEntityId
+    ) {
+      return
+    }
     if (tl.granularity === TimelineGranularity.Month) return
     selectRow(row.id)
     setDrag({
@@ -711,7 +766,15 @@ export function CellTimelineView() {
   }
 
   const startResize = (row: TimelineFlatRow, colIndex: number, edge: 'start' | 'end') => {
-    if (!canEditSchedule || !row.startDate || !row.endDate || !row.sourceEntityId) return
+    if (
+      !canEditSchedule ||
+      !canDragSchedule(row) ||
+      !row.startDate ||
+      !row.endDate ||
+      !row.sourceEntityId
+    ) {
+      return
+    }
     if (tl.granularity === TimelineGranularity.Month) return
     selectRow(row.id)
     setDrag({
@@ -731,14 +794,82 @@ export function CellTimelineView() {
   }
 
   const handleApply = async () => {
+    const canvas = canvasScrollRef.current
+    const left = leftScrollRef.current
+    const savedScroll = {
+      left: canvas?.scrollLeft ?? 0,
+      top: canvas?.scrollTop ?? left?.scrollTop ?? 0,
+    }
     setApplying(true)
     try {
-      await tl.applyChanges()
-      toast.success('Schedule changes applied')
+      const result = await tl.applyChanges()
+      if (result.skippedWbs > 0) {
+        toast.success('Schedule changes applied', {
+          description: `${result.skippedWbs} planning element date change(s) skipped — edit child tasks instead`,
+        })
+      } else {
+        toast.success('Schedule changes applied')
+      }
     } catch (err) {
       toast.error(getProblemToastMessage(err))
     } finally {
       setApplying(false)
+      requestAnimationFrame(() => {
+        const c = canvasScrollRef.current
+        const l = leftScrollRef.current
+        if (c) {
+          c.scrollLeft = savedScroll.left
+          c.scrollTop = savedScroll.top
+          syncHeaderScroll(savedScroll.left)
+        }
+        if (l) l.scrollTop = savedScroll.top
+      })
+    }
+  }
+
+  const handleContainerEditSave = async (values: {
+    title: string
+    description: string
+    startDate: string
+    endDate: string
+    nodeType?: string
+  }) => {
+    if (!containerEditRow) return
+    setContainerSaving(true)
+    try {
+      const result = await tl.updateContainerDetails(containerEditRow, values)
+      if (!result.updated) {
+        toast.error('Could not save changes for this item')
+        return
+      }
+      const kind =
+        containerEditRow.itemType === 'PROJECT'
+          ? 'Project'
+          : containerEditRow.itemType === 'WBS_NODE'
+            ? 'Planning Element'
+            : 'Phase'
+      toast.success(
+        result.shiftedTasks > 0
+          ? `${kind} updated · ${result.shiftedTasks} task${result.shiftedTasks === 1 ? '' : 's'} shifted`
+          : `${kind} updated`
+      )
+      const datesChanged =
+        (values.startDate || null) !== (containerEditRow.startDate || null) ||
+        (values.endDate || null) !== (containerEditRow.endDate || null)
+      if (datesChanged && (values.startDate || values.endDate)) {
+        tl.fitToPhase(
+          {
+            startDate: values.startDate || containerEditRow.startDate,
+            endDate: values.endDate || containerEditRow.endDate,
+          },
+          { adjustGranularity: false }
+        )
+      }
+      setContainerEditRowId(null)
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    } finally {
+      setContainerSaving(false)
     }
   }
 
@@ -1000,13 +1131,14 @@ export function CellTimelineView() {
     toast.success('Dates copied — Cmd/Ctrl+V to paste')
   }
 
-  if (tl.loading) return <PageSkeleton />
+  // Only skeleton on first load — refetch must keep the board mounted or scroll jumps to start.
+  if (tl.loading && tl.rows.length === 0) return <PageSkeleton />
   if (tl.forbidden) {
     return (
       <Typography tone="muted">You do not have access to this project timeline.</Typography>
     )
   }
-  if (tl.error) {
+  if (tl.error && tl.rows.length === 0) {
     return <Typography tone="muted">{tl.error}</Typography>
   }
 
@@ -1105,7 +1237,7 @@ export function CellTimelineView() {
                 title={
                   tl.phases.length === 0
                     ? 'Create a phase first'
-                    : 'Add a WBS node under a phase'
+                    : 'Add a planning element under a phase'
                 }
                 onClick={() => {
                   if (tl.phases.length === 0) return
@@ -1113,7 +1245,7 @@ export function CellTimelineView() {
                   setCreateWbsOpen(true)
                 }}
               >
-                <span>WBS node</span>
+                <span>Planning Element</span>
                 <span className="truncate text-xs font-normal text-neutral-500">
                   Break work into packages under a phase
                 </span>
@@ -1137,12 +1269,14 @@ export function CellTimelineView() {
         recalculating={tl.recalculating}
         showCriticalPath={showCriticalPath}
         hideUnscheduled={tl.hideUnscheduled}
-        onToday={tl.jumpToToday}
+        onToday={scrollToToday}
         onPanLeft={() => panCanvas(-1)}
         onPanRight={() => panCanvas(1)}
-        onFitProject={tl.fitToProject}
+        onFitProject={() => tl.fitToProject({ adjustGranularity: true })}
         onFitFocusedPhase={
-          focusedPhase ? () => tl.fitToPhase(focusedPhase) : null
+          focusedPhase
+            ? () => tl.fitToPhase(focusedPhase, { adjustGranularity: true })
+            : null
         }
         onAutoSchedule={() => {
           void (async () => {
@@ -1332,7 +1466,15 @@ export function CellTimelineView() {
             className="flex shrink-0 items-center border-b border-neutral-200 bg-neutral-50 px-sm text-xs font-medium text-neutral-600"
             style={{ height: HEADER_H }}
           >
-            <div className="shrink-0" style={{ width: TIMELINE_LEFT_COLS.CHECKBOX }} />
+            <div
+              className="flex shrink-0 items-center justify-center"
+              style={{ width: TIMELINE_LEFT_COLS.CHECKBOX }}
+            >
+              <TimelineCollapseModeButton
+                mode={tl.collapseMode}
+                onChange={tl.setCollapseMode}
+              />
+            </div>
             <div
               className="min-w-0 shrink-0 truncate"
               style={{ width: TIMELINE_LEFT_COLS.ITEM }}
@@ -1376,6 +1518,7 @@ export function CellTimelineView() {
                 onSelect={(e) => selectRow(row.id, e)}
                 onToggleCheck={() => selectRow(row.id, { metaKey: true })}
                 onTogglePhase={() => tl.togglePhase(row.id)}
+                onEditDates={() => openContainerEdit(row)}
                 assigneeLabel={
                   row.assigneeUserId ? labelFor(row.assigneeUserId) || null : null
                 }
@@ -1481,7 +1624,9 @@ export function CellTimelineView() {
                   className={cn(
                     'flex shrink-0 flex-col items-center justify-center border-r border-neutral-100 px-0.5 text-xs leading-tight',
                     col.isWeekend && !col.isToday && 'bg-neutral-100/80',
-                    col.isToday && TODAY_COL
+                    col.isToday && TODAY_COL,
+                    col.isMonthBoundary && !col.isToday && MONTH_BOUNDARY,
+                    col.isMonthBoundary && !col.isToday && 'bg-neutral-100/50'
                   )}
                   style={{ width: tl.colWidth, height: HEADER_H }}
                   title={
@@ -1501,8 +1646,9 @@ export function CellTimelineView() {
                   {col.subLabel && (
                     <span
                       className={cn(
-                        'text-[11px]',
-                        col.isToday ? 'text-sky-700/80' : 'text-neutral-600'
+                        'text-[11px] font-medium',
+                        col.isToday ? 'text-sky-700/80' : 'text-neutral-700',
+                        col.isMonthBoundary && !col.isToday && 'text-neutral-800'
                       )}
                     >
                       {col.subLabel}
@@ -1520,7 +1666,18 @@ export function CellTimelineView() {
             onScroll={() => syncScroll('canvas')}
             onMouseDown={onCanvasPanMouseDown}
           >
-            <div style={{ width: canvasWidth, minWidth: '100%' }}>
+            <div className="relative" style={{ width: canvasWidth, minWidth: '100%' }}>
+            <TimelineDependencyLinks
+              dependencies={tl.ganttDependencies ?? []}
+              rows={previewRows}
+              columns={tl.columns}
+              colWidth={tl.colWidth}
+              width={canvasWidth}
+              height={previewRows.reduce(
+                (sum, row) => sum + rowHeight(row.kind, row.itemType),
+                0
+              )}
+            />
             {previewRows.map((row, rowIndex) => {
               const buckets = buildBucketsForRow(
                 tl.columns,
@@ -1550,13 +1707,16 @@ export function CellTimelineView() {
                 -1
               )
 
+              const rowHovered = hoverRowId === row.id
+
               return (
                 <div
                   key={row.id}
                   className={cn(
                     'relative flex border-b border-neutral-100',
                     isSelected && 'bg-primary-50/40',
-                    row.kind === 'phase' && 'bg-neutral-50/60',
+                    row.kind === 'phase' && !rowHovered && !isSelected && 'bg-neutral-50/60',
+                    rowHovered && !isSelected && ROW_HOVER,
                     highlightPhaseId === row.id && 'bg-primary-100/70',
                     row.atRisk && row.kind !== 'phase' && 'bg-error-50/50',
                     onCritical && 'ring-1 ring-inset ring-warning-500',
@@ -1566,9 +1726,9 @@ export function CellTimelineView() {
                       'bg-primary-100/50'
                   )}
                   data-timeline-row={row.id}
-                  style={{ height: rowHeight(row.kind) }}
+                  style={{ height: rowHeight(row.kind, row.itemType) }}
                   onClick={() => {
-                    if (row.kind === 'phase') openPhaseDrawer(row.id)
+                    if (canEditContainer(row)) openContainerEdit(row)
                   }}
                   onDoubleClick={() => {
                     if (
@@ -1576,6 +1736,8 @@ export function CellTimelineView() {
                       row.sourceEntityId
                     ) {
                       void openTaskDetail(row.sourceEntityId)
+                    } else if (canEditContainer(row)) {
+                      openContainerEdit(row)
                     }
                   }}
                   title={
@@ -1607,15 +1769,13 @@ export function CellTimelineView() {
                           )
                         : null
                     const filled = Boolean(segment)
-                    const label = cellLabel(
+                    const metricLabel = formatTimelineMetricLabel(
                       tl.metric,
-                      filled && row.kind !== 'phase',
-                      bucket?.plannedMinutes ?? 0,
-                      bucket?.plannedContributionPercent ?? null,
-                      bucket?.actualProgressPercent ?? null,
-                      bucket?.variancePercent ?? null,
-                      bucket?.actualIsCarryForward ?? false,
-                      bucket?.occupancyPercent ?? null
+                      bucket,
+                      {
+                        // Hierarchy bars stay bar-only; metrics are for leaf tasks.
+                        include: row.kind === 'task' || row.kind === 'milestone',
+                      }
                     )
                     const isEdgeStart = Boolean(segment?.isFirst)
                     const isEdgeEnd = Boolean(segment?.isLast)
@@ -1628,12 +1788,13 @@ export function CellTimelineView() {
                           'group relative shrink-0 border-b border-neutral-100 border-r border-neutral-200',
                           col.isWeekend && !col.isToday && 'bg-neutral-50',
                           col.isToday && TODAY_COL,
-                          canEditSchedule && row.kind === 'task' && 'cursor-cell',
+                          col.isMonthBoundary && !col.isToday && MONTH_BOUNDARY,
+                          canEditSchedule && canDragSchedule(row) && 'cursor-cell',
                           canEditSchedule &&
                             row.kind === 'task' &&
                             !filled &&
                             !row.startDate &&
-                            hoverRowId === row.id &&
+                            rowHovered &&
                             !col.isToday &&
                             'bg-primary-50'
                         )}
@@ -1642,7 +1803,7 @@ export function CellTimelineView() {
                         onMouseDown={(e) => {
                           // Let Alt+drag / middle-click bubble for canvas pan.
                           if (e.altKey || e.button === 1) return
-                          if (!canEditSchedule || row.kind !== 'task') return
+                          if (!canEditSchedule || !canDragSchedule(row)) return
                           e.preventDefault()
                           if (filled && isEdgeStart) {
                             startResize(row, colIndex, 'start')
@@ -1650,7 +1811,7 @@ export function CellTimelineView() {
                             startResize(row, colIndex, 'end')
                           } else if (filled) {
                             startMove(row, colIndex)
-                          } else if (!row.startDate) {
+                          } else if (row.kind === 'task' && !row.startDate) {
                             scheduleUnscheduledOneDay(row, colIndex)
                             startPaint(row, colIndex)
                           } else {
@@ -1670,10 +1831,14 @@ export function CellTimelineView() {
                                   row.progressPercent != null
                                     ? `Progress: ${Math.round(row.progressPercent)}%`
                                     : null,
+                                  metricLabel ? `Display: ${metricLabel}` : null,
                                   row.kind === 'phase' && row.phaseSummary
                                     ? `${row.phaseSummary.taskCount} tasks`
                                     : null,
                                   row.status ? `Status: ${row.status}` : null,
+                                  canEditContainer(row)
+                                    ? 'Click to edit details and dates'
+                                    : null,
                                 ]
                                   .filter(Boolean)
                                   .join('\n')
@@ -1683,27 +1848,21 @@ export function CellTimelineView() {
                         {segment && (
                           <ScheduleBucketSegment
                             segment={segment}
-                            kind={
-                              row.kind === 'milestone'
-                                ? 'milestone'
-                                : row.kind === 'phase'
-                                  ? 'phase'
-                                  : 'task'
+                            kind={scheduleFillKindForRow(row)}
+                            atRisk={row.atRisk}
+                            unassigned={
+                              row.kind === 'task' && !row.assigneeUserId
                             }
+                            selected={isSelected}
                             progressPercent={
-                              row.kind === 'phase' || row.kind === 'task'
+                              tl.metric === TimelineMetric.Schedule &&
+                              row.kind === 'task'
                                 ? row.progressPercent
                                 : null
                             }
-                            atRisk={row.atRisk}
-                            selected={isSelected}
+                            metricLabel={metricLabel || undefined}
                             showHandles={
-                              canEditSchedule && row.kind === 'task' && filled
-                            }
-                            metricLabel={
-                              row.kind === 'phase'
-                                ? undefined
-                                : label || undefined
+                              canEditSchedule && canDragSchedule(row) && filled
                             }
                             onResizeStart={(edge) => {
                               startResize(row, colIndex, edge)
@@ -1714,7 +1873,7 @@ export function CellTimelineView() {
                           row.kind === 'task' &&
                           !row.startDate &&
                           canEditSchedule &&
-                          hoverRowId === row.id &&
+                          rowHovered &&
                           colIndex === 0 && (
                             <span className="pointer-events-none absolute left-2 top-1/2 z-[2] -translate-y-1/2 whitespace-nowrap text-[11px] font-medium text-primary-700">
                               Drag across cells to schedule
@@ -1769,7 +1928,7 @@ export function CellTimelineView() {
           setPhaseDrawerId(null)
         }}
         onFitDates={() => {
-          if (drawerPhase) tl.fitToPhase(drawerPhase)
+          if (drawerPhase) tl.fitToPhase(drawerPhase, { adjustGranularity: true })
         }}
       />
 
@@ -1813,7 +1972,7 @@ export function CellTimelineView() {
         onSubmit={async (body) => {
           try {
             await tl.createWbsNode(body)
-            toast.success('WBS node created')
+            toast.success('Planning element created')
             await tl.refetchAll()
           } catch (err) {
             toast.error(getProblemToastMessage(err))
@@ -1940,6 +2099,31 @@ export function CellTimelineView() {
           }}
         />
       )}
+
+      <TimelineContainerEditModal
+        open={containerEditRowId != null}
+        row={containerEditRow}
+        saving={containerSaving}
+        onClose={() => setContainerEditRowId(null)}
+        onSave={handleContainerEditSave}
+        onFocus={
+          containerEditRow?.itemType === 'PHASE'
+            ? () => {
+                if (!containerEditRowId) return
+                tl.focusPhase(containerEditRowId)
+                setContainerEditRowId(null)
+              }
+            : undefined
+        }
+        onAddTask={
+          containerEditRow?.itemType === 'PHASE'
+            ? () => {
+                openCreateTaskModal(containerEditRow.sourceEntityId)
+                setContainerEditRowId(null)
+              }
+            : undefined
+        }
+      />
     </Stack>
   )
 }
@@ -1955,6 +2139,7 @@ function LeftRow({
   onSelect,
   onToggleCheck,
   onTogglePhase,
+  onEditDates,
   assigneeLabel,
   adding,
   newTaskTitle,
@@ -1989,6 +2174,7 @@ function LeftRow({
   onSelect: (e: { shiftKey?: boolean; metaKey?: boolean; ctrlKey?: boolean }) => void
   onToggleCheck: () => void
   onTogglePhase: () => void
+  onEditDates: () => void
   assigneeLabel: string | null
   adding: boolean
   newTaskTitle: string
@@ -2021,7 +2207,7 @@ function LeftRow({
     return (
       <div
         className="flex items-center gap-sm border-b border-neutral-100 px-sm"
-        style={{ height: TIMELINE_ROW_HEIGHT.ADD_TASK, paddingLeft: 8 + row.depth * 12 }}
+        style={{ height: TIMELINE_ROW_HEIGHT.ADD_TASK, paddingLeft: 8 + row.depth * 16 }}
         onPaste={(e) => {
           const text = e.clipboardData.getData('text')
           if (text.includes('\n') || text.includes('\t')) {
@@ -2070,9 +2256,11 @@ function LeftRow({
     else if (row.displaySecondary) metaBits.push(row.displaySecondary)
     else if (code) metaBits.push(code)
     else if (description) metaBits.push(description)
-    if (row.startDate && row.endDate) {
-      metaBits.push(formatTimelineCompactRange(row.startDate, row.endDate))
-    }
+    const dateRangeLabel =
+      row.startDate && row.endDate
+        ? formatTimelineCompactRange(row.startDate, row.endDate)
+        : null
+    if (dateRangeLabel) metaBits.push(dateRangeLabel)
     if (row.collapsed && summary) {
       metaBits.length = 0
       if (code && description) metaBits.push(`${code} · ${description}`)
@@ -2087,7 +2275,11 @@ function LeftRow({
         metaBits.push(`${summary.unscheduledCount} unscheduled`)
       }
       if (health) metaBits.push(health)
+      if (dateRangeLabel) metaBits.push(dateRangeLabel)
     }
+
+    const datesEditable =
+      row.itemType === 'PHASE' || row.itemType === 'PROJECT' || row.itemType === 'WBS_NODE'
 
     return (
       <PhaseRichTooltip phase={row}>
@@ -2113,6 +2305,7 @@ function LeftRow({
             className={cn(
               'group relative flex cursor-pointer items-stretch border-b border-neutral-100 bg-neutral-50/80 px-sm text-sm',
               selected && 'bg-primary-50',
+              hovered && !selected && ROW_HOVER,
               highlighted && 'bg-primary-100',
               row.atRisk && 'bg-error-50/40'
             )}
@@ -2140,7 +2333,7 @@ function LeftRow({
             </div>
             <div
               className="min-w-0 shrink-0 overflow-hidden py-xs"
-              style={{ width: TIMELINE_LEFT_COLS.ITEM, paddingLeft: row.depth * 12 }}
+              style={{ width: TIMELINE_LEFT_COLS.ITEM, paddingLeft: row.depth * 16 }}
             >
               <div
                 className="font-semibold leading-snug text-neutral-900"
@@ -2176,6 +2369,8 @@ function LeftRow({
                 >
                   {health}
                 </Badge>
+              ) : row.itemType === 'WBS_NODE' && row.wbsNodeType ? (
+                <WbsNodeTypeBadge nodeType={row.wbsNodeType} />
               ) : (
                 <span className="truncate">{row.status ?? ''}</span>
               )}
@@ -2186,7 +2381,27 @@ function LeftRow({
             >
               {row.progressPercent != null ? `${Math.round(row.progressPercent)}%` : '—'}
             </div>
-            <div className="shrink-0" style={{ width: TIMELINE_LEFT_COLS.ESTIMATE }} />
+            <div
+              className="relative flex shrink-0 items-center justify-end"
+              style={{ width: TIMELINE_LEFT_COLS.ESTIMATE }}
+            >
+              {datesEditable && (hovered || !dateRangeLabel) && (
+                <button
+                  type="button"
+                  className="flex h-7 w-7 items-center justify-center text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800"
+                  title={
+                    'Edit details and dates'
+                  }
+                  aria-label="Edit dates"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEditDates()
+                  }}
+                >
+                  <Calendar className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           </div>
         )}
       </PhaseRichTooltip>
@@ -2234,6 +2449,7 @@ function LeftRow({
       className={cn(
         'group relative flex cursor-pointer items-center border-b border-neutral-100 px-sm text-sm',
         selected && 'bg-primary-50',
+        hovered && !selected && ROW_HOVER,
         fillActive && 'bg-primary-100/60',
         row.atRisk && 'bg-error-50'
       )}
@@ -2254,7 +2470,7 @@ function LeftRow({
       </div>
       <div
         className="relative min-w-0 shrink-0 overflow-hidden"
-        style={{ width: TIMELINE_LEFT_COLS.ITEM, paddingLeft: row.depth * 12 }}
+        style={{ width: TIMELINE_LEFT_COLS.ITEM, paddingLeft: row.depth * 16 }}
       >
         <div className="flex min-w-0 items-center gap-xs overflow-hidden pr-14">
           <span className="w-3.5 shrink-0" />

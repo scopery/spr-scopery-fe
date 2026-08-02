@@ -49,7 +49,7 @@ function addListSheet(
     { header: 'Finish date', key: 'finish', width: 14 },
     { header: 'Duration (days)', key: 'duration', width: 14 },
     { header: 'Phase ID', key: 'phaseId', width: 36 },
-    { header: 'WBS node ID', key: 'wbsNodeId', width: 36 },
+    { header: 'Planning element ID', key: 'wbsNodeId', width: 36 },
     { header: 'Assignee user ID', key: 'assignee', width: 36 },
   ]
 
@@ -155,8 +155,10 @@ function addSummarySheet(
   sheet.addRow(['Unscheduled tasks', unscheduled.length])
   sheet.addRow([])
   sheet.addRow(['Legend (Gantt sheet)'])
-  sheet.addRow(['Task bar', 'Blue'])
-  sheet.addRow(['Phase / WBS / Project', 'Slate'])
+  sheet.addRow(['Project', '#E4EA94'])
+  sheet.addRow(['Phase', '#AEE2DD'])
+  sheet.addRow(['Planning Element', '#EDCFEA'])
+  sheet.addRow(['Task bar', '#A8B8FC'])
   sheet.addRow(['Milestone', 'Violet ◆'])
   sheet.addRow(['At risk / Delayed', 'Amber'])
   sheet.getColumn(1).width = 24

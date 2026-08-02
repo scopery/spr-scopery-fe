@@ -115,9 +115,9 @@ const TOOL_CONFIG: Record<string, ToolConfig> = {
     ].filter(Boolean) as { label: string; value: string }[],
   },
   create_wbs_node: {
-    cardTitle: 'Suggested WBS nodes',
-    itemLabel: 'WBS node',
-    badge: 'WBS',
+    cardTitle: 'Suggested planning elements',
+    itemLabel: 'Planning element',
+    badge: 'Plan',
     extraFields: (h) => [
       h.nodeType ? { label: 'Type', value: h.nodeType } : null,
     ].filter(Boolean) as { label: string; value: string }[],

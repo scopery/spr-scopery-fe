@@ -44,7 +44,8 @@ Terminal UX:
 | Non-Functional Item | `POST /projects/{id}/non-functional-items/bulk` | `FunctionalCatalogBulkAddModal` (NFR) |
 | Use Case | `POST /projects/{id}/use-cases/bulk` | `UseCaseBulkAddModal` |
 | App Module / Screen / API / Component / Data Entity | `POST /workspaces/{ws}/applications/{app}/…/bulk` | `CatalogBulkAddModal` |
-| Project Phase | `POST /projects/{id}/phases/bulk` | `PhaseBulkAddModal` |
+| Project Phase | `POST /projects/{id}/phases/bulk` | `PhaseBulkAddModal` + `PhaseJsonImportModal` (Project Settings) |
+| Planning Element (WBS API) | `POST /projects/{id}/wbs-nodes/bulk` | `WbsBulkAddModal` + `WbsJsonImportModal` via `WbsAddBar` (Plan Structure page) |
 | Test Case | `POST /projects/{id}/test-cases/bulk` | `QualityBulkAddModal` (TEST_CASE); CaseImport + catalog paste when `≥ 50` |
 
 Test Case small batches (`< 50`) keep sync `POST .../test-cases/batch`.
@@ -52,10 +53,9 @@ Test Case small batches (`< 50`) keep sync `POST .../test-cases/batch`.
 ## API stubs only (no bulk UI yet)
 
 - `POST /projects/{id}/tasks/bulk` — `submitTasksBulk`
-- `POST /projects/{id}/wbs-nodes/bulk` — `submitWbsNodesBulk`
 
 ## Out of scope (wave 1)
 
-- Tasks / WBS bulk modals
+- Tasks bulk modals
 - Document-links / evidence / structure-relation bulk job migration
 - ~~Row-level failed-item IDs~~ → **shipped:** [`BULK_JOB_ITEM_FAILURES_BE_API_REQUIREMENTS.md`](./BULK_JOB_ITEM_FAILURES_BE_API_REQUIREMENTS.md) (`failures[]` on `BulkJobResponse`; FE panel shows table + copy failed JSON + retry failed only)

@@ -147,10 +147,20 @@ export function TimelineBulkToolbar({
           </AnchoredMenu>
         </div>
       )}
-      <Button variant="outline" size="sm" className="h-9 shrink-0" onClick={() => onShift(-1)}>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-9 shrink-0 border-error bg-red-50 text-error hover:bg-red-100 hover:text-error"
+        onClick={() => onShift(-1)}
+      >
         Shift −1d
       </Button>
-      <Button variant="outline" size="sm" className="h-9 shrink-0" onClick={() => onShift(1)}>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-9 shrink-0 border-success bg-emerald-50 text-success hover:bg-emerald-100 hover:text-success"
+        onClick={() => onShift(1)}
+      >
         Shift +1d
       </Button>
       <Button variant="outline" size="sm" className="h-9 shrink-0" onClick={onCopyDates}>

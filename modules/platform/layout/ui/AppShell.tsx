@@ -296,6 +296,10 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     pathActive(pathname, ROUTES.workspace.myWork(workspaceId))
   const clientsActive = pathActive(pathname, ROUTES.workspace.clients(workspaceId))
   const capacityActive = pathActive(pathname, ROUTES.workspace.capacity(workspaceId))
+  const resourceTimelineActive = pathActive(
+    pathname,
+    ROUTES.workspace.resourceTimeline(workspaceId)
+  )
   const notificationsActive = pathActive(pathname, ROUTES.workspace.notifications(workspaceId))
   const agentControlActive = pathActive(pathname, ROUTES.workspace.agentControl(workspaceId))
   const onWorkspaceDirectory =
@@ -342,6 +346,14 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
             href: ROUTES.workspace.capacity(workspaceId),
             icon: <Gauge size={16} />,
             active: capacityActive,
+          }
+        : null,
+      showCap(NavCapabilityKey.WorkspaceCapacity)
+        ? {
+            label: 'Team schedule',
+            href: ROUTES.workspace.resourceTimeline(workspaceId),
+            icon: <CalendarDays size={16} />,
+            active: resourceTimelineActive,
           }
         : null,
       showCap(NavCapabilityKey.WorkspaceClients)
@@ -420,6 +432,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     activityActive,
     projectsActive,
     capacityActive,
+    resourceTimelineActive,
     clientsActive,
     onWorkspaceDirectory,
     onOrgDirectory,
@@ -511,7 +524,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
             active: pathActive(pathname, workHref),
           },
           {
-            label: 'WBS',
+            label: 'Plan Structure',
             href: wbsHref,
             icon: <ListTree size={16} />,
             active: pathActive(pathname, wbsHref),
@@ -1163,6 +1176,10 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
   )
   /** Timeline keeps date/item headers pinned while rows scroll inside the board. */
   const immersiveTimeline = Boolean(pathname?.match(/\/projects\/[^/]+\/timeline(?:\/|$)/))
+  /** Team schedule uses the same pinned-header / inner-scroll board pattern. */
+  const immersiveResourceTimeline = Boolean(
+    pathname?.match(/\/workspace\/[^/]+\/resource-timeline(?:\/|$)/)
+  )
   const immersiveMain =
     immersiveDocumentEditor ||
     immersiveAiWorkspace ||
@@ -1171,7 +1188,8 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     immersiveUseCases ||
     immersiveRequirements ||
     immersiveQualityRuns ||
-    immersiveTimeline
+    immersiveTimeline ||
+    immersiveResourceTimeline
   // Immersive pages used to hide the AI sidebar (!immersiveMain). Keep full-bleed
   // content, but still allow the project chat beside it — except on the dedicated AI workspace.
   const showAiProjectSidebar = Boolean(

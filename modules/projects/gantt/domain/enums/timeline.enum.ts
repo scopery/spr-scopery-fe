@@ -22,6 +22,15 @@ export const TimelineMode = {
 } as const
 export type TimelineMode = (typeof TimelineMode)[keyof typeof TimelineMode]
 
+/** Global left-grid density for Cell Timeline. */
+export const TimelineCollapseMode = {
+  Expand: 'EXPAND',
+  Structure: 'STRUCTURE',
+  Project: 'PROJECT',
+} as const
+export type TimelineCollapseMode =
+  (typeof TimelineCollapseMode)[keyof typeof TimelineCollapseMode]
+
 export const AllocationSource = {
   Auto: 'AUTO',
   Manual: 'MANUAL',

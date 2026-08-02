@@ -1,5 +1,7 @@
-import { WbsNodeStatus } from '../enums/wbs.enum'
+import { WbsNodeStatus, WbsNodeType } from '../enums/wbs.enum'
 import type { WbsNode, WbsTreeNode } from '../model/wbs'
+
+export type WbsNodeTypeBadgeTone = 'info' | 'secondary' | 'warning' | 'neutral'
 
 /** Flatten a possibly-nested node list (tree endpoint may nest `children`). */
 function flattenWbsNodes(nodes: WbsNode[]): WbsNode[] {
@@ -50,6 +52,41 @@ export function wbsNodeStatusLabel(status: string): string {
       return 'Archived'
     default:
       return status
+  }
+}
+
+export function normalizeWbsNodeType(nodeType: string | null | undefined): string {
+  const t = (nodeType || '').toUpperCase().replace(/\s+/g, '_')
+  // Legacy DELIVERABLE folded into Milestone.
+  if (t === 'DELIVERABLE') return WbsNodeType.Milestone
+  return t
+}
+
+export function wbsNodeTypeLabel(nodeType: string | null | undefined): string {
+  switch (normalizeWbsNodeType(nodeType)) {
+    case WbsNodeType.WorkPackage:
+      return 'Work pack'
+    case WbsNodeType.TaskGroup:
+      return 'Task group'
+    case WbsNodeType.Milestone:
+      return 'Milestone'
+    default:
+      return nodeType?.trim() || '—'
+  }
+}
+
+export function wbsNodeTypeBadgeTone(
+  nodeType: string | null | undefined
+): WbsNodeTypeBadgeTone {
+  switch (normalizeWbsNodeType(nodeType)) {
+    case WbsNodeType.Milestone:
+      return 'warning'
+    case WbsNodeType.TaskGroup:
+      return 'secondary'
+    case WbsNodeType.WorkPackage:
+      return 'info'
+    default:
+      return 'neutral'
   }
 }
 

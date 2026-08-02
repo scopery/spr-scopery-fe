@@ -15,7 +15,7 @@ export const AI_ACTIONS = [
   { badge: 'Module', label: 'Create module', example: 'Tạo module Quản lý người dùng' },
   { badge: 'Entity', label: 'Create data entity', example: 'Tạo data entity cho bảng Order' },
   { badge: 'Comp', label: 'Create component', example: 'Tạo component Header' },
-  { badge: 'WBS', label: 'Create WBS node', example: 'Phân rã công việc thành WBS' },
+  { badge: 'Plan', label: 'Create planning element', example: 'Phân rã công việc thành planning element' },
   { badge: 'Phase', label: 'Create project phase', example: 'Tạo phase Sprint 1' },
 ]
 

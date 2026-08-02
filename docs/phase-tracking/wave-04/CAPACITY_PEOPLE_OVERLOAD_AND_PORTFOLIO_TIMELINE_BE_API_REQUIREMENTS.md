@@ -487,6 +487,26 @@ GET /api/workspaces/{workspaceId}/portfolio-timeline/projects/{projectId}/tasks
 
 Lazy when user expands a project (post-MVP).
 
+### 5.8.1 FE interim — Team schedule (resource timeline)
+
+FE ships `/workspace/{workspaceId}/resource-timeline` (**Team schedule**) before the portfolio/resource APIs land:
+
+- Fan-out `GET /api/projects/{projectId}/gantt` for up to **20** active projects (concurrency-limited).
+- Client filter: tasks for one `assigneeUserId` + optional unassigned leaves; prune empty Phase/WBS.
+- Collapse modes reused from Cell Timeline (`EXPAND` / `STRUCTURE` / `PROJECT`).
+
+**BE follow-up (replace fan-out):** prefer a single resource-aware schedule API, e.g.:
+
+```http
+GET /api/workspaces/{workspaceId}/resource-schedule
+  ?assigneeUserId=
+  &includeUnassigned=true|false
+  &from=&to=
+  &projectLimit=20
+```
+
+Response shape should return a pruned Project → Phase → WBS → Task forest (or flat items + parent ids) so FE can drop the per-project gantt fan-out. Occupancy/overload minutes stay out of scope until Capacity grid APIs (§5.x) land; then wire Occupancy overlay on the same page.
+
 ---
 
 ## 6. FE surfaces (when APIs land)

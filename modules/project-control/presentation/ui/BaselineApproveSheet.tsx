@@ -61,7 +61,7 @@ export function BaselineApproveSheet({
           </Typography>
           <ul className="mt-2 space-y-1 text-sm text-neutral-800">
             <li>{formatMetricNumber(metrics.phaseCount)} Phases</li>
-            <li>{formatMetricNumber(metrics.wbsCount)} WBS items</li>
+            <li>{formatMetricNumber(metrics.wbsCount)} planning elements</li>
             <li>{formatMetricNumber(metrics.taskCount)} Tasks</li>
             <li>{formatMetricNumber(metrics.estimateHours, 'h')} estimate</li>
           </ul>

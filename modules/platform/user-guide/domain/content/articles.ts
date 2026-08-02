@@ -82,8 +82,8 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
       },
       {
         title: 'Plan work',
-        body: 'Create tasks in Work Items, structure with WBS, schedule on Timeline, run Schedule if you need capacity planning.',
-        uiHints: ['Work Items', 'WBS', 'Timeline', 'Schedule'],
+        body: 'Create tasks in Work Items, structure with Plan Structure, schedule on Timeline, run Schedule if you need capacity planning.',
+        uiHints: ['Work Items', 'Plan Structure', 'Timeline', 'Schedule'],
       },
       {
         title: 'Lock scope & requirements',
@@ -231,7 +231,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     id: 'plan-work-items',
     groupId: 'plan',
     title: 'Work Items',
-    subtitle: 'Create and manage tasks that feed WBS, Timeline, and Schedule.',
+    subtitle: 'Create and manage tasks that feed Plan Structure, Timeline, and Schedule.',
     keywords: ['work items', 'tasks', 'todo', 'create task', 'board', 'list'],
     suggestedQuestions: ['How do I create a task?', 'What are Work Items?'],
     prerequisites: ['You are inside a project.', 'You can create/update tasks.'],
@@ -248,7 +248,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
       },
       {
         title: 'Create a task',
-        body: 'Click New task. Fill title, estimate hours, dates, assignee, and WBS/phase when available. Confirm with Create.',
+        body: 'Click New task. Fill title, estimate hours, dates, assignee, and planning element/phase when available. Confirm with Create.',
         uiHints: ['New task', 'Create', 'Cancel'],
       },
       {
@@ -261,29 +261,40 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
   {
     id: 'plan-wbs',
     groupId: 'plan',
-    title: 'WBS',
-    subtitle: 'Structure work into a tree before detailed scheduling.',
-    keywords: ['wbs', 'breakdown', 'structure', 'phase', 'node'],
-    suggestedQuestions: ['How do I use WBS?', 'How do I add a WBS node?'],
+    title: 'Plan Structure',
+    subtitle: 'Organize work into planning elements before detailed scheduling.',
+    keywords: [
+      'wbs',
+      'plan structure',
+      'planning element',
+      'breakdown',
+      'structure',
+      'phase',
+      'node',
+    ],
+    suggestedQuestions: [
+      'How do I use Plan Structure?',
+      'How do I add a planning element?',
+    ],
     steps: [
       {
-        title: 'Open WBS',
-        body: 'Project sidebar → Plan → WBS.',
-        uiHints: ['WBS'],
+        title: 'Open Plan Structure',
+        body: 'Project sidebar → Plan → Plan Structure.',
+        uiHints: ['Plan Structure'],
       },
       {
-        title: 'Add a node',
-        body: 'Click Add node (or Add child on a row). Confirm with Add.',
-        uiHints: ['Add node', 'Add child', 'Add', 'Cancel'],
+        title: 'Add a planning element',
+        body: 'Click Add element (or Add child on a row). Confirm with Add.',
+        uiHints: ['Add element', 'Add child', 'Add', 'Cancel'],
       },
       {
         title: 'Archive when obsolete',
-        body: 'Use Archive on a row to retire a node without deleting history where supported.',
+        body: 'Use Archive on a row to retire an element without deleting history where supported.',
         uiHints: ['Archive'],
       },
       {
         title: 'Link tasks',
-        body: 'When creating tasks in Work Items, assign a WBS node so Timeline stays organized.',
+        body: 'When creating tasks in Work Items, assign a planning element so Timeline stays organized.',
       },
     ],
     relatedIds: ['plan-work-items', 'plan-timeline'],
@@ -1104,7 +1115,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
       },
       {
         title: 'Review before apply',
-        body: 'Treat suggestions as drafts. Accept only what matches your WBS/Timeline plan.',
+        body: 'Treat suggestions as drafts. Accept only what matches your Plan Structure / Timeline plan.',
       },
       {
         title: 'Also use the shell assistant',

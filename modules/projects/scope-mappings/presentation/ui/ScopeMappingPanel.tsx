@@ -39,7 +39,7 @@ export function ScopeMappingPanel({ scopeItemId, projectId }: ScopeMappingPanelP
     setActing(true)
     try {
       await mapToWbs(trimmed)
-      toast.success('WBS node linked')
+      toast.success('Planning element linked')
       setWbsNodeId('')
       setShowInput(false)
     } catch (err) {
@@ -53,7 +53,7 @@ export function ScopeMappingPanel({ scopeItemId, projectId }: ScopeMappingPanelP
     setActing(true)
     try {
       await unmapFromWbs(mappingId)
-      toast.success('WBS node unlinked')
+      toast.success('Planning element unlinked')
     } catch (err) {
       toast.error(getProblemToastMessage(err))
     } finally {
@@ -65,7 +65,7 @@ export function ScopeMappingPanel({ scopeItemId, projectId }: ScopeMappingPanelP
     <div className="space-y-3">
       <Stack direction="horizontal" spacing="sm" className="items-center justify-between">
         <Typography variant="small" tone="muted">
-          WBS mappings
+          Planning element mappings
         </Typography>
         <Button
           size="sm"
@@ -109,7 +109,7 @@ export function ScopeMappingPanel({ scopeItemId, projectId }: ScopeMappingPanelP
         </Typography>
       ) : wbsMappings.length === 0 ? (
         <Typography variant="small" tone="muted">
-          No WBS nodes linked
+          No planning elements linked
         </Typography>
       ) : (
         <ul className="space-y-1">
@@ -119,13 +119,13 @@ export function ScopeMappingPanel({ scopeItemId, projectId }: ScopeMappingPanelP
               className="flex items-center justify-between gap-2 rounded border border-neutral-200 px-3 py-2"
             >
               <Typography variant="small">
-                {wbsLabels.get(m.wbsNodeId) ?? 'Unavailable WBS node'}
+                {wbsLabels.get(m.wbsNodeId) ?? 'Unavailable planning element'}
               </Typography>
               <Button
                 size="sm"
                 variant="ghost"
                 iconOnly
-                aria-label="Remove WBS mapping"
+                aria-label="Remove planning element mapping"
                 disabled={acting}
                 icon={<Trash2 size={14} />}
                 onClick={() => void handleRemove(m.id)}

@@ -480,7 +480,9 @@ function SummaryMetricsPanel({
             metrics.phaseCount != null ? `${formatMetricNumber(metrics.phaseCount)} Phases` : '—'
           }
           secondary={
-            metrics.wbsCount != null ? `${formatMetricNumber(metrics.wbsCount)} WBS` : undefined
+            metrics.wbsCount != null
+              ? `${formatMetricNumber(metrics.wbsCount)} planning elements`
+              : undefined
           }
         />
         <MetricBlock
@@ -556,7 +558,7 @@ function WhatChangedPreview({
           <Typography variant="caption" tone="muted" className="block pt-1">
             Tasks +{compare.changeCounts.tasksAdded} / −{compare.changeCounts.tasksRemoved}
             {' · '}
-            WBS +{compare.changeCounts.wbsAdded} / −{compare.changeCounts.wbsRemoved}
+            Planning elements +{compare.changeCounts.wbsAdded} / −{compare.changeCounts.wbsRemoved}
           </Typography>
         </div>
       ) : (
@@ -716,7 +718,11 @@ function DifferenceView({
         </Typography>
         <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <CountChip label="Phases" added={counts.phasesAdded} removed={counts.phasesRemoved} />
-          <CountChip label="WBS" added={counts.wbsAdded} removed={counts.wbsRemoved} />
+          <CountChip
+            label="Planning elements"
+            added={counts.wbsAdded}
+            removed={counts.wbsRemoved}
+          />
           <CountChip label="Tasks" added={counts.tasksAdded} removed={counts.tasksRemoved} />
           <CountChip
             label="Milestones"

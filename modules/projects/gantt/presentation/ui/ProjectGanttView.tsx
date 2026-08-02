@@ -290,7 +290,7 @@ export function ProjectGanttView() {
 
         await refetch()
         setGanttDataVersion((v) => v + 1)
-        const label = summaryTask.itemType === 'PHASE' ? 'Phase' : 'WBS'
+        const label = summaryTask.itemType === 'PHASE' ? 'Phase' : 'Planning Element'
         toast.success(
           moves.length
             ? `${label} moved · ${moves.length} task${moves.length === 1 ? '' : 's'} updated`
@@ -387,7 +387,7 @@ export function ProjectGanttView() {
           return false
         }
         if (isGanttSummaryDraggable(task)) {
-          toast.info('Drag the WBS bar to shift its tasks, or edit task dates directly')
+          toast.info('Drag the planning element bar to shift its tasks, or edit task dates directly')
           return false
         }
         const hint = ganttDragHintForItemType(String(task.itemType ?? ''))
