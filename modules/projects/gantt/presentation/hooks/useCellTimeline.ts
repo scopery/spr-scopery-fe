@@ -33,6 +33,7 @@ import {
   type WbsEnrichment,
 } from '../../domain/rules/timeline-rows.rules'
 import {
+  ensureDateInViewport,
   ensureTodayInViewport,
   pickFitGranularity,
   resolveTimelineViewport,
@@ -344,6 +345,14 @@ export function useCellTimeline(projectId: string | null) {
     setViewport((prev) => ensureTodayInViewport(prev ?? initialViewport))
   }, [initialViewport])
 
+  /** Expand viewport if needed so `date` is included — never shrinks the plan range. */
+  const ensureDateVisible = useCallback(
+    (date: string) => {
+      setViewport((prev) => ensureDateInViewport(prev ?? initialViewport, date))
+    },
+    [initialViewport]
+  )
+
   const focusPhase = useCallback(
     (phaseRowId: string) => {
       expandPhase(phaseRowId)
@@ -610,6 +619,7 @@ export function useCellTimeline(projectId: string | null) {
     fitToProject,
     fitToPhase,
     ensureTodayVisible,
+    ensureDateVisible,
     draft: draftApi,
     applyChanges,
     progressSnapshots: progress.snapshots,

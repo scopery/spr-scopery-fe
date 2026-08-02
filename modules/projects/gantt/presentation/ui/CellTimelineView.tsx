@@ -296,22 +296,6 @@ export function CellTimelineView() {
     autoFitToLabels(labels)
   }, [tl.rows, autoFitToLabels])
 
-  const jumpToPhase = useCallback(
-    (phaseRowId: string) => {
-      tl.expandPhase(phaseRowId)
-      tl.setSelectedRowId(phaseRowId)
-      const phase = tl.allRows.find((r) => r.id === phaseRowId)
-      if (phase) tl.fitToPhase(phase)
-      setHighlightPhaseId(phaseRowId)
-      window.setTimeout(() => setHighlightPhaseId((id) => (id === phaseRowId ? null : id)), 1800)
-      requestAnimationFrame(() => {
-        const el = document.querySelector(`[data-timeline-row="${phaseRowId}"]`)
-        el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-      })
-    },
-    [tl]
-  )
-
   const openPhaseDrawer = useCallback((phaseRowId: string) => {
     setPhaseDrawerId(phaseRowId)
     tl.setSelectedRowId(phaseRowId)
@@ -321,6 +305,60 @@ export function CellTimelineView() {
     const header = canvasHeaderScrollRef.current
     if (header && header.scrollLeft !== scrollLeft) header.scrollLeft = scrollLeft
   }, [])
+
+  const pendingScrollToDateRef = useRef<string | null>(null)
+
+  const scrollCanvasToDateColumn = useCallback(
+    (date: string) => {
+      const canvas = canvasScrollRef.current
+      if (!canvas) return false
+      const day = date.slice(0, 10)
+      const columnIndex = tl.columns.findIndex(
+        (c) => day >= c.periodStart && day <= c.periodEnd
+      )
+      if (columnIndex < 0) return false
+      const targetLeft = Math.max(
+        0,
+        columnIndex * tl.colWidth - canvas.clientWidth / 2 + tl.colWidth / 2
+      )
+      canvas.scrollTo({ left: targetLeft, behavior: 'smooth' })
+      syncHeaderScroll(targetLeft)
+      return true
+    },
+    [tl.columns, tl.colWidth, syncHeaderScroll]
+  )
+
+  useEffect(() => {
+    const date = pendingScrollToDateRef.current
+    if (!date) return
+    if (scrollCanvasToDateColumn(date)) pendingScrollToDateRef.current = null
+  }, [tl.columns, scrollCanvasToDateColumn])
+
+  /** Jump = navigate to the phase row/date. Does not fit/limit the timeline viewport. */
+  const jumpToPhase = useCallback(
+    (phaseRowId: string) => {
+      tl.expandPhase(phaseRowId)
+      tl.setSelectedRowId(phaseRowId)
+      const phase = tl.allRows.find((r) => r.id === phaseRowId)
+      const focusDate = phase?.startDate ?? phase?.endDate ?? null
+      if (focusDate) {
+        pendingScrollToDateRef.current = focusDate
+        tl.ensureDateVisible(focusDate)
+        requestAnimationFrame(() => {
+          if (scrollCanvasToDateColumn(focusDate)) {
+            pendingScrollToDateRef.current = null
+          }
+        })
+      }
+      setHighlightPhaseId(phaseRowId)
+      window.setTimeout(() => setHighlightPhaseId((id) => (id === phaseRowId ? null : id)), 1800)
+      requestAnimationFrame(() => {
+        const el = document.querySelector(`[data-timeline-row="${phaseRowId}"]`)
+        el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      })
+    },
+    [tl, scrollCanvasToDateColumn]
+  )
 
   const syncScroll = useCallback(
     (source: 'left' | 'canvas') => {
