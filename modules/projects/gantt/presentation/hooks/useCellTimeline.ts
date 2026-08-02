@@ -264,6 +264,7 @@ export function useCellTimeline(projectId: string | null) {
     tasksLoading: tasksHook.loading,
     createTask: tasksHook.createTask,
     updateTask: tasksHook.updateTask,
+    assignTask: tasksHook.assignTask,
     getTask: tasksHook.getTask,
     runLifecycle: tasksHook.runLifecycle,
     mode,

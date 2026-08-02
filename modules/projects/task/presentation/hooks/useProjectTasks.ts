@@ -70,6 +70,16 @@ export function useProjectTasks(projectId: string | null, filters?: ListTasksPar
     [projectId, load]
   )
 
+  const assignTask = useCallback(
+    async (taskId: string, inChargeUserId: string) => {
+      if (!projectId) return null
+      const updated = await tasksApi.assignTask(projectId, taskId, inChargeUserId)
+      await load()
+      return updated
+    },
+    [projectId, load]
+  )
+
   const getTask = useCallback(
     async (taskId: string) => {
       if (!projectId) return null
@@ -107,6 +117,7 @@ export function useProjectTasks(projectId: string | null, filters?: ListTasksPar
     refetch: load,
     createTask,
     updateTask,
+    assignTask,
     getTask,
     runLifecycle,
   }

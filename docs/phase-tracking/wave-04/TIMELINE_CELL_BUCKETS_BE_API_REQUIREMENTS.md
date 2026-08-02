@@ -39,7 +39,7 @@ FE Cell Timeline needs one canonical source so Planned % / Effort / Variance mat
 | Cumulative planned | `sum(plannedMinutes from task start through bucket end) / total` |
 | Actual | last `progress_snapshot` on/before bucket end (else null — never invent from dates) |
 | Variance (pp) | `actual - cumulativePlanned` when actual present |
-| Occupancy | `task planned minutes / member capacity` (later; needs capacity) |
+| Occupancy | `task planned minutes / member capacity` — see [`CAPACITY_PEOPLE_OVERLOAD_AND_PORTFOLIO_TIMELINE_BE_API_REQUIREMENTS.md`](./CAPACITY_PEOPLE_OVERLOAD_AND_PORTFOLIO_TIMELINE_BE_API_REQUIREMENTS.md) |
 
 Never derive Actual from Start/End alone.
 

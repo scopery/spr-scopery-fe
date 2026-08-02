@@ -18,7 +18,7 @@ import {
 import { cn } from '@/utils/cn'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
-import { CreateTaskModal, TaskDetailDrawer } from '@/modules/projects/task'
+import { CreateTaskModal, TaskDetailDrawer, canAssignTask } from '@/modules/projects/task'
 import type { CreateTaskPayload, ProjectTask, UpdateTaskPayload } from '@/modules/projects/task'
 import { useWorkspaceMembers } from '@/modules/org/workspace'
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
@@ -232,21 +232,6 @@ export function CellTimelineView() {
           }
         }),
     [members, personFor, labelFor]
-  )
-
-  const phaseOptions = useMemo(
-    () =>
-      tl.phaseRows
-        .map((p) => {
-          const id = p.sourceEntityId ?? p.phaseId
-          if (!id) return null
-          return {
-            value: id,
-            label: p.phaseCode ? `${p.phaseCode} · ${p.displayPrimary}` : p.displayPrimary,
-          }
-        })
-        .filter((p): p is { value: string; label: string } => Boolean(p)),
-    [tl.phaseRows]
   )
 
   const drawerPhase = useMemo(
@@ -826,27 +811,33 @@ export function CellTimelineView() {
     toast.success('Scheduled in parallel (draft)')
   }
 
-  const bulkAssign = async (userId: string) => {
-    try {
-      for (const row of selectedTasks) {
-        if (!row.sourceEntityId) continue
-        await tl.updateTask(row.sourceEntityId, { inChargeUserId: userId })
-      }
-      await tl.refetch()
-      toast.success(`Assigned ${selectedTasks.length} task(s)`)
-    } catch (err) {
-      toast.error(getProblemToastMessage(err))
-    }
-  }
+  const assignableSelectedTasks = useMemo(
+    () =>
+      selectedTasks.filter(
+        (row) => Boolean(row.sourceEntityId) && canAssignTask(row.status ?? '')
+      ),
+    [selectedTasks]
+  )
 
-  const bulkMovePhase = async (phaseId: string) => {
+  const bulkAssign = async (userId: string) => {
+    const assignable = assignableSelectedTasks
+    const skipped = selectedTasks.length - assignable.length
+
+    if (assignable.length === 0) {
+      toast.error('Cannot assign completed or closed tasks')
+      return
+    }
+
     try {
-      for (const row of selectedTasks) {
-        if (!row.sourceEntityId) continue
-        await tl.updateTask(row.sourceEntityId, { projectPhaseId: phaseId })
+      for (const row of assignable) {
+        await tl.assignTask(row.sourceEntityId!, userId)
       }
       await tl.refetch()
-      toast.success(`Moved ${selectedTasks.length} task(s)`)
+      toast.success(
+        skipped > 0
+          ? `Assigned ${assignable.length} task(s); skipped ${skipped} done/closed`
+          : `Assigned ${assignable.length} task(s)`
+      )
     } catch (err) {
       toast.error(getProblemToastMessage(err))
     }
@@ -895,23 +886,7 @@ export function CellTimelineView() {
           project={project ? { id: projectId, name: project.name } : undefined}
           current="Timeline"
         />
-        <div className="flex items-start gap-3">
-          <div className="relative shrink-0 pt-0.5">
-            <Button
-              variant="ghost"
-              size="md"
-              className="h-9 bg-neutral-800 px-3 text-[13px] text-white shadow-none hover:bg-neutral-900 hover:text-white active:bg-neutral-950"
-              onClick={() => {
-                const phase =
-                  focusedPhase ??
-                  tl.phaseRows.find((p) => !p.collapsed) ??
-                  tl.phaseRows[0]
-                openCreateTaskModal(phase?.sourceEntityId ?? null)
-              }}
-            >
-              + Add
-            </Button>
-          </div>
+        <div className="flex items-start justify-between gap-3">
           <Stack direction="vertical" spacing="xs" className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <Typography as="h1" size="md" weight="medium">
@@ -935,11 +910,26 @@ export function CellTimelineView() {
                 }}
               />
             </div>
-            <Typography className="max-w-2xl text-sm leading-relaxed text-neutral-500">
-              Plan phases and tasks on a shared calendar — drag to schedule, zoom Day to
-              Quarter, and spot unscheduled or at-risk work at a glance.
+            <Typography className="max-w-2xl truncate text-sm text-neutral-500">
+              Plan phases and tasks on a shared calendar — schedule, zoom, and spot risks.
             </Typography>
           </Stack>
+          <div className="relative shrink-0 pt-0.5">
+            <Button
+              variant="ghost"
+              size="md"
+              className="h-9 bg-neutral-800 px-3 text-[13px] text-white shadow-none hover:bg-neutral-900 hover:text-white active:bg-neutral-950"
+              onClick={() => {
+                const phase =
+                  focusedPhase ??
+                  tl.phaseRows.find((p) => !p.collapsed) ??
+                  tl.phaseRows[0]
+                openCreateTaskModal(phase?.sourceEntityId ?? null)
+              }}
+            >
+              + Add
+            </Button>
+          </div>
         </div>
       </Stack>
 
@@ -1013,10 +1003,9 @@ export function CellTimelineView() {
         <TimelineBulkToolbar
           selectedCount={selectedTasks.length}
           assigneePeople={assigneePeople}
-          phases={phaseOptions}
+          showAssign={assignableSelectedTasks.length > 0}
           onClear={() => setSelectedIds(new Set())}
           onAssign={(id) => void bulkAssign(id)}
-          onMovePhase={(id) => void bulkMovePhase(id)}
           onShift={bulkShift}
           onSequential={bulkSequential}
           onParallel={bulkParallel}
@@ -1925,7 +1914,11 @@ function LeftRow({
               style={{ width: TIMELINE_LEFT_COLS.STATUS }}
             >
               {health ? (
-                <Badge tone="error" size="sm">
+                <Badge
+                  tone={health === 'Has gaps' ? 'warning' : 'error'}
+                  variant="solid"
+                  size="sm"
+                >
                   {health}
                 </Badge>
               ) : (
@@ -2126,18 +2119,6 @@ function LeftRow({
               >
                 Duplicate below
               </button>
-              {planning && (
-                <button
-                  type="button"
-                  className={anchoredMenuItemClassName}
-                  onClick={() => {
-                    onToggleMenu()
-                    onEditEstimate()
-                  }}
-                >
-                  Edit estimate
-                </button>
-              )}
             </AnchoredMenu>
           </div>
         )}

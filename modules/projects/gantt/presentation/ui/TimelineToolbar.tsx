@@ -64,7 +64,7 @@ function ZoomSegment({
   ]
   return (
     <div
-      className="inline-flex h-9 shrink-0 items-center gap-0.5 bg-neutral-50 p-0.5"
+      className="inline-flex h-9 shrink-0 items-center gap-0.5 bg-neutral-100 p-0.5"
       role="group"
       aria-label="Zoom"
     >
@@ -76,7 +76,7 @@ function ZoomSegment({
             'min-w-[4.25rem] px-3 py-1 text-[13px]',
             value === opt.value
               ? 'bg-secondary font-medium text-white'
-              : 'font-normal text-neutral-600 hover:bg-neutral-100 hover:text-neutral-800'
+              : 'font-normal text-neutral-600 hover:bg-neutral-200 hover:text-neutral-800'
           )}
           onClick={() => onChange(opt.value)}
         >

@@ -478,6 +478,7 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
         task={selectedTask}
         open={!!selectedTask}
         acting={actingId === selectedTask?.id}
+        closeHref={ROUTES.workspace.projectWork(workspaceId, projectId)}
         onClose={() => setSelectedTask(null)}
         onLifecycle={async (taskId, action) => {
           try {

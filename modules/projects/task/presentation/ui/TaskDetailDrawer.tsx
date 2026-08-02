@@ -13,6 +13,7 @@ import type { ProjectPhase } from '../../../phase/domain/model/phase'
 import type { ProjectTask, UpdateTaskPayload } from '../../domain/model/task'
 import {
   allowedTaskLifecycleActions,
+  canAssignTask,
   taskPriorityLabel,
   taskStatusLabel,
   type TaskLifecycleAction,
@@ -73,6 +74,11 @@ interface TaskDetailDrawerProps {
   onClose: () => void
   onLifecycle: (taskId: string, action: TaskLifecycleAction) => Promise<void>
   onSave: (taskId: string, body: UpdateTaskPayload) => Promise<void>
+  /**
+   * Optional URL to `router.replace` on close (e.g. Work Items deep-link clear).
+   * Omit when embedded on Timeline / other pages so close stays on the current route.
+   */
+  closeHref?: string | null
 }
 
 export function TaskDetailDrawer({
@@ -85,6 +91,7 @@ export function TaskDetailDrawer({
   onClose,
   onLifecycle,
   onSave,
+  closeHref = null,
 }: TaskDetailDrawerProps) {
   const router = useRouter()
 
@@ -147,10 +154,11 @@ export function TaskDetailDrawer({
   if (!open || !task) return null
 
   const actions = allowedTaskLifecycleActions(task.status)
+  const assignable = canAssignTask(task.status)
 
   const handleClose = () => {
     onClose()
-    router.replace(`/workspace/${workspaceId}/projects/${projectId}/work`)
+    if (closeHref) router.replace(closeHref)
   }
 
   const handleSave = async () => {
@@ -177,7 +185,9 @@ export function TaskDetailDrawer({
         priority,
         dueDate: dueDate || null,
         projectPhaseId: phaseId || null,
-        inChargeUserId: assigneeId || null,
+        inChargeUserId: assignable
+          ? assigneeId || null
+          : task.inChargeUserId ?? null,
         wbsNodeId: wbsNodeId || null,
         estimateHours: hours,
       })
@@ -278,7 +288,13 @@ export function TaskDetailDrawer({
                 onChange={setAssigneeId}
                 seedPeople={assigneePeople}
                 allowRemoteSearch={false}
+                disabled={!assignable}
               />
+              {!assignable && (
+                <Typography variant="caption" tone="muted" className="-mt-2">
+                  Completed or closed tasks cannot be reassigned
+                </Typography>
+              )}
               <div>
                 <Typography variant="small" className="mb-1.5">
                   WBS node

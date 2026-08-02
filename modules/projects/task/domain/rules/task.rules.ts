@@ -50,16 +50,27 @@ export function taskLifecycleActionForBoardMove(
   return BOARD_TRANSITION[fromStatus]?.[toStatus] ?? null
 }
 
+export function isTaskClosed(status: string): boolean {
+  const s = status.toUpperCase()
+  return (
+    s === TaskStatus.Completed ||
+    s === 'COMPLETED' ||
+    s === TaskStatus.Cancelled ||
+    s === TaskStatus.Archived
+  )
+}
+
+/** Closed tasks (done / cancelled / archived) cannot be reassigned. */
+export function canAssignTask(status: string): boolean {
+  return !isTaskClosed(status)
+}
+
 export function isTaskOverdue(task: {
   status: string
   dueDate: string | null
 }): boolean {
   if (!task.dueDate) return false
-  if (
-    task.status === TaskStatus.Completed ||
-    task.status === TaskStatus.Cancelled ||
-    task.status === TaskStatus.Archived
-  ) {
+  if (isTaskClosed(task.status)) {
     return false
   }
   const due = new Date(task.dueDate)

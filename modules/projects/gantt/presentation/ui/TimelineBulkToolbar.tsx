@@ -9,17 +9,15 @@ import {
   Typography,
 } from '@/shared/ui'
 import { ChevronDown } from 'lucide-react'
-import { UserSearchSelect, type PersonIdentity } from '@/modules/platform/identity'
-
-export type BulkPhaseOption = { value: string; label: string }
+import { UserIdentity, type PersonIdentity } from '@/modules/platform'
 
 type Props = {
   selectedCount: number
   assigneePeople: PersonIdentity[]
-  phases: BulkPhaseOption[]
+  /** Hide Assign when all selected tasks are done/closed. */
+  showAssign?: boolean
   onClear: () => void
   onAssign: (userId: string) => void
-  onMovePhase: (phaseId: string) => void
   onShift: (deltaWorkingDays: number) => void
   onSequential: () => void
   onParallel: () => void
@@ -30,19 +28,17 @@ type Props = {
 export function TimelineBulkToolbar({
   selectedCount,
   assigneePeople,
-  phases,
+  showAssign = true,
   onClear,
   onAssign,
-  onMovePhase,
   onShift,
   onSequential,
   onParallel,
   onArchive,
   onCopyDates,
 }: Props) {
-  const [assignKey, setAssignKey] = useState(0)
-  const [phaseOpen, setPhaseOpen] = useState(false)
-  const phaseRef = useRef<HTMLDivElement>(null)
+  const [assignOpen, setAssignOpen] = useState(false)
+  const assignRef = useRef<HTMLDivElement>(null)
 
   if (selectedCount === 0) return null
 
@@ -61,55 +57,44 @@ export function TimelineBulkToolbar({
       <Button variant="outline" size="sm" className="h-9 shrink-0" onClick={onParallel}>
         Schedule in Parallel
       </Button>
-      <div className="w-[16rem] shrink-0" key={assignKey}>
-        <UserSearchSelect
-          placeholder="Assign to…"
-          value=""
-          seedPeople={assigneePeople}
-          allowRemoteSearch={false}
-          onChange={(userId) => {
-            if (!userId) return
-            onAssign(userId)
-            setAssignKey((k) => k + 1)
-          }}
-        />
-      </div>
-      <div ref={phaseRef} className="relative shrink-0">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9 min-w-[11rem] justify-between"
-          disabled={phases.length === 0}
-          onClick={() => setPhaseOpen((v) => !v)}
-        >
-          Move phase…
-          <ChevronDown className="ml-1 h-3.5 w-3.5" />
-        </Button>
-        <AnchoredMenu
-          open={phaseOpen}
-          onClose={() => setPhaseOpen(false)}
-          anchorRef={phaseRef}
-          minWidth={220}
-        >
-          {phases.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-neutral-500">No phases</div>
-          ) : (
-            phases.map((p) => (
-              <button
-                key={p.value}
-                type="button"
-                className={anchoredMenuItemClassName}
-                onClick={() => {
-                  setPhaseOpen(false)
-                  onMovePhase(p.value)
-                }}
-              >
-                {p.label}
-              </button>
-            ))
-          )}
-        </AnchoredMenu>
-      </div>
+      {showAssign && (
+        <div ref={assignRef} className="relative shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 min-w-[11rem] justify-between"
+            disabled={assigneePeople.length === 0}
+            onClick={() => setAssignOpen((v) => !v)}
+          >
+            Assign to…
+            <ChevronDown className="ml-1 h-3.5 w-3.5" />
+          </Button>
+          <AnchoredMenu
+            open={assignOpen}
+            onClose={() => setAssignOpen(false)}
+            anchorRef={assignRef}
+            minWidth={260}
+          >
+            {assigneePeople.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-neutral-500">No members</div>
+            ) : (
+              assigneePeople.map((person) => (
+                <button
+                  key={person.id}
+                  type="button"
+                  className={anchoredMenuItemClassName}
+                  onClick={() => {
+                    setAssignOpen(false)
+                    onAssign(person.id)
+                  }}
+                >
+                  <UserIdentity userId={person.id} person={person} showEmail size="sm" />
+                </button>
+              ))
+            )}
+          </AnchoredMenu>
+        </div>
+      )}
       <Button variant="outline" size="sm" className="h-9 shrink-0" onClick={() => onShift(-1)}>
         Shift −1d
       </Button>
