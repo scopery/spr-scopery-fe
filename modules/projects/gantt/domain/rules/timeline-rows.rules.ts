@@ -19,6 +19,11 @@ export interface PhaseEnrichment {
   description: string | null
 }
 
+export interface WbsEnrichment {
+  description: string | null
+  code: string | null
+}
+
 /**
  * Flatten gantt tree into left-grid rows (phase → tasks → + Add task).
  * Collapsed phase ids hide children + add row.
@@ -30,12 +35,14 @@ export function flattenTimelineRows(
     hideUnscheduled: boolean
     taskById: Map<string, TaskEnrichment>
     phaseById?: Map<string, PhaseEnrichment>
+    wbsById?: Map<string, WbsEnrichment>
     includeAddRows?: boolean
   }
 ): TimelineFlatRow[] {
   const rows: TimelineFlatRow[] = []
   const includeAdd = options.includeAddRows !== false
   const phaseById = options.phaseById ?? new Map()
+  const wbsById = options.wbsById ?? new Map()
 
   const visit = (
     nodes: GanttTreeItem[],
@@ -143,7 +150,13 @@ export function flattenTimelineRows(
         if (node.children.length) visit(node.children, depth + 1, parentPhaseSourceId)
       } else {
         // WBS / PROJECT summary — show as phase-like group without add row
-        const display = resolvePhaseDisplay({ ganttTitle: node.title })
+        const wbsMeta = node.sourceEntityId
+          ? wbsById.get(node.sourceEntityId)
+          : undefined
+        const display = resolvePhaseDisplay({
+          ganttTitle: node.title,
+          code: wbsMeta?.code ?? undefined,
+        })
         const summary =
           node.children.length > 0
             ? summarizePhaseSubtree(node, options.taskById)
@@ -170,7 +183,7 @@ export function flattenTimelineRows(
           endDate: node.endDate,
           collapsed: options.collapsedPhaseIds.has(node.id),
           phaseSummary: summary,
-          phaseDescription: null,
+          phaseDescription: wbsMeta?.description ?? null,
         })
         if (!options.collapsedPhaseIds.has(node.id) && node.children.length) {
           visit(node.children, depth + 1, parentPhaseSourceId)

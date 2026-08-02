@@ -3,6 +3,8 @@
 import { useRef, useState, type ReactNode } from 'react'
 import {
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Redo2,
   Settings2,
   Undo2,
@@ -37,6 +39,8 @@ type Props = {
   showCriticalPath: boolean
   hideUnscheduled: boolean
   onToday: () => void
+  onPanLeft: () => void
+  onPanRight: () => void
   onFitProject: () => void
   onFitFocusedPhase: (() => void) | null
   onAutoSchedule: () => void
@@ -49,43 +53,12 @@ type Props = {
   phaseJumpSlot?: ReactNode
 }
 
-function ZoomSegment({
-  value,
-  onChange,
-}: {
-  value: Granularity
-  onChange: (g: Granularity) => void
-}) {
-  const options: { value: Granularity; label: string }[] = [
-    { value: TimelineGranularity.Day, label: 'Day' },
-    { value: TimelineGranularity.Week, label: 'Week' },
-    { value: TimelineGranularity.Month, label: 'Month' },
-    { value: TimelineGranularity.Quarter, label: 'Quarter' },
-  ]
-  return (
-    <div
-      className="inline-flex h-9 shrink-0 items-center gap-0.5 bg-neutral-100 p-0.5"
-      role="group"
-      aria-label="Zoom"
-    >
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          type="button"
-          className={cn(
-            'min-w-[4.25rem] px-3 py-1 text-[13px]',
-            value === opt.value
-              ? 'bg-secondary font-medium text-white'
-              : 'font-normal text-neutral-600 hover:bg-neutral-200 hover:text-neutral-800'
-          )}
-          onClick={() => onChange(opt.value)}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  )
-}
+const ZOOM_OPTIONS: { value: Granularity; label: string }[] = [
+  { value: TimelineGranularity.Day, label: 'Day' },
+  { value: TimelineGranularity.Week, label: 'Week' },
+  { value: TimelineGranularity.Month, label: 'Month' },
+  { value: TimelineGranularity.Quarter, label: 'Quarter' },
+]
 
 const METRIC_OPTIONS = [
   [TimelineMetric.Schedule, 'Schedule'],
@@ -110,6 +83,8 @@ export function TimelineToolbar({
   showCriticalPath,
   hideUnscheduled,
   onToday,
+  onPanLeft,
+  onPanRight,
   onFitProject,
   onFitFocusedPhase,
   onAutoSchedule,
@@ -122,15 +97,19 @@ export function TimelineToolbar({
   phaseJumpSlot,
 }: Props) {
   const [fitOpen, setFitOpen] = useState(false)
+  const [zoomOpen, setZoomOpen] = useState(false)
   const [cellsOpen, setCellsOpen] = useState(false)
   const [viewOpen, setViewOpen] = useState(false)
   const [autoOpen, setAutoOpen] = useState(false)
 
   const fitRef = useRef<HTMLDivElement>(null)
+  const zoomRef = useRef<HTMLDivElement>(null)
   const cellsRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<HTMLDivElement>(null)
   const autoRef = useRef<HTMLDivElement>(null)
 
+  const zoomLabel =
+    ZOOM_OPTIONS.find((o) => o.value === granularity)?.label ?? 'Day'
   const cellLabel =
     METRIC_OPTIONS.find(([v]) => v === metric)?.[1] ?? 'Schedule'
 
@@ -148,6 +127,29 @@ export function TimelineToolbar({
         <Button variant="outline" size="md" className={cn(TOOLBAR_BTN, 'shrink-0')} onClick={onToday}>
           Today
         </Button>
+
+        <div className="flex shrink-0 items-center gap-0.5">
+          <Button
+            variant="outline"
+            size="md"
+            className={cn(TOOLBAR_BTN, 'min-w-9 px-2')}
+            aria-label="Pan timeline left"
+            title="Pan left"
+            iconOnly
+            icon={<ChevronLeft className="h-4 w-4" />}
+            onClick={onPanLeft}
+          />
+          <Button
+            variant="outline"
+            size="md"
+            className={cn(TOOLBAR_BTN, 'min-w-9 px-2')}
+            aria-label="Pan timeline right"
+            title="Pan right"
+            iconOnly
+            icon={<ChevronRight className="h-4 w-4" />}
+            onClick={onPanRight}
+          />
+        </div>
 
         <div ref={fitRef} className="relative shrink-0">
           <Button
@@ -197,11 +199,40 @@ export function TimelineToolbar({
 
         <div className="shrink-0">{phaseJumpSlot}</div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          <Typography variant="caption" tone="muted" className="hidden lg:inline">
-            Zoom
-          </Typography>
-          <ZoomSegment value={granularity} onChange={onGranularity} />
+        <div ref={zoomRef} className="relative shrink-0">
+          <Button
+            variant="outline"
+            size="md"
+            className={cn(TOOLBAR_BTN, 'min-w-[7.5rem] justify-between')}
+            aria-label="Zoom"
+            onClick={() => setZoomOpen((v) => !v)}
+          >
+            Zoom: {zoomLabel}
+            <ChevronDown className="ml-1 h-3.5 w-3.5" />
+          </Button>
+          <AnchoredMenu
+            open={zoomOpen}
+            onClose={() => setZoomOpen(false)}
+            anchorRef={zoomRef}
+            minWidth={160}
+          >
+            {ZOOM_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={cn(
+                  anchoredMenuItemClassName,
+                  opt.value === granularity && 'bg-neutral-100 font-medium'
+                )}
+                onClick={() => {
+                  setZoomOpen(false)
+                  onGranularity(opt.value)
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </AnchoredMenu>
         </div>
 
         <div ref={cellsRef} className="relative shrink-0">

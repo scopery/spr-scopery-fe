@@ -20,7 +20,7 @@ function StatBadge({
   label,
   count,
   tone,
-  variant = 'soft',
+  variant = 'solid',
   onClick,
   disabled,
 }: {
@@ -69,7 +69,7 @@ export function TimelineScheduleHealthBar({
       className={cn('flex flex-wrap items-center gap-1.5', className)}
       aria-label="Schedule summary"
     >
-      <Badge tone="neutral" size="sm" variant="outline">
+      <Badge tone="neutral" size="sm" variant="solid">
         {itemCount} tasks
       </Badge>
       <StatBadge
@@ -83,18 +83,21 @@ export function TimelineScheduleHealthBar({
         label="unscheduled"
         count={unscheduledCount}
         tone={unscheduledCount > 0 ? 'warning' : 'neutral'}
+        variant="solid"
         onClick={onOpenUnscheduled}
       />
       <StatBadge
         label="issues"
         count={issueCount}
         tone={issueCount > 0 ? 'error' : 'neutral'}
+        variant="solid"
         onClick={onOpenIssues}
       />
       <StatBadge
         label="at risk"
         count={atRiskCount}
         tone={atRiskCount > 0 ? 'error' : 'neutral'}
+        variant="solid"
         onClick={onOpenAtRisk}
         disabled={!onOpenAtRisk}
       />

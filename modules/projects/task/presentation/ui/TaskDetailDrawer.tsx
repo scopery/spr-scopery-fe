@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -105,6 +106,7 @@ export function TaskDetailDrawer({
   const [wbsNodeId, setWbsNodeId] = useState('')
   const [estimateHours, setEstimateHours] = useState('')
   const [saving, setSaving] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   const { members } = useWorkspaceMembers(open ? workspaceId : null)
   const { tree: wbsTree } = useProjectWbs(open ? projectId : null)
@@ -118,6 +120,10 @@ export function TaskDetailDrawer({
         .filter((person): person is PersonIdentity => Boolean(person)),
     [members, personFor]
   )
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!task) return
@@ -135,6 +141,15 @@ export function TaskDetailDrawer({
     )
   }, [task])
 
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [open])
+
   const phaseOptions = useMemo(
     () => [
       { value: '', label: 'No phase' },
@@ -151,10 +166,8 @@ export function TaskDetailDrawer({
     [wbsTree, wbsNodeId]
   )
 
-  if (!open || !task) return null
-
-  const actions = allowedTaskLifecycleActions(task.status)
-  const assignable = canAssignTask(task.status)
+  const actions = task ? allowedTaskLifecycleActions(task.status) : []
+  const assignable = task ? canAssignTask(task.status) : false
 
   const handleClose = () => {
     onClose()
@@ -162,6 +175,7 @@ export function TaskDetailDrawer({
   }
 
   const handleSave = async () => {
+    if (!task) return
     const trimmedTitle = title.trim()
     if (!trimmedTitle) {
       toast.error('Title is required')
@@ -196,19 +210,22 @@ export function TaskDetailDrawer({
     }
   }
 
-  return (
-    <>
+  if (!open || !task || !mounted) return null
+
+  return createPortal(
+    <div className="drawer fixed inset-0 z-[100]">
       <div
-        className="bg-neutral-900/[0.18] motion-drawer-backdrop fixed inset-0 z-40"
+        className="bg-neutral-900/[0.18] motion-drawer-backdrop absolute inset-0"
         aria-hidden
         onClick={handleClose}
       />
       <aside
-        className="drawer motion-drawer-panel fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-neutral-200 bg-white shadow-xl"
+        className="motion-drawer-panel absolute inset-y-0 right-0 flex h-full max-h-dvh w-full max-w-md flex-col overflow-hidden border-l border-neutral-200 bg-white shadow-xl"
         role="dialog"
+        aria-modal="true"
         aria-label="Task detail"
       >
-        <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
           <div className="min-w-0">
             <Typography variant="small" className="font-mono text-neutral-500">
               {task.code}
@@ -236,7 +253,7 @@ export function TaskDetailDrawer({
           />
         </div>
 
-        <nav className="flex gap-1 border-b border-neutral-200 px-5">
+        <nav className="flex shrink-0 gap-1 border-b border-neutral-200 px-5">
           {(['details', 'dependencies', 'resources', 'comments'] as DrawerTab[]).map((t) => (
             <button
               key={t}
@@ -254,7 +271,7 @@ export function TaskDetailDrawer({
           ))}
         </nav>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
           {tab === 'details' ? (
             <>
               <Input
@@ -334,7 +351,7 @@ export function TaskDetailDrawer({
           )}
         </div>
 
-        <div className="space-y-3 border-t border-neutral-200 px-5 py-4">
+        <div className="shrink-0 space-y-3 border-t border-neutral-200 px-5 py-4">
           {actions.length > 0 && (
             <Stack direction="horizontal" spacing="sm" className="flex-wrap">
               {actions.map((action) => (
@@ -357,6 +374,7 @@ export function TaskDetailDrawer({
           ) : null}
         </div>
       </aside>
-    </>
+    </div>,
+    document.body
   )
 }

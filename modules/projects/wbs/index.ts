@@ -1,5 +1,6 @@
 export { ProjectWbsView } from './presentation/ui/ProjectWbsView'
 export { WbsNodeSearchSelect } from './presentation/ui/WbsNodeSearchSelect'
+export { CreateWbsNodeModal } from './presentation/ui/CreateWbsNodeModal'
 export { useProjectWbs } from './presentation/hooks/useProjectWbs'
 export * as wbsApi from './infrastructure/api/wbs.api'
 export type {

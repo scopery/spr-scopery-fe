@@ -13,14 +13,15 @@ export const TIMELINE_ROW_HEIGHT = {
 
 export const TIMELINE_LEFT_COLS = {
   CHECKBOX: 28,
-  ITEM: 300,
+  /** Slightly narrower so more of the date grid stays visible. */
+  ITEM: 260,
   STATUS: 88,
   PROGRESS: 64,
   ESTIMATE: 64,
 } as const
 
-export const TIMELINE_LEFT_DEFAULT = 520
-export const TIMELINE_LEFT_MIN = 420
+export const TIMELINE_LEFT_DEFAULT = 480
+export const TIMELINE_LEFT_MIN = 400
 export const TIMELINE_LEFT_MAX_RATIO = 0.6
 
 export const TIMELINE_CONTROL_H = 36

@@ -20,8 +20,12 @@ import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout/ui/WorkspaceHierarchyBreadcrumb'
 import { CreateTaskModal, TaskDetailDrawer, canAssignTask } from '@/modules/projects/task'
 import type { CreateTaskPayload, ProjectTask, UpdateTaskPayload } from '@/modules/projects/task'
+import { CreatePhaseModal } from '@/modules/projects/phase'
+import type { CreateProjectPhasePayload } from '@/modules/projects/phase'
+import { CreateWbsNodeModal } from '@/modules/projects/wbs'
 import { useWorkspaceMembers } from '@/modules/org/workspace'
 import { useResolveUsers } from '@/modules/platform/identity/presentation/hooks/useResolveUsers'
+import type { PersonIdentity } from '@/modules/platform'
 import { useProject } from '../../../project/hooks/useProject'
 import { TimelineGranularity, TimelineMetric, TimelineMode } from '../../domain/enums/timeline.enum'
 import { buildBucketsForRow } from '../../domain/rules/timeline-buckets.rules'
@@ -166,6 +170,7 @@ export function CellTimelineView() {
   const { leftWidth, setLeftWidth, autoFitToLabels } = useTimelineLeftWidth(projectId)
   const leftScrollRef = useRef<HTMLDivElement>(null)
   const canvasScrollRef = useRef<HTMLDivElement>(null)
+  const canvasHeaderScrollRef = useRef<HTMLDivElement>(null)
   const syncingRef = useRef(false)
   const resizingRef = useRef(false)
   const [drag, setDrag] = useState<DragState | null>(null)
@@ -198,6 +203,10 @@ export function CellTimelineView() {
   const [highlightPhaseId, setHighlightPhaseId] = useState<string | null>(null)
   const [createTaskOpen, setCreateTaskOpen] = useState(false)
   const [createTaskPhaseId, setCreateTaskPhaseId] = useState<string | null>(null)
+  const [createPhaseOpen, setCreatePhaseOpen] = useState(false)
+  const [createWbsOpen, setCreateWbsOpen] = useState(false)
+  const [addMenuOpen, setAddMenuOpen] = useState(false)
+  const addMenuRef = useRef<HTMLDivElement>(null)
 
   const planning = true // Cell editing always on for Day/Week; Month/Quarter are view-first
   const dayPrecision =
@@ -302,19 +311,84 @@ export function CellTimelineView() {
     tl.setSelectedRowId(phaseRowId)
   }, [tl])
 
-  const syncScroll = useCallback((source: 'left' | 'canvas') => {
-    if (syncingRef.current) return
-    syncingRef.current = true
-    const left = leftScrollRef.current
-    const canvas = canvasScrollRef.current
-    if (left && canvas) {
-      if (source === 'left') canvas.scrollTop = left.scrollTop
-      else left.scrollTop = canvas.scrollTop
-    }
-    requestAnimationFrame(() => {
-      syncingRef.current = false
-    })
+  const syncHeaderScroll = useCallback((scrollLeft: number) => {
+    const header = canvasHeaderScrollRef.current
+    if (header && header.scrollLeft !== scrollLeft) header.scrollLeft = scrollLeft
   }, [])
+
+  const syncScroll = useCallback(
+    (source: 'left' | 'canvas') => {
+      if (syncingRef.current) return
+      syncingRef.current = true
+      const left = leftScrollRef.current
+      const canvas = canvasScrollRef.current
+      if (left && canvas) {
+        if (source === 'left') canvas.scrollTop = left.scrollTop
+        else left.scrollTop = canvas.scrollTop
+      }
+      if (source === 'canvas' && canvas) syncHeaderScroll(canvas.scrollLeft)
+      requestAnimationFrame(() => {
+        syncingRef.current = false
+      })
+    },
+    [syncHeaderScroll]
+  )
+
+  /** Desktop without trackpad: jump timeline left/right by ~¾ of the visible canvas. */
+  const panCanvas = useCallback(
+    (direction: -1 | 1) => {
+      const canvas = canvasScrollRef.current
+      if (!canvas) return
+      const step = Math.max(tl.colWidth * 3, Math.round(canvas.clientWidth * 0.75))
+      canvas.scrollBy({ left: direction * step, behavior: 'smooth' })
+      // Header follows via onScroll sync; also nudge immediately for snappy feel.
+      requestAnimationFrame(() => syncHeaderScroll(canvas.scrollLeft))
+    },
+    [tl.colWidth, syncHeaderScroll]
+  )
+
+  const panDragRef = useRef<{ startX: number; startScroll: number } | null>(null)
+
+  // Non-passive wheel so we can map mouse-wheel → horizontal pan on desktop.
+  useEffect(() => {
+    const canvas = canvasScrollRef.current
+    if (!canvas) return
+    const onWheel = (e: WheelEvent) => {
+      const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
+      if (dx === 0) return
+      e.preventDefault()
+      canvas.scrollLeft += dx
+      syncHeaderScroll(canvas.scrollLeft)
+    }
+    canvas.addEventListener('wheel', onWheel, { passive: false })
+    return () => canvas.removeEventListener('wheel', onWheel)
+  }, [tl.columns.length, tl.colWidth, syncHeaderScroll])
+
+  const onCanvasPanMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      // Middle mouse, or Alt+left drag — pan without trackpad.
+      if (e.button !== 1 && !(e.button === 0 && e.altKey)) return
+      e.preventDefault()
+      const canvas = canvasScrollRef.current
+      if (!canvas) return
+      panDragRef.current = { startX: e.clientX, startScroll: canvas.scrollLeft }
+      const onMove = (ev: MouseEvent) => {
+        const drag = panDragRef.current
+        if (!drag || !canvasScrollRef.current) return
+        canvasScrollRef.current.scrollLeft =
+          drag.startScroll - (ev.clientX - drag.startX)
+        syncHeaderScroll(canvasScrollRef.current.scrollLeft)
+      }
+      const onUp = () => {
+        panDragRef.current = null
+        window.removeEventListener('mousemove', onMove)
+        window.removeEventListener('mouseup', onUp)
+      }
+      window.addEventListener('mousemove', onMove)
+      window.addEventListener('mouseup', onUp)
+    },
+    [syncHeaderScroll]
+  )
 
   const selectRow = useCallback(
     (rowId: string, e?: { shiftKey?: boolean; metaKey?: boolean; ctrlKey?: boolean }) => {
@@ -668,6 +742,17 @@ export function CellTimelineView() {
     }
   }
 
+  const wbsPhaseOptions = useMemo(
+    () => tl.phases.map((p) => ({ value: p.id, label: p.name })),
+    [tl.phases]
+  )
+
+  const nextPhaseOrder = useMemo(
+    () =>
+      tl.phases.reduce((max, p) => Math.max(max, p.displayOrder ?? 0), 0) + 1,
+    [tl.phases]
+  )
+
   const openCreateTaskModal = useCallback((phaseId?: string | null) => {
     setCreateTaskPhaseId(phaseId ?? null)
     setCreateTaskOpen(true)
@@ -779,6 +864,22 @@ export function CellTimelineView() {
     tl.draft.setSchedule(row.id, row.sourceEntityId, start, maxDateOnly(start, end))
   }
 
+  const openTaskDetail = useCallback(
+    async (taskId: string | null | undefined) => {
+      if (!taskId) return
+      const cached = tl.tasks.find((t) => t.id === taskId) ?? null
+      if (cached) setDetailTask(cached)
+      try {
+        const task = await tl.getTask(taskId)
+        if (task) setDetailTask(task)
+        else if (!cached) toast.error('Task not found')
+      } catch (err) {
+        if (!cached) toast.error(getProblemToastMessage(err))
+      }
+    },
+    [tl.tasks, tl.getTask]
+  )
+
   const bulkShift = (delta: number) => {
     const patches = selectedTasks
       .filter((r) => r.sourceEntityId && r.startDate && r.endDate)
@@ -794,21 +895,33 @@ export function CellTimelineView() {
   }
 
   const bulkSequential = () => {
+    if (selectedTasks.length < 2) {
+      toast.error('Select at least 2 tasks to schedule sequentially')
+      return
+    }
     const patches = scheduleSequentially(
       selectedTasks,
       defaultAnchorStart(selectedTasks)
     )
     tl.draft.setSchedules(patches)
-    toast.success('Scheduled sequentially (draft)')
+    toast.success(
+      `Laid out ${patches.length} tasks back-to-back (draft). Click Apply to save.`
+    )
   }
 
   const bulkParallel = () => {
+    if (selectedTasks.length < 2) {
+      toast.error('Select at least 2 tasks to schedule in parallel')
+      return
+    }
     const patches = scheduleInParallel(
       selectedTasks,
       defaultAnchorStart(selectedTasks)
     )
     tl.draft.setSchedules(patches)
-    toast.success('Scheduled in parallel (draft)')
+    toast.success(
+      `Started ${patches.length} tasks on the same day (draft). Click Apply to save.`
+    )
   }
 
   const assignableSelectedTasks = useMemo(
@@ -818,6 +931,27 @@ export function CellTimelineView() {
       ),
     [selectedTasks]
   )
+
+  const currentAssigneeSummary = useMemo(() => {
+    const ids = Array.from(
+      new Set(
+        assignableSelectedTasks
+          .map((r) => r.assigneeUserId)
+          .filter((id): id is string => Boolean(id))
+      )
+    )
+    if (ids.length === 0) {
+      return { kind: 'none' as const, person: null as PersonIdentity | null, ids: [] as string[] }
+    }
+    if (ids.length === 1) {
+      const id = ids[0]
+      const person =
+        personFor(id) ??
+        ({ id, fullName: labelFor(id) || 'Assigned' } satisfies PersonIdentity)
+      return { kind: 'single' as const, person, ids }
+    }
+    return { kind: 'mixed' as const, person: null, ids }
+  }, [assignableSelectedTasks, personFor, labelFor])
 
   const bulkAssign = async (userId: string) => {
     const assignable = assignableSelectedTasks
@@ -879,8 +1013,12 @@ export function CellTimelineView() {
   const canvasWidth = tl.columns.length * tl.colWidth
 
   return (
-    <Stack direction="vertical" spacing="md" className="min-h-0 flex-1">
-      <Stack direction="vertical" spacing="xs">
+    <Stack
+      direction="vertical"
+      spacing="md"
+      className="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-3 py-3 lg:px-4 lg:py-3"
+    >
+      <Stack direction="vertical" spacing="xs" className="shrink-0">
         <WorkspaceHierarchyBreadcrumb
           workspaceId={workspaceId}
           project={project ? { id: projectId, name: project.name } : undefined}
@@ -914,25 +1052,78 @@ export function CellTimelineView() {
               Plan phases and tasks on a shared calendar — schedule, zoom, and spot risks.
             </Typography>
           </Stack>
-          <div className="relative shrink-0 pt-0.5">
+          <div ref={addMenuRef} className="relative shrink-0 pt-0.5">
             <Button
               variant="ghost"
               size="md"
               className="h-9 bg-neutral-800 px-3 text-[13px] text-white shadow-none hover:bg-neutral-900 hover:text-white active:bg-neutral-950"
-              onClick={() => {
-                const phase =
-                  focusedPhase ??
-                  tl.phaseRows.find((p) => !p.collapsed) ??
-                  tl.phaseRows[0]
-                openCreateTaskModal(phase?.sourceEntityId ?? null)
-              }}
+              onClick={() => setAddMenuOpen((v) => !v)}
             >
               + Add
+              <ChevronDown className="ml-1 h-3.5 w-3.5" />
             </Button>
+            <AnchoredMenu
+              open={addMenuOpen}
+              onClose={() => setAddMenuOpen(false)}
+              anchorRef={addMenuRef}
+              minWidth={240}
+            >
+              <button
+                type="button"
+                className={cn(anchoredMenuItemClassName, 'flex flex-col items-start gap-0.5')}
+                onClick={() => {
+                  setAddMenuOpen(false)
+                  const phase =
+                    focusedPhase ??
+                    tl.phaseRows.find((p) => !p.collapsed) ??
+                    tl.phaseRows[0]
+                  openCreateTaskModal(phase?.sourceEntityId ?? null)
+                }}
+              >
+                <span>Task</span>
+                <span className="truncate text-xs font-normal text-neutral-500">
+                  Work item with estimate and schedule
+                </span>
+              </button>
+              <button
+                type="button"
+                className={cn(anchoredMenuItemClassName, 'flex flex-col items-start gap-0.5')}
+                onClick={() => {
+                  setAddMenuOpen(false)
+                  setCreatePhaseOpen(true)
+                }}
+              >
+                <span>Phase</span>
+                <span className="truncate text-xs font-normal text-neutral-500">
+                  Project stage on the timeline
+                </span>
+              </button>
+              <button
+                type="button"
+                className={cn(anchoredMenuItemClassName, 'flex flex-col items-start gap-0.5')}
+                disabled={tl.phases.length === 0}
+                title={
+                  tl.phases.length === 0
+                    ? 'Create a phase first'
+                    : 'Add a WBS node under a phase'
+                }
+                onClick={() => {
+                  if (tl.phases.length === 0) return
+                  setAddMenuOpen(false)
+                  setCreateWbsOpen(true)
+                }}
+              >
+                <span>WBS node</span>
+                <span className="truncate text-xs font-normal text-neutral-500">
+                  Break work into packages under a phase
+                </span>
+              </button>
+            </AnchoredMenu>
           </div>
         </div>
       </Stack>
 
+      <div className="shrink-0">
       <TimelineToolbar
         granularity={tl.granularity}
         onGranularity={(g) => tl.setGranularity(g)}
@@ -947,6 +1138,8 @@ export function CellTimelineView() {
         showCriticalPath={showCriticalPath}
         hideUnscheduled={tl.hideUnscheduled}
         onToday={tl.jumpToToday}
+        onPanLeft={() => panCanvas(-1)}
+        onPanRight={() => panCanvas(1)}
         onFitProject={tl.fitToProject}
         onFitFocusedPhase={
           focusedPhase ? () => tl.fitToPhase(focusedPhase) : null
@@ -980,12 +1173,13 @@ export function CellTimelineView() {
         }}
         phaseJumpSlot={<PhaseJumpSelect phases={tl.phaseRows} onJump={jumpToPhase} />}
       />
+      </div>
 
       {focusedPhase && (
         <Stack
           direction="horizontal"
           spacing="sm"
-          className="items-center border border-primary-200 bg-primary-50 px-md py-sm"
+          className="shrink-0 items-center border border-primary-200 bg-primary-50 px-md py-sm"
         >
           <Typography variant="caption" tone="muted">
             Focused:
@@ -1000,18 +1194,21 @@ export function CellTimelineView() {
       )}
 
       {selectedTasks.length > 0 && (
-        <TimelineBulkToolbar
-          selectedCount={selectedTasks.length}
-          assigneePeople={assigneePeople}
-          showAssign={assignableSelectedTasks.length > 0}
-          onClear={() => setSelectedIds(new Set())}
-          onAssign={(id) => void bulkAssign(id)}
-          onShift={bulkShift}
-          onSequential={bulkSequential}
-          onParallel={bulkParallel}
-          onArchive={() => void bulkArchive()}
-          onCopyDates={bulkCopyDates}
-        />
+        <div className="shrink-0">
+          <TimelineBulkToolbar
+            selectedCount={selectedTasks.length}
+            assigneePeople={assigneePeople}
+            showAssign={assignableSelectedTasks.length > 0}
+            currentAssignee={currentAssigneeSummary}
+            onClear={() => setSelectedIds(new Set())}
+            onAssign={(id) => void bulkAssign(id)}
+            onShift={bulkShift}
+            onSequential={bulkSequential}
+            onParallel={bulkParallel}
+            onArchive={() => void bulkArchive()}
+            onCopyDates={bulkCopyDates}
+          />
+        </div>
       )}
 
       {allocationTaskId &&
@@ -1126,7 +1323,7 @@ export function CellTimelineView() {
         </div>
       )}
 
-      <div className="flex min-h-[420px] flex-1 overflow-hidden border border-neutral-200 bg-white">
+      <div className="flex min-h-0 flex-1 overflow-hidden border border-neutral-200 bg-white">
         <div
           className="flex shrink-0 flex-col border-r border-neutral-200"
           style={{ width: leftWidth }}
@@ -1231,17 +1428,8 @@ export function CellTimelineView() {
                   setRowMenuId(null)
                 }}
                 onOpenTask={() => {
-                  if (!row.sourceEntityId) return
-                  void (async () => {
-                    try {
-                      const task = await tl.getTask(row.sourceEntityId!)
-                      if (task) setDetailTask(task)
-                      else toast.error('Task not found')
-                    } catch (err) {
-                      toast.error(getProblemToastMessage(err))
-                    }
-                  })()
                   setRowMenuId(null)
+                  void openTaskDetail(row.sourceEntityId)
                 }}
                 onUpdateProgress={() => {
                   if (row.sourceEntityId) {
@@ -1278,16 +1466,15 @@ export function CellTimelineView() {
           onDoubleClick={autoFitLeft}
         />
 
-        <div
-          ref={canvasScrollRef}
-          className="min-w-0 flex-1 overflow-auto"
-          onScroll={() => syncScroll('canvas')}
-        >
-          <div style={{ width: canvasWidth, minWidth: '100%' }}>
-            <div
-              className="sticky top-0 z-10 flex border-b border-neutral-200 bg-neutral-50"
-              style={{ height: HEADER_H }}
-            >
+        <div className="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden">
+          {/* Date header stays pinned while rows scroll vertically (like left column headers). */}
+          <div
+            ref={canvasHeaderScrollRef}
+            className="shrink-0 overflow-x-hidden overflow-y-hidden border-b border-neutral-200 bg-neutral-50"
+            style={{ height: HEADER_H }}
+            aria-hidden
+          >
+            <div className="flex" style={{ width: canvasWidth, minWidth: '100%' }}>
               {tl.columns.map((col) => (
                 <div
                   key={col.key}
@@ -1296,7 +1483,7 @@ export function CellTimelineView() {
                     col.isWeekend && !col.isToday && 'bg-neutral-100/80',
                     col.isToday && TODAY_COL
                   )}
-                  style={{ width: tl.colWidth }}
+                  style={{ width: tl.colWidth, height: HEADER_H }}
                   title={
                     col.isToday
                       ? `Current · ${col.periodStart} – ${col.periodEnd}`
@@ -1324,7 +1511,16 @@ export function CellTimelineView() {
                 </div>
               ))}
             </div>
+          </div>
 
+          <div
+            ref={canvasScrollRef}
+            className="min-h-0 min-w-0 flex-1 overflow-auto"
+            title="Scroll wheel pans horizontally · Alt+drag or middle-click drag to pan"
+            onScroll={() => syncScroll('canvas')}
+            onMouseDown={onCanvasPanMouseDown}
+          >
+            <div style={{ width: canvasWidth, minWidth: '100%' }}>
             {previewRows.map((row, rowIndex) => {
               const buckets = buildBucketsForRow(
                 tl.columns,
@@ -1373,6 +1569,14 @@ export function CellTimelineView() {
                   style={{ height: rowHeight(row.kind) }}
                   onClick={() => {
                     if (row.kind === 'phase') openPhaseDrawer(row.id)
+                  }}
+                  onDoubleClick={() => {
+                    if (
+                      (row.kind === 'task' || row.kind === 'milestone') &&
+                      row.sourceEntityId
+                    ) {
+                      void openTaskDetail(row.sourceEntityId)
+                    }
                   }}
                   title={
                     baseline
@@ -1436,6 +1640,8 @@ export function CellTimelineView() {
                         style={{ width: tl.colWidth, height: rh }}
                         onMouseEnter={() => onCellEnter(colIndex)}
                         onMouseDown={(e) => {
+                          // Let Alt+drag / middle-click bubble for canvas pan.
+                          if (e.altKey || e.button === 1) return
                           if (!canEditSchedule || row.kind !== 'task') return
                           e.preventDefault()
                           if (filled && isEdgeStart) {
@@ -1539,6 +1745,7 @@ export function CellTimelineView() {
                 </div>
               )
             })}
+            </div>
           </div>
         </div>
       </div>
@@ -1575,6 +1782,44 @@ export function CellTimelineView() {
           setCreateTaskPhaseId(null)
         }}
         onSubmit={handleCreateTaskFromModal}
+      />
+
+      <CreatePhaseModal
+        open={createPhaseOpen}
+        nextDisplayOrder={nextPhaseOrder}
+        onClose={() => setCreatePhaseOpen(false)}
+        onSubmit={async (body: CreateProjectPhasePayload) => {
+          try {
+            await tl.createPhase(body)
+            toast.success('Phase created')
+            await tl.refetchAll()
+          } catch (err) {
+            toast.error(getProblemToastMessage(err))
+            throw err
+          }
+        }}
+      />
+
+      <CreateWbsNodeModal
+        open={createWbsOpen}
+        onClose={() => setCreateWbsOpen(false)}
+        phaseOptions={wbsPhaseOptions}
+        defaultPhaseId={
+          (focusedPhase?.sourceEntityId ||
+            focusedPhase?.phaseId ||
+            tl.phases[0]?.id) ??
+          null
+        }
+        onSubmit={async (body) => {
+          try {
+            await tl.createWbsNode(body)
+            toast.success('WBS node created')
+            await tl.refetchAll()
+          } catch (err) {
+            toast.error(getProblemToastMessage(err))
+            throw err
+          }
+        }}
       />
 
       <TaskDetailDrawer
@@ -1818,14 +2063,21 @@ function LeftRow({
     const summary = row.phaseSummary
     const health = summary ? phaseHealthLabel(summary) : null
     const metaBits: string[] = []
-    if (row.displaySecondary) metaBits.push(row.displaySecondary)
-    else if (row.phaseCode) metaBits.push(row.phaseCode)
+    const code = row.phaseCode?.trim() || null
+    const description = row.phaseDescription?.trim() || null
+    // Same pattern as task meta: "CODE · description" on one truncated line
+    if (code && description) metaBits.push(`${code} · ${description}`)
+    else if (row.displaySecondary) metaBits.push(row.displaySecondary)
+    else if (code) metaBits.push(code)
+    else if (description) metaBits.push(description)
     if (row.startDate && row.endDate) {
       metaBits.push(formatTimelineCompactRange(row.startDate, row.endDate))
     }
     if (row.collapsed && summary) {
       metaBits.length = 0
-      if (row.displaySecondary) metaBits.push(row.displaySecondary)
+      if (code && description) metaBits.push(`${code} · ${description}`)
+      else if (row.displaySecondary) metaBits.push(row.displaySecondary)
+      else if (code) metaBits.push(code)
       metaBits.push(
         `${summary.taskCount} tasks · ${
           summary.progressPercent != null ? `${summary.progressPercent}%` : '—'
@@ -1904,7 +2156,10 @@ function LeftRow({
                 {row.displayPrimary}
               </div>
               {metaBits.length > 0 && (
-                <div className="mt-0.5 truncate whitespace-nowrap text-[12px] leading-4 text-neutral-500">
+                <div
+                  className="mt-0.5 truncate whitespace-nowrap text-[12px] leading-4 text-neutral-500"
+                  title={metaBits.join(' · ')}
+                >
                   {metaBits.join(' · ')}
                 </div>
               )}
@@ -1960,8 +2215,17 @@ function LeftRow({
       onClick={(e) =>
         onSelect({ shiftKey: e.shiftKey, metaKey: e.metaKey, ctrlKey: e.ctrlKey })
       }
+      onDoubleClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        onOpenTask()
+      }}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') onSelect({})
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          onOpenTask()
+          return
+        }
         if (e.key === ' ') {
           e.preventDefault()
           onToggleCheck()
@@ -1979,6 +2243,7 @@ function LeftRow({
         className="flex shrink-0 items-center justify-center"
         style={{ width: TIMELINE_LEFT_COLS.CHECKBOX }}
         onClick={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
       >
         <Checkbox
           size="sm"
@@ -1995,9 +2260,10 @@ function LeftRow({
           <span className="w-3.5 shrink-0" />
           <button
             type="button"
-            className="min-w-0 flex-1 truncate whitespace-nowrap text-left hover:underline"
-            title={row.title}
+            className="min-w-0 flex-1 truncate whitespace-nowrap text-left text-neutral-900 hover:underline"
+            title={`${row.title} — click to open`}
             onClick={(e) => {
+              e.preventDefault()
               e.stopPropagation()
               onOpenTask()
             }}
@@ -2062,8 +2328,9 @@ function LeftRow({
               <button
                 type="button"
                 className={anchoredMenuItemClassName}
-                onClick={() => {
-                  onToggleMenu()
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
                   onOpenTask()
                 }}
               >

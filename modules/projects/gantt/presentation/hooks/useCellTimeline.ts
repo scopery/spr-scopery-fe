@@ -4,7 +4,9 @@ import { useCallback, useMemo, useState } from 'react'
 import { useProjectGantt } from './useProjectGantt'
 import { useProjectTasks } from '../../../task/presentation/hooks/useProjectTasks'
 import { useProjectPhases } from '../../../phase/presentation/hooks/useProjectPhases'
+import { useProjectWbs } from '../../../wbs/presentation/hooks/useProjectWbs'
 import { phaseWatchStatusLabel } from '../../../phase/domain/rules/phase-watch.rules'
+import type { WbsTreeNode } from '../../../wbs/domain/model/wbs'
 import { useTaskProgressSnapshots } from './useTaskProgressSnapshots'
 import { useTaskAllocations } from './useTaskAllocations'
 import { TimelineGranularity, TimelineMetric, TimelineMode } from '../../domain/enums/timeline.enum'
@@ -16,6 +18,7 @@ import {
   flattenTimelineRows,
   type PhaseEnrichment,
   type TaskEnrichment,
+  type WbsEnrichment,
 } from '../../domain/rules/timeline-rows.rules'
 import {
   pickFitGranularity,
@@ -30,6 +33,7 @@ export function useCellTimeline(projectId: string | null) {
   const gantt = useProjectGantt(projectId, { includeUnscheduled: true })
   const tasksHook = useProjectTasks(projectId, { page: 0, size: 500 })
   const phasesHook = useProjectPhases(projectId)
+  const wbsHook = useProjectWbs(projectId)
 
   const taskIds = useMemo(
     () => tasksHook.tasks.map((t) => t.id),
@@ -94,6 +98,21 @@ export function useCellTimeline(projectId: string | null) {
     return map
   }, [phasesHook.phases])
 
+  const wbsById = useMemo(() => {
+    const map = new Map<string, WbsEnrichment>()
+    const visit = (nodes: WbsTreeNode[]) => {
+      for (const n of nodes) {
+        map.set(n.id, {
+          description: n.description ?? null,
+          code: n.code ?? null,
+        })
+        if (n.children.length) visit(n.children)
+      }
+    }
+    visit(wbsHook.tree)
+    return map
+  }, [wbsHook.tree])
+
   const baseRows = useMemo(
     () =>
       flattenTimelineRows(gantt.tree, {
@@ -101,9 +120,10 @@ export function useCellTimeline(projectId: string | null) {
         hideUnscheduled,
         taskById,
         phaseById,
+        wbsById,
         includeAddRows: true,
       }),
-    [gantt.tree, collapsedPhaseIds, hideUnscheduled, taskById, phaseById]
+    [gantt.tree, collapsedPhaseIds, hideUnscheduled, taskById, phaseById, wbsById]
   )
 
   const draftDateMap = useMemo(() => {
@@ -257,16 +277,47 @@ export function useCellTimeline(projectId: string | null) {
     draftApi.clear()
     await gantt.refetch()
     await tasksHook.refetch()
-  }, [draftApi, gantt, tasksHook])
+    await phasesHook.refetch()
+  }, [draftApi, gantt, tasksHook, phasesHook])
+
+  const createPhase = useCallback(
+    async (body: Parameters<typeof phasesHook.createPhase>[0]) => {
+      const created = await phasesHook.createPhase(body)
+      await gantt.refetch()
+      return created
+    },
+    [phasesHook, gantt]
+  )
+
+  const createWbsNode = useCallback(
+    async (body: Parameters<typeof wbsHook.createNode>[0]) => {
+      await wbsHook.createNode(body)
+      await gantt.refetch()
+    },
+    [wbsHook, gantt]
+  )
+
+  const refetchAll = useCallback(async () => {
+    await Promise.all([
+      gantt.refetch(),
+      tasksHook.refetch(),
+      phasesHook.refetch(),
+      wbsHook.refetch(),
+    ])
+  }, [gantt, tasksHook, phasesHook, wbsHook])
 
   return {
     ...gantt,
+    tasks: tasksHook.tasks,
     tasksLoading: tasksHook.loading,
     createTask: tasksHook.createTask,
+    createPhase,
+    createWbsNode,
     updateTask: tasksHook.updateTask,
     assignTask: tasksHook.assignTask,
     getTask: tasksHook.getTask,
     runLifecycle: tasksHook.runLifecycle,
+    refetchAll,
     mode,
     setMode,
     metric,

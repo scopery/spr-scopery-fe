@@ -1161,6 +1161,8 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
   const immersiveQualityRuns = Boolean(
     pathname?.match(/\/projects\/[^/]+\/quality\/(?:runs|test-runs)(?:\/|$)/)
   )
+  /** Timeline keeps date/item headers pinned while rows scroll inside the board. */
+  const immersiveTimeline = Boolean(pathname?.match(/\/projects\/[^/]+\/timeline(?:\/|$)/))
   const immersiveMain =
     immersiveDocumentEditor ||
     immersiveAiWorkspace ||
@@ -1168,7 +1170,8 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     immersiveFunctionalCatalog ||
     immersiveUseCases ||
     immersiveRequirements ||
-    immersiveQualityRuns
+    immersiveQualityRuns ||
+    immersiveTimeline
   // Immersive pages used to hide the AI sidebar (!immersiveMain). Keep full-bleed
   // content, but still allow the project chat beside it — except on the dedicated AI workspace.
   const showAiProjectSidebar = Boolean(

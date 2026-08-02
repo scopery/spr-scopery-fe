@@ -50,8 +50,8 @@ export function taskLifecycleActionForBoardMove(
   return BOARD_TRANSITION[fromStatus]?.[toStatus] ?? null
 }
 
-export function isTaskClosed(status: string): boolean {
-  const s = status.toUpperCase()
+export function isTaskClosed(status: string | null | undefined): boolean {
+  const s = (status ?? '').toUpperCase()
   return (
     s === TaskStatus.Completed ||
     s === 'COMPLETED' ||
@@ -61,7 +61,7 @@ export function isTaskClosed(status: string): boolean {
 }
 
 /** Closed tasks (done / cancelled / archived) cannot be reassigned. */
-export function canAssignTask(status: string): boolean {
+export function canAssignTask(status: string | null | undefined): boolean {
   return !isTaskClosed(status)
 }
 
