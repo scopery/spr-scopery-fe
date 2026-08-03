@@ -45,13 +45,13 @@ import {
   RequirementDeleteMessages,
 } from '../model/requirement-delete.rules'
 import {
+  requirementPriorityBadgeProps,
   requirementPriorityLabel,
-  requirementPriorityTone,
 } from '../model/requirement-priority'
 import {
   normalizeRequirementStatus,
+  requirementStatusBadgeProps,
   requirementStatusLabel,
-  requirementStatusTone,
 } from '../model/requirement-status'
 import { EditRequirementModal, type EditRequirementSubmit } from './EditRequirementModal'
 import { RequirementAddBar } from './RequirementAddBar'
@@ -88,6 +88,32 @@ function formatDate(iso: string | null | undefined) {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return iso
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function RequirementStatusBadge({ status }: { status: string | null | undefined }) {
+  const badge = requirementStatusBadgeProps(status)
+  return (
+    <Badge variant={badge.variant} tone={badge.tone} className={badge.className}>
+      {requirementStatusLabel(status)}
+    </Badge>
+  )
+}
+
+function RequirementPriorityBadge({ priority }: { priority: string | null | undefined }) {
+  const label = requirementPriorityLabel(priority)
+  if (label === '—') {
+    return (
+      <Typography as="span" size="xs" tone="muted">
+        —
+      </Typography>
+    )
+  }
+  const badge = requirementPriorityBadgeProps(priority)
+  return (
+    <Badge variant={badge.variant} tone={badge.tone} className={badge.className}>
+      {label}
+    </Badge>
+  )
 }
 
 export function ProjectRequirementsView() {
@@ -504,31 +530,13 @@ export function ProjectRequirementsView() {
                         id: 'status',
                         header: 'Status',
                         width: '14%',
-                        cell: (row) => (
-                          <Badge variant="solid" tone={requirementStatusTone(row.status)}>
-                            {requirementStatusLabel(row.status)}
-                          </Badge>
-                        ),
+                        cell: (row) => <RequirementStatusBadge status={row.status} />,
                       },
                       {
                         id: 'priority',
                         header: 'Priority',
                         width: '12%',
-                        cell: (row) => {
-                          const label = requirementPriorityLabel(row.priority)
-                          if (label === '—') {
-                            return (
-                              <Typography as="span" size="xs" tone="muted">
-                                —
-                              </Typography>
-                            )
-                          }
-                          return (
-                            <Badge variant="solid" tone={requirementPriorityTone(row.priority)}>
-                              {label}
-                            </Badge>
-                          )
-                        },
+                        cell: (row) => <RequirementPriorityBadge priority={row.priority} />,
                       },
                       {
                         id: 'evidence',
@@ -577,13 +585,9 @@ export function ProjectRequirementsView() {
                           selected.requirementType ?? selected.req_type ?? selected.type
                         )}
                       </Badge>
-                      <Badge variant="solid" tone={requirementStatusTone(selected.status)}>
-                        {requirementStatusLabel(selected.status)}
-                      </Badge>
+                      <RequirementStatusBadge status={selected.status} />
                       {selected.priority ? (
-                        <Badge variant="solid" tone={requirementPriorityTone(selected.priority)}>
-                          {requirementPriorityLabel(selected.priority)}
-                        </Badge>
+                        <RequirementPriorityBadge priority={selected.priority} />
                       ) : null}
                     </div>
                     <Typography as="h2" size="sm" weight="semibold" className="break-words">
@@ -652,26 +656,11 @@ export function ProjectRequirementsView() {
                       />
                       <MetaRow
                         label="Status"
-                        value={
-                          <Badge variant="solid" tone={requirementStatusTone(selected.status)}>
-                            {requirementStatusLabel(selected.status)}
-                          </Badge>
-                        }
+                        value={<RequirementStatusBadge status={selected.status} />}
                       />
                       <MetaRow
                         label="Priority"
-                        value={
-                          selected.priority ? (
-                            <Badge
-                              variant="solid"
-                              tone={requirementPriorityTone(selected.priority)}
-                            >
-                              {requirementPriorityLabel(selected.priority)}
-                            </Badge>
-                          ) : (
-                            '—'
-                          )
-                        }
+                        value={<RequirementPriorityBadge priority={selected.priority} />}
                       />
                       <MetaRow
                         label="Source"

@@ -8,8 +8,8 @@ import { Badge, Button, DataTable, PageSkeleton, Select, Stack, Typography } fro
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import {
+  requirementPriorityBadgeProps,
   requirementPriorityLabel,
-  requirementPriorityTone,
 } from '@/modules/projects/requirements/model/requirement-priority'
 import { RequirementTraceDetailDrawer } from '@/modules/projects/traceability'
 import { useProject } from '../../../project/hooks/useProject'
@@ -225,18 +225,20 @@ export function ScopeRegisterView() {
               {
                 id: 'priority',
                 header: 'Priority',
-                cell: (requirement) =>
-                  requirement.priority ? (
+                cell: (requirement) => {
+                  if (!requirement.priority) return '—'
+                  const badge = requirementPriorityBadgeProps(requirement.priority)
+                  return (
                     <Badge
-                      variant="solid"
+                      variant={badge.variant}
                       size="sm"
-                      tone={requirementPriorityTone(requirement.priority)}
+                      tone={badge.tone}
+                      className={badge.className}
                     >
                       {requirementPriorityLabel(requirement.priority)}
                     </Badge>
-                  ) : (
-                    '—'
-                  ),
+                  )
+                },
               },
               {
                 id: 'status',

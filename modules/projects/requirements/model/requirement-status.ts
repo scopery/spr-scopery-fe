@@ -11,7 +11,20 @@ export const RequirementStatus = {
 
 export type RequirementStatus = (typeof RequirementStatus)[keyof typeof RequirementStatus]
 
-export type RequirementStatusTone = 'neutral' | 'success' | 'error' | 'warning' | 'info' | 'primary'
+export type RequirementStatusTone =
+  | 'neutral'
+  | 'success'
+  | 'error'
+  | 'warning'
+  | 'info'
+  | 'primary'
+  | 'default'
+
+export type RequirementStatusBadgeProps = {
+  variant: 'solid' | 'soft'
+  tone: RequirementStatusTone
+  className?: string
+}
 
 /** Editable lifecycle statuses (archive stays on dedicated Archive action). */
 export const REQUIREMENT_STATUS_EDIT_OPTIONS: { value: RequirementStatus; label: string }[] = [
@@ -51,20 +64,31 @@ export function requirementStatusLabel(status: string | null | undefined): strin
   }
 }
 
-export function requirementStatusTone(status: string | null | undefined): RequirementStatusTone {
+/**
+ * Badge props for status chips.
+ * Draft = soft gray-100 + black text; others stay solid semantic tones.
+ */
+export function requirementStatusBadgeProps(
+  status: string | null | undefined
+): RequirementStatusBadgeProps {
   switch (normalizeRequirementStatus(status)) {
     case RequirementStatus.Approved:
-      return 'success'
+      return { variant: 'solid', tone: 'success' }
     case RequirementStatus.Rejected:
-      return 'error'
+      return { variant: 'solid', tone: 'error' }
     case RequirementStatus.Deferred:
-      return 'warning'
+      return { variant: 'solid', tone: 'warning' }
     case RequirementStatus.Implemented:
-      return 'primary'
+      return { variant: 'solid', tone: 'primary' }
     case RequirementStatus.Archived:
-      return 'neutral'
+      return { variant: 'solid', tone: 'neutral' }
     case RequirementStatus.Draft:
     default:
-      return 'info'
+      // soft/default → bg-neutral-100 text-neutral-900
+      return { variant: 'soft', tone: 'default' }
   }
+}
+
+export function requirementStatusTone(status: string | null | undefined): RequirementStatusTone {
+  return requirementStatusBadgeProps(status).tone
 }

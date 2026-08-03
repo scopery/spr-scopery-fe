@@ -1,6 +1,12 @@
 /** Shared priority display helpers for requirement badges. */
 
-export type RequirementPriorityTone = 'error' | 'warning' | 'neutral' | 'info'
+export type RequirementPriorityTone = 'error' | 'warning' | 'neutral' | 'info' | 'default'
+
+export type RequirementPriorityBadgeProps = {
+  variant: 'solid' | 'soft'
+  tone: RequirementPriorityTone
+  className?: string
+}
 
 export function requirementPriorityLabel(priority: string | null | undefined): string {
   switch ((priority ?? '').toUpperCase()) {
@@ -20,23 +26,36 @@ export function requirementPriorityLabel(priority: string | null | undefined): s
   }
 }
 
-/** Solid badge tone — colored bg + white text via Badge `variant="solid"`. */
-export function requirementPriorityTone(
+/**
+ * Badge props for priority chips.
+ * High = solid error · Medium = solid info (former Low blue) · Low = amber soft.
+ */
+export function requirementPriorityBadgeProps(
   priority: string | null | undefined
-): RequirementPriorityTone {
+): RequirementPriorityBadgeProps {
   switch ((priority ?? '').toUpperCase()) {
     case 'HIGH':
     case 'CRITICAL':
     case 'P0':
     case 'P1':
-      return 'error'
+      return { variant: 'solid', tone: 'error' }
     case 'MEDIUM':
     case 'P2':
-      return 'warning'
+      return { variant: 'solid', tone: 'info' }
     case 'LOW':
     case 'P3':
-      return 'info'
+      return {
+        variant: 'soft',
+        tone: 'default',
+        className: 'bg-amber-100 text-amber-700',
+      }
     default:
-      return 'neutral'
+      return { variant: 'soft', tone: 'neutral' }
   }
+}
+
+export function requirementPriorityTone(
+  priority: string | null | undefined
+): RequirementPriorityTone {
+  return requirementPriorityBadgeProps(priority).tone
 }

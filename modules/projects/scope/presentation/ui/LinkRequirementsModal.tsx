@@ -9,8 +9,8 @@ import {
 } from '@/modules/projects/requirements/api/requirements.api'
 import type { Requirement } from '@/modules/projects/requirements/model/requirements'
 import {
+  requirementPriorityBadgeProps,
   requirementPriorityLabel,
-  requirementPriorityTone,
 } from '@/modules/projects/requirements/model/requirement-priority'
 import { cn } from '@/utils/cn'
 
@@ -200,7 +200,7 @@ export function LinkRequirementsModal({
       open={open}
       onClose={onClose}
       title="Link requirements"
-      size="full"
+      size="2xl"
       actions={[
         { label: 'Cancel', onClick: onClose, variant: 'ghost' },
         {
@@ -212,7 +212,7 @@ export function LinkRequirementsModal({
         },
       ]}
     >
-      <div className="mx-auto w-full max-w-6xl space-y-3">
+      <div className="space-y-3">
         <Typography variant="small" tone="muted">
           Search on the left, preview details in the middle, then add to the selection on the right.
         </Typography>
@@ -231,9 +231,9 @@ export function LinkRequirementsModal({
             No requirements in this project yet.
           </Typography>
         ) : (
-          <div className="grid min-h-[420px] grid-cols-1 gap-0 border border-neutral-200 lg:grid-cols-[minmax(240px,1fr)_minmax(300px,1.35fr)_minmax(220px,0.95fr)]">
+          <div className="grid grid-cols-1 gap-0 overflow-hidden border border-neutral-200 lg:h-[min(52vh,440px)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.25fr)_minmax(0,0.95fr)]">
             {/* Left: searchable catalog */}
-            <section className="flex min-h-0 flex-col border-b border-neutral-200 lg:border-b-0 lg:border-r">
+            <section className="flex min-h-0 flex-col border-b border-neutral-200 lg:h-full lg:border-b-0 lg:border-r">
               <div className="shrink-0 space-y-2 border-b border-neutral-100 px-3 py-2.5">
                 <Typography variant="small" weight="semibold">
                   Requirements
@@ -258,7 +258,7 @@ export function LinkRequirementsModal({
                   </Typography>
                 </div>
               </div>
-              <ul className="min-h-0 max-h-[52vh] flex-1 overflow-y-auto lg:max-h-none">
+              <ul className="min-h-0 max-h-[36vh] overflow-y-auto lg:max-h-none lg:flex-1">
                 {filtered.length === 0 ? (
                   <li className="px-3 py-8 text-center">
                     <Typography variant="small" tone="muted">
@@ -313,20 +313,20 @@ export function LinkRequirementsModal({
             </section>
 
             {/* Middle: detail preview before select */}
-            <section className="flex min-h-0 flex-col border-b border-neutral-200 lg:border-b-0 lg:border-r">
+            <section className="flex min-h-0 flex-col border-b border-neutral-200 lg:h-full lg:border-b-0 lg:border-r">
               <div className="shrink-0 border-b border-neutral-100 px-3 py-2.5">
                 <Typography variant="small" weight="semibold">
                   Preview
                 </Typography>
               </div>
               {!focused ? (
-                <div className="flex flex-1 items-center justify-center px-4 py-8 text-center">
+                <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-8 text-center">
                   <Typography variant="small" tone="muted">
                     Select a requirement on the left to preview its details here.
                   </Typography>
                 </div>
               ) : (
-                <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-3">
+                <div className="min-h-0 max-h-[36vh] space-y-4 overflow-y-auto px-4 py-3 lg:max-h-none lg:flex-1">
                   <div>
                     <Typography variant="caption" tone="muted" className="font-mono">
                       {focused.code}
@@ -338,14 +338,20 @@ export function LinkRequirementsModal({
                       <Badge variant="soft" tone="neutral">
                         {reqTypeLabel(focused)}
                       </Badge>
-                      {focused.priority ? (
-                        <Badge
-                          variant="solid"
-                          tone={requirementPriorityTone(focused.priority)}
-                        >
-                          {requirementPriorityLabel(focused.priority)}
-                        </Badge>
-                      ) : null}
+                      {focused.priority
+                        ? (() => {
+                            const badge = requirementPriorityBadgeProps(focused.priority)
+                            return (
+                              <Badge
+                                variant={badge.variant}
+                                tone={badge.tone}
+                                className={badge.className}
+                              >
+                                {requirementPriorityLabel(focused.priority)}
+                              </Badge>
+                            )
+                          })()
+                        : null}
                       {focusedAlreadyLinked ? (
                         <Badge variant="soft" tone="warning">
                           Already linked
@@ -425,7 +431,7 @@ export function LinkRequirementsModal({
             </section>
 
             {/* Right: selected queue */}
-            <section className="flex min-h-0 flex-col">
+            <section className="flex min-h-0 flex-col lg:h-full">
               <div className="flex shrink-0 items-center justify-between gap-2 border-b border-neutral-100 px-3 py-2.5">
                 <Typography variant="small" weight="semibold">
                   Selected ({selectedItems.length})
@@ -440,13 +446,13 @@ export function LinkRequirementsModal({
                 </Button>
               </div>
               {selectedItems.length === 0 ? (
-                <div className="flex flex-1 items-center justify-center px-4 py-8 text-center">
+                <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-8 text-center">
                   <Typography variant="small" tone="muted">
                     Preview a requirement, then add it here before linking.
                   </Typography>
                 </div>
               ) : (
-                <ul className="min-h-0 max-h-[52vh] flex-1 overflow-y-auto lg:max-h-none">
+                <ul className="min-h-0 max-h-[36vh] overflow-y-auto lg:max-h-none lg:flex-1">
                   {selectedItems.map((r) => (
                     <li
                       key={r.id}

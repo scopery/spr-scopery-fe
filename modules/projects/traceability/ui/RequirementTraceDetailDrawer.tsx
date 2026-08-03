@@ -26,8 +26,8 @@ import {
   type VerificationCase,
 } from '@/modules/quality'
 import {
+  requirementPriorityBadgeProps,
   requirementPriorityLabel,
-  requirementPriorityTone,
 } from '@/modules/projects/requirements/model/requirement-priority'
 import { useRequirementTraceDetail } from '../hooks/useRequirementTraceDetail'
 import * as requirementTraceabilityApi from '../api/requirement-traceability.api'
@@ -790,16 +790,21 @@ export function RequirementTraceDetailDrawer({
             <Badge size="sm" variant="soft" tone="neutral" className="border-0">
               {data.requirement.requirementType}
             </Badge>
-            {data.requirement.priority ? (
-              <Badge
-                size="sm"
-                variant="solid"
-                tone={requirementPriorityTone(data.requirement.priority)}
-                className="border-0"
-              >
-                {requirementPriorityLabel(data.requirement.priority)}
-              </Badge>
-            ) : null}
+            {data.requirement.priority
+              ? (() => {
+                  const badge = requirementPriorityBadgeProps(data.requirement.priority)
+                  return (
+                    <Badge
+                      size="sm"
+                      variant={badge.variant}
+                      tone={badge.tone}
+                      className={cn('border-0', badge.className)}
+                    >
+                      {requirementPriorityLabel(data.requirement.priority)}
+                    </Badge>
+                  )
+                })()
+              : null}
             {!isNfr ? (
               <Typography variant="caption" tone="muted">
                 Use Case required: {data.requirement.requiresUseCaseResolved ? 'Yes' : 'No'}
