@@ -101,3 +101,16 @@ export function isRequirementContentImmutable(status: string | null | undefined)
   const s = normalizeRequirementStatus(status)
   return s === RequirementStatus.Approved || s === RequirementStatus.Archived
 }
+
+/** Link/unlink Function / NFR / related catalog edges also mutate an Approved requirement. */
+export function canMutateRequirementLinks(status: string | null | undefined): boolean {
+  return !isRequirementContentImmutable(status)
+}
+
+export const RequirementImmutableMessages = {
+  CONTENT_LOCKED:
+    'Approved and archived requirements are immutable. You can still change lifecycle status; code, title, type, priority, and description stay locked.',
+  LINK_LOCKED:
+    'Approved and archived requirements are immutable. Change status before linking or unlinking catalog items.',
+} as const
+

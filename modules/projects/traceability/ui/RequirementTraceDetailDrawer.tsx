@@ -29,6 +29,10 @@ import {
   requirementPriorityBadgeProps,
   requirementPriorityLabel,
 } from '@/modules/projects/requirements/model/requirement-priority'
+import {
+  canMutateRequirementLinks,
+  RequirementImmutableMessages,
+} from '@/modules/projects/requirements/model/requirement-status'
 import { useRequirementTraceDetail } from '../hooks/useRequirementTraceDetail'
 import * as requirementTraceabilityApi from '../api/requirement-traceability.api'
 import * as traceabilityApi from '../api/traceability.api'
@@ -352,6 +356,7 @@ export function RequirementTraceDetailDrawer({
   const implementationCount = data?.implementationObjects.length ?? 0
   const testCount = data?.testCases.length ?? 0
   const isNfr = isNfrRequirement(data?.requirement.requirementType)
+  const linksLocked = data ? !canMutateRequirementLinks(data.requirement.status) : false
 
   const displayStatus = data
     ? isNfr
@@ -442,6 +447,13 @@ export function RequirementTraceDetailDrawer({
   const enterMode = (nextMode: DrawerMode) => {
     if (isNfr && nextMode !== 'summary') return
     if (nextMode === 'useCase' && functionCount === 0) return
+    if (
+      linksLocked &&
+      (nextMode === 'function' || nextMode === 'useCase' || nextMode === 'testCase')
+    ) {
+      toast.error(RequirementImmutableMessages.LINK_LOCKED)
+      return
+    }
     setMode(nextMode)
     setQuery('')
     setOptions([])
@@ -627,6 +639,10 @@ export function RequirementTraceDetailDrawer({
       !['function', 'useCase', 'testCase'].includes(mode) ||
       selected.size === 0
     ) {
+      return
+    }
+    if (linksLocked) {
+      toast.error(RequirementImmutableMessages.LINK_LOCKED)
       return
     }
     const linkMode = mode as LinkMode
@@ -820,6 +836,12 @@ export function RequirementTraceDetailDrawer({
               {data.requirement.description?.trim() || 'No description.'}
             </Typography>
           </section>
+
+          {linksLocked ? (
+            <Typography variant="small" tone="error">
+              {RequirementImmutableMessages.LINK_LOCKED}
+            </Typography>
+          ) : null}
 
           {isNfr && nfrLoading ? (
             <PageSkeleton variant="list" />

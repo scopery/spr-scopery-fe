@@ -6,6 +6,10 @@ import { Button, Checkbox, Input, Modal, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { useRequirements } from '@/modules/projects/requirements'
 import type { Requirement } from '@/modules/projects/requirements'
+import {
+  canMutateRequirementLinks,
+  RequirementImmutableMessages,
+} from '@/modules/projects/requirements/model/requirement-status'
 import { TraceLinkType } from '@/modules/quality/domain/enums/quality.enum'
 import type { FunctionalItem } from '../model/functional-catalog'
 import * as traceApi from '../api/traceability.api'
@@ -151,6 +155,7 @@ export function RequirementFunctionalLinkPanel({
     () => requirements.find((r) => r.id === focusReqId) ?? null,
     [requirements, focusReqId]
   )
+  const focusLinksLocked = focusReq ? !canMutateRequirementLinks(focusReq.status) : false
 
   const filteredRequirements = useMemo(() => {
     const q = reqQuery.trim().toLowerCase()
@@ -266,6 +271,11 @@ export function RequirementFunctionalLinkPanel({
   const assignMany = useCallback(
     async (payloads: FrDragPayload[]) => {
       if (!focusReqId || payloads.length === 0) return
+      const focus = requirements.find((r) => r.id === focusReqId)
+      if (focus && !canMutateRequirementLinks(focus.status)) {
+        setFormError(RequirementImmutableMessages.LINK_LOCKED)
+        return
+      }
       setAssigning(true)
       setFormError(null)
       try {
@@ -295,10 +305,10 @@ export function RequirementFunctionalLinkPanel({
         }
 
         // Keep FK in sync as primary pointer (first / if empty)
-        const focus = requirements.find((r) => r.id === focusReqId)
         if (focus && !focus.functionalItemId && toCreate[0]) {
           await updateRequirement(focusReqId, {
             functionalItemId: toCreate[0].functionalItemId,
+            status: focus.status ?? undefined,
           })
         }
 
@@ -317,7 +327,6 @@ export function RequirementFunctionalLinkPanel({
       projectId,
       requirements,
       updateRequirement,
-      refetchRequirements,
       loadCoversLinks,
     ]
   )
@@ -332,11 +341,15 @@ export function RequirementFunctionalLinkPanel({
   const unlink = useCallback(
     async (edge: LinkedFrEdge) => {
       setFormError(null)
+      const req = requirements.find((r) => r.id === edge.requirementId)
+      if (req && !canMutateRequirementLinks(req.status)) {
+        setFormError(RequirementImmutableMessages.LINK_LOCKED)
+        return
+      }
       try {
         if (edge.linkId) {
           await traceApi.deleteTraceLink(projectId, edge.linkId)
         }
-        const req = requirements.find((r) => r.id === edge.requirementId)
         if (req?.functionalItemId === edge.functionalItemId) {
           const remaining = edges.filter(
             (e) =>
@@ -345,6 +358,7 @@ export function RequirementFunctionalLinkPanel({
           )
           await updateRequirement(edge.requirementId, {
             functionalItemId: remaining[0]?.functionalItemId ?? null,
+            status: req.status ?? undefined,
           })
         }
         await loadCoversLinks({ silent: true })
@@ -352,7 +366,7 @@ export function RequirementFunctionalLinkPanel({
         setFormError(err instanceof Error ? err.message : 'Failed to unlink')
       }
     },
-    [projectId, requirements, edges, updateRequirement, loadCoversLinks, refetchRequirements]
+    [projectId, requirements, edges, updateRequirement, loadCoversLinks]
   )
 
   useEffect(() => {
@@ -429,6 +443,7 @@ export function RequirementFunctionalLinkPanel({
                 {filteredRequirements.map((item) => {
                   const count = linkCountByReq.get(item.id) ?? 0
                   const active = focusReqId === item.id
+                  const locked = !canMutateRequirementLinks(item.status)
                   return (
                     <li key={item.id}>
                       <button
@@ -449,6 +464,7 @@ export function RequirementFunctionalLinkPanel({
                           )}
                         >
                           {item.code}
+                          {locked ? ' · Locked' : ''}
                         </div>
                         <div
                           className={cn(
@@ -480,6 +496,7 @@ export function RequirementFunctionalLinkPanel({
           <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[minmax(280px,1.15fr)_minmax(0,0.85fr)]">
             <FunctionCandidatePalette
               focusReq={focusReq}
+              linksLocked={focusLinksLocked}
               candidates={candidates}
               allFunctions={functionalItems}
               loading={loading}
@@ -500,6 +517,7 @@ export function RequirementFunctionalLinkPanel({
             />
             <RequirementFocusInspector
               focusReq={focusReq}
+              linksLocked={focusLinksLocked}
               linked={edgesForFocus}
               assigning={assigning}
               onAssignMany={assignMany}
@@ -519,7 +537,7 @@ export function RequirementFunctionalLinkPanel({
           {
             label: `Assign ${selectedPayloads.length}`,
             variant: 'secondary',
-            disabled: assigning || selectedPayloads.length === 0,
+            disabled: assigning || selectedPayloads.length === 0 || focusLinksLocked,
             loading: assigning,
             onClick: () => {
               void assignMany(selectedPayloads)
@@ -527,6 +545,11 @@ export function RequirementFunctionalLinkPanel({
           },
         ]}
       >
+        {focusLinksLocked ? (
+          <Typography variant="small" tone="error" className="mb-2">
+            {RequirementImmutableMessages.LINK_LOCKED}
+          </Typography>
+        ) : null}
         <Typography variant="small" tone="muted" className="mb-2">
           Link {selectedPayloads.length} function
           {selectedPayloads.length === 1 ? '' : 's'} to {focusReq?.code ?? 'requirement'}.
@@ -545,6 +568,7 @@ export function RequirementFunctionalLinkPanel({
 
 function FunctionCandidatePalette({
   focusReq,
+  linksLocked,
   candidates,
   allFunctions,
   loading,
@@ -564,6 +588,7 @@ function FunctionCandidatePalette({
   onClearSelected,
 }: {
   focusReq: Requirement
+  linksLocked: boolean
   candidates: FunctionalItem[]
   allFunctions: FunctionalItem[]
   loading: boolean
@@ -590,9 +615,15 @@ function FunctionCandidatePalette({
         <Typography weight="medium" size="sm">
           Available to assign
         </Typography>
-        <Typography variant="small" tone="muted">
-          Showing functions for {focusReq.code}. Drag onto the drop zone or use Assign.
-        </Typography>
+        {linksLocked ? (
+          <Typography variant="small" tone="error">
+            {RequirementImmutableMessages.LINK_LOCKED}
+          </Typography>
+        ) : (
+          <Typography variant="small" tone="muted">
+            Showing functions for {focusReq.code}. Drag onto the drop zone or use Assign.
+          </Typography>
+        )}
         <Input
           fullWidth
           value={query}
@@ -600,6 +631,7 @@ function FunctionCandidatePalette({
           placeholder="Search…"
           aria-label="Search functions"
           prefix={<Search size={14} />}
+          disabled={linksLocked}
         />
         <div className="flex flex-wrap items-center justify-between gap-2 border border-neutral-200 bg-neutral-50 px-2.5 py-2">
           <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-700">
@@ -608,6 +640,7 @@ function FunctionCandidatePalette({
               checked={hideLinked}
               onChange={(e) => onHideLinkedChange(e.target.checked)}
               aria-label="Hide already assigned items"
+              disabled={linksLocked}
             />
             Hide already assigned
             {linkedHereCount > 0 ? (
@@ -632,7 +665,7 @@ function FunctionCandidatePalette({
             </button>
           ) : null}
         </div>
-        {selectedPayloads.length > 0 ? (
+        {!linksLocked && selectedPayloads.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
             <Typography variant="small" tone="muted">
               {selectedPayloads.length} selected
@@ -651,7 +684,11 @@ function FunctionCandidatePalette({
         className="min-h-0 flex-1 overflow-y-auto p-2"
         onMouseLeave={() => onPreview(null)}
       >
-        {loading && candidates.length === 0 ? (
+        {linksLocked ? (
+          <Typography variant="small" tone="muted" className="p-2">
+            Linking is disabled for this requirement.
+          </Typography>
+        ) : loading && candidates.length === 0 ? (
           <Typography variant="small" tone="muted" className="p-2">
             Loading candidates…
           </Typography>
@@ -779,12 +816,14 @@ function FunctionCandidatePalette({
 
 function RequirementFocusInspector({
   focusReq,
+  linksLocked,
   linked,
   assigning,
   onAssignMany,
   onUnlink,
 }: {
   focusReq: Requirement
+  linksLocked: boolean
   linked: LinkedFrEdge[]
   assigning: boolean
   onAssignMany: (payloads: FrDragPayload[]) => void
@@ -823,6 +862,11 @@ function RequirementFocusInspector({
         <Typography variant="small" tone="muted" className="truncate">
           Requirement · {focusReq.title}
         </Typography>
+        {linksLocked ? (
+          <Typography variant="caption" tone="error" className="mt-1 block">
+            {RequirementImmutableMessages.LINK_LOCKED}
+          </Typography>
+        ) : null}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -830,6 +874,12 @@ function RequirementFocusInspector({
           <div
             onDragOver={(e) => {
               e.preventDefault()
+              if (linksLocked) {
+                e.dataTransfer.dropEffect = 'none'
+                setActiveDrop(false)
+                setPreview('Linking locked for approved/archived requirements')
+                return
+              }
               const payload = resolvePayload(e) || dragPayload
               setActiveDrop(true)
               if (payload) {
@@ -848,16 +898,19 @@ function RequirementFocusInspector({
               e.preventDefault()
               setActiveDrop(false)
               setPreview(null)
-              const payloads = resolveBulk(e)
               setActiveFrDrag(null)
+              if (linksLocked) return
+              const payloads = resolveBulk(e)
               if (!payloads.length) return
               void onAssignMany(payloads)
             }}
             className={cn(
               'min-h-[72px] border border-dashed p-3 transition-colors',
-              activeDrop
-                ? 'border-secondary bg-secondary/10'
-                : 'border-secondary/30 bg-white'
+              linksLocked
+                ? 'border-neutral-200 bg-neutral-50'
+                : activeDrop
+                  ? 'border-secondary bg-secondary/10'
+                  : 'border-secondary/30 bg-white'
             )}
           >
             <Typography
@@ -867,9 +920,11 @@ function RequirementFocusInspector({
               Functions
             </Typography>
             <Typography variant="small" tone="muted" className="mt-1">
-              {activeDrop && preview
-                ? preview
-                : 'Drop functions here to link them to this requirement'}
+              {linksLocked
+                ? 'Drop zone disabled while this requirement is immutable'
+                : activeDrop && preview
+                  ? preview
+                  : 'Drop functions here to link them to this requirement'}
             </Typography>
           </div>
           {assigning ? (
@@ -898,7 +953,12 @@ function RequirementFocusInspector({
                     <div className="truncate text-sm text-neutral-900">{edge.frCode}</div>
                     <div className="truncate text-xs text-neutral-500">{edge.frTitle}</div>
                   </div>
-                  <Button size="sm" variant="ghost" onClick={() => void onUnlink(edge)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={linksLocked}
+                    onClick={() => void onUnlink(edge)}
+                  >
                     Unlink
                   </Button>
                 </li>

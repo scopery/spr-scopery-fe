@@ -6,6 +6,10 @@ import { Button, Checkbox, Input, Modal, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { useRequirements } from '@/modules/projects/requirements'
 import type { Requirement } from '@/modules/projects/requirements'
+import {
+  canMutateRequirementLinks,
+  RequirementImmutableMessages,
+} from '@/modules/projects/requirements/model/requirement-status'
 import { TraceLinkType } from '@/modules/quality/domain/enums/quality.enum'
 import type { NonFunctionalItem } from '../model/functional-catalog'
 import * as traceApi from '../api/traceability.api'
@@ -151,6 +155,7 @@ export function RequirementNonFunctionalLinkPanel({
     () => requirements.find((r) => r.id === focusReqId) ?? null,
     [requirements, focusReqId]
   )
+  const focusLinksLocked = focusReq ? !canMutateRequirementLinks(focusReq.status) : false
 
   const filteredRequirements = useMemo(() => {
     const q = reqQuery.trim().toLowerCase()
@@ -266,6 +271,11 @@ export function RequirementNonFunctionalLinkPanel({
   const assignMany = useCallback(
     async (payloads: NfrDragPayload[]) => {
       if (!focusReqId || payloads.length === 0) return
+      const focus = requirements.find((r) => r.id === focusReqId)
+      if (focus && !canMutateRequirementLinks(focus.status)) {
+        setFormError(RequirementImmutableMessages.LINK_LOCKED)
+        return
+      }
       setAssigning(true)
       setFormError(null)
       try {
@@ -295,10 +305,10 @@ export function RequirementNonFunctionalLinkPanel({
         }
 
         // Keep FK in sync as primary pointer (first NFR / if empty)
-        const focus = requirements.find((r) => r.id === focusReqId)
         if (focus && !focus.nonFunctionalItemId && toCreate[0]) {
           await updateRequirement(focusReqId, {
             nonFunctionalItemId: toCreate[0].nonFunctionalItemId,
+            status: focus.status ?? undefined,
           })
         }
 
@@ -332,11 +342,15 @@ export function RequirementNonFunctionalLinkPanel({
   const unlink = useCallback(
     async (edge: LinkedNfrEdge) => {
       setFormError(null)
+      const req = requirements.find((r) => r.id === edge.requirementId)
+      if (req && !canMutateRequirementLinks(req.status)) {
+        setFormError(RequirementImmutableMessages.LINK_LOCKED)
+        return
+      }
       try {
         if (edge.linkId) {
           await traceApi.deleteTraceLink(projectId, edge.linkId)
         }
-        const req = requirements.find((r) => r.id === edge.requirementId)
         if (req?.nonFunctionalItemId === edge.nonFunctionalItemId) {
           const remaining = edges.filter(
             (e) =>
@@ -345,6 +359,7 @@ export function RequirementNonFunctionalLinkPanel({
           )
           await updateRequirement(edge.requirementId, {
             nonFunctionalItemId: remaining[0]?.nonFunctionalItemId ?? null,
+            status: req.status ?? undefined,
           })
         }
         await loadCoversLinks({ silent: true })
@@ -352,7 +367,7 @@ export function RequirementNonFunctionalLinkPanel({
         setFormError(err instanceof Error ? err.message : 'Failed to unlink')
       }
     },
-    [projectId, requirements, edges, updateRequirement, loadCoversLinks, refetchRequirements]
+    [projectId, requirements, edges, updateRequirement, loadCoversLinks]
   )
 
   useEffect(() => {
@@ -393,6 +408,11 @@ export function RequirementNonFunctionalLinkPanel({
       {formError ? (
         <Typography tone="error" variant="small" className="px-3 py-2">
           {formError}
+        </Typography>
+      ) : null}
+      {focusLinksLocked ? (
+        <Typography tone="error" variant="small" className="px-3 py-2">
+          {RequirementImmutableMessages.LINK_LOCKED}
         </Typography>
       ) : null}
 

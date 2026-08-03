@@ -28,13 +28,15 @@ export function useRequirementTraceDetail(
       let description =
         detail.requirement.description?.trim() || seedDescription?.trim() || ''
       let priority = detail.requirement.priority ?? seedPriority ?? null
+      let status = detail.requirement.status ?? null
 
-      // Trace detail often omits description — enrich from requirement GET.
-      if (!description) {
+      // Trace detail often omits description/status — enrich from requirement GET.
+      if (!description || !status) {
         try {
           const full = await requirementsApi.getRequirement('', projectId, requirementId)
-          description = full.description?.trim() || ''
+          description = description || full.description?.trim() || ''
           priority = priority ?? full.priority ?? null
+          status = status ?? full.status ?? null
         } catch {
           /* keep seed / empty */
         }
@@ -46,6 +48,7 @@ export function useRequirementTraceDetail(
           ...detail.requirement,
           description: description || null,
           priority,
+          status,
         },
       }
       setData(detail)

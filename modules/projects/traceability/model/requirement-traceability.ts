@@ -187,6 +187,8 @@ export interface RequirementTraceDetailResponse {
     requirementType: string
     priority?: string | null
     description?: string | null
+    /** Lifecycle — DRAFT | APPROVED | … (may be enriched from requirement GET). */
+    status?: string | null
     moduleName?: string | null
     requiresUseCase: RequiresUseCase | string
     requiresUseCaseResolved: boolean

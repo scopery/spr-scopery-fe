@@ -7,6 +7,7 @@ import {
   isRequirementContentImmutable,
   normalizeRequirementStatus,
   REQUIREMENT_STATUS_EDIT_OPTIONS,
+  RequirementImmutableMessages,
   RequirementStatus,
   type RequirementStatus as RequirementStatusValue,
 } from '../model/requirement-status'
@@ -170,7 +171,7 @@ export function EditRequirementModal({
   const helperText = isArchived
     ? 'This requirement is archived. Change status (approve / reject / defer / implement) to restore it to the active register.'
     : contentLocked
-      ? 'Approved and archived requirements are immutable. You can still change lifecycle status; code, title, type, priority, and description stay locked.'
+      ? RequirementImmutableMessages.CONTENT_LOCKED
       : 'Update code, title, type, priority, status, or description. Status changes use the lifecycle APIs (approve / reject / defer / implement). Use Archive to soft-delete.'
 
   return (
