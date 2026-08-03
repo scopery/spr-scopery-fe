@@ -23,6 +23,7 @@ interface AiMappingCandidatePickerProps {
   currentTargetId: string | null
   onSelect: (candidate: EntityLabel) => void
   onClose: () => void
+  onLeaveUnmapped?: () => void
 }
 
 export function AiMappingCandidatePicker({
@@ -33,6 +34,7 @@ export function AiMappingCandidatePicker({
   currentTargetId,
   onSelect,
   onClose,
+  onLeaveUnmapped,
 }: AiMappingCandidatePickerProps) {
   const [query, setQuery] = useState('')
   const [items, setItems] = useState<MappingCandidate[]>([])
@@ -94,7 +96,7 @@ export function AiMappingCandidatePicker({
           />
         ) : null}
         <CandidateSection
-          title="All eligible"
+          title="Recommended"
           items={rest}
           currentTargetId={currentTargetId}
           onSelect={onSelect}
@@ -105,9 +107,17 @@ export function AiMappingCandidatePicker({
           </Typography>
         ) : null}
       </div>
-      <Typography variant="caption" tone="muted" className="mt-2 block">
-        Updates the draft only. Click Apply to write relations.
-      </Typography>
+      {onLeaveUnmapped ? (
+        <div className="mt-2 border-t border-neutral-200 pt-2">
+          <Button size="sm" variant="ghost" onClick={onLeaveUnmapped}>
+            Leave unmapped
+          </Button>
+        </div>
+      ) : (
+        <Typography variant="caption" tone="muted" className="mt-2 block">
+          Updates the draft only. Click Apply to write relations.
+        </Typography>
+      )}
     </div>
   )
 }

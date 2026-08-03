@@ -42,7 +42,10 @@ import {
 import {
   countMappingBuckets,
   getMappingReviewBucket,
+  isAutoIncludeReady,
+  isNeedsReviewItem,
   isPendingSuggestion,
+  isUnmatchedItem,
   type MappingBucketCounts,
 } from '../model/mapping-review.rules'
 import {
@@ -120,8 +123,10 @@ export function useMappingReview(
   const [autoMapEnabled, setAutoMapEnabledState] = useState(false)
   const [autoMapAudit, setAutoMapAudit] = useState<AutoMapAuditEntry[]>([])
   const [autoMapping, setAutoMapping] = useState(false)
-  const [filter, setFilter] = useState<MappingFilterChip>('ALL')
+  const [filter, setFilter] = useState<MappingFilterChip>(MappingReviewBucket.NeedsReview)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [includedIds, setIncludedIds] = useState<Set<string>>(new Set())
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set())
   const [focusedId, setFocusedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
@@ -264,8 +269,26 @@ export function useMappingReview(
           }
           return next
         })
+        // Exception-review draft: HIGH/ready + already accepted are included by default.
+        const nextIncluded = new Set<string>()
+        const nextExcluded = new Set<string>()
+        for (const s of enriched) {
+          if (s.reviewStatus === SuggestionReviewStatus.Accepted && s.targetId) {
+            nextIncluded.add(s.id)
+          } else if (s.reviewStatus === SuggestionReviewStatus.Rejected) {
+            nextExcluded.add(s.id)
+          } else if (isAutoIncludeReady(s)) {
+            nextIncluded.add(s.id)
+          }
+        }
+        setIncludedIds(nextIncluded)
+        setExcludedIds(nextExcluded)
         setSelectedIds(new Set())
-        setFocusedId(enriched[0]?.id ?? null)
+        setFilter(MappingReviewBucket.NeedsReview)
+        const firstNeeds = enriched.find(
+          (s) => isNeedsReviewItem(s) && !nextIncluded.has(s.id) && !nextExcluded.has(s.id)
+        )
+        setFocusedId(firstNeeds?.id ?? enriched[0]?.id ?? null)
         setReviewClockStartedAt(Date.now())
         setReviewDurationsMs([])
         setEscalatedIds(new Set())
@@ -335,6 +358,8 @@ export function useMappingReview(
     setError(null)
     setApplyResult(null)
     setSuggestions([])
+    setIncludedIds(new Set())
+    setExcludedIds(new Set())
     try {
       const started = await mappingApi.generateMappingSuggestions(projectId, {
         relationType,
@@ -584,10 +609,245 @@ export function useMappingReview(
           return next
         })
       }
-      toast.message('Draft target updated — Apply to write the relation')
     },
     []
   )
+
+  const needsReviewQueue = useMemo(() => {
+    return effectiveAll.filter(
+      (s) =>
+        isNeedsReviewItem(s) && !includedIds.has(s.id) && !excludedIds.has(s.id)
+    )
+  }, [effectiveAll, includedIds, excludedIds])
+
+  const readyIncludedCount = useMemo(() => {
+    return effectiveAll.filter(
+      (s) =>
+        includedIds.has(s.id) &&
+        (isAutoIncludeReady(s) ||
+          (s.reviewStatus === SuggestionReviewStatus.Accepted && s.targetId) ||
+          (isPendingSuggestion(s) &&
+            getMappingReviewBucket(s) === MappingReviewBucket.Ready))
+    ).length
+  }, [effectiveAll, includedIds])
+
+  const unmatchedCount = useMemo(() => {
+    return effectiveAll.filter(
+      (s) => isUnmatchedItem(s) && !includedIds.has(s.id)
+    ).length
+  }, [effectiveAll, includedIds])
+
+  const includedApplyCount = useMemo(() => {
+    return effectiveAll.filter((s) => {
+      if (!includedIds.has(s.id)) return false
+      if (isStaleSuggestion(s)) return false
+      const targetId = draftTargets.get(s.id) ?? s.targetId
+      return Boolean(targetId)
+    }).length
+  }, [effectiveAll, includedIds, draftTargets])
+
+  const advanceNeedsReview = useCallback(
+    (fromId: string) => {
+      const queue = effectiveAll.filter(
+        (s) =>
+          s.id !== fromId &&
+          isNeedsReviewItem(s) &&
+          !includedIds.has(s.id) &&
+          !excludedIds.has(s.id)
+      )
+      // After state updates, includedIds may not yet contain fromId — prefer next in current queue
+      const currentQueue = needsReviewQueue
+      const idx = currentQueue.findIndex((s) => s.id === fromId)
+      const next =
+        (idx >= 0 ? currentQueue[idx + 1] : null) ??
+        currentQueue.find((s) => s.id !== fromId) ??
+        queue[0] ??
+        null
+      setFocusedId(next?.id ?? null)
+    },
+    [effectiveAll, includedIds, excludedIds, needsReviewQueue]
+  )
+
+  const looksCorrect = useCallback(
+    (suggestionId: string) => {
+      setIncludedIds((prev) => {
+        const next = new Set(prev)
+        next.add(suggestionId)
+        return next
+      })
+      setExcludedIds((prev) => {
+        if (!prev.has(suggestionId)) return prev
+        const next = new Set(prev)
+        next.delete(suggestionId)
+        return next
+      })
+      if (reviewClockStartedAt != null) {
+        setReviewDurationsMs((prev) => [...prev, Date.now() - reviewClockStartedAt])
+        setReviewClockStartedAt(Date.now())
+      }
+      advanceNeedsReview(suggestionId)
+    },
+    [advanceNeedsReview, reviewClockStartedAt]
+  )
+
+  const leaveUnmapped = useCallback(
+    async (suggestionId: string) => {
+      setExcludedIds((prev) => {
+        const next = new Set(prev)
+        next.add(suggestionId)
+        return next
+      })
+      setIncludedIds((prev) => {
+        if (!prev.has(suggestionId)) return prev
+        const next = new Set(prev)
+        next.delete(suggestionId)
+        return next
+      })
+      setDraftTargets((prev) => {
+        if (!prev.has(suggestionId)) return prev
+        const next = new Map(prev)
+        next.delete(suggestionId)
+        return next
+      })
+      advanceNeedsReview(suggestionId)
+      // Persist reject quietly so regenerate doesn't resurface the same pending item as included.
+      if (projectId) {
+        try {
+          await mappingApi.reviewMappingSuggestions(projectId, {
+            decisions: [{ suggestionId, decision: ReviewDecision.Reject }],
+          })
+        } catch {
+          // local exclude already applied
+        }
+      }
+    },
+    [advanceNeedsReview, projectId]
+  )
+
+  const confirmChangeMapping = useCallback(
+    (suggestionId: string, targetId: string, label?: EntityLabel) => {
+      changeDraftTarget(suggestionId, targetId, label)
+      setIncludedIds((prev) => {
+        const next = new Set(prev)
+        next.add(suggestionId)
+        return next
+      })
+      setExcludedIds((prev) => {
+        if (!prev.has(suggestionId)) return prev
+        const next = new Set(prev)
+        next.delete(suggestionId)
+        return next
+      })
+      if (reviewClockStartedAt != null) {
+        setReviewDurationsMs((prev) => [...prev, Date.now() - reviewClockStartedAt])
+        setReviewClockStartedAt(Date.now())
+      }
+      advanceNeedsReview(suggestionId)
+    },
+    [changeDraftTarget, advanceNeedsReview, reviewClockStartedAt]
+  )
+
+  const applyIncluded = useCallback(async () => {
+    if (!projectId || !run?.id) return null
+    const toApply = effectiveAll.filter((s) => {
+      if (!includedIds.has(s.id)) return false
+      if (isStaleSuggestion(s)) return false
+      return Boolean(draftTargets.get(s.id) ?? s.targetId)
+    })
+    if (toApply.length === 0) {
+      toast.message('No mappings in draft to apply')
+      return null
+    }
+
+    setApplying(true)
+    setError(null)
+    try {
+      const pendingIds = toApply.filter(isPendingSuggestion).map((s) => s.id)
+      if (pendingIds.length > 0) {
+        await mappingApi.reviewMappingSuggestions(projectId, {
+          decisions: pendingIds.map((suggestionId) => ({
+            suggestionId,
+            decision: ReviewDecision.Accept,
+          })),
+        })
+      }
+
+      const acceptedShape = toApply.map((s) => ({
+        ...s,
+        reviewStatus: SuggestionReviewStatus.Accepted,
+      }))
+      const hasDraftRemaps = acceptedShape.some((s) => draftTargets.has(s.id))
+      const hasReplace = acceptedShape.some((s) => isRemapCandidate(s))
+
+      let result: ApplyMappingDraftResult
+      if (hasDraftRemaps || hasReplace) {
+        const detailed = await applyAcceptedWithEffectiveTargets(
+          projectId,
+          relationType,
+          acceptedShape,
+          draftTargets,
+          testCaseVersions,
+          currentParents
+        )
+        result = {
+          created: detailed.created,
+          skippedStale: detailed.skippedStale,
+          skippedConflict: detailed.skippedConflict,
+          failed: detailed.failed,
+        }
+        if (detailed.applied.length > 0) {
+          setUndoStack((prev) => [
+            ...buildUndoEntriesFromApply(relationType, detailed.applied),
+            ...prev,
+          ])
+        }
+      } else {
+        result = await mappingApi.applyMappingDraft(projectId, run.id)
+        const appliedApprox = acceptedShape
+          .filter((s) => s.targetId)
+          .map((s) => ({
+            suggestionId: s.id,
+            sourceId: s.sourceId,
+            appliedTargetId: (draftTargets.get(s.id) ?? s.targetId) as string,
+            previousTargetId: currentParents.get(s.sourceId) ?? null,
+          }))
+        if (result.created > 0 && appliedApprox.length > 0) {
+          setUndoStack((prev) => [
+            ...buildUndoEntriesFromApply(
+              relationType,
+              appliedApprox.slice(0, result.created)
+            ),
+            ...prev,
+          ])
+        }
+      }
+
+      setApplyResult(result)
+      setDraftTargets(new Map())
+      toast.success(
+        `Applied ${result.created} mapping${result.created === 1 ? '' : 's'}`
+      )
+      await loadSuggestions(run.id, relationType)
+      return result
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to apply mappings'
+      setError(message)
+      toast.error(message)
+      return null
+    } finally {
+      setApplying(false)
+    }
+  }, [
+    projectId,
+    run?.id,
+    effectiveAll,
+    includedIds,
+    draftTargets,
+    relationType,
+    testCaseVersions,
+    currentParents,
+    loadSuggestions,
+  ])
 
   const counts: MappingBucketCounts = useMemo(
     () => countMappingBuckets(effectiveAll),
@@ -809,12 +1069,13 @@ export function useMappingReview(
 
   const focusNext = useCallback(
     (dir: 1 | -1) => {
-      if (filtered.length === 0) return
-      const idx = focusedId ? filtered.findIndex((s) => s.id === focusedId) : -1
-      const nextIdx = Math.max(0, Math.min(filtered.length - 1, (idx < 0 ? 0 : idx) + dir))
-      setFocusedId(filtered[nextIdx]?.id ?? null)
+      const queue = needsReviewQueue.length > 0 ? needsReviewQueue : filtered
+      if (queue.length === 0) return
+      const idx = focusedId ? queue.findIndex((s) => s.id === focusedId) : -1
+      const nextIdx = Math.max(0, Math.min(queue.length - 1, (idx < 0 ? 0 : idx) + dir))
+      setFocusedId(queue[nextIdx]?.id ?? null)
     },
-    [filtered, focusedId]
+    [needsReviewQueue, filtered, focusedId]
   )
 
   const changeRelationType = useCallback((type: MappingRelationTypeValue) => {
@@ -823,9 +1084,11 @@ export function useMappingReview(
     setSuggestions([])
     setDraftTargets(new Map())
     setSelectedIds(new Set())
+    setIncludedIds(new Set())
+    setExcludedIds(new Set())
     setApplyResult(null)
     setError(null)
-    setFilter('ALL')
+    setFilter(MappingReviewBucket.NeedsReview)
     setFocusedId(null)
   }, [])
 
@@ -837,6 +1100,12 @@ export function useMappingReview(
     run,
     suggestions: filtered,
     allSuggestions: effectiveAll,
+    needsReviewQueue,
+    readyIncludedCount,
+    unmatchedCount,
+    includedApplyCount,
+    includedIds,
+    excludedIds,
     counts,
     filter,
     setFilter,
@@ -850,6 +1119,9 @@ export function useMappingReview(
     draftTargets,
     draftRemapCount: draftTargets.size,
     changeDraftTarget,
+    looksCorrect,
+    leaveUnmapped,
+    confirmChangeMapping,
     keepCurrent,
     replaceMapping,
     undoStack,
@@ -868,6 +1140,7 @@ export function useMappingReview(
     review,
     acceptReady,
     apply,
+    applyIncluded,
     evalMetrics,
     evalHistory,
     captureEvalSnapshot,

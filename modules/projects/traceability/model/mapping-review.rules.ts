@@ -66,6 +66,31 @@ export function isPendingSuggestion(s: MappingSuggestion): boolean {
   return s.reviewStatus === SuggestionReviewStatus.Pending
 }
 
+/** High-confidence pending suggestions that can be auto-included in the apply draft. */
+export function isAutoIncludeReady(s: MappingSuggestion): boolean {
+  return (
+    isPendingSuggestion(s) &&
+    Boolean(s.targetId) &&
+    !isStaleSuggestion(s) &&
+    getMappingReviewBucket(s) === MappingReviewBucket.Ready
+  )
+}
+
+/** Ambiguous / medium items that need an exception review pass. */
+export function isNeedsReviewItem(s: MappingSuggestion): boolean {
+  return (
+    isPendingSuggestion(s) &&
+    getMappingReviewBucket(s) === MappingReviewBucket.NeedsReview
+  )
+}
+
+export function isUnmatchedItem(s: MappingSuggestion): boolean {
+  return (
+    isPendingSuggestion(s) &&
+    getMappingReviewBucket(s) === MappingReviewBucket.Unmatched
+  )
+}
+
 export interface MappingBucketCounts {
   total: number
   ready: number

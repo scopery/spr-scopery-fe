@@ -588,13 +588,13 @@ export function ProjectRequirementsView() {
                         id: 'status',
                         header: 'Status',
                         width: '14%',
-                        cell: (row) => <RequirementStatusBadge status={row.status} />,
+                        accessor: (row) => requirementStatusLabel(row.status),
                       },
                       {
                         id: 'priority',
                         header: 'Priority',
                         width: '12%',
-                        cell: (row) => <RequirementPriorityBadge priority={row.priority} />,
+                        accessor: (row) => requirementPriorityLabel(row.priority),
                       },
                       {
                         id: 'evidence',
