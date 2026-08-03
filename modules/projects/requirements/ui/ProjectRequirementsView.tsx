@@ -393,12 +393,10 @@ export function ProjectRequirementsView() {
     }
     setDeleting(true)
     try {
-      const id = selected.id
-      await archiveRequirement(id)
+      await archiveRequirement(selected.id)
       toast.success('Requirement archived')
       setConfirmDelete(false)
-      setFilter('archived')
-      setSelectedId(id)
+      setSelectedId(null)
     } catch (err) {
       if (err instanceof ApiError) {
         toast.error(err.problem.detail || err.message)
@@ -628,18 +626,10 @@ export function ProjectRequirementsView() {
               ) : (
                 <div className="min-h-0 flex-1 overflow-y-auto">
                   <div className="border-b border-neutral-200 px-5 py-4">
-                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <div className="mb-1">
                       <Typography size="xs" tone="muted" className="truncate" title={selected.code}>
                         {selected.code}
                       </Typography>
-                      <Badge variant="soft" tone="neutral">
-                        {reqTypeLabel(
-                          selected.requirementType ?? selected.req_type ?? selected.type
-                        )}
-                      </Badge>
-                      {selected.priority ? (
-                        <RequirementPriorityBadge priority={selected.priority} />
-                      ) : null}
                     </div>
                     <Typography as="h2" size="sm" weight="semibold" className="break-words">
                       {selected.title}
