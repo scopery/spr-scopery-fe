@@ -15,9 +15,11 @@ export const MappingScope = {
 export type MappingScope = (typeof MappingScope)[keyof typeof MappingScope]
 
 export const MappingRunStatus = {
+  Pending: 'PENDING',
   Running: 'RUNNING',
   Completed: 'COMPLETED',
   Failed: 'FAILED',
+  Cancelled: 'CANCELLED',
 } as const
 export type MappingRunStatus = (typeof MappingRunStatus)[keyof typeof MappingRunStatus]
 
@@ -67,6 +69,8 @@ export interface MappingRun {
   scope: MappingScope | string
   status: MappingRunStatus | string
   sourceCount: number | null
+  /** Sources processed so far while status=RUNNING (async generate). */
+  processedSourceCount?: number | null
   suggestionCount: number | null
   promptKey?: string | null
   promptVersion?: number | null
@@ -77,6 +81,23 @@ export interface MappingRun {
   startedAt: string | null
   completedAt: string | null
   createdAt: string | null
+}
+
+export function isMappingRunTerminal(status: string | null | undefined): boolean {
+  return (
+    status === MappingRunStatus.Completed ||
+    status === MappingRunStatus.Failed ||
+    status === MappingRunStatus.Cancelled
+  )
+}
+
+export function mappingRunProgressPercent(run: MappingRun | null | undefined): number {
+  if (!run) return 0
+  if (run.status === MappingRunStatus.Completed) return 100
+  const total = run.sourceCount ?? 0
+  if (total <= 0) return run.status === MappingRunStatus.Running ? 5 : 0
+  const done = run.processedSourceCount ?? 0
+  return Math.max(0, Math.min(100, Math.round((done / total) * 100)))
 }
 
 export interface MappingTokenUsage {

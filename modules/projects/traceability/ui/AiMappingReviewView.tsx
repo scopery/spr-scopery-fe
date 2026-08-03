@@ -20,6 +20,7 @@ import { AiMappingSummaryStrip } from './AiMappingSummaryStrip'
 import { AiMappingSuggestionGroups } from './AiMappingSuggestionGroups'
 import { AiMappingEvalPanel } from './AiMappingEvalPanel'
 import { AiMappingAutoMapPanel } from './AiMappingAutoMapPanel'
+import { AiMappingRunProgressPanel } from './AiMappingRunProgressPanel'
 import { cn } from '@/utils/cn'
 
 const RELATION_TABS: MappingRelationTypeValue[] = [
@@ -78,6 +79,7 @@ export function AiMappingReviewView() {
     undoLast,
     loading,
     generating,
+    generatePolling,
     reviewing,
     applying,
     undoing,
@@ -218,8 +220,8 @@ export function AiMappingReviewView() {
             AI Mapping Review
           </Typography>
           <Typography variant="small" tone="muted" className="mt-0.5">
-            Generate uses the ACTIVE default model deployment from AI Admin. Correct remaps, review
-            existing parents, Apply once — Undo available after apply.
+            Generate runs in the background and streams progress (sources processed / total). Uses
+            the ACTIVE default model deployment from AI Admin.
           </Typography>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -335,15 +337,8 @@ export function AiMappingReviewView() {
         </Typography>
       ) : null}
 
-      {generating ? (
-        <div className="border border-neutral-200 bg-neutral-50 px-4 py-6 text-center">
-          <Typography size="sm" weight="medium">
-            Generating mapping suggestions…
-          </Typography>
-          <Typography variant="small" tone="muted" className="mt-1">
-            AI retrieval can take a while. Keep this tab open.
-          </Typography>
-        </div>
+      {run && (generating || generatePolling || run.status === 'RUNNING' || run.status === 'PENDING') ? (
+        <AiMappingRunProgressPanel run={run} isPolling={generatePolling || generating} />
       ) : null}
 
       {run || suggestions.length > 0 || loading ? (

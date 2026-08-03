@@ -48,9 +48,11 @@ import {
 import {
   MappingRelationType,
   MappingReviewBucket,
+  MappingRunStatus,
   MappingScope,
   ReviewDecision,
   SuggestionReviewStatus,
+  isMappingRunTerminal,
   type ApplyMappingDraftResult,
   type EntityLabel,
   type MappingRelationType as MappingRelationTypeValue,
@@ -123,6 +125,7 @@ export function useMappingReview(
   const [focusedId, setFocusedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [generatePolling, setGeneratePolling] = useState(false)
   const [reviewing, setReviewing] = useState(false)
   const [applying, setApplying] = useState(false)
   const [undoing, setUndoing] = useState(false)
@@ -328,29 +331,60 @@ export function useMappingReview(
   const generate = useCallback(async () => {
     if (!projectId) return null
     setGenerating(true)
+    setGeneratePolling(false)
     setError(null)
     setApplyResult(null)
+    setSuggestions([])
     try {
-      const next = await mappingApi.generateMappingSuggestions(projectId, {
+      const started = await mappingApi.generateMappingSuggestions(projectId, {
         relationType,
         scope,
       })
-      setRun(next)
-      toast.success(
-        next.status === 'FAILED'
-          ? 'Mapping run failed'
-          : `Generated ${next.suggestionCount ?? 0} suggestion(s) from ${next.sourceCount ?? 0} source(s)`
-      )
-      if (next.id) {
-        await loadSuggestions(next.id, relationType)
+      setRun(started)
+
+      if (isMappingRunTerminal(started.status)) {
+        toast.success(
+          started.status === MappingRunStatus.Failed
+            ? 'Mapping run failed'
+            : `Generated ${started.suggestionCount ?? 0} suggestion(s) from ${started.sourceCount ?? 0} source(s)`
+        )
+        if (started.id) await loadSuggestions(started.id, relationType)
+        return started
       }
-      return next
+
+      toast.message(
+        `Mapping started · 0/${started.sourceCount ?? 0} sources — running in background`
+      )
+      setGeneratePolling(true)
+
+      let latest = started
+      const startedAt = Date.now()
+      const maxMs = 15 * 60 * 1000
+      while (!isMappingRunTerminal(latest.status)) {
+        if (Date.now() - startedAt > maxMs) {
+          throw new Error('Mapping run timed out while waiting for completion')
+        }
+        await new Promise((r) => setTimeout(r, 1500))
+        latest = await mappingApi.getMappingRun(projectId, started.id)
+        setRun(latest)
+      }
+
+      if (latest.status === MappingRunStatus.Failed) {
+        toast.error('Mapping run failed')
+      } else {
+        toast.success(
+          `Generated ${latest.suggestionCount ?? 0} suggestion(s) from ${latest.sourceCount ?? 0} source(s)`
+        )
+      }
+      if (latest.id) await loadSuggestions(latest.id, relationType)
+      return latest
     } catch (err) {
       const message = mappingGenerateErrorMessage(err)
       setError(message)
       toast.error(message)
       return null
     } finally {
+      setGeneratePolling(false)
       setGenerating(false)
     }
   }, [projectId, relationType, scope, loadSuggestions])
@@ -823,6 +857,7 @@ export function useMappingReview(
     canUndo: undoStack.length > 0,
     loading,
     generating,
+    generatePolling,
     reviewing,
     applying,
     undoing,
