@@ -40,11 +40,29 @@ export interface SpecPackPreviewUseCase {
   flows: SpecPackPreviewFlow[]
 }
 
-export interface SpecPackPreviewFunctionBlock {
-  function: SpecPackPreviewItem & {
+export interface SpecPackPreviewFunctionDetail {
+  id: string
+  code?: string | null
+  name: string
+  description?: string | null
+  priority?: string | null
+  status?: string | null
+  type?: string | null
+  moduleId?: string | null
+  acceptanceCriteria?: string[] | null
+  createdAt?: string | null
+  updatedAt?: string | null
+  businessRules?: Array<{
+    code: string
+    title: string
     description?: string | null
-    priority?: string | null
-  }
+    severity?: string | null
+    status?: string | null
+  }>
+}
+
+export interface SpecPackPreviewFunctionBlock {
+  function: SpecPackPreviewFunctionDetail
   module?: SpecPackPreviewItem | null
   useCases: SpecPackPreviewUseCase[]
   screens: SpecPackPreviewItem[]

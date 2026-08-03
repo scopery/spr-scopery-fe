@@ -121,16 +121,18 @@ async function loadLabelMaps(ctx: HydrateCtx): Promise<LabelMapsSnapshot> {
       const screens = new Map<string, SpecPackPreviewItem>()
       const apis = new Map<string, SpecPackPreviewItem>()
       const communications = new Map<string, SpecPackPreviewItem>()
+      const modules = new Map<string, SpecPackPreviewItem>()
       try {
         const apps = await appApi.listApplications(ctx.workspaceId)
         await Promise.all(
           apps.items.slice(0, 12).map(async (app) => {
-            const [scr, api, comm] = await Promise.all([
+            const [scr, api, comm, mods] = await Promise.all([
               appApi.listScreens(ctx.workspaceId, app.id).catch(() => ({ items: [] })),
               appApi.listApiEndpoints(ctx.workspaceId, app.id).catch(() => ({ items: [] })),
               appApi
                 .listCommunicationSpecs(ctx.workspaceId, app.id)
                 .catch(() => ({ items: [] })),
+              appApi.listAppModules(ctx.workspaceId, app.id).catch(() => ({ items: [] })),
             ])
             for (const s of scr.items) {
               screens.set(s.id, {
@@ -156,12 +158,20 @@ async function loadLabelMaps(ctx: HydrateCtx): Promise<LabelMapsSnapshot> {
                 secondary: c.triggerKey ?? null,
               })
             }
+            for (const m of mods.items) {
+              modules.set(m.id, {
+                id: m.id,
+                code: m.code,
+                name: m.name,
+                secondary: app.code ?? app.name ?? null,
+              })
+            }
           })
         )
       } catch {
         // optional
       }
-      return { screens, apis, communications }
+      return { screens, apis, communications, modules }
     },
     fetchOpts(ctx)
   )
@@ -335,21 +345,49 @@ async function buildFunctionBlock(
 ): Promise<SpecPackPreviewFunctionBlock> {
   let description: string | null = null
   let priority: string | null = null
+  let status: string | null = null
+  let type: string | null = null
+  let moduleId: string | null = null
+  let acceptanceCriteria: string[] | null = null
+  let createdAt: string | null = null
+  let updatedAt: string | null = null
   let code = fnRef.code ?? null
   let name = fnRef.name
   let module: SpecPackPreviewItem | null = null
+  let businessRules: SpecPackPreviewFunctionBlock['function']['businessRules'] = []
 
   try {
     const detail = await getFunctionalItemCached(ctx, fnRef.id)
     description = detail.description ?? null
     priority = detail.priority ?? null
+    status = detail.status ?? null
+    type = detail.type ?? null
+    moduleId = detail.moduleId ?? null
+    acceptanceCriteria = detail.acceptanceCriteria ?? null
+    createdAt = detail.createdAt ?? null
+    updatedAt = detail.updatedAt ?? null
     code = detail.code
     name = detail.title
-    if (detail.moduleId) {
-      module = { id: detail.moduleId, name: detail.moduleId, secondary: 'Module' }
-    }
   } catch {
     // keep ref
+  }
+
+  try {
+    const rulesRes = await cachedFetch(
+      SpecPackCacheKeys.functionBusinessRules(ctx.projectId, fnRef.id),
+      SpecPackCacheTtl.entity,
+      () => catalogApi.listBusinessRules(ctx.projectId, fnRef.id).catch(() => ({ items: [] })),
+      fetchOpts(ctx)
+    )
+    businessRules = (rulesRes.items ?? []).map((r) => ({
+      code: r.code,
+      title: r.title,
+      description: r.description ?? null,
+      severity: r.severity ?? null,
+      status: r.status ?? null,
+    }))
+  } catch {
+    businessRules = []
   }
 
   let ucIds = preferredUcIds
@@ -398,9 +436,30 @@ async function buildFunctionBlock(
   ])
 
   const { labels, scrLinks, apiLinks, commLinks } = linkBundle
+  if (moduleId) {
+    module =
+      labels.modules.get(moduleId) ?? {
+        id: moduleId,
+        name: moduleId,
+        secondary: 'Module',
+      }
+  }
 
   return {
-    function: { id: fnRef.id, code, name, description, priority },
+    function: {
+      id: fnRef.id,
+      code,
+      name,
+      description,
+      priority,
+      status,
+      type,
+      moduleId,
+      acceptanceCriteria,
+      createdAt,
+      updatedAt,
+      businessRules,
+    },
     module,
     useCases,
     screens: scrLinks.items.map(

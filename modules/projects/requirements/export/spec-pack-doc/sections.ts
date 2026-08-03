@@ -10,13 +10,21 @@ import { escapeHtml, nl2br } from './escape'
 
 function itemLabel(item: SpecPackPreviewItem): string {
   const code = item.code ? `${escapeHtml(item.code)} · ` : ''
-  return `${code}${escapeHtml(item.name)}`
+  const secondary = item.secondary
+    ? ` <span class="muted">(${escapeHtml(item.secondary)})</span>`
+    : ''
+  return `${code}${escapeHtml(item.name)}${secondary}`
 }
 
 function renderItemList(title: string, items: SpecPackPreviewItem[]): string {
   if (!items.length) return ''
   const rows = items.map((i) => `<li>${itemLabel(i)}</li>`).join('')
   return `<h4>${escapeHtml(title)}</h4><ul>${rows}</ul>`
+}
+
+function metaRow(label: string, valueHtml: string | null | undefined): string {
+  if (!valueHtml) return ''
+  return `<tr><th>${escapeHtml(label)}</th><td>${valueHtml}</td></tr>`
 }
 
 function renderUseCaseHtml(
@@ -115,6 +123,54 @@ export function renderFunctionBlockHtml(
   const numberLabel = `${chapterNo}.${functionNo}`
   const title = [fn.code, fn.name].filter(Boolean).join(' — ')
 
+  const metaRows = [
+    metaRow('Code', fn.code ? escapeHtml(fn.code) : null),
+    metaRow('Title', fn.name ? escapeHtml(fn.name) : null),
+    metaRow('Type', fn.type ? escapeHtml(fn.type) : null),
+    metaRow('Priority', fn.priority ? escapeHtml(fn.priority) : null),
+    metaRow('Status', fn.status ? escapeHtml(fn.status) : null),
+    metaRow(
+      'Module',
+      block.module
+        ? itemLabel(block.module)
+        : fn.moduleId
+          ? escapeHtml(fn.moduleId)
+          : null
+    ),
+    metaRow('Description', fn.description ? nl2br(fn.description) : null),
+    metaRow(
+      'Created',
+      fn.createdAt ? escapeHtml(formatSpecPackDate(fn.createdAt)) : null
+    ),
+    metaRow(
+      'Updated',
+      fn.updatedAt ? escapeHtml(formatSpecPackDate(fn.updatedAt)) : null
+    ),
+  ].join('')
+
+  const acceptance =
+    fn.acceptanceCriteria && fn.acceptanceCriteria.length > 0
+      ? `<h4>Acceptance criteria</h4><ol>${fn.acceptanceCriteria
+          .map((c) => `<li>${nl2br(c)}</li>`)
+          .join('')}</ol>`
+      : ''
+
+  const rules =
+    fn.businessRules && fn.businessRules.length > 0
+      ? `<h4>Business rules</h4><table>${fn.businessRules
+          .map((r) => {
+            const head = [r.code, r.title].filter(Boolean).join(' — ')
+            const badges = [
+              r.severity ? `<span class="chip">${escapeHtml(r.severity)}</span>` : '',
+              r.status ? `<span class="chip">${escapeHtml(r.status)}</span>` : '',
+            ].join('')
+            return `<tr><th>${escapeHtml(head)}</th><td>${badges}${
+              r.description ? `<div>${nl2br(r.description)}</div>` : ''
+            }</td></tr>`
+          })
+          .join('')}</table>`
+      : ''
+
   const useCases = block.useCases
     .map((uc, i) => renderUseCaseHtml(uc, `${numberLabel}.${i + 1}`))
     .join('')
@@ -122,17 +178,9 @@ export function renderFunctionBlockHtml(
   return `
     <div class="fn-block">
       <h3>${escapeHtml(numberLabel)}. Function · ${escapeHtml(title)}</h3>
-      ${
-        fn.priority
-          ? `<p class="meta"><span class="chip">${escapeHtml(fn.priority)}</span></p>`
-          : ''
-      }
-      ${
-        block.module
-          ? `<p><strong>Module:</strong> ${itemLabel(block.module)}</p>`
-          : ''
-      }
-      ${fn.description ? `<p>${nl2br(fn.description)}</p>` : ''}
+      ${metaRows ? `<table>${metaRows}</table>` : ''}
+      ${acceptance}
+      ${rules}
       ${renderItemList('Screens', block.screens)}
       ${renderItemList('APIs', block.apis)}
       ${renderItemList('Components', block.components)}

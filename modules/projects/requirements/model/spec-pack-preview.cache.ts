@@ -26,10 +26,14 @@ export type LabelMapsSnapshot = {
   screens: Map<string, SpecPackPreviewItem>
   apis: Map<string, SpecPackPreviewItem>
   communications: Map<string, SpecPackPreviewItem>
+  modules: Map<string, SpecPackPreviewItem>
 }
 
+/** Bump when preview document shape / hydrate fields change (invalidates in-memory docs). */
+const PREVIEW_DOC_SCHEMA_VERSION = 'fn-full-v1'
+
 function packCacheKey(pack: SpecPack): string {
-  return `${pack.projectId}:${pack.id}:${pack.updatedAt}`
+  return `${PREVIEW_DOC_SCHEMA_VERSION}:${pack.projectId}:${pack.id}:${pack.updatedAt}`
 }
 
 function isFresh(expiresAt: number): boolean {
@@ -75,6 +79,7 @@ export function cachedFetch<T>(
 export const SpecPackCacheKeys = {
   useCase: (projectId: string, id: string) => `uc:${projectId}:${id}`,
   functionalItem: (projectId: string, id: string) => `fi:${projectId}:${id}`,
+  functionBusinessRules: (projectId: string, id: string) => `fi-rules:${projectId}:${id}`,
   useCasesByFunction: (projectId: string, id: string) => `uc-by-fn:${projectId}:${id}`,
   functionReqs: (projectId: string, id: string) => `fn-reqs:${projectId}:${id}`,
   functionScreens: (projectId: string, id: string) => `fn-scr:${projectId}:${id}`,
