@@ -86,6 +86,7 @@ export const SpecPackCacheKeys = {
   functionalItems: (projectId: string) => `fi-list:${projectId}`,
   labels: (workspaceId: string) => `labels:${workspaceId}`,
   reqFnIndex: (projectId: string) => `req-fn-index:${projectId}`,
+  coversReqFnIndex: (projectId: string) => `covers-req-fn-index:${projectId}`,
 } as const
 
 export const SpecPackCacheTtl = {

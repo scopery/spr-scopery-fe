@@ -354,7 +354,7 @@ export function ProjectRequirementsView() {
       const currentStatus = normalizeRequirementStatus(selected.status)
       const normalizedNext = nextStatus ? normalizeRequirementStatus(nextStatus) : null
 
-      // Approved/Archived bodies are immutable — skip PATCH. Otherwise include current
+      // Approved bodies are immutable — skip PATCH. Otherwise include current
       // status so BE validators that require `status` on PATCH succeed.
       if (!contentLocked) {
         await updateRequirement(selected.id, {
@@ -686,7 +686,8 @@ export function ProjectRequirementsView() {
                     </div>
                     {selectedIsArchived ? (
                       <Typography variant="caption" tone="muted" className="mt-2 block">
-                        Archived — open Edit and change status to restore it to the active list.
+                        Archived — hidden from the active list. You can still edit, or change status
+                        to restore it.
                       </Typography>
                     ) : canManageRequirements && !canArchiveRequirement(selected) ? (
                       <Typography variant="caption" tone="muted" className="mt-2 block">

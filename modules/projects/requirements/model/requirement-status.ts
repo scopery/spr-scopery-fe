@@ -94,26 +94,22 @@ export function requirementStatusTone(status: string | null | undefined): Requir
 }
 
 /**
- * BE locks requirement body for Approved / Archived.
- * Rejected, Deferred, Implemented stay content-editable; Draft always editable.
+ * BE locks requirement body for Approved only.
+ * Archived is soft-hidden but still editable (content + links).
  */
 export function isRequirementContentImmutable(status: string | null | undefined): boolean {
-  const s = normalizeRequirementStatus(status)
-  return s === RequirementStatus.Approved || s === RequirementStatus.Archived
+  return normalizeRequirementStatus(status) === RequirementStatus.Approved
 }
 
-/**
- * Catalog link mutations (Function / NFR).
- * Approved may link (content stays locked); Archived stays fully frozen.
- */
-export function canMutateRequirementLinks(status: string | null | undefined): boolean {
-  return normalizeRequirementStatus(status) !== RequirementStatus.Archived
+/** Catalog link mutations — only Approved content is locked; archived may still link. */
+export function canMutateRequirementLinks(_status: string | null | undefined): boolean {
+  return true
 }
 
 export const RequirementImmutableMessages = {
   CONTENT_LOCKED:
-    'Approved and archived requirements are immutable. You can still change lifecycle status; code, title, type, priority, and description stay locked.',
+    'Approved requirements are immutable. You can still change lifecycle status; code, title, type, priority, and description stay locked.',
   LINK_LOCKED:
-    'Archived requirements are immutable. Change status before linking or unlinking catalog items.',
+    'This requirement cannot be linked right now.',
 } as const
 

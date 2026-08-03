@@ -77,6 +77,7 @@ describe('structure-assign.rules', () => {
     expect(availablePaletteGroupIdsForFocus(StructureFocusType.Function)).toEqual([
       'screens',
       'apis',
+      'communications',
       'nfrs',
     ])
     expect(availablePaletteGroupIdsForFocus(StructureFocusType.Screen)).toEqual([

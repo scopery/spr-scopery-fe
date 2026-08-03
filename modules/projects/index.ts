@@ -94,6 +94,7 @@ export type { TraceLinksListResponse } from './traceability/model/traceability'
 export {
   TraceabilityMatrixView,
   RequirementTraceabilityView,
+  AiMappingReviewView,
   ApplicationRegistryView,
   ApplicationWorkbenchView,
   FunctionalCatalogView,

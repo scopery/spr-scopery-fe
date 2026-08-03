@@ -15,6 +15,7 @@ import { UseCaseCoverageTab } from './UseCaseCoverageTab'
 import { ImplementationCoverageTab } from './ImplementationCoverageTab'
 import { NfrVerificationTab } from './NfrVerificationTab'
 import { TraceExplorerTab } from './TraceExplorerTab'
+import { AiMappingReviewView } from './AiMappingReviewView'
 
 const TABS: { id: TraceNavTab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -22,6 +23,7 @@ const TABS: { id: TraceNavTab; label: string }[] = [
   { id: 'implementation', label: 'Implementation' },
   { id: 'nfr', label: 'NFR' },
   { id: 'explorer', label: 'Explorer' },
+  { id: 'ai-mapping', label: 'AI Mapping' },
 ]
 
 const SEGMENTS: { id: FunctionalSegment; label: string }[] = [
@@ -31,7 +33,15 @@ const SEGMENTS: { id: FunctionalSegment; label: string }[] = [
 ]
 
 function parseTab(v: string | null): TraceNavTab {
-  if (v === 'functional' || v === 'implementation' || v === 'nfr' || v === 'explorer') return v
+  if (
+    v === 'functional' ||
+    v === 'implementation' ||
+    v === 'nfr' ||
+    v === 'explorer' ||
+    v === 'ai-mapping'
+  ) {
+    return v
+  }
   return 'overview'
 }
 
@@ -182,6 +192,7 @@ export function RequirementTraceabilityView() {
       {tab === 'implementation' ? <ImplementationCoverageTab projectId={projectId} /> : null}
       {tab === 'nfr' ? <NfrVerificationTab projectId={projectId} /> : null}
       {tab === 'explorer' ? <TraceExplorerTab projectId={projectId} /> : null}
+      {tab === 'ai-mapping' ? <AiMappingReviewView /> : null}
     </div>
   )
 }

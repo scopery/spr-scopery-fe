@@ -12,6 +12,7 @@ import {
 } from '@/modules/projects/requirements/model/requirement-status'
 import { TraceLinkType } from '@/modules/quality/domain/enums/quality.enum'
 import type { FunctionalItem } from '../model/functional-catalog'
+import * as useCaseApi from '../api/use-case.api'
 import * as traceApi from '../api/traceability.api'
 import type { TraceLink } from '../api/traceability.api'
 
@@ -304,6 +305,17 @@ export function RequirementFunctionalLinkPanel({
           }
         }
 
+        // Spec Pack / coverage read app_requirement_function — keep junction in sync
+        await Promise.all(
+          toCreate.map((p) =>
+            useCaseApi
+              .linkRequirementToFunction(projectId, p.functionalItemId, {
+                requirementId: focusReqId,
+              })
+              .catch(() => undefined)
+          )
+        )
+
         // Keep FK in sync as primary pointer (first / if empty)
         if (focus && !focus.functionalItemId && toCreate[0]) {
           await updateRequirement(focusReqId, {
@@ -350,6 +362,13 @@ export function RequirementFunctionalLinkPanel({
         if (edge.linkId) {
           await traceApi.deleteTraceLink(projectId, edge.linkId)
         }
+        await useCaseApi
+          .unlinkRequirementFromFunction(
+            projectId,
+            edge.functionalItemId,
+            edge.requirementId
+          )
+          .catch(() => undefined)
         if (req?.functionalItemId === edge.functionalItemId) {
           const remaining = edges.filter(
             (e) =>

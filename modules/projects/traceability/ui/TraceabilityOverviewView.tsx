@@ -6,7 +6,13 @@ import { FUNNEL_STAGE_LABEL } from '../model/requirement-traceability'
 import { useTraceabilityOverview } from '../hooks/useTraceabilityOverview'
 import { PipelineBar, SummaryStrip } from './TraceabilityStatusBits'
 
-export type TraceNavTab = 'overview' | 'functional' | 'implementation' | 'nfr' | 'explorer'
+export type TraceNavTab =
+  | 'overview'
+  | 'functional'
+  | 'implementation'
+  | 'nfr'
+  | 'explorer'
+  | 'ai-mapping'
 export type FunctionalSegment = 'requirements' | 'functions' | 'use-cases'
 
 interface TraceabilityOverviewViewProps {
@@ -63,6 +69,7 @@ function attentionScope(tab: string): {
   if (tab === 'nfr') return { label: 'NFR', tone: 'info' }
   if (tab === 'implementation') return { label: 'Implementation', tone: 'warning' }
   if (tab === 'explorer') return { label: 'Explorer', tone: 'neutral' }
+  if (tab === 'ai-mapping') return { label: 'AI Mapping', tone: 'info' }
   return { label: 'Functional', tone: 'neutral' }
 }
 
@@ -450,6 +457,9 @@ export function TraceabilityOverviewView({ projectId, onNavigate }: Traceability
               </NeutralButton>
               <NeutralButton outline onClick={() => onNavigate({ tab: 'nfr' })}>
                 Open NFR
+              </NeutralButton>
+              <NeutralButton outline onClick={() => onNavigate({ tab: 'ai-mapping' })}>
+                AI Mapping
               </NeutralButton>
             </div>
           </div>

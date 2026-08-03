@@ -52,6 +52,7 @@ vi.mock('../api/traceability.api', () => ({
   })),
   listAppComponents: vi.fn(async () => ({ items: [] })),
   listDataEntities: vi.fn(async () => ({ items: [] })),
+  listCommunicationSpecs: vi.fn(async () => ({ items: [] })),
   createAppModule: vi.fn(async () => ({})),
   updateAppModule: vi.fn(async () => ({})),
   deleteAppModule: vi.fn(async () => undefined),
@@ -67,6 +68,9 @@ vi.mock('../api/traceability.api', () => ({
   createDataEntity: vi.fn(async () => ({})),
   updateDataEntity: vi.fn(async () => ({})),
   deleteDataEntity: vi.fn(async () => undefined),
+  createCommunicationSpec: vi.fn(async () => ({})),
+  updateCommunicationSpec: vi.fn(async () => ({})),
+  archiveCommunicationSpec: vi.fn(async () => undefined),
 }))
 
 import * as api from '../api/traceability.api'

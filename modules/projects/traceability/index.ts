@@ -19,6 +19,19 @@ export type {
 export { TraceabilityMatrixView } from './ui/TraceabilityMatrixView'
 export { RequirementTraceDetailDrawer } from './ui/RequirementTraceDetailDrawer'
 export { RequirementTraceabilityView } from './ui/RequirementTraceabilityView'
+export { AiMappingReviewView } from './ui/AiMappingReviewView'
+export * as mappingSuggestionsApi from './api/mapping-suggestions.api'
+export { useMappingReview } from './hooks/useMappingReview'
+export type {
+  MappingRun,
+  MappingSuggestion,
+  MappingRelationType,
+} from './model/mapping-suggestions'
+export {
+  MappingRelationType as MappingRelationTypeValues,
+  MappingScope,
+  ReviewDecision,
+} from './model/mapping-suggestions'
 export { ApplicationRegistryView } from './ui/ApplicationRegistryView'
 export { ApplicationWorkbenchView } from './ui/ApplicationWorkbenchView'
 export { FunctionalCatalogView } from './ui/FunctionalCatalogView'

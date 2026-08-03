@@ -10,6 +10,7 @@ import {
 import type { TracePreviewObject } from '@/modules/projects/traceability/model/requirement-traceability'
 import type { FunctionalItem } from '@/modules/projects/traceability/model/functional-catalog'
 import type { UseCase, UseCaseDetail } from '@/modules/projects/traceability/model/use-case'
+import { TraceLinkType } from '@/modules/quality/domain/enums/quality.enum'
 import type { SpecPack } from './spec-pack'
 import {
   SpecPackCacheKeys,
@@ -27,12 +28,16 @@ import type {
   SpecPackPreviewUseCase,
 } from './spec-pack-preview'
 
+type FnRef = { id: string; code?: string | null; name: string }
+
 type HydrateCtx = {
   workspaceId: string
   projectId: string
   forceEntities: boolean
   labels: LabelMapsSnapshot | null
-  reqToFns: Map<string, Array<{ id: string; code?: string | null; name: string }>> | null
+  reqToFns: Map<string, FnRef[]> | null
+  /** Requirement → functions from TraceLink COVERS (UI link panel) */
+  coversReqToFns: Map<string, FnRef[]> | null
 }
 
 function fetchOpts(ctx: HydrateCtx) {
@@ -195,7 +200,7 @@ async function ensureReqFunctionIndex(ctx: HydrateCtx): Promise<void> {
     SpecPackCacheKeys.reqFnIndex(ctx.projectId),
     SpecPackCacheTtl.index,
     async () => {
-      const map = new Map<string, Array<{ id: string; code?: string | null; name: string }>>()
+      const map = new Map<string, FnRef[]>()
       try {
         const listed = await cachedFetch(
           SpecPackCacheKeys.functionalItems(ctx.projectId),
@@ -231,14 +236,55 @@ async function ensureReqFunctionIndex(ctx: HydrateCtx): Promise<void> {
   )
 }
 
+/** Link panel writes TraceLink COVERS; Spec Pack / coverage historically read junction only. */
+async function ensureCoversReqFunctionIndex(ctx: HydrateCtx): Promise<void> {
+  if (ctx.coversReqToFns) return
+  ctx.coversReqToFns = await cachedFetch(
+    SpecPackCacheKeys.coversReqFnIndex(ctx.projectId),
+    SpecPackCacheTtl.index,
+    async () => {
+      const map = new Map<string, FnRef[]>()
+      try {
+        const res = await appApi.listTraceLinks(ctx.projectId, {
+          linkType: TraceLinkType.Covers,
+          sourceType: 'REQUIREMENT',
+          targetType: 'FUNCTIONAL_ITEM',
+          limit: 500,
+        })
+        for (const link of res.items) {
+          if (
+            link.sourceType.toUpperCase() !== 'REQUIREMENT' ||
+            link.targetType.toUpperCase() !== 'FUNCTIONAL_ITEM' ||
+            link.linkType.toUpperCase() !== TraceLinkType.Covers
+          ) {
+            continue
+          }
+          const list = map.get(link.sourceId) ?? []
+          if (list.some((f) => f.id === link.targetId)) continue
+          list.push({
+            id: link.targetId,
+            code: link.targetCode ?? null,
+            name: link.targetTitle || link.targetCode || link.targetId,
+          })
+          map.set(link.sourceId, list)
+        }
+      } catch {
+        // optional
+      }
+      return map
+    },
+    fetchOpts(ctx)
+  )
+}
+
 async function resolveFunctionIdsForRequirement(
   ctx: HydrateCtx,
   requirementId: string,
   detailFns: TracePreviewObject[],
   detailUseCases: TracePreviewObject[],
   functionalItemId?: string | null
-): Promise<Array<{ id: string; code?: string | null; name: string }>> {
-  const byId = new Map<string, { id: string; code?: string | null; name: string }>()
+): Promise<FnRef[]> {
+  const byId = new Map<string, FnRef>()
 
   for (const fn of detailFns) {
     byId.set(fn.id, { id: fn.id, code: fn.code, name: fn.name || fn.code || fn.id })
@@ -246,6 +292,12 @@ async function resolveFunctionIdsForRequirement(
 
   if (functionalItemId && !byId.has(functionalItemId)) {
     byId.set(functionalItemId, { id: functionalItemId, name: functionalItemId })
+  }
+
+  // Always merge TraceLink COVERS (UI link panel source of truth for many projects)
+  await ensureCoversReqFunctionIndex(ctx)
+  for (const fn of ctx.coversReqToFns?.get(requirementId) ?? []) {
+    if (!byId.has(fn.id)) byId.set(fn.id, fn)
   }
 
   if (byId.size === 0 && detailUseCases.length > 0) {
@@ -474,6 +526,7 @@ export async function buildSpecPackPreviewDocument(
     forceEntities: Boolean(opts?.bypassEntityCache),
     labels: null,
     reqToFns: null,
+    coversReqToFns: null,
   }
 
   const reqList = await cachedFetch(

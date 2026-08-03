@@ -169,7 +169,7 @@ export function EditRequirementModal({
       : REQUIREMENT_STATUS_EDIT_OPTIONS.filter((o) => o.value !== RequirementStatus.Draft)
 
   const helperText = isArchived
-    ? 'This requirement is archived. Change status (approve / reject / defer / implement) to restore it to the active register.'
+    ? 'This requirement is archived (hidden from the active register). You can still edit fields or change status to restore it.'
     : contentLocked
       ? RequirementImmutableMessages.CONTENT_LOCKED
       : 'Update code, title, type, priority, status, or description. Status changes use the lifecycle APIs (approve / reject / defer / implement). Use Archive to soft-delete.'
