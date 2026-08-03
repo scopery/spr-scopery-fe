@@ -128,8 +128,13 @@ export function EditRequirementModal({
     }
   }
 
-  const statusOptions =
-    status === RequirementStatus.Draft
+  const isArchived = normalizeRequirementStatus(requirement?.status) === RequirementStatus.Archived
+  const statusOptions = isArchived
+    ? REQUIREMENT_STATUS_EDIT_OPTIONS.filter((o) => o.value !== RequirementStatus.Draft).concat({
+        value: RequirementStatus.Archived,
+        label: 'Archived',
+      })
+    : status === RequirementStatus.Draft
       ? REQUIREMENT_STATUS_EDIT_OPTIONS
       : REQUIREMENT_STATUS_EDIT_OPTIONS.filter((o) => o.value !== RequirementStatus.Draft)
 
@@ -151,8 +156,9 @@ export function EditRequirementModal({
     >
       <div className="space-y-4">
         <Typography variant="small" tone="muted">
-          Update code, title, type, priority, status, or description. Status changes use the
-          lifecycle APIs (approve / reject / defer / implement). Use Archive to soft-delete.
+          {isArchived
+            ? 'This requirement is archived. Change status (approve / reject / defer / implement) to restore it to the active register.'
+            : 'Update code, title, type, priority, status, or description. Status changes use the lifecycle APIs (approve / reject / defer / implement). Use Archive to soft-delete.'}
         </Typography>
         <Input
           label="Code"

@@ -47,7 +47,8 @@ export function requirementPriorityBadgeProps(
       return {
         variant: 'soft',
         tone: 'default',
-        className: 'bg-amber-100 text-amber-700',
+        // Match solid priority chips (Badge only applies font-calsans on solid).
+        className: 'bg-amber-100 font-calsans text-amber-700',
       }
     default:
       return { variant: 'soft', tone: 'neutral' }

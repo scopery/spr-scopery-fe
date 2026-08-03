@@ -84,8 +84,8 @@ export function requirementStatusBadgeProps(
       return { variant: 'solid', tone: 'neutral' }
     case RequirementStatus.Draft:
     default:
-      // soft/default → bg-neutral-100 text-neutral-900
-      return { variant: 'soft', tone: 'default' }
+      // soft/default → bg-neutral-100 text-neutral-900; font matches solid status chips
+      return { variant: 'soft', tone: 'default', className: 'font-calsans' }
   }
 }
 

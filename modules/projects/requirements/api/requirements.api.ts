@@ -41,14 +41,19 @@ function normalizeRequirement(raw: Requirement): Requirement {
 export async function listRequirements(
   orgId: string,
   projectId: string,
-  _params?: { limit?: number; offset?: number }
+  params?: { limit?: number; offset?: number; includeArchived?: boolean }
 ): Promise<RequirementsListResponse> {
-  const url = PROJECT_ENDPOINTS.requirements(orgId, projectId)
+  const includeArchived = params?.includeArchived === true
+  const url = PROJECT_ENDPOINTS.requirements(orgId, projectId, {
+    includeArchived,
+    limit: params?.limit,
+    offset: params?.offset,
+  })
   const res = await apiClient.get<RequirementsListResponse | Requirement[]>(url)
   const items = (Array.isArray(res) ? res : (res.items ?? []))
     .map(normalizeRequirement)
-    // Active register — archived requirements are soft-deleted from the list.
-    .filter((r) => (r.status ?? '').toUpperCase() !== 'ARCHIVED')
+    // Active register by default — Archived tab loads with includeArchived.
+    .filter((r) => includeArchived || (r.status ?? '').toUpperCase() !== 'ARCHIVED')
   if (Array.isArray(res)) {
     return { items }
   }

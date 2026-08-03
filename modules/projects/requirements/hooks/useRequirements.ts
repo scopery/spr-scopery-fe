@@ -24,7 +24,10 @@ export function useRequirements(orgId: string | null, projectId: string | null) 
     setLoading(true)
     setError(null)
     try {
-      const res = await requirementsApi.listRequirements(orgId, projectId, { limit: 200 })
+      const res = await requirementsApi.listRequirements(orgId, projectId, {
+        limit: 200,
+        includeArchived: true,
+      })
       setRequirements(res.items)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load requirements')
@@ -114,7 +117,11 @@ export function useRequirements(orgId: string | null, projectId: string | null) 
     async (requirementId: string) => {
       if (!orgId || !projectId) return
       await requirementsApi.archiveRequirement(orgId, projectId, requirementId)
-      setRequirements((prev) => prev.filter((r) => r.id !== requirementId))
+      setRequirements((prev) =>
+        prev.map((r) =>
+          r.id === requirementId ? { ...r, status: RequirementStatus.Archived } : r
+        )
+      )
     },
     [orgId, projectId]
   )
@@ -128,7 +135,7 @@ export function useRequirements(orgId: string | null, projectId: string | null) 
         return null
       }
       if (next === RequirementStatus.Draft) {
-        throw new Error('Returning a requirement to Draft is not supported')
+        throw new Error('Returning a requirement to Draft is not supported by the API')
       }
       const updated = await requirementsApi.transitionRequirementStatus(
         orgId,

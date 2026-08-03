@@ -50,6 +50,7 @@ import {
 } from '../model/requirement-priority'
 import {
   normalizeRequirementStatus,
+  RequirementStatus,
   requirementStatusBadgeProps,
   requirementStatusLabel,
 } from '../model/requirement-status'
@@ -57,8 +58,12 @@ import { EditRequirementModal, type EditRequirementSubmit } from './EditRequirem
 import { RequirementAddBar } from './RequirementAddBar'
 import { SpecPacksView } from './SpecPacksView'
 
-type EvidenceFilter = 'all' | 'with' | 'missing'
+type ListFilter = 'all' | 'with' | 'missing' | 'archived'
 type RequirementsMainTab = 'catalog' | 'spec-packs'
+
+function isArchivedRequirement(r: { status?: string | null }): boolean {
+  return normalizeRequirementStatus(r.status) === RequirementStatus.Archived
+}
 
 function reqTypeLabel(type: string | null | undefined): string {
   switch ((type ?? '').toUpperCase()) {
@@ -142,7 +147,7 @@ export function ProjectRequirementsView() {
   )
   const [evidenceCounts, setEvidenceCounts] = useState<Record<string, number>>({})
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState<EvidenceFilter>('all')
+  const [filter, setFilter] = useState<ListFilter>('all')
   const [mainTab, setMainTab] = useState<RequirementsMainTab>('catalog')
   const [resolvedFunctionalItem, setResolvedFunctionalItem] = useState<FunctionalItem | null>(null)
   const [resolvedNfr, setResolvedNfr] = useState<NonFunctionalItem | null>(null)
@@ -228,22 +233,34 @@ export function ProjectRequirementsView() {
       .catch(() => setEvidenceCounts({}))
   }, [orgId, projectId, requirements])
 
+  const activeRequirements = useMemo(
+    () => requirements.filter((r) => !isArchivedRequirement(r)),
+    [requirements]
+  )
+  const archivedRequirements = useMemo(
+    () => requirements.filter((r) => isArchivedRequirement(r)),
+    [requirements]
+  )
+
   const missingEvidenceCount = useMemo(
-    () => requirements.filter((r) => (evidenceCounts[r.id] ?? 0) === 0).length,
-    [requirements, evidenceCounts]
+    () => activeRequirements.filter((r) => (evidenceCounts[r.id] ?? 0) === 0).length,
+    [activeRequirements, evidenceCounts]
   )
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return requirements.filter((r) => {
-      const count = evidenceCounts[r.id] ?? 0
-      if (filter === 'with' && count === 0) return false
-      if (filter === 'missing' && count > 0) return false
+    const pool = filter === 'archived' ? archivedRequirements : activeRequirements
+    return pool.filter((r) => {
+      if (filter !== 'archived') {
+        const count = evidenceCounts[r.id] ?? 0
+        if (filter === 'with' && count === 0) return false
+        if (filter === 'missing' && count > 0) return false
+      }
       if (!q) return true
-      const hay = `${r.code} ${r.title} ${r.req_type ?? r.type ?? ''}`.toLowerCase()
+      const hay = `${r.code} ${r.title} ${r.req_type ?? r.type ?? ''} ${r.status ?? ''}`.toLowerCase()
       return hay.includes(q)
     })
-  }, [requirements, evidenceCounts, filter, search])
+  }, [activeRequirements, archivedRequirements, evidenceCounts, filter, search])
 
   useEffect(() => {
     const fromQuery = searchParams.get('requirementId')
@@ -298,12 +315,16 @@ export function ProjectRequirementsView() {
   }
 
   const selectedEvidenceCount = selected ? (evidenceCounts[selected.id] ?? 0) : 0
+  const selectedIsArchived = selected ? isArchivedRequirement(selected) : false
   const metaBits = [
     project?.name,
-    requirements.length
-      ? `${requirements.length} requirement${requirements.length === 1 ? '' : 's'}`
+    activeRequirements.length
+      ? `${activeRequirements.length} requirement${activeRequirements.length === 1 ? '' : 's'}`
       : null,
     missingEvidenceCount ? `${missingEvidenceCount} missing evidence` : null,
+    archivedRequirements.length
+      ? `${archivedRequirements.length} archived`
+      : null,
   ].filter(Boolean)
 
   const createHandlers = {
@@ -332,8 +353,20 @@ export function ProjectRequirementsView() {
     try {
       await updateRequirement(selected.id, patch)
       const currentStatus = normalizeRequirementStatus(selected.status)
-      if (nextStatus && normalizeRequirementStatus(nextStatus) !== currentStatus) {
-        await transitionRequirementStatus(selected.id, nextStatus)
+      const normalizedNext = nextStatus ? normalizeRequirementStatus(nextStatus) : null
+      if (normalizedNext && normalizedNext !== currentStatus) {
+        if (normalizedNext === RequirementStatus.Archived) {
+          await archiveRequirement(selected.id)
+        } else {
+          await transitionRequirementStatus(selected.id, normalizedNext)
+        }
+        // Leaving archive → jump back to active register tab.
+        if (
+          currentStatus === RequirementStatus.Archived &&
+          normalizedNext !== RequirementStatus.Archived
+        ) {
+          setFilter('all')
+        }
       }
       toast.success('Requirement updated')
     } catch (err) {
@@ -360,10 +393,12 @@ export function ProjectRequirementsView() {
     }
     setDeleting(true)
     try {
-      await archiveRequirement(selected.id)
+      const id = selected.id
+      await archiveRequirement(id)
       toast.success('Requirement archived')
       setConfirmDelete(false)
-      setSelectedId(null)
+      setFilter('archived')
+      setSelectedId(id)
     } catch (err) {
       if (err instanceof ApiError) {
         toast.error(err.problem.detail || err.message)
@@ -436,7 +471,7 @@ export function ProjectRequirementsView() {
             <SpecPacksView
               workspaceId={orgId}
               projectId={projectId}
-              requirements={requirements}
+              requirements={activeRequirements}
               canCreate={canCreateRequirement}
             />
           ) : (
@@ -460,6 +495,13 @@ export function ProjectRequirementsView() {
                         { id: 'all', label: 'All' },
                         { id: 'with', label: 'With evidence' },
                         { id: 'missing', label: 'Missing' },
+                        {
+                          id: 'archived',
+                          label:
+                            archivedRequirements.length > 0
+                              ? `Archived (${archivedRequirements.length})`
+                              : 'Archived',
+                        },
                       ] as const
                     ).map((f) => {
                       const active = filter === f.id
@@ -481,11 +523,21 @@ export function ProjectRequirementsView() {
                     })}
                   </div>
                 </div>
-                {canCreateRequirement ? <RequirementAddBar {...createHandlers} /> : null}
+                {canCreateRequirement && filter !== 'archived' ? (
+                  <RequirementAddBar {...createHandlers} />
+                ) : null}
               </div>
 
               <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
-                {requirements.length === 0 ? (
+                {filter === 'archived' && archivedRequirements.length === 0 ? (
+                  <div className="flex h-full flex-col items-center justify-center px-4 py-10 text-center">
+                    <Typography weight="medium">No archived requirements</Typography>
+                    <Typography variant="small" tone="muted" className="mt-1 max-w-sm">
+                      Archived items appear here. Open Edit on one to change its status and restore
+                      it to the active register.
+                    </Typography>
+                  </div>
+                ) : activeRequirements.length === 0 && filter !== 'archived' ? (
                   <div className="flex h-full flex-col items-center justify-center px-4 py-10 text-center">
                     <Typography weight="medium">No requirements yet</Typography>
                     <Typography variant="small" tone="muted" className="mt-1 max-w-sm">
@@ -585,7 +637,6 @@ export function ProjectRequirementsView() {
                           selected.requirementType ?? selected.req_type ?? selected.type
                         )}
                       </Badge>
-                      <RequirementStatusBadge status={selected.status} />
                       {selected.priority ? (
                         <RequirementPriorityBadge priority={selected.priority} />
                       ) : null}
@@ -615,25 +666,31 @@ export function ProjectRequirementsView() {
                           >
                             Edit
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            tone="error"
-                            icon={<Trash2 size={14} />}
-                            onClick={handleRequestDelete}
-                            disabled={!canArchiveRequirement(selected)}
-                            title={
-                              canArchiveRequirement(selected)
-                                ? 'Archive requirement'
-                                : RequirementDeleteMessages.LINKED_TO_FUNCTION
-                            }
-                          >
-                            Archive
-                          </Button>
+                          {!selectedIsArchived ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              tone="error"
+                              icon={<Trash2 size={14} />}
+                              onClick={handleRequestDelete}
+                              disabled={!canArchiveRequirement(selected)}
+                              title={
+                                canArchiveRequirement(selected)
+                                  ? 'Archive requirement'
+                                  : RequirementDeleteMessages.LINKED_TO_FUNCTION
+                              }
+                            >
+                              Archive
+                            </Button>
+                          ) : null}
                         </>
                       ) : null}
                     </div>
-                    {canManageRequirements && !canArchiveRequirement(selected) ? (
+                    {selectedIsArchived ? (
+                      <Typography variant="caption" tone="muted" className="mt-2 block">
+                        Archived — open Edit and change status to restore it to the active list.
+                      </Typography>
+                    ) : canManageRequirements && !canArchiveRequirement(selected) ? (
                       <Typography variant="caption" tone="muted" className="mt-2 block">
                         {RequirementDeleteMessages.LINKED_TO_FUNCTION}
                       </Typography>

@@ -129,8 +129,18 @@ export const PROJECT_ENDPOINTS = {
     apiPath(`/projects/${projectId}/trace-links`),
 
   /* --- Requirements --- */
-  requirements: (orgId: string, projectId: string) =>
-    apiPath(`/projects/${projectId}/requirements`),
+  requirements: (
+    orgId: string,
+    projectId: string,
+    params?: { includeArchived?: boolean; limit?: number; offset?: number }
+  ) => {
+    const search = new URLSearchParams()
+    if (params?.includeArchived) search.set('includeArchived', 'true')
+    if (params?.limit != null) search.set('limit', String(params.limit))
+    if (params?.offset != null) search.set('offset', String(params.offset))
+    const q = search.toString()
+    return apiPath(`/projects/${projectId}/requirements`) + (q ? `?${q}` : '')
+  },
   requirementsBulk: (_orgId: string, projectId: string) =>
     apiPath(`/projects/${projectId}/requirements/bulk`),
   requirement: (orgId: string, projectId: string, requirementId: string) =>
