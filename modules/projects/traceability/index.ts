@@ -17,6 +17,7 @@ export type {
   FunctionalItemAnchor,
 } from './model/functional-catalog'
 export { TraceabilityMatrixView } from './ui/TraceabilityMatrixView'
+export { RequirementTraceDetailDrawer } from './ui/RequirementTraceDetailDrawer'
 export { RequirementTraceabilityView } from './ui/RequirementTraceabilityView'
 export { ApplicationRegistryView } from './ui/ApplicationRegistryView'
 export { ApplicationWorkbenchView } from './ui/ApplicationWorkbenchView'

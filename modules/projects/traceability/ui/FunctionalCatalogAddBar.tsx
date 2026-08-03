@@ -71,29 +71,27 @@ export function FunctionalCatalogAddBar({
         </button>
       </AnchoredMenu>
 
-      {modal?.mode === 'single' ? (
-        <FunctionalCatalogSingleAddModal
-          open
-          kind={modal.kind}
-          onClose={() => setModal(null)}
-          onCreate={async (input) => {
-            await onCreate(input)
-            await onBatchComplete?.(modal.kind)
-          }}
-        />
-      ) : null}
+      <FunctionalCatalogSingleAddModal
+        open={modal?.mode === 'single'}
+        kind={modal?.kind ?? defaultKind}
+        onClose={() => setModal(null)}
+        onCreate={async (input) => {
+          const kind = modal?.kind ?? defaultKind
+          await onCreate(input)
+          await onBatchComplete?.(kind)
+        }}
+      />
 
-      {modal?.mode === 'bulk' ? (
-        <FunctionalCatalogBulkAddModal
-          open
-          kind={modal.kind}
-          onClose={() => setModal(null)}
-          onSubmitBulk={onSubmitBulk}
-          onBatchComplete={async () => {
-            await onBatchComplete?.(modal.kind)
-          }}
-        />
-      ) : null}
+      {/* Always mounted so background poll + result modal survive onClose. */}
+      <FunctionalCatalogBulkAddModal
+        open={modal?.mode === 'bulk'}
+        kind={modal?.kind ?? defaultKind}
+        onClose={() => setModal(null)}
+        onSubmitBulk={onSubmitBulk}
+        onBatchComplete={async () => {
+          await onBatchComplete?.(modal?.kind ?? defaultKind)
+        }}
+      />
 
       <FunctionalCatalogJsonImportModal
         open={modal?.mode === 'json'}

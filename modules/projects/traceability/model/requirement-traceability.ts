@@ -186,6 +186,8 @@ export interface RequirementTraceDetailResponse {
     title: string
     requirementType: string
     priority?: string | null
+    description?: string | null
+    moduleName?: string | null
     requiresUseCase: RequiresUseCase | string
     requiresUseCaseResolved: boolean
   }

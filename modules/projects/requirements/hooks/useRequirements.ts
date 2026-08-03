@@ -56,7 +56,40 @@ export function useRequirements(orgId: string | null, projectId: string | null) 
         body
       )
       setRequirements((prev) =>
-        prev.map((r) => (r.id === requirementId ? { ...r, ...updated } : r))
+        prev.map((r) => {
+          if (r.id !== requirementId) return r
+          const next: Requirement = {
+            ...r,
+            ...updated,
+            title: updated.title ?? body.title ?? r.title,
+            code: updated.code ?? body.code ?? r.code,
+            description:
+              updated.description !== undefined
+                ? updated.description
+                : body.description !== undefined
+                  ? body.description
+                  : r.description,
+            priority: updated.priority ?? body.priority ?? r.priority,
+            requirementType:
+              updated.requirementType ?? body.requirementType ?? r.requirementType,
+          }
+          // Keep legacy type aliases in sync when only requirementType is present.
+          const typeSource = next.requirementType ?? next.req_type ?? next.type
+          if (typeSource && !updated.req_type && !updated.type) {
+            const t = String(typeSource).toUpperCase()
+            if (t === 'FUNCTIONAL' || t === 'FR') {
+              next.req_type = 'FR'
+              next.type = 'FR'
+            } else if (t === 'NON_FUNCTIONAL' || t === 'NFR') {
+              next.req_type = 'NFR'
+              next.type = 'NFR'
+            } else if (t === 'BUSINESS' || t === 'BO' || t === 'BR') {
+              next.req_type = 'BO'
+              next.type = 'BO'
+            }
+          }
+          return next
+        })
       )
       return updated
     },
@@ -71,6 +104,15 @@ export function useRequirements(orgId: string | null, projectId: string | null) 
     [orgId, projectId]
   )
 
+  const deleteRequirement = useCallback(
+    async (requirementId: string) => {
+      if (!orgId || !projectId) return
+      await requirementsApi.deleteRequirement(orgId, projectId, requirementId)
+      setRequirements((prev) => prev.filter((r) => r.id !== requirementId))
+    },
+    [orgId, projectId]
+  )
+
   return {
     requirements,
     loading,
@@ -79,5 +121,6 @@ export function useRequirements(orgId: string | null, projectId: string | null) 
     createRequirement,
     updateRequirement,
     submitRequirementsBulk,
+    deleteRequirement,
   }
 }

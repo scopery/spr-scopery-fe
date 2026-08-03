@@ -779,12 +779,26 @@ export function RequirementTraceDetailDrawer({
             <Badge size="sm" variant="soft" tone="neutral" className="border-0">
               {data.requirement.requirementType}
             </Badge>
+            {data.requirement.priority ? (
+              <Badge size="sm" variant="soft" tone="neutral" className="border-0">
+                {data.requirement.priority}
+              </Badge>
+            ) : null}
             {!isNfr ? (
               <Typography variant="caption" tone="muted">
                 Use Case required: {data.requirement.requiresUseCaseResolved ? 'Yes' : 'No'}
               </Typography>
             ) : null}
           </div>
+
+          <section>
+            <Typography variant="caption" tone="muted">
+              Description
+            </Typography>
+            <Typography variant="small" className="mt-1 whitespace-pre-wrap text-neutral-800">
+              {data.requirement.description?.trim() || 'No description.'}
+            </Typography>
+          </section>
 
           {isNfr && nfrLoading ? (
             <PageSkeleton variant="list" />

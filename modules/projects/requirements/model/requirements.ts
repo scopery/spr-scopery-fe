@@ -7,6 +7,9 @@ export interface Requirement {
   title: string
   req_type?: RequirementType
   type?: RequirementType
+  /** WAVE4 camelCase — mirrors create/update `requirementType` when present */
+  requirementType?: string | null
+  priority?: string | null
   parent_id: string | null
   description: string | null
   created_at: string
@@ -43,6 +46,7 @@ export interface CreateRequirementPayload {
 
 export interface UpdateRequirementPayload {
   title?: string | null
+  code?: string | null
   description?: string | null
   priority?: string | null
   requirementType?: string | null

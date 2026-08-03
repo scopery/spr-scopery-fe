@@ -19,10 +19,13 @@ export type BackgroundJsonBulkImportOptions = {
 }
 
 /**
- * Shared JSON-import follow-up: one POST …/bulk, close paste modal immediately,
- * poll in the background, open a separate result modal on PARTIAL/FAILED.
+ * Shared bulk-job follow-up for JSON import and spreadsheet Bulk add:
+ * one POST …/bulk, close the submit modal immediately, poll in the background,
+ * open a separate result modal on PARTIAL/FAILED (with failed-item details + retry).
  *
- * Important: do NOT call poller.reset() when the paste modal closes — that aborts the job follow-up.
+ * Important: keep the host component mounted after onClose (use open={…}, do not
+ * conditionally unmount) — otherwise the result modal and poller die with it.
+ * Do NOT call poller.reset() when the submit modal closes.
  */
 export function useBackgroundJsonBulkImport({
   entityLabel,
@@ -114,7 +117,7 @@ export function useBackgroundJsonBulkImport({
     <Modal
       open={resultOpen}
       onClose={() => setResultOpen(false)}
-      title={`${entityLabel} import results`}
+      title={`${entityLabel} results`}
       size="lg"
       actions={[
         {
@@ -145,8 +148,7 @@ export function useBackgroundJsonBulkImport({
     >
       <div className="space-y-md">
         <Typography variant="small" tone="muted">
-          Import finished with errors. Successful rows are already saved — only failures need
-          attention.
+          Finished with errors. Successful rows are already saved — only failures need attention.
         </Typography>
         <BulkJobProgressPanel
           job={resultJob ?? poller.job}

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import {
-  BulkJobProgressPanel,
   Button,
   DataTable,
   Input,
@@ -13,13 +12,8 @@ import {
   type DataTableColumn,
 } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
-import {
-  BULK_MAX_ITEMS,
-  BulkJobStatus,
-  type BulkJobResponse,
-} from '@/shared/lib/bulkJobs'
-import { useBulkJobPoller } from '@/shared/lib/useBulkJobPoller'
-import { toast } from 'sonner'
+import { BULK_MAX_ITEMS, type BulkJobResponse } from '@/shared/lib/bulkJobs'
+import { useBackgroundJsonBulkImport } from '@/shared/lib/useBackgroundJsonBulkImport'
 import { cn } from '@/utils/cn'
 import type { CreateRequirementPayload } from '../model/requirements'
 
@@ -182,10 +176,13 @@ export function RequirementBulkAddModal({
   const [rows, setRows] = useState<DraftRow[]>([newRow()])
   const [submitting, setSubmitting] = useState(false)
   const submittingRef = useRef(false)
+  const lastItemsRef = useRef<CreateRequirementPayload[]>([])
   const [formError, setFormError] = useState<string | null>(null)
   const [pasteHint, setPasteHint] = useState(false)
-  const [jobId, setJobId] = useState<string | null>(null)
-  const poller = useBulkJobPoller()
+  const { acceptAndFollow, setRetryHandlers, resultModal } = useBackgroundJsonBulkImport({
+    entityLabel: 'Requirement',
+    onBatchComplete,
+  })
 
   useEffect(() => {
     if (!open) return
@@ -194,9 +191,6 @@ export function RequirementBulkAddModal({
     setSubmitting(false)
     submittingRef.current = false
     setPasteHint(false)
-    setJobId(null)
-    poller.reset()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when modal opens
   }, [open])
 
   const validRows = useMemo(() => rows.filter((r) => r.title.trim()), [rows])
@@ -266,6 +260,26 @@ export function RequirementBulkAddModal({
     return items
   }, [rows])
 
+  const followBulkJob = useCallback(
+    (items: CreateRequirementPayload[], job: BulkJobResponse) => {
+      lastItemsRef.current = items
+      setRetryHandlers({
+        retryAll: async () => {
+          if (!lastItemsRef.current.length) return
+          const next = await onSubmitBulk(lastItemsRef.current)
+          acceptAndFollow(next, () => undefined)
+        },
+        retryFailed: async (failedItems) => {
+          const next = await onSubmitBulk(failedItems as unknown as CreateRequirementPayload[])
+          acceptAndFollow(next, () => undefined)
+        },
+      })
+      acceptAndFollow(job, () => undefined)
+      onClose()
+    },
+    [acceptAndFollow, onClose, onSubmitBulk, setRetryHandlers]
+  )
+
   const runBulk = useCallback(async () => {
     if (submittingRef.current) return
     if (validRows.length === 0) {
@@ -285,28 +299,12 @@ export function RequirementBulkAddModal({
     submittingRef.current = true
     setSubmitting(true)
     setFormError(null)
-    poller.reset()
 
     try {
       const job = await onSubmitBulk(items)
-      setJobId(job.id)
       setSubmitting(false)
       submittingRef.current = false
-      toast.message('Job accepted', { description: 'Processing in the background…' })
-      onClose()
-      const done = await poller.start(job.id, job)
-      if (done.succeededItems > 0) await onBatchComplete?.()
-
-      if (done.status === BulkJobStatus.Succeeded) {
-        toast.success(done.resultSummary ?? `Created ${done.succeededItems} requirements`)
-      } else if (done.status === BulkJobStatus.Partial) {
-        toast.warning(
-          done.resultSummary ??
-            `${done.succeededItems} created, ${done.failedItems} failed. Successful items are already saved.`
-        )
-      } else {
-        toast.error(done.errorMessage ?? done.resultSummary ?? 'Bulk create failed')
-      }
+      followBulkJob(items, job)
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return
       const message =
@@ -320,12 +318,10 @@ export function RequirementBulkAddModal({
       submittingRef.current = false
       setSubmitting(false)
     }
-  }, [validRows.length, buildItems, onSubmitBulk, onBatchComplete, onClose, poller])
-
-  const jobRunning = poller.isPolling
-  const busy = submitting || jobRunning
+  }, [validRows.length, buildItems, onSubmitBulk, followBulkJob])
 
   return (
+    <>
     <Modal
       open={open}
       onClose={onClose}
@@ -334,10 +330,10 @@ export function RequirementBulkAddModal({
       actions={[
         { label: 'Close', onClick: onClose, variant: 'ghost' },
         {
-          label: submitting ? 'Submitting…' : jobRunning ? 'Running…' : `Create ${validRows.length}`,
+          label: submitting ? 'Submitting…' : `Create ${validRows.length}`,
           onClick: () => void runBulk(),
           variant: 'primary',
-          disabled: busy || validRows.length === 0,
+          disabled: submitting || validRows.length === 0,
           loading: submitting,
         },
       ]}
@@ -346,6 +342,7 @@ export function RequirementBulkAddModal({
         <Typography variant="small" tone="muted">
           Add rows or paste Excel/TSV (Ctrl/Cmd+V) — columns:{' '}
           {COLUMNS.map((c) => c.label).join(' · ')}. Leave Code blank to auto-generate.
+          Failures open in a results dialog after submit.
         </Typography>
 
         {pasteHint ? (
@@ -353,42 +350,6 @@ export function RequirementBulkAddModal({
             Pasted — review, edit, or remove rows below.
           </Typography>
         ) : null}
-
-        <BulkJobProgressPanel
-          job={poller.job}
-          percent={poller.percent}
-          isPolling={poller.isPolling}
-          error={poller.error}
-          onRetryFailed={(failedItems) => {
-            void (async () => {
-              setJobId(null)
-              poller.reset()
-              setSubmitting(true)
-              try {
-                const job = await onSubmitBulk(failedItems as unknown as CreateRequirementPayload[])
-                setJobId(job.id)
-                setSubmitting(false)
-                toast.message('Job accepted', { description: 'Processing in the background…' })
-                const done = await poller.start(job.id, job)
-                if (done.succeededItems > 0) await onBatchComplete?.()
-                if (done.status === BulkJobStatus.Succeeded) {
-                  toast.success(done.resultSummary ?? `Created ${done.succeededItems}`)
-                  onClose()
-                } else if (done.status === BulkJobStatus.Partial) {
-                  toast.warning(done.resultSummary ?? `${done.succeededItems} created, ${done.failedItems} failed`)
-                } else {
-                  toast.error(done.errorMessage ?? done.resultSummary ?? 'Bulk create failed')
-                }
-              } catch (err: unknown) {
-                if (err instanceof DOMException && err.name === 'AbortError') return
-                setFormError(err instanceof Error ? err.message : 'Retry failed')
-              } finally {
-                setSubmitting(false)
-              }
-            })()
-          }}
-          onRetry={() => void runBulk()}
-        />
 
         <div className="border border-neutral-200">
           <DataTable
@@ -413,7 +374,7 @@ export function RequirementBulkAddModal({
                       aria-label={`${column.label} row ${index + 1}`}
                       fullWidth
                       size="sm"
-                      disabled={busy}
+                      disabled={submitting}
                     />
                   ),
                 })
@@ -428,7 +389,7 @@ export function RequirementBulkAddModal({
                     className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
                     onClick={() => removeRow(row.id)}
                     aria-label={`Remove row ${index + 1}`}
-                    disabled={busy}
+                    disabled={submitting}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -458,14 +419,8 @@ export function RequirementBulkAddModal({
           </Typography>
         ) : null}
 
-        {jobId ? (
-          <Typography variant="caption" tone="muted">
-            Job {jobId}
-          </Typography>
-        ) : null}
-
         <Stack direction="horizontal" spacing="sm" className="flex-wrap">
-          <Button size="sm" variant="neutral-flat" onClick={addRow} disabled={busy}>
+          <Button size="sm" variant="neutral-flat" onClick={addRow} disabled={submitting}>
             <Plus size={14} className="mr-1 inline" />
             Add row
           </Button>
@@ -475,5 +430,7 @@ export function RequirementBulkAddModal({
         </Stack>
       </div>
     </Modal>
+    {resultModal}
+    </>
   )
 }

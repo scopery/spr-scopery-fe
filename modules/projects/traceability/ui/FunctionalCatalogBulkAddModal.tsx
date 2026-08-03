@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import {
-  BulkJobProgressPanel,
   Button,
   DataTable,
   Input,
@@ -12,13 +11,8 @@ import {
   Typography,
 } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
-import {
-  BULK_MAX_ITEMS,
-  BulkJobStatus,
-  type BulkJobResponse,
-} from '@/shared/lib/bulkJobs'
-import { useBulkJobPoller } from '@/shared/lib/useBulkJobPoller'
-import { toast } from 'sonner'
+import { BULK_MAX_ITEMS, type BulkJobResponse } from '@/shared/lib/bulkJobs'
+import { useBackgroundJsonBulkImport } from '@/shared/lib/useBackgroundJsonBulkImport'
 import { cn } from '@/utils/cn'
 import {
   FunctionalItemPriority,
@@ -203,10 +197,13 @@ export function FunctionalCatalogBulkAddModal({
   const [rows, setRows] = useState<DraftRow[]>([newRow(kind)])
   const [submitting, setSubmitting] = useState(false)
   const submittingRef = useRef(false)
+  const lastItemsRef = useRef<FunctionalCatalogBulkCreateInput[]>([])
   const [formError, setFormError] = useState<string | null>(null)
   const [pasteHint, setPasteHint] = useState(false)
-  const [jobId, setJobId] = useState<string | null>(null)
-  const poller = useBulkJobPoller()
+  const { acceptAndFollow, setRetryHandlers, resultModal } = useBackgroundJsonBulkImport({
+    entityLabel: kind === 'FR' ? 'Functional item' : 'Non-functional item',
+    onBatchComplete,
+  })
 
   useEffect(() => {
     if (!open) return
@@ -215,9 +212,6 @@ export function FunctionalCatalogBulkAddModal({
     setSubmitting(false)
     submittingRef.current = false
     setPasteHint(false)
-    setJobId(null)
-    poller.reset()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when modal opens
   }, [open, kind])
 
   const validRows = useMemo(
@@ -283,6 +277,28 @@ export function FunctionalCatalogBulkAddModal({
     return items
   }, [rows, columns, kind])
 
+  const followBulkJob = useCallback(
+    (items: FunctionalCatalogBulkCreateInput[], job: BulkJobResponse) => {
+      lastItemsRef.current = items
+      setRetryHandlers({
+        retryAll: async () => {
+          if (!lastItemsRef.current.length) return
+          const next = await onSubmitBulk(lastItemsRef.current)
+          acceptAndFollow(next, () => undefined)
+        },
+        retryFailed: async (failedItems) => {
+          const next = await onSubmitBulk(
+            failedItems as unknown as FunctionalCatalogBulkCreateInput[]
+          )
+          acceptAndFollow(next, () => undefined)
+        },
+      })
+      acceptAndFollow(job, () => undefined)
+      onClose()
+    },
+    [acceptAndFollow, onClose, onSubmitBulk, setRetryHandlers]
+  )
+
   const runBulk = useCallback(async () => {
     if (submittingRef.current) return
     if (validRows.length === 0) {
@@ -302,34 +318,17 @@ export function FunctionalCatalogBulkAddModal({
     submittingRef.current = true
     setSubmitting(true)
     setFormError(null)
-    poller.reset()
 
     try {
       const job = await onSubmitBulk(items)
-      setJobId(job.id)
       setSubmitting(false)
       submittingRef.current = false
-      toast.message('Job accepted', { description: 'Processing in the background…' })
-      onClose()
-      const done = await poller.start(job.id, job)
-      if (done.succeededItems > 0) await onBatchComplete?.()
-
-      const label = kind === 'FR' ? 'functional items' : 'non-functional items'
-      if (done.status === BulkJobStatus.Succeeded) {
-        toast.success(done.resultSummary ?? `Created ${done.succeededItems} ${label}`)
-      } else if (done.status === BulkJobStatus.Partial) {
-        toast.warning(
-          done.resultSummary ??
-            `${done.succeededItems} created, ${done.failedItems} failed. Successful items are already saved.`
-        )
-      } else {
-        toast.error(done.errorMessage ?? done.resultSummary ?? 'Bulk create failed')
-      }
+      followBulkJob(items, job)
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return
       const message =
         err instanceof ApiError
-          ? err.message
+          ? err.problem.detail || err.message
           : err instanceof Error
             ? err.message
             : 'Failed to submit bulk create'
@@ -338,13 +337,12 @@ export function FunctionalCatalogBulkAddModal({
       submittingRef.current = false
       setSubmitting(false)
     }
-  }, [validRows.length, buildItems, onSubmitBulk, onBatchComplete, onClose, poller, kind])
+  }, [validRows.length, buildItems, onSubmitBulk, followBulkJob])
 
-  const jobRunning = poller.isPolling
-  const busy = submitting || jobRunning
   const title = kind === 'FR' ? 'Add functional items' : 'Add non-functional items'
 
   return (
+    <>
     <Modal
       open={open}
       onClose={onClose}
@@ -353,10 +351,10 @@ export function FunctionalCatalogBulkAddModal({
       actions={[
         { label: 'Cancel', onClick: onClose, variant: 'ghost' },
         {
-          label: submitting ? 'Submitting…' : jobRunning ? 'Running…' : `Create ${validRows.length}`,
+          label: submitting ? 'Submitting…' : `Create ${validRows.length}`,
           onClick: () => void runBulk(),
           variant: 'primary',
-          disabled: busy || validRows.length === 0,
+          disabled: submitting || validRows.length === 0,
           loading: submitting,
         },
       ]}
@@ -365,6 +363,7 @@ export function FunctionalCatalogBulkAddModal({
         <Typography variant="small" tone="muted">
           Add one or more rows. Paste Excel/TSV (Ctrl/Cmd+V). Use JSON Import for JSON payloads — columns:{' '}
           {columns.map((c) => c.label).join(' · ')}. Empty priority/type/category use defaults.
+          Failures open in a results dialog after submit.
         </Typography>
 
         {pasteHint ? (
@@ -372,34 +371,6 @@ export function FunctionalCatalogBulkAddModal({
             Pasted — review, edit, or remove rows below.
           </Typography>
         ) : null}
-
-        <BulkJobProgressPanel
-          job={poller.job}
-          percent={poller.percent}
-          isPolling={poller.isPolling}
-          error={poller.error}
-          onRetryFailed={(failedItems) => {
-            setJobId(null)
-            poller.reset()
-            void (async () => {
-              try {
-                const job = await onSubmitBulk(failedItems as unknown as Parameters<typeof onSubmitBulk>[0])
-                setJobId(job.id)
-                setSubmitting(false)
-                toast.message('Job accepted', { description: 'Processing in the background…' })
-                const done = await poller.start(job.id, job)
-                if (done.succeededItems > 0) await onBatchComplete?.()
-              } catch {
-                /* interceptor / form handles */
-              }
-            })()
-          }}
-          onRetry={() => {
-            setJobId(null)
-            poller.reset()
-            void runBulk()
-          }}
-        />
 
         <DataTable
           className="border border-neutral-200"
@@ -422,7 +393,7 @@ export function FunctionalCatalogBulkAddModal({
                   aria-label={`${col.label} row ${index + 1}`}
                   fullWidth
                   size="sm"
-                  disabled={busy}
+                  disabled={submitting}
                 />
               ),
             })),
@@ -436,7 +407,7 @@ export function FunctionalCatalogBulkAddModal({
                   className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
                   onClick={() => removeRow(row.id)}
                   aria-label={`Remove row ${index + 1}`}
-                  disabled={busy}
+                  disabled={submitting}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -465,14 +436,8 @@ export function FunctionalCatalogBulkAddModal({
           </Typography>
         ) : null}
 
-        {jobId ? (
-          <Typography variant="caption" tone="muted">
-            Job {jobId}
-          </Typography>
-        ) : null}
-
         <Stack direction="horizontal" spacing="sm" className="flex-wrap">
-          <Button size="sm" variant="secondary" onClick={addRow} disabled={busy}>
+          <Button size="sm" variant="secondary" onClick={addRow} disabled={submitting}>
             <Plus size={14} className="mr-1 inline" />
             Add row
           </Button>
@@ -482,5 +447,7 @@ export function FunctionalCatalogBulkAddModal({
         </Stack>
       </div>
     </Modal>
+    {resultModal}
+    </>
   )
 }

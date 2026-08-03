@@ -1,12 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { useParams } from 'next/navigation'
 import { Archive, Check, Link2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge, Button, DataTable, PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
+import { RequirementTraceDetailDrawer } from '@/modules/projects/traceability'
 import { useProject } from '../../../project/hooks/useProject'
 import { useScopeRegister } from '../hooks/useScopeRegister'
 import { useScopePackageRequirements } from '../hooks/useScopePackageRequirements'
@@ -43,8 +44,13 @@ export function ScopeRegisterView() {
   const [createPackageOpen, setCreatePackageOpen] = useState(false)
   const [linkOpen, setLinkOpen] = useState(false)
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null)
+  const [detailRequirementId, setDetailRequirementId] = useState<string | null>(null)
 
   const linkedIds = useMemo(() => new Set(requirements.map((r) => r.id)), [requirements])
+
+  useEffect(() => {
+    setDetailRequirementId(null)
+  }, [selectedPackageId])
 
   const handleApprove = async () => {
     if (!selectedPackage) return
@@ -197,6 +203,8 @@ export function ScopeRegisterView() {
             ariaLabel="Linked scope requirements"
             rows={loadingReqs ? [] : requirements}
             rowKey={(requirement) => requirement.id}
+            selectedRowKey={detailRequirementId}
+            onRowClick={(requirement) => setDetailRequirementId(requirement.id)}
             emptyMessage={
               loadingReqs
                 ? 'Loading requirements…'
@@ -230,7 +238,10 @@ export function ScopeRegisterView() {
                     tone="error"
                     disabled={acting || unlinkingId === requirement.id}
                     loading={unlinkingId === requirement.id}
-                    onClick={() => void handleUnlink(requirement.id)}
+                    onClick={(event: MouseEvent<HTMLButtonElement>) => {
+                      event.stopPropagation()
+                      void handleUnlink(requirement.id)
+                    }}
                   >
                     Unlink
                   </Button>
@@ -259,6 +270,13 @@ export function ScopeRegisterView() {
           onSubmit={handleLink}
         />
       ) : null}
+
+      <RequirementTraceDetailDrawer
+        open={Boolean(detailRequirementId)}
+        onClose={() => setDetailRequirementId(null)}
+        projectId={projectId}
+        requirementId={detailRequirementId}
+      />
     </div>
   )
 }

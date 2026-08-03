@@ -45,7 +45,7 @@ export function CatalogAddBar({ onCreate, onSubmitBulk, onBatchComplete }: Catal
   const [menuOpen, setMenuOpen] = useState(false)
   const [hoveredKind, setHoveredKind] = useState<CatalogAddKind | null>(null)
   const [modal, setModal] = useState<{ kind: CatalogAddKind; mode: AddMode } | null>(null)
-  const [lastJsonKind, setLastJsonKind] = useState<CatalogAddKind>('MODULE')
+  const [lastKind, setLastKind] = useState<CatalogAddKind>('MODULE')
   const anchorRef = useRef<HTMLDivElement>(null)
   const closeMenu = useCallback(() => {
     setMenuOpen(false)
@@ -60,11 +60,11 @@ export function CatalogAddBar({ onCreate, onSubmitBulk, onBatchComplete }: Catal
   const pickMode = (kind: CatalogAddKind, mode: AddMode) => {
     setMenuOpen(false)
     setHoveredKind(null)
-    if (mode === 'json') setLastJsonKind(kind)
+    setLastKind(kind)
     setModal({ kind, mode })
   }
 
-  const activeKind = modal?.kind ?? lastJsonKind
+  const activeKind = modal?.kind ?? lastKind
   const modalTitle = `Add ${KIND_OPTIONS.find((k) => k.value === activeKind)?.label ?? 'node'}`
   const activeHover = hoveredKind ?? KIND_OPTIONS[0]?.value ?? null
 
@@ -134,29 +134,26 @@ export function CatalogAddBar({ onCreate, onSubmitBulk, onBatchComplete }: Catal
         </div>
       </AnchoredMenu>
 
-      {modal?.mode === 'single' ? (
-        <CatalogSingleAddModal
-          open
-          kind={modal.kind}
-          title={modalTitle}
-          onClose={() => setModal(null)}
-          onCreate={async (input) => {
-            await onCreate(input)
-            await onBatchComplete?.()
-          }}
-        />
-      ) : null}
+      <CatalogSingleAddModal
+        open={modal?.mode === 'single'}
+        kind={activeKind}
+        title={modalTitle}
+        onClose={() => setModal(null)}
+        onCreate={async (input) => {
+          await onCreate(input)
+          await onBatchComplete?.()
+        }}
+      />
 
-      {modal?.mode === 'bulk' ? (
-        <CatalogBulkAddModal
-          open
-          kind={modal.kind}
-          title={modalTitle}
-          onClose={() => setModal(null)}
-          onSubmitBulk={(items) => onSubmitBulk(modal.kind, items)}
-          onBatchComplete={onBatchComplete}
-        />
-      ) : null}
+      {/* Always mounted so background poll + result modal survive onClose. */}
+      <CatalogBulkAddModal
+        open={modal?.mode === 'bulk'}
+        kind={activeKind}
+        title={modalTitle}
+        onClose={() => setModal(null)}
+        onSubmitBulk={(items) => onSubmitBulk(activeKind, items)}
+        onBatchComplete={onBatchComplete}
+      />
 
       <CatalogJsonImportModal
         open={modal?.mode === 'json'}

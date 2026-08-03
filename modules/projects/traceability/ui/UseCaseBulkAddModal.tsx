@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import {
-  BulkJobProgressPanel,
   Button,
   DataTable,
   Input,
@@ -12,13 +11,8 @@ import {
   Typography,
 } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
-import {
-  BULK_MAX_ITEMS,
-  BulkJobStatus,
-  type BulkJobResponse,
-} from '@/shared/lib/bulkJobs'
-import { useBulkJobPoller } from '@/shared/lib/useBulkJobPoller'
-import { toast } from 'sonner'
+import { BULK_MAX_ITEMS, type BulkJobResponse } from '@/shared/lib/bulkJobs'
+import { useBackgroundJsonBulkImport } from '@/shared/lib/useBackgroundJsonBulkImport'
 import { cn } from '@/utils/cn'
 import type { CreateUseCaseBody, BulkCreateUseCaseItem } from '../model/use-case'
 
@@ -96,10 +90,13 @@ export function UseCaseBulkAddModal({
   const [rows, setRows] = useState<DraftRow[]>([newRow()])
   const [submitting, setSubmitting] = useState(false)
   const submittingRef = useRef(false)
+  const lastItemsRef = useRef<CreateUseCaseBody[]>([])
   const [formError, setFormError] = useState<string | null>(null)
   const [pasteHint, setPasteHint] = useState(false)
-  const [jobId, setJobId] = useState<string | null>(null)
-  const poller = useBulkJobPoller()
+  const { acceptAndFollow, setRetryHandlers, resultModal } = useBackgroundJsonBulkImport({
+    entityLabel: 'Use case',
+    onBatchComplete,
+  })
 
   useEffect(() => {
     if (!open) return
@@ -108,9 +105,6 @@ export function UseCaseBulkAddModal({
     submittingRef.current = false
     setFormError(null)
     setPasteHint(false)
-    setJobId(null)
-    poller.reset()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when modal opens
   }, [open])
 
   const validRows = useMemo(() => rows.filter((r) => r.key.trim() && r.name.trim()), [rows])
@@ -174,64 +168,28 @@ export function UseCaseBulkAddModal({
     return items
   }, [rows])
 
-  const executeBulk = useCallback(
-    async (items: CreateUseCaseBody[]) => {
-      if (submittingRef.current || poller.isPolling) return
-      if (items.length === 0) {
-        setFormError('No items to submit.')
-        return
-      }
-      if (items.length > BULK_MAX_ITEMS) {
-        setFormError(`Maximum ${BULK_MAX_ITEMS} items per bulk request.`)
-        return
-      }
-
-      submittingRef.current = true
-      setSubmitting(true)
-      setFormError(null)
-      setJobId(null)
-      poller.reset()
-
-      try {
-        const job = await onSubmitBulk(items)
-        setJobId(job.id)
-        // Job accepted — stop button spinner; close grid; follow in background.
-        submittingRef.current = false
-        setSubmitting(false)
-        toast.message('Job accepted', { description: 'Processing in the background…' })
-        onClose()
-
-        const done = await poller.start(job.id, job)
-        if (done.succeededItems > 0) await onBatchComplete?.()
-
-        if (done.status === BulkJobStatus.Succeeded) {
-          toast.success(done.resultSummary ?? `Created ${done.succeededItems} use cases`)
-        } else if (done.status === BulkJobStatus.Partial) {
-          toast.warning(
-            done.resultSummary ??
-              `${done.succeededItems} created, ${done.failedItems} failed. Successful items are already saved.`
-          )
-        } else {
-          toast.error(done.errorMessage ?? done.resultSummary ?? 'Bulk create failed')
-        }
-      } catch (err: unknown) {
-        if (err instanceof DOMException && err.name === 'AbortError') return
-        const message =
-          err instanceof ApiError
-            ? err.message
-            : err instanceof Error
-              ? err.message
-              : 'Failed to submit bulk create'
-        setFormError(message)
-      } finally {
-        submittingRef.current = false
-        setSubmitting(false)
-      }
+  const followBulkJob = useCallback(
+    (items: CreateUseCaseBody[], job: BulkJobResponse) => {
+      lastItemsRef.current = items
+      setRetryHandlers({
+        retryAll: async () => {
+          if (!lastItemsRef.current.length) return
+          const next = await onSubmitBulk(lastItemsRef.current)
+          acceptAndFollow(next, () => undefined)
+        },
+        retryFailed: async (failedItems) => {
+          const next = await onSubmitBulk(failedItems as unknown as BulkCreateUseCaseItem[])
+          acceptAndFollow(next, () => undefined)
+        },
+      })
+      acceptAndFollow(job, () => undefined)
+      onClose()
     },
-    [onSubmitBulk, onBatchComplete, onClose, poller]
+    [acceptAndFollow, onClose, onSubmitBulk, setRetryHandlers]
   )
 
   const runBulk = useCallback(async () => {
+    if (submittingRef.current) return
     if (validRows.length === 0) {
       setFormError('Add at least one row with key and name.')
       return
@@ -241,12 +199,37 @@ export function UseCaseBulkAddModal({
       setFormError('Fix validation errors before submitting.')
       return
     }
-    await executeBulk(items)
-  }, [validRows.length, buildItems, executeBulk])
-  const jobRunning = poller.isPolling
-  const locked = submitting || jobRunning
+    if (items.length > BULK_MAX_ITEMS) {
+      setFormError(`Maximum ${BULK_MAX_ITEMS} items per bulk request.`)
+      return
+    }
+
+    submittingRef.current = true
+    setSubmitting(true)
+    setFormError(null)
+
+    try {
+      const job = await onSubmitBulk(items)
+      setSubmitting(false)
+      submittingRef.current = false
+      followBulkJob(items, job)
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      const message =
+        err instanceof ApiError
+          ? err.problem.detail || err.message
+          : err instanceof Error
+            ? err.message
+            : 'Failed to submit bulk create'
+      setFormError(message)
+    } finally {
+      submittingRef.current = false
+      setSubmitting(false)
+    }
+  }, [validRows.length, buildItems, onSubmitBulk, followBulkJob])
 
   return (
+    <>
     <Modal
       open={open}
       onClose={onClose}
@@ -255,14 +238,10 @@ export function UseCaseBulkAddModal({
       actions={[
         { label: 'Cancel', onClick: onClose, variant: 'ghost' },
         {
-          label: submitting
-            ? 'Submitting…'
-            : jobRunning
-              ? 'Running…'
-              : `Create ${validRows.length}`,
+          label: submitting ? 'Submitting…' : `Create ${validRows.length}`,
           onClick: () => void runBulk(),
           variant: 'primary',
-          disabled: locked || validRows.length === 0,
+          disabled: submitting || validRows.length === 0,
           loading: submitting,
         },
       ]}
@@ -271,7 +250,7 @@ export function UseCaseBulkAddModal({
         <Typography variant="small" tone="muted">
           Create shells with key + name. Link Functions later via Function → Use Case. Paste
           Excel/TSV (Ctrl/Cmd+V) — columns: {COLUMNS.map((c) => c.label).join(' · ')}. Use JSON
-          Import for full JSON payloads.
+          Import for full JSON payloads. Failures open in a results dialog after submit.
         </Typography>
 
         {pasteHint ? (
@@ -279,17 +258,6 @@ export function UseCaseBulkAddModal({
             Pasted — review, edit, or remove rows below.
           </Typography>
         ) : null}
-
-        <BulkJobProgressPanel
-          job={poller.job}
-          percent={poller.percent}
-          isPolling={poller.isPolling}
-          error={poller.error}
-          onRetryFailed={(failedItems) => {
-            void executeBulk(failedItems as unknown as CreateUseCaseBody[])
-          }}
-          onRetry={() => void runBulk()}
-        />
 
         <DataTable
           className="border border-neutral-200"
@@ -312,7 +280,7 @@ export function UseCaseBulkAddModal({
                   aria-label={`${col.label} row ${index + 1}`}
                   fullWidth
                   size="sm"
-                  disabled={locked}
+                  disabled={submitting}
                 />
               ),
             })),
@@ -326,7 +294,7 @@ export function UseCaseBulkAddModal({
                   className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
                   onClick={() => removeRow(row.id)}
                   aria-label={`Remove row ${index + 1}`}
-                  disabled={locked}
+                  disabled={submitting}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -355,14 +323,8 @@ export function UseCaseBulkAddModal({
           </Typography>
         ) : null}
 
-        {jobId ? (
-          <Typography variant="caption" tone="muted">
-            Job {jobId}
-          </Typography>
-        ) : null}
-
         <Stack direction="horizontal" spacing="sm" className="flex-wrap">
-          <Button size="sm" variant="secondary" onClick={addRow} disabled={locked}>
+          <Button size="sm" variant="secondary" onClick={addRow} disabled={submitting}>
             <Plus size={14} className="mr-1 inline" />
             Add row
           </Button>
@@ -372,5 +334,7 @@ export function UseCaseBulkAddModal({
         </Stack>
       </div>
     </Modal>
+    {resultModal}
+    </>
   )
 }

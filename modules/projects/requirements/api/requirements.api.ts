@@ -52,3 +52,13 @@ export async function updateRequirement(
     body
   )
 }
+
+export async function deleteRequirement(
+  orgId: string,
+  projectId: string,
+  requirementId: string
+): Promise<void> {
+  await apiClient.delete<void>(PROJECT_ENDPOINTS.requirement(orgId, projectId, requirementId), {
+    parseJson: false,
+  })
+}

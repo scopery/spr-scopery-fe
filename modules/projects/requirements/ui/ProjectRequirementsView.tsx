@@ -3,9 +3,17 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
-import { ExternalLink, Search, SquareArrowOutUpRight } from 'lucide-react'
-import { Typography, Badge, Button, DataTable, PageSkeleton } from '@/shared/ui'
+import { ExternalLink, Pencil, Search, SquareArrowOutUpRight, Trash2 } from 'lucide-react'
+import {
+  Typography,
+  Badge,
+  Button,
+  ConfirmDialog,
+  DataTable,
+  PageSkeleton,
+} from '@/shared/ui'
 import { toast } from 'sonner'
+import { ApiError } from '@/shared/lib/api-types'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { documentLinksApi } from '@/modules/documents'
 import { useProject } from '@/modules/projects/project/hooks/useProject'
@@ -31,7 +39,16 @@ import type {
 import type { ScopeItem } from '@/modules/projects/scope/domain/model/scope'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
-import type { CreateRequirementPayload, Requirement } from '../model/requirements'
+import type {
+  CreateRequirementPayload,
+  Requirement,
+  UpdateRequirementPayload,
+} from '../model/requirements'
+import {
+  canDeleteRequirement,
+  RequirementDeleteMessages,
+} from '../model/requirement-delete.rules'
+import { EditRequirementModal } from './EditRequirementModal'
 import { RequirementAddBar } from './RequirementAddBar'
 import { SpecPacksView } from './SpecPacksView'
 
@@ -60,6 +77,44 @@ function reqTypeLabel(type: string | null | undefined): string {
   }
 }
 
+function reqPriorityLabel(priority: string | null | undefined): string {
+  switch ((priority ?? '').toUpperCase()) {
+    case 'HIGH':
+    case 'CRITICAL':
+    case 'P0':
+    case 'P1':
+      return 'High'
+    case 'MEDIUM':
+    case 'P2':
+      return 'Medium'
+    case 'LOW':
+    case 'P3':
+      return 'Low'
+    default:
+      return priority?.trim() ? priority : '—'
+  }
+}
+
+function reqPriorityTone(
+  priority: string | null | undefined
+): 'error' | 'warning' | 'neutral' | 'success' {
+  switch ((priority ?? '').toUpperCase()) {
+    case 'HIGH':
+    case 'CRITICAL':
+    case 'P0':
+    case 'P1':
+      return 'error'
+    case 'MEDIUM':
+    case 'P2':
+      return 'warning'
+    case 'LOW':
+    case 'P3':
+      return 'neutral'
+    default:
+      return 'neutral'
+  }
+}
+
 function formatDate(iso: string | null | undefined) {
   if (!iso) return '—'
   const d = new Date(iso)
@@ -80,7 +135,9 @@ export function ProjectRequirementsView() {
     requirements,
     loading: reqLoading,
     createRequirement,
+    updateRequirement,
     submitRequirementsBulk,
+    deleteRequirement,
     refetch,
   } = useRequirements(orgId, projectId)
 
@@ -95,6 +152,9 @@ export function ProjectRequirementsView() {
   const [resolvedFunctionalItem, setResolvedFunctionalItem] = useState<FunctionalItem | null>(null)
   const [resolvedNfr, setResolvedNfr] = useState<NonFunctionalItem | null>(null)
   const [resolvedScopeItem, setResolvedScopeItem] = useState<ScopeItem | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
   const catalogHref = ROUTES.workspace.projectFunctionalCatalog(orgId, projectId)
   const documentHubHref = ROUTES.workspace.projectDocuments(orgId, projectId)
@@ -124,13 +184,14 @@ export function ProjectRequirementsView() {
     }
   }, [project, org, permissions])
 
-  const canCreateRequirement = useMemo(() => {
+  const canManageRequirements = useMemo(() => {
     if (!project) return false
     return canManageProjectContentFallback(
       org?.my_role ?? 'member',
       resolveProjectRole(project.my_role)
     )
   }, [project, org])
+  const canCreateRequirement = canManageRequirements
 
   useEffect(() => {
     if (requirements.length === 0) {
@@ -207,6 +268,8 @@ export function ProjectRequirementsView() {
   const selected = requirements.find((r) => r.id === selectedId) ?? null
 
   useEffect(() => {
+    setConfirmDelete(false)
+    setEditOpen(false)
     setResolvedFunctionalItem(null)
     setResolvedNfr(null)
     setResolvedScopeItem(null)
@@ -266,6 +329,50 @@ export function ProjectRequirementsView() {
     onCreated: (id: string | null) => {
       if (id) setSelectedId(id)
     },
+  }
+
+  const handleSaveEdit = async (body: UpdateRequirementPayload) => {
+    if (!selected) return
+    try {
+      await updateRequirement(selected.id, body)
+      toast.success('Requirement updated')
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+      throw err
+    }
+  }
+
+  const handleRequestDelete = () => {
+    if (!selected || !canManageRequirements) return
+    if (!canDeleteRequirement(selected)) {
+      toast.error(RequirementDeleteMessages.LINKED_TO_FUNCTION)
+      return
+    }
+    setConfirmDelete(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!selected) return
+    if (!canDeleteRequirement(selected)) {
+      toast.error(RequirementDeleteMessages.LINKED_TO_FUNCTION)
+      setConfirmDelete(false)
+      return
+    }
+    setDeleting(true)
+    try {
+      await deleteRequirement(selected.id)
+      toast.success('Requirement deleted')
+      setConfirmDelete(false)
+      setSelectedId(null)
+    } catch (err) {
+      if (err instanceof ApiError) {
+        toast.error(err.problem.detail || err.message)
+      } else {
+        toast.error(getProblemToastMessage(err))
+      }
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -382,14 +489,9 @@ export function ProjectRequirementsView() {
                   <div className="flex h-full flex-col items-center justify-center px-4 py-10 text-center">
                     <Typography weight="medium">No requirements yet</Typography>
                     <Typography variant="small" tone="muted" className="mt-1 max-w-sm">
-                      Create a project requirement here, or manage FR/NFR catalog items in
+                      Use Add requirement above to create one, or manage FR/NFR catalog items in
                       Functional Catalog.
                     </Typography>
-                    {canCreateRequirement ? (
-                      <div className="mt-4">
-                        <RequirementAddBar {...createHandlers} />
-                      </div>
-                    ) : null}
                   </div>
                 ) : filtered.length === 0 ? (
                   <Typography tone="muted" className="py-8 text-center" variant="small">
@@ -408,20 +510,41 @@ export function ProjectRequirementsView() {
                         header: 'Code',
                         accessor: 'code',
                         kind: 'code',
-                        width: '18%',
+                        width: '16%',
                       },
                       {
                         id: 'title',
                         header: 'Title',
                         accessor: 'title',
-                        width: '42%',
+                        width: '34%',
                       },
                       {
                         id: 'type',
                         header: 'Type',
-                        width: '20%',
-                        accessor: (row) => reqTypeLabel(row.req_type ?? row.type),
+                        width: '16%',
+                        accessor: (row) =>
+                          reqTypeLabel(row.requirementType ?? row.req_type ?? row.type),
                         cellClassName: 'text-neutral-500',
+                      },
+                      {
+                        id: 'priority',
+                        header: 'Priority',
+                        width: '14%',
+                        cell: (row) => {
+                          const label = reqPriorityLabel(row.priority)
+                          if (label === '—') {
+                            return (
+                              <Typography as="span" size="xs" tone="muted">
+                                —
+                              </Typography>
+                            )
+                          }
+                          return (
+                            <Badge variant="soft" tone={reqPriorityTone(row.priority)}>
+                              {label}
+                            </Badge>
+                          )
+                        },
                       },
                       {
                         id: 'evidence',
@@ -466,30 +589,64 @@ export function ProjectRequirementsView() {
                         {selected.code}
                       </Typography>
                       <Badge variant="soft" tone="neutral">
-                        {reqTypeLabel(selected.req_type ?? selected.type)}
+                        {reqTypeLabel(
+                          selected.requirementType ?? selected.req_type ?? selected.type
+                        )}
                       </Badge>
+                      {selected.priority ? (
+                        <Badge variant="soft" tone={reqPriorityTone(selected.priority)}>
+                          {reqPriorityLabel(selected.priority)}
+                        </Badge>
+                      ) : null}
                     </div>
-                    <Typography
-                      as="h2"
-                      size="sm"
-                      weight="semibold"
-                      className="truncate"
-                      title={selected.title}
-                    >
+                    <Typography as="h2" size="sm" weight="semibold" className="break-words">
                       {selected.title}
                     </Typography>
-                    {(selected.functionalItemId || selected.nonFunctionalItemId) && (
-                      <Button
-                        as={Link}
-                        href={catalogHref}
-                        size="sm"
-                        variant="neutral-flat"
-                        className="mt-2"
-                        icon={<ExternalLink size={14} />}
-                      >
-                        Open in Functional Catalog
-                      </Button>
-                    )}
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {(selected.functionalItemId || selected.nonFunctionalItemId) && (
+                        <Button
+                          as={Link}
+                          href={catalogHref}
+                          size="sm"
+                          variant="neutral-flat"
+                          icon={<ExternalLink size={14} />}
+                        >
+                          Open in Functional Catalog
+                        </Button>
+                      )}
+                      {canManageRequirements ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="neutral-flat"
+                            icon={<Pencil size={14} />}
+                            onClick={() => setEditOpen(true)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            tone="error"
+                            icon={<Trash2 size={14} />}
+                            onClick={handleRequestDelete}
+                            disabled={!canDeleteRequirement(selected)}
+                            title={
+                              canDeleteRequirement(selected)
+                                ? 'Delete requirement'
+                                : RequirementDeleteMessages.LINKED_TO_FUNCTION
+                            }
+                          >
+                            Delete
+                          </Button>
+                        </>
+                      ) : null}
+                    </div>
+                    {canManageRequirements && !canDeleteRequirement(selected) ? (
+                      <Typography variant="caption" tone="muted" className="mt-2 block">
+                        {RequirementDeleteMessages.LINKED_TO_FUNCTION}
+                      </Typography>
+                    ) : null}
                   </div>
 
                   <div className="space-y-4 px-5 py-4">
@@ -502,7 +659,21 @@ export function ProjectRequirementsView() {
                     <dl className="grid gap-2 border-t border-neutral-100 pt-4 text-sm sm:grid-cols-2">
                       <MetaRow
                         label="Type"
-                        value={reqTypeLabel(selected.req_type ?? selected.type)}
+                        value={reqTypeLabel(
+                          selected.requirementType ?? selected.req_type ?? selected.type
+                        )}
+                      />
+                      <MetaRow
+                        label="Priority"
+                        value={
+                          selected.priority ? (
+                            <Badge variant="soft" tone={reqPriorityTone(selected.priority)}>
+                              {reqPriorityLabel(selected.priority)}
+                            </Badge>
+                          ) : (
+                            '—'
+                          )
+                        }
                       />
                       <MetaRow
                         label="Source"
@@ -601,6 +772,30 @@ export function ProjectRequirementsView() {
           )}
         </div>
       </div>
+
+      <EditRequirementModal
+        open={editOpen}
+        requirement={selected}
+        onClose={() => setEditOpen(false)}
+        onSubmit={handleSaveEdit}
+      />
+
+      <ConfirmDialog
+        open={confirmDelete && Boolean(selected)}
+        onClose={() => {
+          if (!deleting) setConfirmDelete(false)
+        }}
+        title="Delete requirement"
+        message={
+          selected
+            ? `Delete "${selected.code} — ${selected.title}"? This cannot be undone.`
+            : ''
+        }
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+        onConfirm={() => void handleConfirmDelete()}
+      />
     </div>
   )
 }
