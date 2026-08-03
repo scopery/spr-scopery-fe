@@ -1,10 +1,16 @@
 'use client'
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useParams } from 'next/navigation'
 import { Search, X } from 'lucide-react'
 import { Badge, Button, Checkbox, Input, Modal, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
+import { getRequirement } from '../api/requirements.api'
 import type { Requirement } from '../model/requirements'
+import {
+  requirementPriorityLabel,
+  requirementPriorityTone,
+} from '../model/requirement-priority'
 import { defaultSpecPackTitle, type SpecPackRequirementRef } from '../model/spec-pack'
 
 interface SpecPackCreateModalProps {
@@ -41,20 +47,6 @@ function reqTypeLabel(r: Requirement): string {
   }
 }
 
-function reqPriorityLabel(priority: string | null | undefined): string {
-  switch ((priority ?? '').toUpperCase()) {
-    case 'HIGH':
-    case 'CRITICAL':
-      return 'High'
-    case 'MEDIUM':
-      return 'Medium'
-    case 'LOW':
-      return 'Low'
-    default:
-      return priority?.trim() || '—'
-  }
-}
-
 function formatDate(iso: string | null | undefined) {
   if (!iso) return '—'
   const d = new Date(iso)
@@ -79,11 +71,14 @@ export function SpecPackCreateModal({
   requirements,
   onCreate,
 }: SpecPackCreateModalProps) {
+  const params = useParams()
+  const projectId = params.projectId as string
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
   const [focusedId, setFocusedId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')
+  const [enriched, setEnriched] = useState<Record<string, Partial<Requirement>>>({})
 
   useEffect(() => {
     if (!open) return
@@ -92,19 +87,29 @@ export function SpecPackCreateModal({
     setFocusedId(null)
     setTitle('')
     setNote('')
+    setEnriched({})
   }, [open])
 
-  const byId = useMemo(() => new Map(requirements.map((r) => [r.id, r])), [requirements])
+  const items = useMemo(
+    () =>
+      requirements.map((r) => {
+        const patch = enriched[r.id]
+        return patch ? { ...r, ...patch } : r
+      }),
+    [requirements, enriched]
+  )
+
+  const byId = useMemo(() => new Map(items.map((r) => [r.id, r])), [items])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return requirements
-    return requirements.filter((r) =>
+    if (!q) return items
+    return items.filter((r) =>
       `${r.code} ${r.title} ${reqTypeLabel(r)} ${r.description ?? ''}`
         .toLowerCase()
         .includes(q)
     )
-  }, [requirements, query])
+  }, [items, query])
 
   useEffect(() => {
     if (!open || filtered.length === 0) {
@@ -127,6 +132,29 @@ export function SpecPackCreateModal({
   const focusedSelected = focused ? selected.has(focused.id) : false
   const selectedCount = selected.size
   const resolvedTitle = title.trim() || defaultSpecPackTitle(selectedCount || 1)
+
+  const focusedDescription = focused?.description ?? null
+  const focusedPriority = focused?.priority ?? null
+
+  useEffect(() => {
+    if (!open || !focusedId || !projectId || focusedDescription?.trim()) return
+    let cancelled = false
+    void getRequirement('', projectId, focusedId)
+      .then((full) => {
+        if (cancelled || !full.description?.trim()) return
+        setEnriched((prev) => ({
+          ...prev,
+          [focusedId]: {
+            description: full.description,
+            priority: focusedPriority ?? full.priority,
+          },
+        }))
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [open, focusedId, projectId, focusedDescription, focusedPriority])
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -333,8 +361,11 @@ export function SpecPackCreateModal({
                         {reqTypeLabel(focused)}
                       </Badge>
                       {focused.priority ? (
-                        <Badge variant="soft" tone="neutral">
-                          {reqPriorityLabel(focused.priority)}
+                        <Badge
+                          variant="solid"
+                          tone={requirementPriorityTone(focused.priority)}
+                        >
+                          {requirementPriorityLabel(focused.priority)}
                         </Badge>
                       ) : null}
                       {focusedSelected ? (
@@ -358,7 +389,10 @@ export function SpecPackCreateModal({
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <PreviewField label="Priority" value={reqPriorityLabel(focused.priority)} />
+                    <PreviewField
+                      label="Priority"
+                      value={requirementPriorityLabel(focused.priority)}
+                    />
                     <PreviewField label="Type" value={reqTypeLabel(focused)} />
                     <PreviewField label="Created" value={formatDate(focused.created_at)} />
                     <PreviewField

@@ -12,6 +12,8 @@ export interface Requirement {
   priority?: string | null
   parent_id: string | null
   description: string | null
+  /** WAVE4 lifecycle — e.g. DRAFT | APPROVED | ARCHIVED */
+  status?: string | null
   created_at: string
   updated_at?: string
   /** Catalog FK (WAVE4) — camelCase from BE RequirementResponse */

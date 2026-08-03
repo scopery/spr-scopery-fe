@@ -39,16 +39,21 @@ import type {
 import type { ScopeItem } from '@/modules/projects/scope/domain/model/scope'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
-import type {
-  CreateRequirementPayload,
-  Requirement,
-  UpdateRequirementPayload,
-} from '../model/requirements'
+import type { CreateRequirementPayload, Requirement } from '../model/requirements'
 import {
-  canDeleteRequirement,
+  canArchiveRequirement,
   RequirementDeleteMessages,
 } from '../model/requirement-delete.rules'
-import { EditRequirementModal } from './EditRequirementModal'
+import {
+  requirementPriorityLabel,
+  requirementPriorityTone,
+} from '../model/requirement-priority'
+import {
+  normalizeRequirementStatus,
+  requirementStatusLabel,
+  requirementStatusTone,
+} from '../model/requirement-status'
+import { EditRequirementModal, type EditRequirementSubmit } from './EditRequirementModal'
 import { RequirementAddBar } from './RequirementAddBar'
 import { SpecPacksView } from './SpecPacksView'
 
@@ -77,43 +82,6 @@ function reqTypeLabel(type: string | null | undefined): string {
   }
 }
 
-function reqPriorityLabel(priority: string | null | undefined): string {
-  switch ((priority ?? '').toUpperCase()) {
-    case 'HIGH':
-    case 'CRITICAL':
-    case 'P0':
-    case 'P1':
-      return 'High'
-    case 'MEDIUM':
-    case 'P2':
-      return 'Medium'
-    case 'LOW':
-    case 'P3':
-      return 'Low'
-    default:
-      return priority?.trim() ? priority : '—'
-  }
-}
-
-function reqPriorityTone(
-  priority: string | null | undefined
-): 'error' | 'warning' | 'neutral' | 'success' {
-  switch ((priority ?? '').toUpperCase()) {
-    case 'HIGH':
-    case 'CRITICAL':
-    case 'P0':
-    case 'P1':
-      return 'error'
-    case 'MEDIUM':
-    case 'P2':
-      return 'warning'
-    case 'LOW':
-    case 'P3':
-      return 'neutral'
-    default:
-      return 'neutral'
-  }
-}
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return '—'
@@ -137,7 +105,8 @@ export function ProjectRequirementsView() {
     createRequirement,
     updateRequirement,
     submitRequirementsBulk,
-    deleteRequirement,
+    archiveRequirement,
+    transitionRequirementStatus,
     refetch,
   } = useRequirements(orgId, projectId)
 
@@ -331,10 +300,15 @@ export function ProjectRequirementsView() {
     },
   }
 
-  const handleSaveEdit = async (body: UpdateRequirementPayload) => {
+  const handleSaveEdit = async (body: EditRequirementSubmit) => {
     if (!selected) return
+    const { status: nextStatus, ...patch } = body
     try {
-      await updateRequirement(selected.id, body)
+      await updateRequirement(selected.id, patch)
+      const currentStatus = normalizeRequirementStatus(selected.status)
+      if (nextStatus && normalizeRequirementStatus(nextStatus) !== currentStatus) {
+        await transitionRequirementStatus(selected.id, nextStatus)
+      }
       toast.success('Requirement updated')
     } catch (err) {
       toast.error(getProblemToastMessage(err))
@@ -344,7 +318,7 @@ export function ProjectRequirementsView() {
 
   const handleRequestDelete = () => {
     if (!selected || !canManageRequirements) return
-    if (!canDeleteRequirement(selected)) {
+    if (!canArchiveRequirement(selected)) {
       toast.error(RequirementDeleteMessages.LINKED_TO_FUNCTION)
       return
     }
@@ -353,15 +327,15 @@ export function ProjectRequirementsView() {
 
   const handleConfirmDelete = async () => {
     if (!selected) return
-    if (!canDeleteRequirement(selected)) {
+    if (!canArchiveRequirement(selected)) {
       toast.error(RequirementDeleteMessages.LINKED_TO_FUNCTION)
       setConfirmDelete(false)
       return
     }
     setDeleting(true)
     try {
-      await deleteRequirement(selected.id)
-      toast.success('Requirement deleted')
+      await archiveRequirement(selected.id)
+      toast.success('Requirement archived')
       setConfirmDelete(false)
       setSelectedId(null)
     } catch (err) {
@@ -516,22 +490,32 @@ export function ProjectRequirementsView() {
                         id: 'title',
                         header: 'Title',
                         accessor: 'title',
-                        width: '34%',
+                        width: '26%',
                       },
                       {
                         id: 'type',
                         header: 'Type',
-                        width: '16%',
+                        width: '12%',
                         accessor: (row) =>
                           reqTypeLabel(row.requirementType ?? row.req_type ?? row.type),
                         cellClassName: 'text-neutral-500',
                       },
                       {
+                        id: 'status',
+                        header: 'Status',
+                        width: '14%',
+                        cell: (row) => (
+                          <Badge variant="solid" tone={requirementStatusTone(row.status)}>
+                            {requirementStatusLabel(row.status)}
+                          </Badge>
+                        ),
+                      },
+                      {
                         id: 'priority',
                         header: 'Priority',
-                        width: '14%',
+                        width: '12%',
                         cell: (row) => {
-                          const label = reqPriorityLabel(row.priority)
+                          const label = requirementPriorityLabel(row.priority)
                           if (label === '—') {
                             return (
                               <Typography as="span" size="xs" tone="muted">
@@ -540,7 +524,7 @@ export function ProjectRequirementsView() {
                             )
                           }
                           return (
-                            <Badge variant="soft" tone={reqPriorityTone(row.priority)}>
+                            <Badge variant="solid" tone={requirementPriorityTone(row.priority)}>
                               {label}
                             </Badge>
                           )
@@ -549,7 +533,7 @@ export function ProjectRequirementsView() {
                       {
                         id: 'evidence',
                         header: 'Evidence',
-                        width: '20%',
+                        width: '16%',
                         cell: (row) => {
                           const count = evidenceCounts[row.id] ?? 0
                           if (count > 0) {
@@ -593,9 +577,12 @@ export function ProjectRequirementsView() {
                           selected.requirementType ?? selected.req_type ?? selected.type
                         )}
                       </Badge>
+                      <Badge variant="solid" tone={requirementStatusTone(selected.status)}>
+                        {requirementStatusLabel(selected.status)}
+                      </Badge>
                       {selected.priority ? (
-                        <Badge variant="soft" tone={reqPriorityTone(selected.priority)}>
-                          {reqPriorityLabel(selected.priority)}
+                        <Badge variant="solid" tone={requirementPriorityTone(selected.priority)}>
+                          {requirementPriorityLabel(selected.priority)}
                         </Badge>
                       ) : null}
                     </div>
@@ -630,19 +617,19 @@ export function ProjectRequirementsView() {
                             tone="error"
                             icon={<Trash2 size={14} />}
                             onClick={handleRequestDelete}
-                            disabled={!canDeleteRequirement(selected)}
+                            disabled={!canArchiveRequirement(selected)}
                             title={
-                              canDeleteRequirement(selected)
-                                ? 'Delete requirement'
+                              canArchiveRequirement(selected)
+                                ? 'Archive requirement'
                                 : RequirementDeleteMessages.LINKED_TO_FUNCTION
                             }
                           >
-                            Delete
+                            Archive
                           </Button>
                         </>
                       ) : null}
                     </div>
-                    {canManageRequirements && !canDeleteRequirement(selected) ? (
+                    {canManageRequirements && !canArchiveRequirement(selected) ? (
                       <Typography variant="caption" tone="muted" className="mt-2 block">
                         {RequirementDeleteMessages.LINKED_TO_FUNCTION}
                       </Typography>
@@ -664,11 +651,22 @@ export function ProjectRequirementsView() {
                         )}
                       />
                       <MetaRow
+                        label="Status"
+                        value={
+                          <Badge variant="solid" tone={requirementStatusTone(selected.status)}>
+                            {requirementStatusLabel(selected.status)}
+                          </Badge>
+                        }
+                      />
+                      <MetaRow
                         label="Priority"
                         value={
                           selected.priority ? (
-                            <Badge variant="soft" tone={reqPriorityTone(selected.priority)}>
-                              {reqPriorityLabel(selected.priority)}
+                            <Badge
+                              variant="solid"
+                              tone={requirementPriorityTone(selected.priority)}
+                            >
+                              {requirementPriorityLabel(selected.priority)}
                             </Badge>
                           ) : (
                             '—'
@@ -785,13 +783,13 @@ export function ProjectRequirementsView() {
         onClose={() => {
           if (!deleting) setConfirmDelete(false)
         }}
-        title="Delete requirement"
+        title="Archive requirement"
         message={
           selected
-            ? `Delete "${selected.code} — ${selected.title}"? This cannot be undone.`
+            ? `Archive "${selected.code} — ${selected.title}"? It will be removed from the active requirements register.`
             : ''
         }
-        confirmLabel="Delete"
+        confirmLabel="Archive"
         variant="danger"
         loading={deleting}
         onConfirm={() => void handleConfirmDelete()}

@@ -3,8 +3,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Search, X } from 'lucide-react'
 import { Badge, Button, Checkbox, Modal, Typography } from '@/shared/ui'
-import { listRequirements } from '@/modules/projects/requirements/api/requirements.api'
+import {
+  getRequirement,
+  listRequirements,
+} from '@/modules/projects/requirements/api/requirements.api'
 import type { Requirement } from '@/modules/projects/requirements/model/requirements'
+import {
+  requirementPriorityLabel,
+  requirementPriorityTone,
+} from '@/modules/projects/requirements/model/requirement-priority'
 import { cn } from '@/utils/cn'
 
 interface LinkRequirementsModalProps {
@@ -36,20 +43,6 @@ function reqTypeLabel(r: Requirement): string {
       return 'Constraint'
     default:
       return raw || 'Requirement'
-  }
-}
-
-function reqPriorityLabel(priority: string | null | undefined): string {
-  switch ((priority ?? '').toUpperCase()) {
-    case 'HIGH':
-    case 'CRITICAL':
-      return 'High'
-    case 'MEDIUM':
-      return 'Medium'
-    case 'LOW':
-      return 'Low'
-    default:
-      return priority?.trim() || '—'
   }
 }
 
@@ -131,6 +124,33 @@ export function LinkRequirementsModal({
   const focused = focusedId ? byId.get(focusedId) ?? null : null
   const focusedAlreadyLinked = focused ? linkedIds.has(focused.id) : false
   const focusedSelected = focused ? selected.has(focused.id) : false
+
+  const focusedDescription = focused?.description ?? null
+
+  // Enrich focused row when list payload omits description.
+  useEffect(() => {
+    if (!open || !focusedId || focusedDescription?.trim()) return
+    let cancelled = false
+    void getRequirement('', projectId, focusedId)
+      .then((full) => {
+        if (cancelled || !full.description?.trim()) return
+        setAll((prev) =>
+          prev.map((r) =>
+            r.id === focusedId
+              ? {
+                  ...r,
+                  description: full.description,
+                  priority: r.priority ?? full.priority,
+                }
+              : r
+          )
+        )
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [open, focusedId, focusedDescription, projectId])
 
   const toggle = (id: string) => {
     if (linkedIds.has(id)) return
@@ -319,8 +339,11 @@ export function LinkRequirementsModal({
                         {reqTypeLabel(focused)}
                       </Badge>
                       {focused.priority ? (
-                        <Badge variant="soft" tone="neutral">
-                          {reqPriorityLabel(focused.priority)}
+                        <Badge
+                          variant="solid"
+                          tone={requirementPriorityTone(focused.priority)}
+                        >
+                          {requirementPriorityLabel(focused.priority)}
                         </Badge>
                       ) : null}
                       {focusedAlreadyLinked ? (
@@ -349,7 +372,10 @@ export function LinkRequirementsModal({
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <PreviewField label="Priority" value={reqPriorityLabel(focused.priority)} />
+                    <PreviewField
+                      label="Priority"
+                      value={requirementPriorityLabel(focused.priority)}
+                    />
                     <PreviewField
                       label="Type"
                       value={reqTypeLabel(focused)}

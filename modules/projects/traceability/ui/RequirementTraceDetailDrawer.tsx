@@ -25,6 +25,10 @@ import {
   type NfrSpecification,
   type VerificationCase,
 } from '@/modules/quality'
+import {
+  requirementPriorityLabel,
+  requirementPriorityTone,
+} from '@/modules/projects/requirements/model/requirement-priority'
 import { useRequirementTraceDetail } from '../hooks/useRequirementTraceDetail'
 import * as requirementTraceabilityApi from '../api/requirement-traceability.api'
 import * as traceabilityApi from '../api/traceability.api'
@@ -51,6 +55,9 @@ interface RequirementTraceDetailDrawerProps {
   requirementId: string | null
   initialLinkMode?: 'function' | 'useCase' | null
   onChanged?: () => void
+  /** Fallback when trace-detail API omits description/priority. */
+  seedDescription?: string | null
+  seedPriority?: string | null
 }
 
 interface PickerItem {
@@ -311,12 +318,16 @@ export function RequirementTraceDetailDrawer({
   requirementId,
   initialLinkMode = null,
   onChanged,
+  seedDescription = null,
+  seedPriority = null,
 }: RequirementTraceDetailDrawerProps) {
   const { workspaceId } = useParams<{ workspaceId: string }>()
   const router = useRouter()
   const { data, loading, error, refetch } = useRequirementTraceDetail(
     projectId,
-    open ? requirementId : null
+    open ? requirementId : null,
+    seedDescription,
+    seedPriority
   )
   const [mode, setMode] = useState<DrawerMode>('summary')
   const [query, setQuery] = useState('')
@@ -780,8 +791,13 @@ export function RequirementTraceDetailDrawer({
               {data.requirement.requirementType}
             </Badge>
             {data.requirement.priority ? (
-              <Badge size="sm" variant="soft" tone="neutral" className="border-0">
-                {data.requirement.priority}
+              <Badge
+                size="sm"
+                variant="solid"
+                tone={requirementPriorityTone(data.requirement.priority)}
+                className="border-0"
+              >
+                {requirementPriorityLabel(data.requirement.priority)}
               </Badge>
             ) : null}
             {!isNfr ? (

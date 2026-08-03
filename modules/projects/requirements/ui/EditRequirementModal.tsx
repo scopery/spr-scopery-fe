@@ -3,6 +3,12 @@
 import { useEffect, useState } from 'react'
 import { Input, Modal, Select, Textarea, Typography } from '@/shared/ui'
 import type { Requirement, UpdateRequirementPayload } from '../model/requirements'
+import {
+  normalizeRequirementStatus,
+  REQUIREMENT_STATUS_EDIT_OPTIONS,
+  RequirementStatus,
+  type RequirementStatus as RequirementStatusValue,
+} from '../model/requirement-status'
 
 const TYPE_OPTIONS = [
   { value: 'FUNCTIONAL', label: 'Functional' },
@@ -18,11 +24,16 @@ const PRIORITY_OPTIONS = [
   { value: 'LOW', label: 'Low' },
 ]
 
+export type EditRequirementSubmit = UpdateRequirementPayload & {
+  /** Lifecycle target — applied via approve/reject/defer/implement endpoints. */
+  status?: RequirementStatusValue
+}
+
 interface EditRequirementModalProps {
   open: boolean
   requirement: Requirement | null
   onClose: () => void
-  onSubmit: (body: UpdateRequirementPayload) => Promise<void>
+  onSubmit: (body: EditRequirementSubmit) => Promise<void>
 }
 
 function toFormRequirementType(requirement: Requirement): string {
@@ -70,6 +81,7 @@ export function EditRequirementModal({
   const [description, setDescription] = useState('')
   const [requirementType, setRequirementType] = useState('FUNCTIONAL')
   const [priority, setPriority] = useState('MEDIUM')
+  const [status, setStatus] = useState<RequirementStatusValue>(RequirementStatus.Draft)
   const [loading, setLoading] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -80,6 +92,7 @@ export function EditRequirementModal({
     setDescription(requirement.description ?? '')
     setRequirementType(toFormRequirementType(requirement))
     setPriority(toFormPriority(requirement.priority))
+    setStatus(normalizeRequirementStatus(requirement.status))
     setFormError(null)
     setLoading(false)
   }, [open, requirement])
@@ -105,6 +118,7 @@ export function EditRequirementModal({
         description: description.trim() || null,
         requirementType,
         priority,
+        status,
       })
       onClose()
     } catch {
@@ -113,6 +127,11 @@ export function EditRequirementModal({
       setLoading(false)
     }
   }
+
+  const statusOptions =
+    status === RequirementStatus.Draft
+      ? REQUIREMENT_STATUS_EDIT_OPTIONS
+      : REQUIREMENT_STATUS_EDIT_OPTIONS.filter((o) => o.value !== RequirementStatus.Draft)
 
   return (
     <Modal
@@ -132,8 +151,8 @@ export function EditRequirementModal({
     >
       <div className="space-y-4">
         <Typography variant="small" tone="muted">
-          Update code, title, type, priority, or description. Code must stay unique within the
-          project.
+          Update code, title, type, priority, status, or description. Status changes use the
+          lifecycle APIs (approve / reject / defer / implement). Use Archive to soft-delete.
         </Typography>
         <Input
           label="Code"
@@ -166,6 +185,16 @@ export function EditRequirementModal({
             Priority
           </Typography>
           <Select value={priority} onValueChange={setPriority} options={PRIORITY_OPTIONS} />
+        </div>
+        <div>
+          <Typography variant="small" weight="medium" className="mb-1">
+            Status
+          </Typography>
+          <Select
+            value={status}
+            onValueChange={(v) => setStatus(normalizeRequirementStatus(v))}
+            options={statusOptions}
+          />
         </div>
         <Textarea
           label="Description"

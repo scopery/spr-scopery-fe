@@ -7,8 +7,36 @@ import type {
   RequirementsListResponse,
   UpdateRequirementPayload,
 } from '../model/requirements'
+import {
+  normalizeRequirementStatus,
+  RequirementStatus,
+  type RequirementStatus as RequirementStatusValue,
+} from '../model/requirement-status'
 
 export type { Requirement, RequirementType, RequirementsListResponse } from '../model/requirements'
+
+function normalizeRequirement(raw: Requirement): Requirement {
+  const anyRaw = raw as Requirement & Record<string, unknown>
+  const description =
+    (typeof anyRaw.description === 'string' ? anyRaw.description : null) ??
+    (typeof anyRaw.Description === 'string' ? anyRaw.Description : null) ??
+    null
+  const priority =
+    (typeof anyRaw.priority === 'string' ? anyRaw.priority : null) ??
+    (typeof anyRaw.Priority === 'string' ? anyRaw.Priority : null) ??
+    null
+  const statusRaw =
+    (typeof anyRaw.status === 'string' ? anyRaw.status : null) ??
+    (typeof anyRaw.Status === 'string' ? anyRaw.Status : null) ??
+    raw.status ??
+    null
+  return {
+    ...raw,
+    description: description ?? raw.description ?? null,
+    priority: priority ?? raw.priority ?? null,
+    status: statusRaw ? normalizeRequirementStatus(statusRaw) : raw.status ?? RequirementStatus.Draft,
+  }
+}
 
 export async function listRequirements(
   orgId: string,
@@ -17,10 +45,25 @@ export async function listRequirements(
 ): Promise<RequirementsListResponse> {
   const url = PROJECT_ENDPOINTS.requirements(orgId, projectId)
   const res = await apiClient.get<RequirementsListResponse | Requirement[]>(url)
+  const items = (Array.isArray(res) ? res : (res.items ?? []))
+    .map(normalizeRequirement)
+    // Active register — archived requirements are soft-deleted from the list.
+    .filter((r) => (r.status ?? '').toUpperCase() !== 'ARCHIVED')
   if (Array.isArray(res)) {
-    return { items: res }
+    return { items }
   }
-  return res
+  return { ...res, items }
+}
+
+export async function getRequirement(
+  orgId: string,
+  projectId: string,
+  requirementId: string
+): Promise<Requirement> {
+  const res = await apiClient.get<Requirement>(
+    PROJECT_ENDPOINTS.requirement(orgId, projectId, requirementId)
+  )
+  return normalizeRequirement(res)
 }
 
 export async function createRequirement(
@@ -53,12 +96,53 @@ export async function updateRequirement(
   )
 }
 
-export async function deleteRequirement(
+/**
+ * Soft-delete via WAVE4 archive endpoint.
+ * Hard DELETE is not supported by BE (`PATCH .../requirements/{id}/archive`).
+ */
+export async function archiveRequirement(
   orgId: string,
   projectId: string,
   requirementId: string
 ): Promise<void> {
-  await apiClient.delete<void>(PROJECT_ENDPOINTS.requirement(orgId, projectId, requirementId), {
-    parseJson: false,
-  })
+  await apiClient.patch<void>(
+    PROJECT_ENDPOINTS.requirementArchive(orgId, projectId, requirementId),
+    undefined,
+    { parseJson: false }
+  )
+}
+
+/** Lifecycle transitions — status is not edited via generic PATCH body. */
+export async function transitionRequirementStatus(
+  orgId: string,
+  projectId: string,
+  requirementId: string,
+  status: RequirementStatusValue
+): Promise<Requirement | void> {
+  const next = normalizeRequirementStatus(status)
+  switch (next) {
+    case RequirementStatus.Approved:
+      return apiClient.post<Requirement>(
+        PROJECT_ENDPOINTS.requirementApprove(orgId, projectId, requirementId)
+      )
+    case RequirementStatus.Rejected:
+      return apiClient.patch<Requirement>(
+        PROJECT_ENDPOINTS.requirementReject(orgId, projectId, requirementId)
+      )
+    case RequirementStatus.Deferred:
+      return apiClient.patch<Requirement>(
+        PROJECT_ENDPOINTS.requirementDefer(orgId, projectId, requirementId)
+      )
+    case RequirementStatus.Implemented:
+      return apiClient.patch<Requirement>(
+        PROJECT_ENDPOINTS.requirementImplement(orgId, projectId, requirementId)
+      )
+    case RequirementStatus.Archived:
+      await archiveRequirement(orgId, projectId, requirementId)
+      return
+    case RequirementStatus.Draft:
+      throw new Error('Returning a requirement to Draft is not supported by the API')
+    default:
+      throw new Error(`Unsupported requirement status: ${status}`)
+  }
 }

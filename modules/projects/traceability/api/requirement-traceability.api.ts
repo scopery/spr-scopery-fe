@@ -182,13 +182,37 @@ export async function getTraceExplorer(
   )
 }
 
+function normalizeTraceDetailRequirement(
+  requirement: RequirementTraceDetailResponse['requirement'] & Record<string, unknown>
+): RequirementTraceDetailResponse['requirement'] {
+  const description =
+    (typeof requirement.description === 'string' ? requirement.description : null) ??
+    (typeof requirement.Description === 'string' ? requirement.Description : null) ??
+    null
+  const priority =
+    (typeof requirement.priority === 'string' ? requirement.priority : null) ??
+    (typeof requirement.Priority === 'string' ? requirement.Priority : null) ??
+    null
+  return {
+    ...requirement,
+    description: description ?? requirement.description ?? null,
+    priority: priority ?? requirement.priority ?? null,
+  }
+}
+
 export async function getRequirementTraceDetail(
   projectId: string,
   requirementId: string
 ): Promise<RequirementTraceDetailResponse> {
-  return apiClient.get<RequirementTraceDetailResponse>(
+  const res = await apiClient.get<RequirementTraceDetailResponse>(
     REQUIREMENT_TRACEABILITY_ENDPOINTS.requirementDetail(projectId, requirementId)
   )
+  return {
+    ...res,
+    requirement: normalizeTraceDetailRequirement(
+      res.requirement as RequirementTraceDetailResponse['requirement'] & Record<string, unknown>
+    ),
+  }
 }
 
 export async function getTraceabilityGaps(

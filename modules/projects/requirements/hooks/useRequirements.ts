@@ -7,6 +7,11 @@ import type {
   Requirement,
   UpdateRequirementPayload,
 } from '../model/requirements'
+import {
+  normalizeRequirementStatus,
+  RequirementStatus,
+  type RequirementStatus as RequirementStatusValue,
+} from '../model/requirement-status'
 import type { BulkJobResponse } from '@/shared/lib/bulkJobs'
 
 export function useRequirements(orgId: string | null, projectId: string | null) {
@@ -72,6 +77,7 @@ export function useRequirements(orgId: string | null, projectId: string | null) 
             priority: updated.priority ?? body.priority ?? r.priority,
             requirementType:
               updated.requirementType ?? body.requirementType ?? r.requirementType,
+            status: updated.status ?? r.status,
           }
           // Keep legacy type aliases in sync when only requirementType is present.
           const typeSource = next.requirementType ?? next.req_type ?? next.type
@@ -104,13 +110,52 @@ export function useRequirements(orgId: string | null, projectId: string | null) 
     [orgId, projectId]
   )
 
-  const deleteRequirement = useCallback(
+  const archiveRequirement = useCallback(
     async (requirementId: string) => {
       if (!orgId || !projectId) return
-      await requirementsApi.deleteRequirement(orgId, projectId, requirementId)
+      await requirementsApi.archiveRequirement(orgId, projectId, requirementId)
       setRequirements((prev) => prev.filter((r) => r.id !== requirementId))
     },
     [orgId, projectId]
+  )
+
+  const transitionRequirementStatus = useCallback(
+    async (requirementId: string, status: RequirementStatusValue) => {
+      if (!orgId || !projectId) return null
+      const next = normalizeRequirementStatus(status)
+      if (next === RequirementStatus.Archived) {
+        await archiveRequirement(requirementId)
+        return null
+      }
+      if (next === RequirementStatus.Draft) {
+        throw new Error('Returning a requirement to Draft is not supported')
+      }
+      const updated = await requirementsApi.transitionRequirementStatus(
+        orgId,
+        projectId,
+        requirementId,
+        next
+      )
+      const statusFromResponse =
+        updated && typeof updated === 'object' && 'status' in updated
+          ? normalizeRequirementStatus(updated.status)
+          : next
+      setRequirements((prev) =>
+        prev.map((r) => {
+          if (r.id !== requirementId) return r
+          if (updated && typeof updated === 'object') {
+            return {
+              ...r,
+              ...updated,
+              status: statusFromResponse,
+            }
+          }
+          return { ...r, status: statusFromResponse }
+        })
+      )
+      return updated ?? null
+    },
+    [orgId, projectId, archiveRequirement]
   )
 
   return {
@@ -121,6 +166,7 @@ export function useRequirements(orgId: string | null, projectId: string | null) 
     createRequirement,
     updateRequirement,
     submitRequirementsBulk,
-    deleteRequirement,
+    archiveRequirement,
+    transitionRequirementStatus,
   }
 }

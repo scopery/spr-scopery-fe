@@ -7,6 +7,10 @@ import { toast } from 'sonner'
 import { Badge, Button, DataTable, PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
+import {
+  requirementPriorityLabel,
+  requirementPriorityTone,
+} from '@/modules/projects/requirements/model/requirement-priority'
 import { RequirementTraceDetailDrawer } from '@/modules/projects/traceability'
 import { useProject } from '../../../project/hooks/useProject'
 import { useScopeRegister } from '../hooks/useScopeRegister'
@@ -221,7 +225,18 @@ export function ScopeRegisterView() {
               {
                 id: 'priority',
                 header: 'Priority',
-                accessor: (requirement) => requirement.priority ?? '—',
+                cell: (requirement) =>
+                  requirement.priority ? (
+                    <Badge
+                      variant="solid"
+                      size="sm"
+                      tone={requirementPriorityTone(requirement.priority)}
+                    >
+                      {requirementPriorityLabel(requirement.priority)}
+                    </Badge>
+                  ) : (
+                    '—'
+                  ),
               },
               {
                 id: 'status',
@@ -276,6 +291,12 @@ export function ScopeRegisterView() {
         onClose={() => setDetailRequirementId(null)}
         projectId={projectId}
         requirementId={detailRequirementId}
+        seedDescription={
+          requirements.find((r) => r.id === detailRequirementId)?.description ?? null
+        }
+        seedPriority={
+          requirements.find((r) => r.id === detailRequirementId)?.priority ?? null
+        }
       />
     </div>
   )

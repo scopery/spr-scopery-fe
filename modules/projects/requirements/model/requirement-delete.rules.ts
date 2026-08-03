@@ -6,14 +6,17 @@ export function isRequirementLinkedToFunction(requirement: Requirement): boolean
 }
 
 /**
- * Hard-delete is allowed only when the requirement is not linked to a function.
- * Unlink the FR first, then delete.
+ * Archive (soft-delete) is allowed only when the requirement is not linked to a function.
+ * Unlink the FR first, then archive.
  */
-export function canDeleteRequirement(requirement: Requirement): boolean {
+export function canArchiveRequirement(requirement: Requirement): boolean {
   return !isRequirementLinkedToFunction(requirement)
 }
 
+/** @deprecated Use canArchiveRequirement — BE has archive, not hard delete. */
+export const canDeleteRequirement = canArchiveRequirement
+
 export const RequirementDeleteMessages = {
   LINKED_TO_FUNCTION:
-    'This requirement is linked to a function. Unlink it from the function first, then delete.',
+    'This requirement is linked to a function. Unlink it from the function first, then archive.',
 } as const

@@ -135,6 +135,16 @@ export const PROJECT_ENDPOINTS = {
     apiPath(`/projects/${projectId}/requirements/bulk`),
   requirement: (orgId: string, projectId: string, requirementId: string) =>
     apiPath(`/projects/${projectId}/requirements/${requirementId}`),
+  requirementArchive: (_orgId: string, projectId: string, requirementId: string) =>
+    apiPath(`/projects/${projectId}/requirements/${requirementId}/archive`),
+  requirementApprove: (_orgId: string, projectId: string, requirementId: string) =>
+    apiPath(`/projects/${projectId}/requirements/${requirementId}/approve`),
+  requirementReject: (_orgId: string, projectId: string, requirementId: string) =>
+    apiPath(`/projects/${projectId}/requirements/${requirementId}/reject`),
+  requirementDefer: (_orgId: string, projectId: string, requirementId: string) =>
+    apiPath(`/projects/${projectId}/requirements/${requirementId}/defer`),
+  requirementImplement: (_orgId: string, projectId: string, requirementId: string) =>
+    apiPath(`/projects/${projectId}/requirements/${requirementId}/implement`),
   requirementActors: (orgId: string, projectId: string, requirementId: string) =>
     apiPath(`/projects/${projectId}/requirements/${requirementId}/actors`),
   requirementModules: (orgId: string, projectId: string, requirementId: string) =>

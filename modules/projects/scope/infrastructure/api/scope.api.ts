@@ -48,6 +48,18 @@ export async function archiveScopePackage(
   return apiClient.patch<ScopePackage>(SCOPE_ENDPOINTS.packages.archive(projectId, packageId))
 }
 
+function normalizePackageRequirement(raw: ScopePackageRequirement): ScopePackageRequirement {
+  const anyRaw = raw as ScopePackageRequirement & Record<string, unknown>
+  const description =
+    (typeof anyRaw.description === 'string' ? anyRaw.description : null) ??
+    (typeof anyRaw.Description === 'string' ? anyRaw.Description : null) ??
+    null
+  return {
+    ...raw,
+    description: description ?? raw.description ?? null,
+  }
+}
+
 export async function listPackageRequirements(
   projectId: string,
   packageId: string
@@ -55,7 +67,8 @@ export async function listPackageRequirements(
   const res = await apiClient.get<ScopePackageRequirement[] | { items?: ScopePackageRequirement[] }>(
     SCOPE_ENDPOINTS.packages.requirements(projectId, packageId)
   )
-  return Array.isArray(res) ? res : (res.items ?? [])
+  const items = Array.isArray(res) ? res : (res.items ?? [])
+  return items.map(normalizePackageRequirement)
 }
 
 export async function linkRequirementsToPackage(
