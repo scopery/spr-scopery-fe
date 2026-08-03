@@ -877,7 +877,7 @@ function RequirementFocusInspector({
               if (linksLocked) {
                 e.dataTransfer.dropEffect = 'none'
                 setActiveDrop(false)
-                setPreview('Linking locked for approved/archived requirements')
+                setPreview('Linking locked for archived requirements')
                 return
               }
               const payload = resolvePayload(e) || dragPayload
