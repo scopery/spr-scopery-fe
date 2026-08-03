@@ -192,7 +192,7 @@ export function EditRequirementModal({
           </Typography>
           <Select
             value={status}
-            onValueChange={(v) => setStatus(normalizeRequirementStatus(v))}
+            onValueChange={(v: string) => setStatus(normalizeRequirementStatus(v))}
             options={statusOptions}
           />
         </div>
