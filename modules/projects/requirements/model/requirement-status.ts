@@ -92,3 +92,12 @@ export function requirementStatusBadgeProps(
 export function requirementStatusTone(status: string | null | undefined): RequirementStatusTone {
   return requirementStatusBadgeProps(status).tone
 }
+
+/**
+ * BE locks requirement body for Approved / Archived.
+ * Rejected, Deferred, Implemented stay content-editable; Draft always editable.
+ */
+export function isRequirementContentImmutable(status: string | null | undefined): boolean {
+  const s = normalizeRequirementStatus(status)
+  return s === RequirementStatus.Approved || s === RequirementStatus.Archived
+}

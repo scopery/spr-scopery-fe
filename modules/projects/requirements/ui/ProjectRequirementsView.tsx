@@ -349,18 +349,22 @@ export function ProjectRequirementsView() {
 
   const handleSaveEdit = async (body: EditRequirementSubmit) => {
     if (!selected) return
-    const { status: nextStatus, ...patch } = body
+    const { status: nextStatus, contentLocked, ...patch } = body
     try {
-      await updateRequirement(selected.id, patch)
       const currentStatus = normalizeRequirementStatus(selected.status)
       const normalizedNext = nextStatus ? normalizeRequirementStatus(nextStatus) : null
+
+      // Approved+ bodies are immutable on BE — never PATCH content for those.
+      if (!contentLocked) {
+        await updateRequirement(selected.id, patch)
+      }
+
       if (normalizedNext && normalizedNext !== currentStatus) {
         if (normalizedNext === RequirementStatus.Archived) {
           await archiveRequirement(selected.id)
         } else {
           await transitionRequirementStatus(selected.id, normalizedNext)
         }
-        // Leaving archive → jump back to active register tab.
         if (
           currentStatus === RequirementStatus.Archived &&
           normalizedNext !== RequirementStatus.Archived
@@ -368,7 +372,7 @@ export function ProjectRequirementsView() {
           setFilter('all')
         }
       }
-      toast.success('Requirement updated')
+      toast.success(contentLocked ? 'Status updated' : 'Requirement updated')
     } catch (err) {
       toast.error(getProblemToastMessage(err))
       throw err

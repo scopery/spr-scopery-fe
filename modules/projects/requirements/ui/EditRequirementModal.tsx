@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Input, Modal, Select, Textarea, Typography } from '@/shared/ui'
 import type { Requirement, UpdateRequirementPayload } from '../model/requirements'
 import {
+  isRequirementContentImmutable,
   normalizeRequirementStatus,
   REQUIREMENT_STATUS_EDIT_OPTIONS,
   RequirementStatus,
@@ -27,6 +28,8 @@ const PRIORITY_OPTIONS = [
 export type EditRequirementSubmit = UpdateRequirementPayload & {
   /** Lifecycle target — applied via approve/reject/defer/implement endpoints. */
   status?: RequirementStatusValue
+  /** When true, parent must not PATCH body fields (Approved/etc. are immutable). */
+  contentLocked?: boolean
 }
 
 interface EditRequirementModalProps {
@@ -85,6 +88,9 @@ export function EditRequirementModal({
   const [loading, setLoading] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
+  const contentLocked = isRequirementContentImmutable(requirement?.status)
+  const isArchived = normalizeRequirementStatus(requirement?.status) === RequirementStatus.Archived
+
   useEffect(() => {
     if (!open || !requirement) return
     setTitle(requirement.title ?? '')
@@ -101,25 +107,37 @@ export function EditRequirementModal({
     if (!requirement) return
     const trimmedTitle = title.trim()
     const trimmedCode = code.trim()
-    if (!trimmedTitle) {
-      setFormError('Title is required')
-      return
+    if (!contentLocked) {
+      if (!trimmedTitle) {
+        setFormError('Title is required')
+        return
+      }
+      if (!trimmedCode) {
+        setFormError('Code is required')
+        return
+      }
     }
-    if (!trimmedCode) {
-      setFormError('Code is required')
+    const currentStatus = normalizeRequirementStatus(requirement.status)
+    if (contentLocked && status === currentStatus) {
+      setFormError('Content is locked after approval. Change status to continue, or cancel.')
       return
     }
     setFormError(null)
     setLoading(true)
     try {
-      await onSubmit({
-        title: trimmedTitle,
-        code: trimmedCode,
-        description: description.trim() || null,
-        requirementType,
-        priority,
-        status,
-      })
+      if (contentLocked) {
+        await onSubmit({ status, contentLocked: true })
+      } else {
+        await onSubmit({
+          title: trimmedTitle,
+          code: trimmedCode,
+          description: description.trim() || null,
+          requirementType,
+          priority,
+          status,
+          contentLocked: false,
+        })
+      }
       onClose()
     } catch {
       // Parent shows toast; keep modal open
@@ -128,21 +146,26 @@ export function EditRequirementModal({
     }
   }
 
-  const isArchived = normalizeRequirementStatus(requirement?.status) === RequirementStatus.Archived
   const statusOptions = isArchived
     ? REQUIREMENT_STATUS_EDIT_OPTIONS.filter((o) => o.value !== RequirementStatus.Draft).concat({
         value: RequirementStatus.Archived,
         label: 'Archived',
       })
-    : status === RequirementStatus.Draft
+    : normalizeRequirementStatus(requirement?.status) === RequirementStatus.Draft
       ? REQUIREMENT_STATUS_EDIT_OPTIONS
       : REQUIREMENT_STATUS_EDIT_OPTIONS.filter((o) => o.value !== RequirementStatus.Draft)
+
+  const helperText = isArchived
+    ? 'This requirement is archived. Change status (approve / reject / defer / implement) to restore it to the active register.'
+    : contentLocked
+      ? 'Approved and archived requirements are immutable. You can still change lifecycle status; code, title, type, priority, and description stay locked.'
+      : 'Update code, title, type, priority, status, or description. Status changes use the lifecycle APIs (approve / reject / defer / implement). Use Archive to soft-delete.'
 
   return (
     <Modal
       open={open && Boolean(requirement)}
       onClose={onClose}
-      title="Edit requirement"
+      title={contentLocked ? 'Update status' : 'Edit requirement'}
       size="md"
       actions={[
         { label: 'Cancel', onClick: onClose, variant: 'ghost' },
@@ -156,9 +179,7 @@ export function EditRequirementModal({
     >
       <div className="space-y-4">
         <Typography variant="small" tone="muted">
-          {isArchived
-            ? 'This requirement is archived. Change status (approve / reject / defer / implement) to restore it to the active register.'
-            : 'Update code, title, type, priority, status, or description. Status changes use the lifecycle APIs (approve / reject / defer / implement). Use Archive to soft-delete.'}
+          {helperText}
         </Typography>
         <Input
           label="Code"
@@ -167,6 +188,7 @@ export function EditRequirementModal({
           value={code}
           onChange={(e) => setCode(e.target.value)}
           placeholder="REQ-AUTH-01"
+          disabled={contentLocked}
         />
         <Input
           label="Title"
@@ -175,6 +197,7 @@ export function EditRequirementModal({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="User authentication via SSO"
+          disabled={contentLocked}
         />
         <div>
           <Typography variant="small" weight="medium" className="mb-1">
@@ -184,13 +207,19 @@ export function EditRequirementModal({
             value={requirementType}
             onValueChange={setRequirementType}
             options={TYPE_OPTIONS}
+            disabled={contentLocked}
           />
         </div>
         <div>
           <Typography variant="small" weight="medium" className="mb-1">
             Priority
           </Typography>
-          <Select value={priority} onValueChange={setPriority} options={PRIORITY_OPTIONS} />
+          <Select
+            value={priority}
+            onValueChange={setPriority}
+            options={PRIORITY_OPTIONS}
+            disabled={contentLocked}
+          />
         </div>
         <div>
           <Typography variant="small" weight="medium" className="mb-1">
@@ -209,6 +238,7 @@ export function EditRequirementModal({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe the requirement…"
+          disabled={contentLocked}
         />
         {formError ? (
           <Typography variant="small" tone="error">
