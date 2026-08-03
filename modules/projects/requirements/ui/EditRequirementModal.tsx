@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Input, Modal, Select, Textarea, Typography } from '@/shared/ui'
 import type { Requirement, UpdateRequirementPayload } from '../model/requirements'
 import {
@@ -28,7 +28,7 @@ const PRIORITY_OPTIONS = [
 export type EditRequirementSubmit = UpdateRequirementPayload & {
   /** Lifecycle target — applied via approve/reject/defer/implement endpoints. */
   status?: RequirementStatusValue
-  /** When true, parent must not PATCH body fields (Approved/etc. are immutable). */
+  /** When true, parent must not PATCH body fields (Approved/Archived are immutable). */
   contentLocked?: boolean
 }
 
@@ -37,6 +37,14 @@ interface EditRequirementModalProps {
   requirement: Requirement | null
   onClose: () => void
   onSubmit: (body: EditRequirementSubmit) => Promise<void>
+}
+
+function FieldLabel({ children }: { children: ReactNode }) {
+  return (
+    <Typography variant="small" weight="medium" className="mb-1">
+      {children}
+    </Typography>
+  )
 }
 
 function toFormRequirementType(requirement: Requirement): string {
@@ -118,6 +126,10 @@ export function EditRequirementModal({
       }
     }
     const currentStatus = normalizeRequirementStatus(requirement.status)
+    if (!status) {
+      setFormError('Status is required')
+      return
+    }
     if (contentLocked && status === currentStatus) {
       setFormError('Content is locked after approval. Change status to continue, or cancel.')
       return
@@ -200,41 +212,39 @@ export function EditRequirementModal({
           disabled={contentLocked}
         />
         <div>
-          <Typography variant="small" weight="medium" className="mb-1">
-            Type
-          </Typography>
+          <FieldLabel>Type</FieldLabel>
           <Select
             value={requirementType}
             onValueChange={setRequirementType}
             options={TYPE_OPTIONS}
+            placeholder="Select type"
             disabled={contentLocked}
           />
         </div>
         <div>
-          <Typography variant="small" weight="medium" className="mb-1">
-            Priority
-          </Typography>
+          <FieldLabel>Priority</FieldLabel>
           <Select
             value={priority}
             onValueChange={setPriority}
             options={PRIORITY_OPTIONS}
+            placeholder="Select priority"
             disabled={contentLocked}
           />
         </div>
         <div>
-          <Typography variant="small" weight="medium" className="mb-1">
-            Status
-          </Typography>
+          <FieldLabel>Status</FieldLabel>
           <Select
             value={status}
             onValueChange={(v: string) => setStatus(normalizeRequirementStatus(v))}
             options={statusOptions}
+            placeholder="Select status"
           />
         </div>
         <Textarea
           label="Description"
           fullWidth
           rows={4}
+          resize="vertical"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe the requirement…"

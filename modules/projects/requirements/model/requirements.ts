@@ -52,6 +52,8 @@ export interface UpdateRequirementPayload {
   description?: string | null
   priority?: string | null
   requirementType?: string | null
+  /** Present on some BE PATCH validators even when lifecycle uses dedicated endpoints. */
+  status?: string | null
   applicationId?: string | null
   functionalItemId?: string | null
   nonFunctionalItemId?: string | null

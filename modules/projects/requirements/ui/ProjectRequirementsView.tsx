@@ -354,9 +354,13 @@ export function ProjectRequirementsView() {
       const currentStatus = normalizeRequirementStatus(selected.status)
       const normalizedNext = nextStatus ? normalizeRequirementStatus(nextStatus) : null
 
-      // Approved+ bodies are immutable on BE — never PATCH content for those.
+      // Approved/Archived bodies are immutable — skip PATCH. Otherwise include current
+      // status so BE validators that require `status` on PATCH succeed.
       if (!contentLocked) {
-        await updateRequirement(selected.id, patch)
+        await updateRequirement(selected.id, {
+          ...patch,
+          status: currentStatus,
+        })
       }
 
       if (normalizedNext && normalizedNext !== currentStatus) {
