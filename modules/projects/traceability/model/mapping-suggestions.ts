@@ -166,7 +166,8 @@ export interface MappingSuggestionPage {
 export interface GenerateMappingBody {
   relationType: MappingRelationType
   scope?: MappingScope
-  modelDeploymentId?: string
+  /** Optional override. Omit / null → BE uses ACTIVE default deployment (`isDefault=true`). */
+  modelDeploymentId?: string | null
 }
 
 export interface ReviewMappingBody {

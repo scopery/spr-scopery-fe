@@ -5,6 +5,7 @@ export const AgentType = {
   Generation: 'GENERATION',
   Validation: 'VALIDATION',
   Recommendation: 'RECOMMENDATION',
+  System: 'SYSTEM',
   Other: 'OTHER',
 } as const
 export type AgentType = (typeof AgentType)[keyof typeof AgentType]
@@ -49,6 +50,12 @@ export const AGENT_TYPE_OPTIONS = [
   { value: AgentType.Validation, label: 'Validation' },
   { value: AgentType.Recommendation, label: 'Recommendation' },
   { value: AgentType.Other, label: 'Other' },
+]
+
+/** Includes SYSTEM (seed/internal agents) for filters and display. */
+export const AGENT_TYPE_FILTER_OPTIONS = [
+  ...AGENT_TYPE_OPTIONS,
+  { value: AgentType.System, label: 'System' },
 ]
 
 export const AGENT_OUTPUT_FORMAT_OPTIONS = [

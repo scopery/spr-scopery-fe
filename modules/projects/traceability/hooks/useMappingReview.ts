@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { ApiError, getErrorCode } from '@/shared/lib/api-types'
 import * as mappingApi from '../api/mapping-suggestions.api'
 import * as catalogApi from '../api/functional-catalog.api'
 import * as useCaseApi from '../api/use-case.api'
@@ -74,6 +75,21 @@ function shortId(id: string): string {
 
 function fallbackLabel(id: string): EntityLabel {
   return { id, code: shortId(id), name: 'Unknown' }
+}
+
+function mappingGenerateErrorMessage(err: unknown): string {
+  const code = getErrorCode(err)
+  if (code === 'MAPPING_NO_DEPLOYMENT_CONFIGURED') {
+    return 'No ACTIVE default model deployment. Open AI Agent Admin → Deployments, activate one, then Set default.'
+  }
+  if (code === 'MAPPING_RUN_STILL_RUNNING') {
+    return 'A mapping run is already in progress for this relation type. Wait for it to finish.'
+  }
+  if (code === 'MAPPING_PROMPT_NOT_FOUND') {
+    return 'Mapping prompt templates are missing. Ensure TRACE_MAP_* prompts are seeded and ACTIVE.'
+  }
+  if (err instanceof ApiError) return err.message
+  return err instanceof Error ? err.message : 'Failed to generate suggestions'
 }
 
 export function useMappingReview(
@@ -330,7 +346,7 @@ export function useMappingReview(
       }
       return next
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to generate suggestions'
+      const message = mappingGenerateErrorMessage(err)
       setError(message)
       toast.error(message)
       return null

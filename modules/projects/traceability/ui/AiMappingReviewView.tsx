@@ -218,8 +218,8 @@ export function AiMappingReviewView() {
             AI Mapping Review
           </Typography>
           <Typography variant="small" tone="muted" className="mt-0.5">
-            Generate, correct remaps, review existing parents, Apply once — Undo available after
-            apply.
+            Generate uses the ACTIVE default model deployment from AI Admin. Correct remaps, review
+            existing parents, Apply once — Undo available after apply.
           </Typography>
         </div>
         <div className="flex flex-wrap items-center gap-2">

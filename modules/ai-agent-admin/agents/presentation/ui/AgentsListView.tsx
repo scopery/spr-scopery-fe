@@ -18,7 +18,7 @@ import { useCanManageAiConfig } from '../../../presentation/hooks/useCanManageAi
 import { AiLifecycleStatusBadge } from '../../../presentation/ui/AiLifecycleStatusBadge'
 import {
   AGENT_OUTPUT_FORMAT_OPTIONS,
-  AGENT_TYPE_OPTIONS,
+  AGENT_TYPE_FILTER_OPTIONS,
   AgentStatus,
   type AgentOutputFormat,
   type AgentType,
@@ -122,7 +122,7 @@ export function AgentsListView() {
             }}
             options={[
               { value: '', label: 'All types' },
-              ...AGENT_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+              ...AGENT_TYPE_FILTER_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
             ]}
           />
         </div>
