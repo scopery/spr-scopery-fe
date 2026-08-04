@@ -96,6 +96,7 @@ export function SpecPacksView({
   const [optimisticDoc, setOptimisticDoc] = useState<SpecPackPreviewDocument | null>(null)
   const [localGroups, setLocalGroups] = useState<SpecPackGroup[] | null>(null)
   const [outlineFocusId, setOutlineFocusId] = useState<string | null>(null)
+  const [outlineScrollToken, setOutlineScrollToken] = useState(0)
   const menuRef = useRef<HTMLDivElement | null>(null)
 
   const selected = useMemo(
@@ -367,7 +368,10 @@ export function SpecPacksView({
           key={selected.id}
           groups={outlineGroups}
           activeRequirementId={outlineFocusId}
-          onSelectRequirement={setOutlineFocusId}
+          onSelectRequirement={(id) => {
+            setOutlineFocusId(id)
+            setOutlineScrollToken((n) => n + 1)
+          }}
           browseOnly
         />
       </aside>
@@ -432,7 +436,13 @@ export function SpecPacksView({
           ) : displayDoc ? (
             <div className="absolute inset-3 lg:inset-4">
               <div className="mx-auto h-full w-full max-w-[816px]">
-                <SpecPackPreviewPanel document={displayDoc} />
+                    <SpecPackPreviewPanel
+                      document={displayDoc}
+                      scrollToAnchorId={
+                        outlineFocusId ? `req-${outlineFocusId}` : null
+                      }
+                      scrollToken={outlineScrollToken}
+                    />
               </div>
             </div>
           ) : null}

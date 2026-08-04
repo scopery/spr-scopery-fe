@@ -122,6 +122,13 @@ export function specPackDocStyles(): string {
       font-weight: 400;
       color: #374151;
     }
+    .toc-item a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .toc-item a:hover {
+      text-decoration: underline;
+    }
     .toc-group ~ .toc-item { margin-left: 1rem; }
     .muted { color: #6b7280; font-weight: 400; }
     .code-muted {
@@ -130,11 +137,21 @@ export function specPackDocStyles(): string {
       font-size: 10pt;
     }
     .error { color: #b91c1c; }
+    .req-chapter {
+      scroll-margin-top: 16px;
+    }
     /* Indent only — no outline box around functions */
     .fn-block {
       border: none;
       padding: 0 0 8px 18px;
       margin: 8px 0 16px;
+      scroll-margin-top: 16px;
+    }
+    .req-chapter.flash-target,
+    .fn-block.flash-target {
+      outline: 2px solid #93c5fd;
+      outline-offset: 4px;
+      background: #eff6ff;
     }
     .uc-block {
       border-top: none;

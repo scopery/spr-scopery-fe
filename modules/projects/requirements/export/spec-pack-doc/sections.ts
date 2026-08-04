@@ -196,7 +196,7 @@ export function renderFunctionBlockHtml(
     .join('')
 
   return `
-    <div class="fn-block">
+    <div class="fn-block" id="fn-${escapeHtml(fn.id)}">
       <h4><b>${escapeHtml(numberLabel)}. ${escapeHtml(fnName)}</b>${
         fnCode ? ` <span class="code-muted">${escapeHtml(fnCode)}</span>` : ''
       }</h4>
@@ -229,8 +229,10 @@ export function renderRequirementChapterHtml(
 
   if (chapter.loadError) {
     return `
-      <h3>${titleHtml}</h3>
-      <p class="error">${escapeHtml(chapter.loadError)}</p>
+      <section class="req-chapter" id="req-${escapeHtml(req.id)}">
+        <h3>${titleHtml}</h3>
+        <p class="error">${escapeHtml(chapter.loadError)}</p>
+      </section>
     `
   }
 
@@ -239,17 +241,19 @@ export function renderRequirementChapterHtml(
     .join('')
 
   return `
-    <h3>${titleHtml}</h3>
-    ${chips ? chips : ''}
-    ${
-      req.description
-        ? `<table><tr><th>Description</th><td>${nl2br(req.description)}</td></tr></table>`
-        : ''
-    }
-    ${
-      functions ||
-      '<p class="muted">No linked functions.</p>'
-    }
+    <section class="req-chapter" id="req-${escapeHtml(req.id)}">
+      <h3>${titleHtml}</h3>
+      ${chips ? chips : ''}
+      ${
+        req.description
+          ? `<table><tr><th>Description</th><td>${nl2br(req.description)}</td></tr></table>`
+          : ''
+      }
+      ${
+        functions ||
+        '<p class="muted">No linked functions.</p>'
+      }
+    </section>
   `
 }
 
@@ -275,13 +279,13 @@ export function renderSpecPackBodyHtml(doc: SpecPackPreviewDocument): string {
     for (const chapter of section.chapters) {
       chapterCounter += 1
       tocItems.push(
-        `<div class="toc-item">${chapterCounter}. ${escapeHtml(
+        `<div class="toc-item"><a href="#req-${escapeHtml(chapter.requirement.id)}">${chapterCounter}. ${escapeHtml(
           chapter.requirement.title
         )}${
           chapter.requirement.code
             ? ` <span class="code-muted">${escapeHtml(chapter.requirement.code)}</span>`
             : ''
-        }</div>`
+        }</a></div>`
       )
     }
   }
