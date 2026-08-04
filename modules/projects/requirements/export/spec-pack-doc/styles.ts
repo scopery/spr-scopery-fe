@@ -3,7 +3,7 @@
 export function specPackDocStyles(): string {
   return `
     body {
-      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      font-family: "Century Gothic", CenturyGothic, AppleGothic, Futura, "Trebuchet MS", sans-serif;
       color: #111827;
       font-size: 11pt;
       line-height: 1.45;

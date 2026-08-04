@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FileDown, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { FileDown, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge, Button, ContentLoader, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
@@ -12,6 +12,7 @@ import type { Requirement } from '../model/requirements'
 import { applySpecPackGroupsToPreview } from '../model/reorder-spec-pack-chapters'
 import {
   SpecPackStatus,
+  flattenSpecPackRequirements,
   formatSpecPackDate,
   type SpecPack,
   type SpecPackGroup,
@@ -21,8 +22,10 @@ import {
   invalidateSpecPackPreviewCache,
   setCachedSpecPackPreview,
 } from '../model/spec-pack-preview.cache'
+import { SpecPackAddRequirementsModal } from './SpecPackAddRequirementsModal'
 import { SpecPackCreateModal } from './SpecPackCreateModal'
 import { SpecPackGroupOutline } from './SpecPackGroupOutline'
+import { SpecPackGroupsEditModal } from './SpecPackGroupsEditModal'
 import { SpecPackPreviewPanel } from './SpecPackPreviewPanel'
 
 interface SpecPacksViewProps {
@@ -49,6 +52,13 @@ function groupsSignature(groups: SpecPackGroup[]): string {
     .join('|')
 }
 
+function membershipSignature(groups: SpecPackGroup[]): string {
+  return flattenSpecPackRequirements(groups)
+    .map((r) => r.id)
+    .sort()
+    .join(',')
+}
+
 export function SpecPacksView({
   workspaceId,
   projectId,
@@ -61,6 +71,9 @@ export function SpecPacksView({
   )
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editFocusGroupId, setEditFocusGroupId] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
   const [optimisticDoc, setOptimisticDoc] = useState<SpecPackPreviewDocument | null>(null)
   const [localGroups, setLocalGroups] = useState<SpecPackGroup[] | null>(null)
@@ -107,6 +120,10 @@ export function SpecPacksView({
   const handleGroupsChange = useCallback(
     (groups: SpecPackGroup[]) => {
       if (!selected) return
+      const prevMembership = membershipSignature(localGroups ?? selected.groups)
+      const nextMembership = membershipSignature(groups)
+      const membershipChanged = prevMembership !== nextMembership
+
       setLocalGroups(groups)
       pendingSigRef.current = groupsSignature(groups)
 
@@ -120,6 +137,14 @@ export function SpecPacksView({
       persistTimer.current = setTimeout(() => {
         const updated = updateGroups(packId, groups)
         if (!updated) return
+        if (membershipChanged) {
+          // New/removed reqs need a full preview rebuild (reorder-only cache is incomplete).
+          // pack.updatedAt changes via reload → useSpecPackPreview auto-loads.
+          invalidateSpecPackPreviewCache(packId)
+          setOptimisticDoc(null)
+          pendingSigRef.current = null
+          return
+        }
         setOptimisticDoc((prev) => {
           if (prev) setCachedSpecPackPreview(updated, prev)
           pendingSigRef.current = null
@@ -127,7 +152,7 @@ export function SpecPacksView({
         })
       }, REORDER_DEBOUNCE_MS)
     },
-    [selected, document, updateGroups]
+    [selected, localGroups, document, updateGroups]
   )
 
   const handleExport = () => {
@@ -158,7 +183,12 @@ export function SpecPacksView({
             </Typography>
           </div>
           {canCreate ? (
-            <Button size="sm" icon={<Plus size={14} />} onClick={() => setCreateOpen(true)} className="bg-neutral-800">
+            <Button
+              size="sm"
+              icon={<Plus size={14} />}
+              onClick={() => setCreateOpen(true)}
+              className="bg-neutral-800"
+            >
               New
             </Button>
           ) : null}
@@ -223,19 +253,49 @@ export function SpecPacksView({
       {selected ? (
         <aside className="flex max-h-[260px] w-full shrink-0 flex-col overflow-hidden border-b border-neutral-200 lg:max-h-none lg:h-auto lg:w-[280px] lg:self-stretch lg:border-b-0 lg:border-r">
           <div className="shrink-0 border-b border-neutral-100 px-3 py-2.5">
-            <Typography variant="small" weight="medium">
-              Groups & reading order
-            </Typography>
-            <Typography variant="caption" tone="muted">
-              Drag groups / requirements · edit name & description
-            </Typography>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <Typography variant="small" weight="medium">
+                  Groups & reading order
+                </Typography>
+                <Typography variant="caption" tone="muted">
+                  Read-only list · edit in modal
+                </Typography>
+              </div>
+              <div className="flex shrink-0 gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon={<Pencil size={14} />}
+                  onClick={() => {
+                    setEditFocusGroupId(null)
+                    setEditOpen(true)
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon={<Plus size={14} />}
+                  onClick={() => setAddOpen(true)}
+                  disabled={requirements.length === 0}
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
           </div>
           <SpecPackGroupOutline
+            key={selected.id}
             groups={outlineGroups}
             activeRequirementId={outlineFocusId}
             onSelectRequirement={setOutlineFocusId}
-            onChange={handleGroupsChange}
-            editableMeta
+            browseOnly
+            onRequestEdit={(groupId) => {
+              setEditFocusGroupId(groupId)
+              setEditOpen(true)
+            }}
           />
         </aside>
       ) : null}
@@ -327,6 +387,40 @@ export function SpecPacksView({
           toast.success('Spec Pack created')
         }}
       />
+
+      {selected ? (
+        <SpecPackAddRequirementsModal
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          groups={outlineGroups}
+          requirements={requirements}
+          defaultGroupId={
+            outlineGroups.find((g) =>
+              g.requirements.some((r) => r.id === outlineFocusId)
+            )?.id ?? outlineGroups[0]?.id
+          }
+          onAdd={(next) => {
+            handleGroupsChange(next)
+            toast.success('Requirements added')
+          }}
+        />
+      ) : null}
+
+      {selected ? (
+        <SpecPackGroupsEditModal
+          open={editOpen}
+          onClose={() => {
+            setEditOpen(false)
+            setEditFocusGroupId(null)
+          }}
+          groups={outlineGroups}
+          focusGroupId={editFocusGroupId}
+          onSave={(next) => {
+            handleGroupsChange(next)
+            toast.success('Groups updated')
+          }}
+        />
+      ) : null}
     </div>
   )
 }
