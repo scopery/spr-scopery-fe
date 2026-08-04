@@ -119,6 +119,31 @@ export const specPackLocalStore = {
     return updated
   },
 
+  /** Rename pack title (and optionally note). */
+  updateTitle(
+    projectId: string,
+    packId: string,
+    title: string,
+    note?: string | null
+  ): SpecPack | null {
+    const packs = readAll(projectId)
+    const idx = packs.findIndex((p) => p.id === packId)
+    if (idx < 0) return null
+    const current = packs[idx]
+    const nextTitle = title.trim() || 'Untitled Spec Pack'
+    const now = new Date().toISOString()
+    const updated: SpecPack = {
+      ...current,
+      title: nextTitle,
+      ...(note !== undefined ? { note: note?.trim() || null } : {}),
+      updatedAt: now,
+      status: touchStatus(current.status),
+    }
+    packs[idx] = updated
+    writeAll(projectId, packs)
+    return updated
+  },
+
   /** Replace full group structure (order of groups + reqs inside). */
   updateGroups(
     projectId: string,

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FileDown, FileSpreadsheet, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, ContentLoader, Typography } from '@/shared/ui'
+import { Badge, Button, ContentLoader, Input, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { exportSpecPackToDocx } from '../export/spec-pack-docx'
 import { exportSpecPackToExcel } from '../export/spec-pack-excel'
@@ -66,10 +66,8 @@ export function SpecPacksView({
   requirements,
   canCreate = true,
 }: SpecPacksViewProps) {
-  const { packs, createPack, markExported, removePack, updateGroups } = useSpecPacks(
-    workspaceId,
-    projectId
-  )
+  const { packs, createPack, markExported, removePack, updateGroups, updateTitle } =
+    useSpecPacks(workspaceId, projectId)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
@@ -79,6 +77,8 @@ export function SpecPacksView({
   const [optimisticDoc, setOptimisticDoc] = useState<SpecPackPreviewDocument | null>(null)
   const [localGroups, setLocalGroups] = useState<SpecPackGroup[] | null>(null)
   const [outlineFocusId, setOutlineFocusId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState('')
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingSigRef = useRef<string | null>(null)
 
@@ -96,12 +96,17 @@ export function SpecPacksView({
     setOptimisticDoc(null)
     setLocalGroups(null)
     pendingSigRef.current = null
+    setEditingTitle(false)
     if (persistTimer.current) {
       clearTimeout(persistTimer.current)
       persistTimer.current = null
     }
     setOutlineFocusId(selected?.requirements[0]?.id ?? null)
   }, [selected?.id])
+
+  useEffect(() => {
+    if (!editingTitle && selected) setTitleDraft(selected.title)
+  }, [selected?.title, editingTitle, selected])
 
   useEffect(() => {
     if (!selected) return
@@ -184,6 +189,27 @@ export function SpecPacksView({
     } finally {
       setExporting(false)
     }
+  }
+
+  const commitTitle = () => {
+    if (!selected) return
+    const next = titleDraft.trim() || 'Untitled Spec Pack'
+    setEditingTitle(false)
+    if (next === selected.title) return
+    const updated = updateTitle(selected.id, next)
+    if (!updated) {
+      toast.error('Could not rename pack')
+      setTitleDraft(selected.title)
+      return
+    }
+    setOptimisticDoc((prev) => {
+      const base = prev ?? document
+      if (!base) return prev
+      const nextDoc = { ...base, title: updated.title }
+      setCachedSpecPackPreview(updated, nextDoc)
+      return nextDoc
+    })
+    toast.success('Title updated')
   }
 
   return (
@@ -324,15 +350,61 @@ export function SpecPacksView({
         ) : (
           <>
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-neutral-200 bg-white px-4 py-2.5">
-              <div className="min-w-0">
-                <Typography weight="medium" className="truncate">
-                  Preview
-                  {refreshing ? (
-                    <span className="ml-2 text-xs font-normal text-neutral-400">Updating…</span>
-                  ) : null}
-                </Typography>
+              <div className="min-w-0 flex-1">
+                {editingTitle ? (
+                  <div className="flex max-w-xl flex-wrap items-center gap-2">
+                    <Input
+                      value={titleDraft}
+                      onChange={(e) => setTitleDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') commitTitle()
+                        if (e.key === 'Escape') {
+                          setTitleDraft(selected.title)
+                          setEditingTitle(false)
+                        }
+                      }}
+                      autoFocus
+                      fullWidth
+                      aria-label="Spec Pack title"
+                    />
+                    <Button size="sm" onClick={commitTitle}>
+                      Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setTitleDraft(selected.title)
+                        setEditingTitle(false)
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <Typography weight="medium" className="truncate">
+                      {selected.title}
+                    </Typography>
+                    <button
+                      type="button"
+                      className="shrink-0 text-neutral-400 hover:text-neutral-800"
+                      onClick={() => {
+                        setTitleDraft(selected.title)
+                        setEditingTitle(true)
+                      }}
+                      aria-label="Edit pack title"
+                      title="Edit title"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    {refreshing ? (
+                      <span className="text-xs font-normal text-neutral-400">Updating…</span>
+                    ) : null}
+                  </div>
+                )}
                 <Typography variant="small" tone="muted">
-                  Exact DOC layout (WYSIWYG)
+                  Preview · Exact DOC layout (WYSIWYG)
                 </Typography>
               </div>
               <div className="flex flex-wrap gap-2">

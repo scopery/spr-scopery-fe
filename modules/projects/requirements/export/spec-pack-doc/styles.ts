@@ -100,6 +100,15 @@ export function specPackDocStyles(): string {
       width: 28%;
     }
     td { font-weight: 400; }
+    table.rules-table th {
+      width: auto;
+    }
+    table.rules-table th:nth-child(1),
+    table.rules-table td:nth-child(1) { width: 34%; }
+    table.rules-table th:nth-child(2),
+    table.rules-table td:nth-child(2) { width: 16%; }
+    table.rules-table th:nth-child(3),
+    table.rules-table td:nth-child(3) { width: 50%; }
     ul, ol { margin: 4px 0 10px 18px; padding: 0; }
     li { margin: 2px 0; font-weight: 400; }
     .toc { margin: 0 0 16px; }

@@ -167,15 +167,28 @@ export function renderFunctionBlockHtml(
 
   const rules =
     fn.businessRules && fn.businessRules.length > 0
-      ? `<p class="section-label">Business rules</p><table>${fn.businessRules
+      ? `<p class="section-label">Business rules</p>
+      <table class="rules-table">
+        <tr>
+          <th>Title</th>
+          <th>Priority</th>
+          <th>Description</th>
+        </tr>
+        ${fn.businessRules
           .map((r) => {
-            const head = [r.title, r.code].filter(Boolean).join(' · ')
-            return `<tr><th>${escapeHtml(head || 'Rule')}</th><td>${renderChips([
-              r.severity,
-              r.status,
-            ])}${r.description ? `<div>${nl2br(r.description)}</div>` : ''}</td></tr>`
+            const title = escapeHtml(r.title || r.code || 'Rule')
+            const code =
+              r.code && r.title
+                ? ` <span class="code-muted">${escapeHtml(r.code)}</span>`
+                : ''
+            return `<tr>
+              <td><b>${title}</b>${code}</td>
+              <td>${escapeHtml(r.severity ?? '')}</td>
+              <td>${r.description ? nl2br(r.description) : ''}</td>
+            </tr>`
           })
-          .join('')}</table>`
+          .join('')}
+      </table>`
       : ''
 
   const useCases = block.useCases

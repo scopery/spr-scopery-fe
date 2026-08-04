@@ -61,6 +61,16 @@ export function useSpecPacks(workspaceId: string | null, projectId: string | nul
     [projectId, reload]
   )
 
+  const updateTitle = useCallback(
+    (packId: string, title: string) => {
+      if (!projectId) return null
+      const updated = specPackLocalStore.updateTitle(projectId, packId, title)
+      if (updated) reload()
+      return updated
+    },
+    [projectId, reload]
+  )
+
   const getPack = useCallback(
     (packId: string) => {
       if (!projectId) return null
@@ -77,6 +87,7 @@ export function useSpecPacks(workspaceId: string | null, projectId: string | nul
     markExported,
     removePack,
     updateGroups,
+    updateTitle,
     getPack,
   }
 }

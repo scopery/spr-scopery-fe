@@ -25,6 +25,8 @@ const FONT = 'Century Gothic'
 const PAGE_WIDTH = 9638 // DXA ≈ A4 content width with margins
 const LABEL_WIDTH = 2400
 const VALUE_WIDTH = PAGE_WIDTH - LABEL_WIDTH
+/** Indent function blocks under a requirement (≈0.35"). */
+const FN_INDENT = 504
 
 const thinBorder: IBorderOptions = {
   style: BorderStyle.SINGLE,
@@ -55,7 +57,11 @@ function text(content: string, opts?: { bold?: boolean; muted?: boolean; size?: 
 
 function para(
   content: string | TextRun[],
-  opts?: { heading?: (typeof HeadingLevel)[keyof typeof HeadingLevel]; spacingAfter?: number }
+  opts?: {
+    heading?: (typeof HeadingLevel)[keyof typeof HeadingLevel]
+    spacingAfter?: number
+    indentLeft?: number
+  }
 ): Paragraph {
   const children =
     typeof content === 'string' ? [text(content, { bold: Boolean(opts?.heading) })] : content
@@ -63,6 +69,7 @@ function para(
     children,
     heading: opts?.heading,
     spacing: { after: opts?.spacingAfter ?? 120 },
+    indent: opts?.indentLeft ? { left: opts.indentLeft } : undefined,
   })
 }
 
@@ -83,11 +90,13 @@ function headingWithTitle(
     code?: string | null
     size: number
     spacingBefore?: number
+    indentLeft?: number
   }
 ): Paragraph {
   return new Paragraph({
     heading: level,
     spacing: { before: opts.spacingBefore ?? 200, after: 100 },
+    indent: opts.indentLeft ? { left: opts.indentLeft } : undefined,
     children: [
       ...(opts.prefix ? [text(`${opts.prefix} `, { bold: true, size: opts.size })] : []),
       text(opts.title, { bold: true, size: opts.size }),
@@ -98,15 +107,16 @@ function headingWithTitle(
   })
 }
 
-function sectionLabel(label: string): Paragraph {
+function sectionLabel(label: string, indentLeft?: number): Paragraph {
   return new Paragraph({
     spacing: { before: 160, after: 80 },
+    indent: indentLeft ? { left: indentLeft } : undefined,
     children: [text(label, { bold: true, size: 20, muted: true })],
   })
 }
 
-function mutedPara(content: string): Paragraph {
-  return para([text(content, { muted: true })])
+function mutedPara(content: string, indentLeft?: number): Paragraph {
+  return para([text(content, { muted: true })], { indentLeft })
 }
 
 function docTitle(label: string): Paragraph {
@@ -118,11 +128,16 @@ function docTitle(label: string): Paragraph {
 }
 
 /** Status / type / priority as separate bordered cells (Word-safe). */
-function chipRow(labels: Array<string | null | undefined>): Table | null {
+function chipRow(
+  labels: Array<string | null | undefined>,
+  indentLeft?: number
+): Table | null {
   const chips = labels.map((l) => (l ?? '').trim()).filter(Boolean)
   if (!chips.length) return null
+  const width = indentLeft ? PAGE_WIDTH - indentLeft : PAGE_WIDTH
   return new Table({
-    width: { size: PAGE_WIDTH, type: WidthType.DXA },
+    width: { size: width, type: WidthType.DXA },
+    indent: indentLeft ? { size: indentLeft, type: WidthType.DXA } : undefined,
     rows: [
       new TableRow({
         children: chips.map(
@@ -143,11 +158,18 @@ function chipRow(labels: Array<string | null | undefined>): Table | null {
   })
 }
 
-function metaTable(rows: Array<[string, string | null | undefined]>): Table | null {
+function metaTable(
+  rows: Array<[string, string | null | undefined]>,
+  indentLeft?: number
+): Table | null {
   const filled = rows.filter(([, v]) => Boolean(v && String(v).trim()))
   if (!filled.length) return null
+  const width = indentLeft ? PAGE_WIDTH - indentLeft : PAGE_WIDTH
+  const valueWidth = width - LABEL_WIDTH
   return new Table({
-    width: { size: PAGE_WIDTH, type: WidthType.DXA },
+    width: { size: width, type: WidthType.DXA },
+    indent: indentLeft ? { size: indentLeft, type: WidthType.DXA } : undefined,
+    columnWidths: [LABEL_WIDTH, valueWidth],
     rows: filled.map(
       ([label, value]) =>
         new TableRow({
@@ -161,7 +183,7 @@ function metaTable(rows: Array<[string, string | null | undefined]>): Table | nu
             }),
             new TableCell({
               borders,
-              width: { size: VALUE_WIDTH, type: WidthType.DXA },
+              width: { size: valueWidth, type: WidthType.DXA },
               margins: { top: 60, bottom: 60, left: 80, right: 80 },
               children: String(value)
                 .split('\n')
@@ -173,10 +195,86 @@ function metaTable(rows: Array<[string, string | null | undefined]>): Table | nu
   })
 }
 
-function bullet(label: string, body?: string): Paragraph {
+type BusinessRuleRow = {
+  code?: string | null
+  title?: string | null
+  description?: string | null
+  severity?: string | null
+  priority?: string | null
+  status?: string | null
+}
+
+/** Title | Priority | Description — no status column. */
+function businessRulesTable(
+  rules: BusinessRuleRow[],
+  indentLeft?: number
+): Table | null {
+  if (!rules.length) return null
+  const width = indentLeft ? PAGE_WIDTH - indentLeft : PAGE_WIDTH
+  const titleW = Math.round(width * 0.34)
+  const priorityW = Math.round(width * 0.16)
+  const descW = width - titleW - priorityW
+
+  const header = new TableRow({
+    children: [
+      cell('Title', titleW, { bold: true, shade: true }),
+      cell('Priority', priorityW, { bold: true, shade: true }),
+      cell('Description', descW, { bold: true, shade: true }),
+    ],
+  })
+
+  const body = rules.map((r) => {
+    const title = (r.title || r.code || 'Rule').trim()
+    const codeNote = r.code && r.title ? r.code : ''
+    return new TableRow({
+      children: [
+        new TableCell({
+          borders,
+          width: { size: titleW, type: WidthType.DXA },
+          margins: { top: 60, bottom: 60, left: 80, right: 80 },
+          children: [
+            para([
+              text(title, { bold: true }),
+              ...(codeNote ? [text(`  ${codeNote}`, { muted: true, size: 18 })] : []),
+            ]),
+          ],
+        }),
+        cell(r.severity ?? r.priority ?? '', priorityW),
+        cell(r.description ?? '', descW),
+      ],
+    })
+  })
+
+  return new Table({
+    width: { size: width, type: WidthType.DXA },
+    indent: indentLeft ? { size: indentLeft, type: WidthType.DXA } : undefined,
+    columnWidths: [titleW, priorityW, descW],
+    rows: [header, ...body],
+  })
+}
+
+function cell(
+  value: string,
+  width: number,
+  opts?: { bold?: boolean; shade?: boolean }
+): TableCell {
+  return new TableCell({
+    borders,
+    width: { size: width, type: WidthType.DXA },
+    shading: opts?.shade ? { fill: 'F3F4F6' } : undefined,
+    margins: { top: 60, bottom: 60, left: 80, right: 80 },
+    children: value
+      ? String(value)
+          .split('\n')
+          .map((line) => para([text(line, { bold: opts?.bold })]))
+      : [para([text('')])],
+  })
+}
+
+function bullet(label: string, body?: string, indentLeft = 360): Paragraph {
   return new Paragraph({
     spacing: { after: 60 },
-    indent: { left: 360 },
+    indent: { left: indentLeft },
     children: [
       text('• '),
       text(label, { bold: true }),
@@ -185,17 +283,22 @@ function bullet(label: string, body?: string): Paragraph {
   })
 }
 
-function itemList(title: string, items: SpecPackPreviewItem[]): Array<Paragraph> {
+function itemList(
+  title: string,
+  items: SpecPackPreviewItem[],
+  indentLeft?: number
+): Array<Paragraph> {
   if (!items.length) return []
+  const base = indentLeft ?? 0
   return [
-    sectionLabel(title),
+    sectionLabel(title, base),
     ...items.map((i) => {
       const name = i.name
       const code = i.code ? `  ${i.code}` : ''
       const secondary = i.secondary ? ` (${i.secondary})` : ''
       return new Paragraph({
         spacing: { after: 60 },
-        indent: { left: 360 },
+        indent: { left: base + 360 },
         children: [
           text('• '),
           text(name, { bold: true }),
@@ -217,27 +320,45 @@ function resolveSections(doc: SpecPackPreviewDocument): SpecPackPreviewSection[]
   ]
 }
 
-function renderUseCase(uc: SpecPackPreviewUseCase, numberLabel: string): Array<Paragraph | Table> {
+function renderUseCase(
+  uc: SpecPackPreviewUseCase,
+  numberLabel: string,
+  indentLeft = FN_INDENT
+): Array<Paragraph | Table> {
   const out: Array<Paragraph | Table> = [
-    sectionLabel(`${numberLabel}. ${uc.name}${uc.key ? `  (${uc.key})` : ''}`),
+    sectionLabel(
+      `${numberLabel}. ${uc.name}${uc.key ? `  (${uc.key})` : ''}`,
+      indentLeft
+    ),
   ]
-  const meta = metaTable([
-    ['Goal', uc.goal],
-    ['Primary actor', uc.primaryActorName],
-    ['Trigger', uc.triggerText],
-  ])
+  const meta = metaTable(
+    [
+      ['Goal', uc.goal],
+      ['Primary actor', uc.primaryActorName],
+      ['Trigger', uc.triggerText],
+    ],
+    indentLeft
+  )
   if (meta) out.push(meta)
 
   if (uc.conditions.length) {
-    out.push(sectionLabel('Conditions'))
-    for (const c of uc.conditions) out.push(bullet(c.type, c.content))
+    out.push(sectionLabel('Conditions', indentLeft))
+    for (const c of uc.conditions) out.push(bullet(c.type, c.content, indentLeft + 360))
   }
   if (uc.businessRules.length) {
-    out.push(sectionLabel('Business rules'))
-    for (const r of uc.businessRules) out.push(bullet(r.code, r.description))
+    out.push(sectionLabel('Business rules', indentLeft))
+    const table = businessRulesTable(
+      uc.businessRules.map((r) => ({
+        code: r.code,
+        title: r.code,
+        description: r.description,
+      })),
+      indentLeft
+    )
+    if (table) out.push(table)
   }
   if (uc.acceptanceCriteria.length) {
-    out.push(sectionLabel('Acceptance criteria'))
+    out.push(sectionLabel('Acceptance criteria', indentLeft))
     for (const a of uc.acceptanceCriteria) {
       const gwt = [
         a.givenText ? `Given: ${a.givenText}` : null,
@@ -246,22 +367,25 @@ function renderUseCase(uc: SpecPackPreviewUseCase, numberLabel: string): Array<P
       ]
         .filter(Boolean)
         .join('\n')
-      out.push(bullet(a.title, gwt || undefined))
+      out.push(bullet(a.title, gwt || undefined, indentLeft + 360))
     }
   }
   for (const f of uc.flows) {
     const title = [f.flowType, f.name].filter(Boolean).join(' · ')
-    out.push(sectionLabel(`Flow · ${title}`))
-    if (f.conditionText) out.push(mutedPara(f.conditionText))
-    if (!f.steps.length) out.push(mutedPara('No steps.'))
+    out.push(sectionLabel(`Flow · ${title}`, indentLeft))
+    if (f.conditionText) out.push(mutedPara(f.conditionText, indentLeft))
+    if (!f.steps.length) out.push(mutedPara('No steps.', indentLeft))
     else {
       f.steps.forEach((s, i) => {
         out.push(
-          para([
-            text(`${i + 1}. `),
-            text(s.stepType, { muted: true }),
-            ...(s.text ? [text(` — ${s.text}`)] : []),
-          ])
+          para(
+            [
+              text(`${i + 1}. `),
+              text(s.stepType, { muted: true }),
+              ...(s.text ? [text(` — ${s.text}`)] : []),
+            ],
+            { indentLeft }
+          )
         )
       })
     }
@@ -277,66 +401,64 @@ function renderFunction(
   const fn = block.function
   const numberLabel = `${chapterNo}.${functionNo}`
   const fnName = fn.name || fn.code || 'Function'
+  const indent = FN_INDENT
   const out: Array<Paragraph | Table> = [
-    // Heading 3 → shows in Word TOC (levels 1–3)
+    // Heading 3 → shows in Word TOC (levels 1–3); indented under requirement
     headingWithTitle(HeadingLevel.HEADING_3, {
       prefix: `${numberLabel}.`,
       title: fnName,
       code: fn.code && fn.name ? fn.code : null,
       size: 22,
       spacingBefore: 160,
+      indentLeft: indent,
     }),
   ]
 
-  const meta = metaTable([
-    ['Code', fn.code],
-    ['Title', fn.name],
-    ['Type', fn.type],
-    ['Priority', fn.priority],
-    ['Status', fn.status],
+  const meta = metaTable(
     [
-      'Module',
-      block.module
-        ? [block.module.name, block.module.code].filter(Boolean).join(' · ')
-        : fn.moduleId,
+      ['Code', fn.code],
+      ['Title', fn.name],
+      ['Type', fn.type],
+      ['Priority', fn.priority],
+      ['Status', fn.status],
+      [
+        'Module',
+        block.module
+          ? [block.module.name, block.module.code].filter(Boolean).join(' · ')
+          : fn.moduleId,
+      ],
+      ['Description', fn.description],
+      ['Created', fn.createdAt ? formatSpecPackDate(fn.createdAt) : null],
+      ['Updated', fn.updatedAt ? formatSpecPackDate(fn.updatedAt) : null],
     ],
-    ['Description', fn.description],
-    ['Created', fn.createdAt ? formatSpecPackDate(fn.createdAt) : null],
-    ['Updated', fn.updatedAt ? formatSpecPackDate(fn.updatedAt) : null],
-  ])
+    indent
+  )
   if (meta) out.push(meta)
 
   if (fn.acceptanceCriteria?.length) {
-    out.push(sectionLabel('Acceptance criteria'))
-    fn.acceptanceCriteria.forEach((c, i) => out.push(para(`${i + 1}. ${c}`)))
+    out.push(sectionLabel('Acceptance criteria', indent))
+    fn.acceptanceCriteria.forEach((c, i) =>
+      out.push(para(`${i + 1}. ${c}`, { indentLeft: indent }))
+    )
   }
 
   if (fn.businessRules?.length) {
-    out.push(sectionLabel('Business rules'))
-    for (const r of fn.businessRules) {
-      const head = r.title || r.code || 'Rule'
-      out.push(
-        para([
-          text(head, { bold: true }),
-          ...(r.code && r.title ? [text(`  ${r.code}`, { muted: true })] : []),
-        ])
-      )
-      const chips = chipRow([r.severity, r.status])
-      if (chips) out.push(chips)
-      if (r.description) out.push(para(r.description))
-    }
+    out.push(sectionLabel('Business rules', indent))
+    const table = businessRulesTable(fn.businessRules, indent)
+    if (table) out.push(table)
   }
 
-  out.push(...itemList('Screens', block.screens))
-  out.push(...itemList('APIs', block.apis))
-  out.push(...itemList('Components', block.components))
-  out.push(...itemList('Entities', block.entities))
-  out.push(...itemList('Communications / Notifications', block.communications))
+  out.push(...itemList('Screens', block.screens, indent))
+  out.push(...itemList('APIs', block.apis, indent))
+  out.push(...itemList('Components', block.components, indent))
+  out.push(...itemList('Entities', block.entities, indent))
+  out.push(...itemList('Communications / Notifications', block.communications, indent))
 
-  if (!block.useCases.length) out.push(mutedPara('No use cases linked to this function.'))
-  else {
+  if (!block.useCases.length) {
+    out.push(mutedPara('No use cases linked to this function.', indent))
+  } else {
     block.useCases.forEach((uc, i) => {
-      out.push(...renderUseCase(uc, `${numberLabel}.${i + 1}`))
+      out.push(...renderUseCase(uc, `${numberLabel}.${i + 1}`, indent))
     })
   }
 
