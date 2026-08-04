@@ -40,6 +40,13 @@ interface AiMappingComparisonWorkspaceProps {
   getLabel: (id: string | null | undefined) => EntityLabel
   busy?: boolean
   showCandidateLimit?: number
+  /** Left queue column heading */
+  queueLabel?: string
+  /** Empty-state copy when queue is empty */
+  emptyMessage?: string
+  className?: string
+  /** Disable Enter/U/A/arrow shortcuts (e.g. when another review modal is open). */
+  keyboardEnabled?: boolean
 }
 
 function sourcePaneTitle(type: MappingRelationTypeValue): string {
@@ -68,6 +75,10 @@ export function AiMappingComparisonWorkspace({
   getLabel,
   busy,
   showCandidateLimit = 3,
+  queueLabel = 'Needs review',
+  emptyMessage = 'Nothing left to review. Apply the draft mappings when ready.',
+  className,
+  keyboardEnabled = true,
 }: AiMappingComparisonWorkspaceProps) {
   const multi = isMultiSelectRelation(relationType)
   const [expanded, setExpanded] = useState(false)
@@ -128,6 +139,7 @@ export function AiMappingComparisonWorkspace({
   const source = activeGroup ? getLabel(activeGroup.sourceId) : null
 
   useEffect(() => {
+    if (!keyboardEnabled) return
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) {
@@ -165,6 +177,7 @@ export function AiMappingComparisonWorkspace({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [
+    keyboardEnabled,
     activeGroup,
     busy,
     onApproveAndNext,
@@ -176,9 +189,14 @@ export function AiMappingComparisonWorkspace({
 
   if (!activeGroup || !source) {
     return (
-      <div className="border border-dashed border-neutral-200 px-4 py-10 text-center">
+      <div
+        className={cn(
+          'border border-dashed border-neutral-200 px-4 py-10 text-center',
+          className
+        )}
+      >
         <Typography tone="muted" size="sm">
-          Nothing left to review. Apply the draft mappings when ready.
+          {emptyMessage}
         </Typography>
       </div>
     )
@@ -187,13 +205,18 @@ export function AiMappingComparisonWorkspace({
   const selectedCount = selected.size
 
   return (
-    <div className="flex min-h-[420px] flex-col overflow-hidden border border-neutral-200 bg-white">
+    <div
+      className={cn(
+        'flex min-h-[420px] flex-col overflow-hidden border border-neutral-200 bg-white',
+        className
+      )}
+    >
       <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(160px,20%)_minmax(0,35%)_minmax(0,45%)]">
         {/* Queue */}
         <aside className="flex min-h-0 flex-col overflow-hidden border-b border-neutral-100 lg:border-b-0 lg:border-r">
           <div className="shrink-0 border-b border-neutral-100 px-3 py-2">
             <Typography variant="caption" tone="muted" className="uppercase tracking-wide">
-              Needs review {reviewQueue.length}
+              {queueLabel} {reviewQueue.length}
             </Typography>
           </div>
           <ul className="min-h-0 flex-1 overflow-y-auto">

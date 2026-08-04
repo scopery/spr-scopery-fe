@@ -80,6 +80,38 @@ export const specPackLocalStore = {
     return updated
   },
 
+  /**
+   * Persist explicit reading order for Spec Pack requirements.
+   * `orderedIds` must be a permutation of the pack's current requirement ids.
+   */
+  reorderRequirements(
+    projectId: string,
+    packId: string,
+    orderedIds: string[]
+  ): SpecPack | null {
+    const packs = readAll(projectId)
+    const idx = packs.findIndex((p) => p.id === packId)
+    if (idx < 0) return null
+    const current = packs[idx]
+    const byId = new Map(current.requirements.map((r) => [r.id, r]))
+    if (orderedIds.length !== current.requirements.length) return null
+    if (orderedIds.some((id) => !byId.has(id))) return null
+    const requirements = orderedIds.map((id) => byId.get(id)!)
+    const now = new Date().toISOString()
+    const updated: SpecPack = {
+      ...current,
+      requirements,
+      updatedAt: now,
+      status:
+        current.status === SpecPackStatus.Exported
+          ? SpecPackStatus.Ready
+          : current.status,
+    }
+    packs[idx] = updated
+    writeAll(projectId, packs)
+    return updated
+  },
+
   remove(projectId: string, packId: string): void {
     writeAll(
       projectId,

@@ -232,6 +232,21 @@ export function renderRequirementChapterHtml(
 }
 
 export function renderSpecPackBodyHtml(doc: SpecPackPreviewDocument): string {
+  const toc =
+    doc.chapters.length > 1
+      ? `
+    <h2>Contents</h2>
+    <ol>
+      ${doc.chapters
+        .map((chapter, index) => {
+          const req = chapter.requirement
+          return `<li>${index + 1}. ${escapeHtml(req.code)} — ${escapeHtml(req.title)}</li>`
+        })
+        .join('\n')}
+    </ol>
+  `
+      : ''
+
   const chapters = doc.chapters
     .map((chapter, index) => renderRequirementChapterHtml(chapter, index))
     .join('\n')
@@ -245,6 +260,7 @@ export function renderSpecPackBodyHtml(doc: SpecPackPreviewDocument): string {
       ${doc.chapters.length} requirement${doc.chapters.length === 1 ? '' : 's'}
     </p>
     ${doc.note ? `<div class="note">${nl2br(doc.note)}</div>` : ''}
+    ${toc}
     ${chapters}
   `
 }

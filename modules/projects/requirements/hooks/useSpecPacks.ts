@@ -51,6 +51,20 @@ export function useSpecPacks(workspaceId: string | null, projectId: string | nul
     [projectId, reload]
   )
 
+  const reorderRequirements = useCallback(
+    (packId: string, orderedIds: string[]) => {
+      if (!projectId) return null
+      const updated = specPackLocalStore.reorderRequirements(
+        projectId,
+        packId,
+        orderedIds
+      )
+      if (updated) reload()
+      return updated
+    },
+    [projectId, reload]
+  )
+
   const getPack = useCallback(
     (packId: string) => {
       if (!projectId) return null
@@ -59,5 +73,14 @@ export function useSpecPacks(workspaceId: string | null, projectId: string | nul
     [projectId]
   )
 
-  return { packs, loading, reload, createPack, markExported, removePack, getPack }
+  return {
+    packs,
+    loading,
+    reload,
+    createPack,
+    markExported,
+    removePack,
+    reorderRequirements,
+    getPack,
+  }
 }

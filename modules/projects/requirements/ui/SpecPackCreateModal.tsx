@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useParams } from 'next/navigation'
-import { Search, X } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { Badge, Button, Checkbox, Input, Modal, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { getRequirement } from '../api/requirements.api'
@@ -12,6 +12,7 @@ import {
   requirementPriorityLabel,
 } from '../model/requirement-priority'
 import { defaultSpecPackTitle, type SpecPackRequirementRef } from '../model/spec-pack'
+import { SpecPackChapterOutline } from './SpecPackChapterOutline'
 
 interface SpecPackCreateModalProps {
   open: boolean
@@ -74,7 +75,7 @@ export function SpecPackCreateModal({
   const params = useParams()
   const projectId = params.projectId as string
   const [query, setQuery] = useState('')
-  const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [focusedId, setFocusedId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')
@@ -83,7 +84,7 @@ export function SpecPackCreateModal({
   useEffect(() => {
     if (!open) return
     setQuery('')
-    setSelected(new Set())
+    setSelectedIds([])
     setFocusedId(null)
     setTitle('')
     setNote('')
@@ -100,6 +101,7 @@ export function SpecPackCreateModal({
   )
 
   const byId = useMemo(() => new Map(items.map((r) => [r.id, r])), [items])
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -122,15 +124,15 @@ export function SpecPackCreateModal({
 
   const selectedItems = useMemo(
     () =>
-      [...selected]
+      selectedIds
         .map((id) => byId.get(id))
         .filter((r): r is Requirement => Boolean(r)),
-    [selected, byId]
+    [selectedIds, byId]
   )
 
   const focused = focusedId ? byId.get(focusedId) ?? null : null
-  const focusedSelected = focused ? selected.has(focused.id) : false
-  const selectedCount = selected.size
+  const focusedSelected = focused ? selectedSet.has(focused.id) : false
+  const selectedCount = selectedIds.length
   const resolvedTitle = title.trim() || defaultSpecPackTitle(selectedCount || 1)
 
   const focusedDescription = focused?.description ?? null
@@ -157,36 +159,33 @@ export function SpecPackCreateModal({
   }, [open, focusedId, projectId, focusedDescription, focusedPriority])
 
   const toggle = (id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id)
+      return [...prev, id]
     })
   }
 
   const removeSelected = (id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      next.delete(id)
-      return next
-    })
+    setSelectedIds((prev) => prev.filter((x) => x !== id))
   }
 
   const selectAllFiltered = () => {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      for (const r of filtered) next.add(r.id)
+    setSelectedIds((prev) => {
+      const next = [...prev]
+      for (const r of filtered) {
+        if (!next.includes(r.id)) next.push(r.id)
+      }
       return next
     })
   }
 
-  const clearSelection = () => setSelected(new Set())
+  const clearSelection = () => setSelectedIds([])
 
   const handleCreate = () => {
     if (selectedCount === 0) return
-    const refs: SpecPackRequirementRef[] = requirements
-      .filter((r) => selected.has(r.id))
+    const refs: SpecPackRequirementRef[] = selectedIds
+      .map((id) => byId.get(id))
+      .filter((r): r is Requirement => Boolean(r))
       .map((r) => ({
         id: r.id,
         code: r.code,
@@ -199,7 +198,7 @@ export function SpecPackCreateModal({
       requirements: refs,
     })
     setQuery('')
-    setSelected(new Set())
+    setSelectedIds([])
     setFocusedId(null)
     setTitle('')
     setNote('')
@@ -293,7 +292,7 @@ export function SpecPackCreateModal({
                   </li>
                 ) : (
                   filtered.map((r) => {
-                    const checked = selected.has(r.id)
+                    const checked = selectedSet.has(r.id)
                     const focusedRow = focusedId === r.id
                     return (
                       <li key={r.id} className="border-b border-neutral-100 last:border-b-0">
@@ -440,12 +439,17 @@ export function SpecPackCreateModal({
               )}
             </section>
 
-            {/* Right: selected queue */}
+            {/* Right: selected queue (reading order) */}
             <section className="flex min-h-0 flex-col lg:h-full">
               <div className="flex shrink-0 items-center justify-between gap-2 border-b border-neutral-100 px-3 py-2.5">
-                <Typography variant="small" weight="semibold">
-                  In pack ({selectedItems.length})
-                </Typography>
+                <div>
+                  <Typography variant="small" weight="semibold">
+                    In pack ({selectedItems.length})
+                  </Typography>
+                  <Typography variant="caption" tone="muted">
+                    Drag to set reading order
+                  </Typography>
+                </div>
                 <Button
                   size="sm"
                   variant="ghost"
@@ -455,47 +459,19 @@ export function SpecPackCreateModal({
                   Clear
                 </Button>
               </div>
-              {selectedItems.length === 0 ? (
-                <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-8 text-center">
-                  <Typography variant="small" tone="muted">
-                    Preview a requirement, then add it here before creating the pack.
-                  </Typography>
-                </div>
-              ) : (
-                <ul className="min-h-0 max-h-[36vh] overflow-y-auto lg:max-h-none lg:flex-1">
-                  {selectedItems.map((r) => (
-                    <li
-                      key={r.id}
-                      className={cn(
-                        'flex items-start gap-2 border-b border-neutral-100 px-3 py-2 last:border-b-0',
-                        focusedId === r.id && 'bg-neutral-50'
-                      )}
-                    >
-                      <button
-                        type="button"
-                        className="min-w-0 flex-1 text-left text-sm"
-                        onClick={() => setFocusedId(r.id)}
-                      >
-                        <span className="block break-words font-medium text-neutral-900">
-                          {r.title}
-                        </span>
-                        <span className="text-xs text-neutral-500">
-                          {r.code}
-                          {` · ${reqTypeLabel(r)}`}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex h-7 w-7 shrink-0 items-center justify-center text-neutral-400 hover:text-neutral-800"
-                        onClick={() => removeSelected(r.id)}
-                        aria-label={`Remove ${r.code}`}
-                      >
-                        <X size={14} />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <SpecPackChapterOutline
+                className="min-h-0 max-h-[36vh] lg:max-h-none lg:flex-1"
+                items={selectedItems.map((r) => ({
+                  id: r.id,
+                  code: r.code,
+                  title: r.title,
+                }))}
+                activeId={focusedId}
+                onSelect={setFocusedId}
+                onRemove={removeSelected}
+                onReorder={setSelectedIds}
+                emptyMessage="Preview a requirement, then add it here before creating the pack."
+              />
             </section>
           </div>
         )}

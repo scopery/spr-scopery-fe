@@ -52,6 +52,7 @@ import {
   groupSuggestionsBySource,
   isMultiSelectRelation,
   shouldPreselectCandidate,
+  type MappingSourceGroup,
 } from '../model/mapping-source-groups.rules'
 import {
   MappingRelationType,
@@ -793,20 +794,31 @@ export function useMappingReview(
   }, [relationType, syncIncludedFromSourceSelection])
 
   const advanceSourceQueue = useCallback(
-    (fromSourceId: string) => {
-      const idx = reviewSourceQueue.findIndex((g) => g.sourceId === fromSourceId)
+    (
+      fromSourceId: string,
+      queue: MappingSourceGroup[] = reviewSourceQueue,
+      setActive: (id: string | null) => void = setActiveSourceId
+    ) => {
+      const idx = queue.findIndex((g) => g.sourceId === fromSourceId)
       const next =
-        (idx >= 0 ? reviewSourceQueue[idx + 1] : null) ??
-        reviewSourceQueue.find((g) => g.sourceId !== fromSourceId) ??
+        (idx >= 0 ? queue[idx + 1] : null) ??
+        queue.find((g) => g.sourceId !== fromSourceId) ??
         null
-      setActiveSourceId(next?.sourceId ?? null)
+      setActive(next?.sourceId ?? null)
       setFocusedId(next?.candidates[0]?.id ?? null)
     },
     [reviewSourceQueue]
   )
 
   const approveSourceAndNext = useCallback(
-    async (sourceId: string) => {
+    async (
+      sourceId: string,
+      opts?: {
+        queue?: MappingSourceGroup[]
+        setActive?: (id: string | null) => void
+        skipAdvance?: boolean
+      }
+    ) => {
       const selected = sourceSelections.get(sourceId) ?? new Set()
       const group = sourceGroups.find((g) => g.sourceId === sourceId)
       if (!group) return
@@ -850,7 +862,9 @@ export function useMappingReview(
         setReviewDurationsMs((prev) => [...prev, Date.now() - reviewClockStartedAt])
         setReviewClockStartedAt(Date.now())
       }
-      advanceSourceQueue(sourceId)
+      if (!opts?.skipAdvance) {
+        advanceSourceQueue(sourceId, opts?.queue, opts?.setActive)
+      }
     },
     [
       sourceSelections,
@@ -863,7 +877,14 @@ export function useMappingReview(
   )
 
   const leaveSourceUnmapped = useCallback(
-    async (sourceId: string) => {
+    async (
+      sourceId: string,
+      opts?: {
+        queue?: MappingSourceGroup[]
+        setActive?: (id: string | null) => void
+        skipAdvance?: boolean
+      }
+    ) => {
       const group = sourceGroups.find((g) => g.sourceId === sourceId)
       setSourceSelections((prev) => {
         const next = new Map(prev)
@@ -899,7 +920,9 @@ export function useMappingReview(
           }
         }
       }
-      advanceSourceQueue(sourceId)
+      if (!opts?.skipAdvance) {
+        advanceSourceQueue(sourceId, opts?.queue, opts?.setActive)
+      }
     },
     [sourceGroups, projectId, advanceSourceQueue]
   )

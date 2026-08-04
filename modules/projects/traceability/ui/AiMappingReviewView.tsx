@@ -84,7 +84,8 @@ export function AiMappingReviewView() {
   })
 
   const [applyOpen, setApplyOpen] = useState(false)
-  const [showReady, setShowReady] = useState(false)
+  const [readyModalOpen, setReadyModalOpen] = useState(false)
+  const [readyActiveSourceId, setReadyActiveSourceId] = useState<string | null>(null)
   const [showUnmatched, setShowUnmatched] = useState(false)
 
   const syncUrl = useCallback(
@@ -108,13 +109,13 @@ export function AiMappingReviewView() {
 
   const onRelationTab = (type: MappingRelationTypeValue) => {
     setRelationType(type)
-    setShowReady(false)
+    setReadyModalOpen(false)
     setShowUnmatched(false)
     syncUrl({ runId: null, relationType: type })
   }
 
   const onGenerate = async () => {
-    setShowReady(false)
+    setReadyModalOpen(false)
     setShowUnmatched(false)
     const next = await generate()
     if (next?.id) {
@@ -125,6 +126,40 @@ export function AiMappingReviewView() {
   const hasRun = Boolean(run || allSuggestions.length > 0)
   const readySources = sourceGroups.filter((g) => g.bucket === 'READY')
   const unmatchedSources = sourceGroups.filter((g) => g.bucket === 'UNMATCHED')
+
+  const openReadyReview = () => {
+    setReadyActiveSourceId(readySources[0]?.sourceId ?? null)
+    setReadyModalOpen(true)
+  }
+
+  const onApproveReady = async (sourceId: string) => {
+    await approveSourceAndNext(sourceId, {
+      queue: readySources,
+      setActive: setReadyActiveSourceId,
+    })
+  }
+
+  const onLeaveReadyUnmapped = async (sourceId: string) => {
+    await leaveSourceUnmapped(sourceId, {
+      queue: readySources,
+      setActive: setReadyActiveSourceId,
+    })
+  }
+
+  // Keep ready modal focus valid; close when queue emptied.
+  useEffect(() => {
+    if (!readyModalOpen) return
+    if (readySources.length === 0) {
+      setReadyModalOpen(false)
+      return
+    }
+    if (
+      readyActiveSourceId &&
+      !readySources.some((g) => g.sourceId === readyActiveSourceId)
+    ) {
+      setReadyActiveSourceId(readySources[0]?.sourceId ?? null)
+    }
+  }, [readyModalOpen, readySources, readyActiveSourceId])
 
   return (
     <div className="space-y-4">
@@ -248,32 +283,14 @@ export function AiMappingReviewView() {
       {hasRun ? (
         <div className="space-y-2">
           {readySources.length > 0 ? (
-            <div className="border border-neutral-100 px-3 py-2">
-              <button
-                type="button"
-                className="flex w-full items-center justify-between text-left text-sm text-neutral-700"
-                onClick={() => setShowReady((v) => !v)}
-              >
-                <span>
-                  {readyIncludedCount} ready mapping{readyIncludedCount === 1 ? '' : 's'}
-                </span>
-                <span className="text-xs text-neutral-500">{showReady ? 'Hide' : 'View'}</span>
-              </button>
-              {showReady ? (
-                <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-xs text-neutral-600">
-                  {readySources.flatMap((g) =>
-                    g.candidates.map((s) => {
-                      const src = getLabel(s.sourceId)
-                      const tgt = getLabel(s.targetId)
-                      return (
-                        <li key={s.id} className="[overflow-wrap:anywhere]">
-                          {src.code} → {tgt.code} · {tgt.name}
-                        </li>
-                      )
-                    })
-                  )}
-                </ul>
-              ) : null}
+            <div className="flex flex-wrap items-center justify-between gap-2 border border-neutral-100 px-3 py-2">
+              <Typography size="sm" className="text-neutral-700">
+                {readyIncludedCount} ready mapping{readyIncludedCount === 1 ? '' : 's'}
+                <span className="text-neutral-500"> · auto-included</span>
+              </Typography>
+              <Button size="sm" variant="ghost" onClick={openReadyReview}>
+                Review ready
+              </Button>
             </div>
           ) : null}
 
@@ -284,9 +301,7 @@ export function AiMappingReviewView() {
                 className="flex w-full items-center justify-between text-left text-sm text-neutral-700"
                 onClick={() => setShowUnmatched((v) => !v)}
               >
-                <span>
-                  {unmatchedCount} unmatched
-                </span>
+                <span>{unmatchedCount} unmatched</span>
                 <span className="text-xs text-neutral-500">
                   {showUnmatched ? 'Hide' : 'Resolve later'}
                 </span>
@@ -327,6 +342,7 @@ export function AiMappingReviewView() {
           onLeaveUnmapped={(id) => void leaveSourceUnmapped(id)}
           getLabel={getLabel}
           busy={applying || generating}
+          keyboardEnabled={!readyModalOpen}
         />
       ) : (
         <div className="border border-dashed border-neutral-200 px-4 py-10 text-center">
@@ -362,6 +378,37 @@ export function AiMappingReviewView() {
           {canUndo ? ' · Undo available (⌘/Ctrl+Z)' : ''}
         </Typography>
       ) : null}
+
+      <Modal
+        open={readyModalOpen}
+        onClose={() => setReadyModalOpen(false)}
+        title="Review ready mappings"
+        size="full"
+      >
+        <div className="-mx-2 min-h-[70vh]">
+          <Typography variant="small" tone="muted" className="mb-3 px-2">
+            These were auto-included. Change targets or leave unmapped before Apply.
+          </Typography>
+          <AiMappingComparisonWorkspace
+            projectId={projectId}
+            relationType={relationType}
+            reviewQueue={readySources}
+            activeSourceId={readyActiveSourceId}
+            onActiveSourceIdChange={setReadyActiveSourceId}
+            sourceSelections={sourceSelections}
+            extraTargets={extraTargets}
+            onToggleTarget={toggleSourceTarget}
+            onAddExtra={addExtraTarget}
+            onApproveAndNext={(id) => void onApproveReady(id)}
+            onLeaveUnmapped={(id) => void onLeaveReadyUnmapped(id)}
+            getLabel={getLabel}
+            busy={applying || generating}
+            queueLabel="Ready"
+            emptyMessage="No ready mappings left in this queue."
+            className="min-h-[65vh]"
+          />
+        </div>
+      </Modal>
 
       <Modal
         open={applyOpen}
