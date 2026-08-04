@@ -209,6 +209,9 @@ export interface EntityLabel {
   id: string
   code: string
   name: string
+  description?: string | null
+  acceptanceCriteria?: string[] | null
+  moduleLabel?: string | null
 }
 
 function parseJsonStringArray(raw: string | null | undefined): string[] {

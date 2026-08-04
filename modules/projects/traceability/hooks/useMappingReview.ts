@@ -49,6 +49,11 @@ import {
   type MappingBucketCounts,
 } from '../model/mapping-review.rules'
 import {
+  groupSuggestionsBySource,
+  isMultiSelectRelation,
+  shouldPreselectCandidate,
+} from '../model/mapping-source-groups.rules'
+import {
   MappingRelationType,
   MappingReviewBucket,
   MappingRunStatus,
@@ -127,6 +132,11 @@ export function useMappingReview(
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [includedIds, setIncludedIds] = useState<Set<string>>(new Set())
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set())
+  /** Per-source selected target ids (comparison workspace). */
+  const [sourceSelections, setSourceSelections] = useState<Map<string, Set<string>>>(new Map())
+  /** Extra targets added via search (no suggestion row yet). */
+  const [extraTargets, setExtraTargets] = useState<Map<string, EntityLabel[]>>(new Map())
+  const [activeSourceId, setActiveSourceId] = useState<string | null>(null)
   const [focusedId, setFocusedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
@@ -163,10 +173,23 @@ export function useMappingReview(
             catalogApi.listFunctionalItems(projectId).catch(() => ({ items: [] })),
           ])
           for (const r of reqs.items) {
-            put(r.id, { id: r.id, code: r.code, name: r.title })
+            put(r.id, {
+              id: r.id,
+              code: r.code,
+              name: r.title,
+              description: r.description ?? null,
+            })
             if (r.functionalItemId) parents.set(r.id, r.functionalItemId)
           }
-          for (const f of fns.items) put(f.id, { id: f.id, code: f.code, name: f.title })
+          for (const f of fns.items) {
+            put(f.id, {
+              id: f.id,
+              code: f.code,
+              name: f.title,
+              description: f.description ?? null,
+              acceptanceCriteria: f.acceptanceCriteria ?? null,
+            })
+          }
         }
 
         if (type === MappingRelationType.FunctionToUseCase) {
@@ -174,9 +197,26 @@ export function useMappingReview(
             catalogApi.listFunctionalItems(projectId).catch(() => ({ items: [] })),
             useCaseApi.listUseCases(projectId).catch(() => []),
           ])
-          for (const f of fns.items) put(f.id, { id: f.id, code: f.code, name: f.title })
+          for (const f of fns.items) {
+            put(f.id, {
+              id: f.id,
+              code: f.code,
+              name: f.title,
+              description: f.description ?? null,
+              acceptanceCriteria: f.acceptanceCriteria ?? null,
+            })
+          }
           for (const uc of useCases) {
-            put(uc.id, { id: uc.id, code: uc.key, name: uc.name }, uc.version)
+            put(
+              uc.id,
+              {
+                id: uc.id,
+                code: uc.key,
+                name: uc.name,
+                description: null,
+              },
+              uc.version
+            )
             parents.set(uc.id, uc.primaryFunctionId ?? null)
           }
         }
@@ -254,7 +294,7 @@ export function useMappingReview(
           runId,
           relationType: type,
           page: 0,
-          size: 100,
+          size: 500,
         })
         const ctx = await hydrateContext(page.items, type)
         setLabels(ctx.labels)
@@ -269,26 +309,42 @@ export function useMappingReview(
           }
           return next
         })
-        // Exception-review draft: HIGH/ready + already accepted are included by default.
+
+        // Source-centric draft: preselect AI recommendations; HIGH/ready auto-included.
         const nextIncluded = new Set<string>()
         const nextExcluded = new Set<string>()
+        const nextSourceSelections = new Map<string, Set<string>>()
         for (const s of enriched) {
           if (s.reviewStatus === SuggestionReviewStatus.Accepted && s.targetId) {
             nextIncluded.add(s.id)
+            const set = nextSourceSelections.get(s.sourceId) ?? new Set()
+            set.add(s.targetId)
+            nextSourceSelections.set(s.sourceId, set)
           } else if (s.reviewStatus === SuggestionReviewStatus.Rejected) {
             nextExcluded.add(s.id)
-          } else if (isAutoIncludeReady(s)) {
+          } else if (shouldPreselectCandidate(s) && s.targetId) {
             nextIncluded.add(s.id)
+            const set = nextSourceSelections.get(s.sourceId) ?? new Set()
+            set.add(s.targetId)
+            nextSourceSelections.set(s.sourceId, set)
+          } else if (isAutoIncludeReady(s) && s.targetId) {
+            nextIncluded.add(s.id)
+            const set = nextSourceSelections.get(s.sourceId) ?? new Set()
+            set.add(s.targetId)
+            nextSourceSelections.set(s.sourceId, set)
           }
         }
         setIncludedIds(nextIncluded)
         setExcludedIds(nextExcluded)
+        setSourceSelections(nextSourceSelections)
+        setExtraTargets(new Map())
         setSelectedIds(new Set())
         setFilter(MappingReviewBucket.NeedsReview)
-        const firstNeeds = enriched.find(
-          (s) => isNeedsReviewItem(s) && !nextIncluded.has(s.id) && !nextExcluded.has(s.id)
-        )
-        setFocusedId(firstNeeds?.id ?? enriched[0]?.id ?? null)
+
+        const groups = groupSuggestionsBySource(enriched)
+        const firstNeeds = groups.find((g) => g.bucket === 'NEEDS_REVIEW')
+        setActiveSourceId(firstNeeds?.sourceId ?? groups[0]?.sourceId ?? null)
+        setFocusedId(firstNeeds?.candidates[0]?.id ?? enriched[0]?.id ?? null)
         setReviewClockStartedAt(Date.now())
         setReviewDurationsMs([])
         setEscalatedIds(new Set())
@@ -613,59 +669,253 @@ export function useMappingReview(
     []
   )
 
+  const sourceGroups = useMemo(
+    () => groupSuggestionsBySource(effectiveAll),
+    [effectiveAll]
+  )
+
+  const reviewSourceQueue = useMemo(() => {
+    return sourceGroups.filter((g) => {
+      if (g.bucket !== 'NEEDS_REVIEW') return false
+      // Still in queue until user approved/left this source
+      const decided =
+        g.candidates.every((c) => includedIds.has(c.id) || excludedIds.has(c.id)) &&
+        g.candidates.length > 0
+      return !decided
+    })
+  }, [sourceGroups, includedIds, excludedIds])
+
+  /** Legacy flat queue (suggestion cards) — keep for keyboard fallback. */
   const needsReviewQueue = useMemo(() => {
+    const sourceIds = new Set(reviewSourceQueue.map((g) => g.sourceId))
     return effectiveAll.filter(
       (s) =>
-        isNeedsReviewItem(s) && !includedIds.has(s.id) && !excludedIds.has(s.id)
+        sourceIds.has(s.sourceId) &&
+        isNeedsReviewItem(s) &&
+        !includedIds.has(s.id) &&
+        !excludedIds.has(s.id)
     )
-  }, [effectiveAll, includedIds, excludedIds])
+  }, [effectiveAll, reviewSourceQueue, includedIds, excludedIds])
 
   const readyIncludedCount = useMemo(() => {
-    return effectiveAll.filter(
-      (s) =>
-        includedIds.has(s.id) &&
-        (isAutoIncludeReady(s) ||
-          (s.reviewStatus === SuggestionReviewStatus.Accepted && s.targetId) ||
-          (isPendingSuggestion(s) &&
-            getMappingReviewBucket(s) === MappingReviewBucket.Ready))
-    ).length
-  }, [effectiveAll, includedIds])
+    return sourceGroups
+      .filter((g) => g.bucket === 'READY')
+      .reduce((n, g) => n + g.candidates.filter((c) => includedIds.has(c.id)).length, 0)
+  }, [sourceGroups, includedIds])
 
   const unmatchedCount = useMemo(() => {
-    return effectiveAll.filter(
-      (s) => isUnmatchedItem(s) && !includedIds.has(s.id)
-    ).length
-  }, [effectiveAll, includedIds])
+    return sourceGroups.filter((g) => g.bucket === 'UNMATCHED').length
+  }, [sourceGroups])
 
   const includedApplyCount = useMemo(() => {
-    return effectiveAll.filter((s) => {
+    const fromSuggestions = effectiveAll.filter((s) => {
       if (!includedIds.has(s.id)) return false
       if (isStaleSuggestion(s)) return false
-      const targetId = draftTargets.get(s.id) ?? s.targetId
-      return Boolean(targetId)
+      return Boolean(draftTargets.get(s.id) ?? s.targetId)
     }).length
-  }, [effectiveAll, includedIds, draftTargets])
+    let extras = 0
+    for (const list of extraTargets.values()) extras += list.length
+    return fromSuggestions + extras
+  }, [effectiveAll, includedIds, draftTargets, extraTargets])
+
+  const syncIncludedFromSourceSelection = useCallback(
+    (sourceId: string, selectedTargets: Set<string>) => {
+      const group = sourceGroups.find((g) => g.sourceId === sourceId)
+      if (!group) return
+      setIncludedIds((prev) => {
+        const next = new Set(prev)
+        for (const c of group.candidates) {
+          if (!c.targetId) continue
+          if (selectedTargets.has(c.targetId)) next.add(c.id)
+          else next.delete(c.id)
+        }
+        return next
+      })
+      setExcludedIds((prev) => {
+        const next = new Set(prev)
+        for (const c of group.candidates) {
+          if (!c.targetId) continue
+          if (selectedTargets.has(c.targetId)) next.delete(c.id)
+          else next.add(c.id)
+        }
+        return next
+      })
+    },
+    [sourceGroups]
+  )
+
+  const toggleSourceTarget = useCallback(
+    (sourceId: string, targetId: string) => {
+      setSourceSelections((prev) => {
+        const next = new Map(prev)
+        const current = new Set(next.get(sourceId) ?? [])
+        if (isMultiSelectRelation(relationType)) {
+          if (current.has(targetId)) current.delete(targetId)
+          else current.add(targetId)
+        } else {
+          if (current.has(targetId) && current.size === 1) current.clear()
+          else {
+            current.clear()
+            current.add(targetId)
+          }
+        }
+        next.set(sourceId, current)
+        syncIncludedFromSourceSelection(sourceId, current)
+        return next
+      })
+    },
+    [relationType, syncIncludedFromSourceSelection]
+  )
+
+  const addExtraTarget = useCallback((sourceId: string, label: EntityLabel) => {
+    setExtraTargets((prev) => {
+      const next = new Map(prev)
+      const list = [...(next.get(sourceId) ?? [])]
+      if (list.some((x) => x.id === label.id)) return prev
+      list.push(label)
+      next.set(sourceId, list)
+      return next
+    })
+    setSourceSelections((prev) => {
+      const next = new Map(prev)
+      const current = new Set(next.get(sourceId) ?? [])
+      if (!isMultiSelectRelation(relationType)) current.clear()
+      current.add(label.id)
+      next.set(sourceId, current)
+      syncIncludedFromSourceSelection(sourceId, current)
+      return next
+    })
+    setLabels((prev) => {
+      const next = new Map(prev)
+      next.set(label.id, label)
+      return next
+    })
+  }, [relationType, syncIncludedFromSourceSelection])
+
+  const advanceSourceQueue = useCallback(
+    (fromSourceId: string) => {
+      const idx = reviewSourceQueue.findIndex((g) => g.sourceId === fromSourceId)
+      const next =
+        (idx >= 0 ? reviewSourceQueue[idx + 1] : null) ??
+        reviewSourceQueue.find((g) => g.sourceId !== fromSourceId) ??
+        null
+      setActiveSourceId(next?.sourceId ?? null)
+      setFocusedId(next?.candidates[0]?.id ?? null)
+    },
+    [reviewSourceQueue]
+  )
+
+  const approveSourceAndNext = useCallback(
+    async (sourceId: string) => {
+      const selected = sourceSelections.get(sourceId) ?? new Set()
+      const group = sourceGroups.find((g) => g.sourceId === sourceId)
+      if (!group) return
+
+      syncIncludedFromSourceSelection(sourceId, selected)
+
+      // Persist accept/reject for this source's suggestions
+      if (projectId && group.candidates.length > 0) {
+        const decisions = group.candidates
+          .filter((c) => c.targetId)
+          .map((c) => ({
+            suggestionId: c.id,
+            decision:
+              c.targetId && selected.has(c.targetId)
+                ? ReviewDecision.Accept
+                : ReviewDecision.Reject,
+          }))
+        if (decisions.length > 0) {
+          try {
+            await mappingApi.reviewMappingSuggestions(projectId, { decisions })
+            setSuggestions((prev) =>
+              prev.map((s) => {
+                const d = decisions.find((x) => x.suggestionId === s.id)
+                if (!d) return s
+                return {
+                  ...s,
+                  reviewStatus:
+                    d.decision === ReviewDecision.Accept
+                      ? SuggestionReviewStatus.Accepted
+                      : SuggestionReviewStatus.Rejected,
+                }
+              })
+            )
+          } catch {
+            // keep local draft
+          }
+        }
+      }
+
+      if (reviewClockStartedAt != null) {
+        setReviewDurationsMs((prev) => [...prev, Date.now() - reviewClockStartedAt])
+        setReviewClockStartedAt(Date.now())
+      }
+      advanceSourceQueue(sourceId)
+    },
+    [
+      sourceSelections,
+      sourceGroups,
+      syncIncludedFromSourceSelection,
+      projectId,
+      reviewClockStartedAt,
+      advanceSourceQueue,
+    ]
+  )
+
+  const leaveSourceUnmapped = useCallback(
+    async (sourceId: string) => {
+      const group = sourceGroups.find((g) => g.sourceId === sourceId)
+      setSourceSelections((prev) => {
+        const next = new Map(prev)
+        next.set(sourceId, new Set())
+        return next
+      })
+      setExtraTargets((prev) => {
+        const next = new Map(prev)
+        next.delete(sourceId)
+        return next
+      })
+      if (group) {
+        setIncludedIds((prev) => {
+          const next = new Set(prev)
+          for (const c of group.candidates) next.delete(c.id)
+          return next
+        })
+        setExcludedIds((prev) => {
+          const next = new Set(prev)
+          for (const c of group.candidates) next.add(c.id)
+          return next
+        })
+        if (projectId && group.candidates.length > 0) {
+          try {
+            await mappingApi.reviewMappingSuggestions(projectId, {
+              decisions: group.candidates.map((c) => ({
+                suggestionId: c.id,
+                decision: ReviewDecision.Reject,
+              })),
+            })
+          } catch {
+            // local exclude already applied
+          }
+        }
+      }
+      advanceSourceQueue(sourceId)
+    },
+    [sourceGroups, projectId, advanceSourceQueue]
+  )
 
   const advanceNeedsReview = useCallback(
     (fromId: string) => {
-      const queue = effectiveAll.filter(
-        (s) =>
-          s.id !== fromId &&
-          isNeedsReviewItem(s) &&
-          !includedIds.has(s.id) &&
-          !excludedIds.has(s.id)
-      )
-      // After state updates, includedIds may not yet contain fromId — prefer next in current queue
       const currentQueue = needsReviewQueue
       const idx = currentQueue.findIndex((s) => s.id === fromId)
       const next =
         (idx >= 0 ? currentQueue[idx + 1] : null) ??
         currentQueue.find((s) => s.id !== fromId) ??
-        queue[0] ??
         null
       setFocusedId(next?.id ?? null)
+      if (next) setActiveSourceId(next.sourceId)
     },
-    [effectiveAll, includedIds, excludedIds, needsReviewQueue]
+    [needsReviewQueue]
   )
 
   const looksCorrect = useCallback(
@@ -754,7 +1004,13 @@ export function useMappingReview(
       if (isStaleSuggestion(s)) return false
       return Boolean(draftTargets.get(s.id) ?? s.targetId)
     })
-    if (toApply.length === 0) {
+    let pendingExtras = 0
+    for (const [sourceId, labels] of extraTargets) {
+      const selected = sourceSelections.get(sourceId)
+      if (!selected) continue
+      pendingExtras += labels.filter((l) => selected.has(l.id)).length
+    }
+    if (toApply.length === 0 && pendingExtras === 0) {
       toast.message('No mappings in draft to apply')
       return null
     }
@@ -762,71 +1018,122 @@ export function useMappingReview(
     setApplying(true)
     setError(null)
     try {
-      const pendingIds = toApply.filter(isPendingSuggestion).map((s) => s.id)
-      if (pendingIds.length > 0) {
-        await mappingApi.reviewMappingSuggestions(projectId, {
-          decisions: pendingIds.map((suggestionId) => ({
-            suggestionId,
-            decision: ReviewDecision.Accept,
-          })),
-        })
+      let result: ApplyMappingDraftResult = {
+        created: 0,
+        skippedStale: 0,
+        skippedConflict: 0,
+        failed: 0,
       }
 
-      const acceptedShape = toApply.map((s) => ({
-        ...s,
-        reviewStatus: SuggestionReviewStatus.Accepted,
-      }))
-      const hasDraftRemaps = acceptedShape.some((s) => draftTargets.has(s.id))
-      const hasReplace = acceptedShape.some((s) => isRemapCandidate(s))
+      if (toApply.length > 0) {
+        const pendingIds = toApply.filter(isPendingSuggestion).map((s) => s.id)
+        if (pendingIds.length > 0) {
+          await mappingApi.reviewMappingSuggestions(projectId, {
+            decisions: pendingIds.map((suggestionId) => ({
+              suggestionId,
+              decision: ReviewDecision.Accept,
+            })),
+          })
+        }
 
-      let result: ApplyMappingDraftResult
-      if (hasDraftRemaps || hasReplace) {
-        const detailed = await applyAcceptedWithEffectiveTargets(
-          projectId,
-          relationType,
-          acceptedShape,
-          draftTargets,
-          testCaseVersions,
-          currentParents
-        )
-        result = {
-          created: detailed.created,
-          skippedStale: detailed.skippedStale,
-          skippedConflict: detailed.skippedConflict,
-          failed: detailed.failed,
-        }
-        if (detailed.applied.length > 0) {
-          setUndoStack((prev) => [
-            ...buildUndoEntriesFromApply(relationType, detailed.applied),
-            ...prev,
-          ])
-        }
-      } else {
-        result = await mappingApi.applyMappingDraft(projectId, run.id)
-        const appliedApprox = acceptedShape
-          .filter((s) => s.targetId)
-          .map((s) => ({
-            suggestionId: s.id,
-            sourceId: s.sourceId,
-            appliedTargetId: (draftTargets.get(s.id) ?? s.targetId) as string,
-            previousTargetId: currentParents.get(s.sourceId) ?? null,
-          }))
-        if (result.created > 0 && appliedApprox.length > 0) {
-          setUndoStack((prev) => [
-            ...buildUndoEntriesFromApply(
-              relationType,
-              appliedApprox.slice(0, result.created)
-            ),
-            ...prev,
-          ])
+        const acceptedShape = toApply.map((s) => ({
+          ...s,
+          reviewStatus: SuggestionReviewStatus.Accepted,
+        }))
+        const hasDraftRemaps = acceptedShape.some((s) => draftTargets.has(s.id))
+        const hasReplace = acceptedShape.some((s) => isRemapCandidate(s))
+
+        if (hasDraftRemaps || hasReplace) {
+          const detailed = await applyAcceptedWithEffectiveTargets(
+            projectId,
+            relationType,
+            acceptedShape,
+            draftTargets,
+            testCaseVersions,
+            currentParents
+          )
+          result = {
+            created: detailed.created,
+            skippedStale: detailed.skippedStale,
+            skippedConflict: detailed.skippedConflict,
+            failed: detailed.failed,
+          }
+          if (detailed.applied.length > 0) {
+            setUndoStack((prev) => [
+              ...buildUndoEntriesFromApply(relationType, detailed.applied),
+              ...prev,
+            ])
+          }
+        } else {
+          result = await mappingApi.applyMappingDraft(projectId, run.id)
+          const appliedApprox = acceptedShape
+            .filter((s) => s.targetId)
+            .map((s) => ({
+              suggestionId: s.id,
+              sourceId: s.sourceId,
+              appliedTargetId: (draftTargets.get(s.id) ?? s.targetId) as string,
+              previousTargetId: currentParents.get(s.sourceId) ?? null,
+            }))
+          if (result.created > 0 && appliedApprox.length > 0) {
+            setUndoStack((prev) => [
+              ...buildUndoEntriesFromApply(
+                relationType,
+                appliedApprox.slice(0, result.created)
+              ),
+              ...prev,
+            ])
+          }
         }
       }
 
       setApplyResult(result)
       setDraftTargets(new Map())
-      toast.success(
-        `Applied ${result.created} mapping${result.created === 1 ? '' : 's'}`
-      )
+
+      // Extra targets picked via search (no suggestion row) — write domain links directly.
+      let extraCreated = 0
+      for (const [sourceId, labels] of extraTargets) {
+        const selected = sourceSelections.get(sourceId)
+        if (!selected) continue
+        for (const label of labels) {
+          if (!selected.has(label.id)) continue
+          try {
+            if (relationType === MappingRelationType.RequirementToFunction) {
+              await useCaseApi.linkRequirementToFunction(projectId, label.id, {
+                requirementId: sourceId,
+              })
+              extraCreated += 1
+            } else if (relationType === MappingRelationType.FunctionToUseCase) {
+              const detail = await useCaseApi.getUseCaseDetail(projectId, sourceId)
+              await useCaseApi.updateUseCase(projectId, sourceId, {
+                name: detail.overview.name,
+                status: detail.overview.status,
+                primaryFunctionId: label.id,
+              })
+              extraCreated += 1
+            } else {
+              const version = testCaseVersions.get(sourceId)
+              if (version != null) {
+                await qualityApi.updateTestCase(projectId, sourceId, {
+                  version,
+                  useCaseId: label.id,
+                })
+                extraCreated += 1
+              }
+            }
+          } catch {
+            // skip failed extra
+          }
+        }
+      }
+
+      const created = result.created + extraCreated
+      toast.success(`Applied ${created} mapping${created === 1 ? '' : 's'}`)
+      if (result.skippedStale > 0) {
+        toast.message(
+          `${result.skippedStale} suggestion${result.skippedStale === 1 ? '' : 's'} skipped — entity changed. Generate again to refresh.`
+        )
+      }
+      setExtraTargets(new Map())
       await loadSuggestions(run.id, relationType)
       return result
     } catch (err) {
@@ -843,6 +1150,8 @@ export function useMappingReview(
     effectiveAll,
     includedIds,
     draftTargets,
+    extraTargets,
+    sourceSelections,
     relationType,
     testCaseVersions,
     currentParents,
@@ -1086,6 +1395,9 @@ export function useMappingReview(
     setSelectedIds(new Set())
     setIncludedIds(new Set())
     setExcludedIds(new Set())
+    setSourceSelections(new Map())
+    setExtraTargets(new Map())
+    setActiveSourceId(null)
     setApplyResult(null)
     setError(null)
     setFilter(MappingReviewBucket.NeedsReview)
@@ -1100,12 +1412,22 @@ export function useMappingReview(
     run,
     suggestions: filtered,
     allSuggestions: effectiveAll,
+    sourceGroups,
+    reviewSourceQueue,
     needsReviewQueue,
     readyIncludedCount,
     unmatchedCount,
     includedApplyCount,
     includedIds,
     excludedIds,
+    sourceSelections,
+    extraTargets,
+    activeSourceId,
+    setActiveSourceId,
+    toggleSourceTarget,
+    addExtraTarget,
+    approveSourceAndNext,
+    leaveSourceUnmapped,
     counts,
     filter,
     setFilter,

@@ -14,7 +14,7 @@ import {
   type MappingScope as MappingScopeValue,
 } from '../model/mapping-suggestions'
 import { AiMappingRunProgressPanel } from './AiMappingRunProgressPanel'
-import { AiMappingExceptionQueue } from './AiMappingExceptionQueue'
+import { AiMappingComparisonWorkspace } from './AiMappingComparisonWorkspace'
 import { cn } from '@/utils/cn'
 
 const RELATION_TABS: MappingRelationTypeValue[] = [
@@ -53,17 +53,19 @@ export function AiMappingReviewView() {
     setScope,
     run,
     allSuggestions,
-    needsReviewQueue,
+    sourceGroups,
+    reviewSourceQueue,
     readyIncludedCount,
     unmatchedCount,
     includedApplyCount,
-    includedIds,
-    focusedId,
-    setFocusedId,
-    focusNext,
-    looksCorrect,
-    leaveUnmapped,
-    confirmChangeMapping,
+    sourceSelections,
+    extraTargets,
+    activeSourceId,
+    setActiveSourceId,
+    toggleSourceTarget,
+    addExtraTarget,
+    approveSourceAndNext,
+    leaveSourceUnmapped,
     canUndo,
     undoLast,
     loading,
@@ -82,7 +84,6 @@ export function AiMappingReviewView() {
   })
 
   const [applyOpen, setApplyOpen] = useState(false)
-  const [changingId, setChangingId] = useState<string | null>(null)
   const [showReady, setShowReady] = useState(false)
   const [showUnmatched, setShowUnmatched] = useState(false)
 
@@ -105,90 +106,14 @@ export function AiMappingReviewView() {
     }
   }, [run?.id, urlRunId, relationType, syncUrl])
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) {
-        return
-      }
-      if (generating || applying || undoing) return
-
-      const key = e.key.toLowerCase()
-      if (key === 'arrowdown' || key === 'j') {
-        e.preventDefault()
-        focusNext(1)
-        return
-      }
-      if (key === 'arrowup' || key === 'k') {
-        e.preventDefault()
-        focusNext(-1)
-        return
-      }
-      if (key === 'escape') {
-        setChangingId(null)
-        return
-      }
-      if ((e.metaKey || e.ctrlKey) && key === 'z' && canUndo) {
-        e.preventDefault()
-        void undoLast()
-        return
-      }
-
-      const focused =
-        needsReviewQueue.find((s) => s.id === focusedId) ?? needsReviewQueue[0] ?? null
-      if (!focused) return
-
-      if (key === 'enter') {
-        e.preventDefault()
-        if (changingId) return
-        if (focused.targetId) looksCorrect(focused.id)
-        return
-      }
-      if (key === 'c') {
-        e.preventDefault()
-        setChangingId((id) => (id === focused.id ? null : focused.id))
-        setFocusedId(focused.id)
-        return
-      }
-      if (key === 'u') {
-        e.preventDefault()
-        setChangingId(null)
-        void leaveUnmapped(focused.id)
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [
-    focusedId,
-    needsReviewQueue,
-    focusNext,
-    looksCorrect,
-    leaveUnmapped,
-    generating,
-    applying,
-    undoing,
-    canUndo,
-    undoLast,
-    changingId,
-    setFocusedId,
-  ])
-
-  useEffect(() => {
-    if (!focusedId) return
-    const el = document.querySelector(`[data-suggestion-id="${focusedId}"]`)
-    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-  }, [focusedId])
-
   const onRelationTab = (type: MappingRelationTypeValue) => {
     setRelationType(type)
-    setChangingId(null)
     setShowReady(false)
     setShowUnmatched(false)
     syncUrl({ runId: null, relationType: type })
   }
 
   const onGenerate = async () => {
-    setChangingId(null)
     setShowReady(false)
     setShowUnmatched(false)
     const next = await generate()
@@ -198,13 +123,8 @@ export function AiMappingReviewView() {
   }
 
   const hasRun = Boolean(run || allSuggestions.length > 0)
-  const reviewedAway = Math.max(
-    0,
-    (run?.suggestionCount ?? allSuggestions.length) -
-      readyIncludedCount -
-      needsReviewQueue.length -
-      unmatchedCount
-  )
+  const readySources = sourceGroups.filter((g) => g.bucket === 'READY')
+  const unmatchedSources = sourceGroups.filter((g) => g.bucket === 'UNMATCHED')
 
   return (
     <div className="space-y-4">
@@ -214,7 +134,7 @@ export function AiMappingReviewView() {
             AI Mapping
           </Typography>
           <Typography variant="small" tone="muted" className="mt-0.5">
-            Generate suggestions, fix only the unclear ones, then apply.
+            Generate suggestions, review unclear sources, then apply mappings.
           </Typography>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -296,7 +216,7 @@ export function AiMappingReviewView() {
           <Typography size="sm" className="text-neutral-800">
             {readyIncludedCount} ready
             {' · '}
-            {needsReviewQueue.length} need review
+            {reviewSourceQueue.length} need review
             {' · '}
             {unmatchedCount} unmatched
           </Typography>
@@ -327,66 +247,60 @@ export function AiMappingReviewView() {
 
       {hasRun ? (
         <div className="space-y-2">
-          {readyIncludedCount > 0 ? (
+          {readySources.length > 0 ? (
             <div className="border border-neutral-100 px-3 py-2">
               <button
                 type="button"
                 className="flex w-full items-center justify-between text-left text-sm text-neutral-700"
                 onClick={() => setShowReady((v) => !v)}
               >
-                <span>✓ {readyIncludedCount} ready mappings</span>
+                <span>
+                  {readyIncludedCount} ready mapping{readyIncludedCount === 1 ? '' : 's'}
+                </span>
                 <span className="text-xs text-neutral-500">{showReady ? 'Hide' : 'View'}</span>
               </button>
               {showReady ? (
                 <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-xs text-neutral-600">
-                  {allSuggestions
-                    .filter(
-                      (s) =>
-                        includedIds.has(s.id) &&
-                        s.targetId &&
-                        s.confidenceBand === 'HIGH' &&
-                        s.decision !== 'NO_MATCH'
-                    )
-                    .slice(0, 40)
-                    .map((s) => {
+                  {readySources.flatMap((g) =>
+                    g.candidates.map((s) => {
                       const src = getLabel(s.sourceId)
                       const tgt = getLabel(s.targetId)
                       return (
-                        <li key={s.id}>
+                        <li key={s.id} className="[overflow-wrap:anywhere]">
                           {src.code} → {tgt.code} · {tgt.name}
                         </li>
                       )
-                    })}
+                    })
+                  )}
                 </ul>
               ) : null}
             </div>
           ) : null}
 
-          {unmatchedCount > 0 ? (
+          {unmatchedSources.length > 0 ? (
             <div className="border border-neutral-100 px-3 py-2">
               <button
                 type="button"
                 className="flex w-full items-center justify-between text-left text-sm text-neutral-700"
                 onClick={() => setShowUnmatched((v) => !v)}
               >
-                <span>{unmatchedCount} unmatched</span>
+                <span>
+                  {unmatchedCount} unmatched
+                </span>
                 <span className="text-xs text-neutral-500">
                   {showUnmatched ? 'Hide' : 'Resolve later'}
                 </span>
               </button>
               {showUnmatched ? (
                 <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-xs text-neutral-600">
-                  {allSuggestions
-                    .filter((s) => s.decision === 'NO_MATCH' || !s.targetId)
-                    .slice(0, 40)
-                    .map((s) => {
-                      const src = getLabel(s.sourceId)
-                      return (
-                        <li key={s.id}>
-                          {src.code} · {src.name}
-                        </li>
-                      )
-                    })}
+                  {unmatchedSources.map((g) => {
+                    const src = getLabel(g.sourceId)
+                    return (
+                      <li key={g.sourceId} className="[overflow-wrap:anywhere]">
+                        {src.code} · {src.name}
+                      </li>
+                    )
+                  })}
                 </ul>
               ) : null}
             </div>
@@ -394,34 +308,23 @@ export function AiMappingReviewView() {
         </div>
       ) : null}
 
-      {hasRun ? (
-        <Typography size="sm" weight="medium">
-          Showing: Needs Review
-          {reviewedAway > 0 ? (
-            <span className="ml-2 font-normal text-neutral-500">
-              · {reviewedAway} already decided this session
-            </span>
-          ) : null}
-        </Typography>
-      ) : null}
-
       {loading && !generating ? (
         <Typography variant="small" tone="muted">
           Loading suggestions…
         </Typography>
       ) : hasRun ? (
-        <AiMappingExceptionQueue
+        <AiMappingComparisonWorkspace
           projectId={projectId}
           relationType={relationType}
-          items={needsReviewQueue}
-          allSuggestions={allSuggestions}
-          focusedId={focusedId}
-          changingId={changingId}
-          onFocus={setFocusedId}
-          onChangingIdChange={setChangingId}
-          onLooksCorrect={looksCorrect}
-          onConfirmChange={confirmChangeMapping}
-          onLeaveUnmapped={(id) => void leaveUnmapped(id)}
+          reviewQueue={reviewSourceQueue}
+          activeSourceId={activeSourceId}
+          onActiveSourceIdChange={setActiveSourceId}
+          sourceSelections={sourceSelections}
+          extraTargets={extraTargets}
+          onToggleTarget={toggleSourceTarget}
+          onAddExtra={addExtraTarget}
+          onApproveAndNext={(id) => void approveSourceAndNext(id)}
+          onLeaveUnmapped={(id) => void leaveSourceUnmapped(id)}
           getLabel={getLabel}
           busy={applying || generating}
         />
@@ -433,8 +336,11 @@ export function AiMappingReviewView() {
         </div>
       )}
 
-      {hasRun && needsReviewQueue.length === 0 && includedApplyCount > 0 ? (
-        <div className="flex justify-end">
+      {hasRun && reviewSourceQueue.length === 0 && includedApplyCount > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 border border-neutral-200 px-3 py-3">
+          <Typography size="sm">
+            {includedApplyCount} mapping{includedApplyCount === 1 ? '' : 's'} ready to apply
+          </Typography>
           <Button
             size="sm"
             variant="secondary"
@@ -450,6 +356,9 @@ export function AiMappingReviewView() {
       {applyResult ? (
         <Typography variant="small" tone="muted">
           Last apply — created {applyResult.created}
+          {applyResult.skippedStale > 0
+            ? ` · skipped stale ${applyResult.skippedStale}`
+            : ''}
           {canUndo ? ' · Undo available (⌘/Ctrl+Z)' : ''}
         </Typography>
       ) : null}

@@ -388,33 +388,26 @@ export function RequirementFunctionalLinkPanel({
         return
       }
       try {
+        // 1) Archive COVERS trace link when present (BE must preserve @Version on save).
         if (edge.linkId) {
           await traceApi.deleteTraceLink(projectId, edge.linkId)
         }
-        await useCaseApi
-          .unlinkRequirementFromFunction(
-            projectId,
-            edge.functionalItemId,
-            edge.requirementId
-          )
-          .catch(() => undefined)
-        if (req?.functionalItemId === edge.functionalItemId) {
-          const remaining = edges.filter(
-            (e) =>
-              e.requirementId === edge.requirementId &&
-              e.functionalItemId !== edge.functionalItemId
-          )
-          await updateRequirement(edge.requirementId, {
-            functionalItemId: remaining[0]?.functionalItemId ?? null,
-            status: req.status ?? undefined,
-          })
-        }
-        await loadCoversLinks({ silent: true })
+        // 2) Drop junction + clear/repoint requirement.functionalItemId on BE.
+        //    Do not PATCH functionalItemId:null — BE update() treats null as "keep".
+        await useCaseApi.unlinkRequirementFromFunction(
+          projectId,
+          edge.functionalItemId,
+          edge.requirementId
+        )
+        await Promise.all([
+          loadCoversLinks({ silent: true }),
+          refetchRequirements(),
+        ])
       } catch (err: unknown) {
         setFormError(err instanceof Error ? err.message : 'Failed to unlink')
       }
     },
-    [projectId, requirements, edges, updateRequirement, loadCoversLinks]
+    [projectId, requirements, loadCoversLinks, refetchRequirements]
   )
 
   useEffect(() => {
