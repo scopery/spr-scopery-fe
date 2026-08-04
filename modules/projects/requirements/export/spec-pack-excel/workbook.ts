@@ -1,26 +1,85 @@
 import ExcelJS from 'exceljs'
 import type { SpecPackPreviewDocument } from '../../model/spec-pack-preview'
-import { formatSpecPackDate } from '../../model/spec-pack'
-import { flattenSpecPackForExcel } from './rows'
+import {
+  flattenSpecPackForExcel,
+  type SpecPackExcelAcRow,
+  type SpecPackExcelBrRow,
+  type SpecPackExcelDashboardStats,
+  type SpecPackExcelFlat,
+  type SpecPackExcelScopeRow,
+  type SpecPackExcelTechnicalRow,
+} from './rows'
 
-const FONT = { name: 'Century Gothic', size: 10 }
-const HEADER_FONT = { name: 'Century Gothic', size: 10, bold: true }
+const FONT: Partial<ExcelJS.Font> = { name: 'Century Gothic', size: 10 }
+const HEADER_FONT: Partial<ExcelJS.Font> = {
+  name: 'Century Gothic',
+  size: 10,
+  bold: true,
+  color: { argb: 'FF1F2937' },
+}
+const TITLE_FONT: Partial<ExcelJS.Font> = {
+  name: 'Century Gothic',
+  size: 14,
+  bold: true,
+  color: { argb: 'FF111827' },
+}
+const SECTION_FONT: Partial<ExcelJS.Font> = {
+  name: 'Century Gothic',
+  size: 11,
+  bold: true,
+  color: { argb: 'FF374151' },
+}
 const HEADER_FILL: ExcelJS.Fill = {
   type: 'pattern',
   pattern: 'solid',
-  fgColor: { argb: 'FFF3F4F6' },
+  fgColor: { argb: 'FFE5E7EB' },
+}
+const KPI_FILL: ExcelJS.Fill = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FFF8FAFC' },
 }
 
-function styleHeader(sheet: ExcelJS.Worksheet): void {
+const GROUP_FILLS = [
+  'FFEFF6FF',
+  'FFF0FDF4',
+  'FFFFF7ED',
+  'FFF5F3FF',
+  'FFFDF2F8',
+] as const
+
+const PRIORITY_FILL: Record<string, string> = {
+  critical: 'FFFEE2E2',
+  high: 'FFFFEDD5',
+  medium: 'FFFEF9C3',
+  low: 'FFF3F4F6',
+}
+
+const SHEET = {
+  scope: 'Scope Overview',
+  ac: 'Acceptance Criteria',
+  br: 'Business Rules',
+  dashboard: 'Dashboard',
+  technical: 'Technical Data',
+  links: 'Linked artifacts',
+  useCases: 'Use cases',
+} as const
+
+function styleHeaderRow(sheet: ExcelJS.Worksheet, columnCount: number): void {
   const row = sheet.getRow(1)
+  row.height = 22
   row.font = HEADER_FONT
-  row.eachCell((cell) => {
+  for (let c = 1; c <= columnCount; c++) {
+    const cell = row.getCell(c)
     cell.fill = HEADER_FILL
-    cell.alignment = { vertical: 'middle', wrapText: true }
-  })
+    cell.alignment = { vertical: 'middle', wrapText: true, horizontal: 'left' }
+    cell.border = {
+      bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+    }
+  }
 }
 
-function applyBodyFont(sheet: ExcelJS.Worksheet): void {
+function applyBodyDefaults(sheet: ExcelJS.Worksheet): void {
   sheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) return
     row.font = FONT
@@ -28,151 +87,310 @@ function applyBodyFont(sheet: ExcelJS.Worksheet): void {
   })
 }
 
-function addSummarySheet(
-  wb: ExcelJS.Workbook,
-  doc: SpecPackPreviewDocument,
-  stats: {
-    groupCount: number
-    requirementCount: number
-    functionCount: number
-    useCaseCount: number
+function priorityFillArgb(priority: string): string | null {
+  const key = priority.trim().toLowerCase()
+  if (!key) return null
+  for (const [token, fill] of Object.entries(PRIORITY_FILL)) {
+    if (key.includes(token)) return fill
+  }
+  return null
+}
+
+function groupFillIndex(group: string, cache: Map<string, number>): number {
+  if (!cache.has(group)) cache.set(group, cache.size % GROUP_FILLS.length)
+  return cache.get(group)!
+}
+
+function paintPriorityAndGroup(
+  sheet: ExcelJS.Worksheet,
+  rows: Array<{ group: string; priority: string }>,
+  groupCol: number,
+  priorityCol: number
+): void {
+  const groupCache = new Map<string, number>()
+  rows.forEach((r, i) => {
+    const excelRow = i + 2
+    const gFill = GROUP_FILLS[groupFillIndex(r.group, groupCache)]!
+    sheet.getRow(excelRow).getCell(groupCol).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: gFill },
+    }
+    const pFill = priorityFillArgb(r.priority)
+    if (pFill) {
+      sheet.getRow(excelRow).getCell(priorityCol).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: pFill },
+      }
+    }
+  })
+}
+
+function configureTableSheet(
+  sheet: ExcelJS.Worksheet,
+  opts: {
+    columnCount: number
+    freezeCols?: number
   }
 ): void {
-  const sheet = wb.addWorksheet('Summary')
-  sheet.columns = [
-    { header: 'Field', key: 'field', width: 28 },
-    { header: 'Value', key: 'value', width: 72 },
+  styleHeaderRow(sheet, opts.columnCount)
+  applyBodyDefaults(sheet)
+  sheet.views = [
+    {
+      state: 'frozen',
+      xSplit: opts.freezeCols ?? 2,
+      ySplit: 1,
+      showGridLines: false,
+      activeCell: 'A2',
+    },
   ]
-  sheet.addRows([
-    { field: 'Title', value: doc.title },
-    { field: 'Note', value: doc.note ?? '' },
-    { field: 'Created', value: formatSpecPackDate(doc.createdAt) },
-    { field: 'Generated', value: formatSpecPackDate(doc.generatedAt) },
-    { field: 'Groups', value: stats.groupCount },
-    { field: 'Requirements', value: stats.requirementCount },
-    { field: 'Functions', value: stats.functionCount },
-    { field: 'Use cases', value: stats.useCaseCount },
-    { field: 'Pack ID', value: doc.packId },
-    { field: 'Project ID', value: doc.projectId },
-  ])
-  styleHeader(sheet)
-  applyBodyFont(sheet)
-  sheet.getColumn(1).font = HEADER_FONT
+  sheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: 1, column: opts.columnCount },
+  }
 }
 
-function addGroupsSheet(
+function addScopeOverviewSheet(
   wb: ExcelJS.Workbook,
-  sections: ReturnType<typeof flattenSpecPackForExcel>['sections']
+  rows: SpecPackExcelScopeRow[],
+  firstAcRowByReq: Map<string, number>
 ): void {
-  const sheet = wb.addWorksheet('Groups', {
-    views: [{ state: 'frozen', ySplit: 1 }],
-  })
+  const sheet = wb.addWorksheet(SHEET.scope)
   sheet.columns = [
-    { header: '#', key: 'no', width: 6 },
-    { header: 'Group name', key: 'name', width: 28 },
-    { header: 'Description', key: 'description', width: 48 },
-    { header: 'Requirements', key: 'reqCount', width: 14 },
-    { header: 'Group ID', key: 'id', width: 36 },
-  ]
-  sections.forEach((s, i) => {
-    sheet.addRow({
-      no: i + 1,
-      name: s.group.name,
-      description: s.group.description ?? '',
-      reqCount: s.chapters.length,
-      id: s.group.id,
-    })
-  })
-  styleHeader(sheet)
-  applyBodyFont(sheet)
-}
-
-function addRequirementsSheet(
-  wb: ExcelJS.Workbook,
-  rows: ReturnType<typeof flattenSpecPackForExcel>['requirementRows']
-): void {
-  const sheet = wb.addWorksheet('Requirements', {
-    views: [{ state: 'frozen', ySplit: 1 }],
-  })
-  sheet.columns = [
-    { header: 'Group #', key: 'groupNo', width: 10 },
-    { header: 'Group', key: 'groupName', width: 22 },
-    { header: 'Chapter #', key: 'chapterNo', width: 11 },
-    { header: 'Code', key: 'code', width: 16 },
-    { header: 'Title', key: 'title', width: 40 },
-    { header: 'Type', key: 'type', width: 14 },
+    { header: 'Group', key: 'group', width: 20 },
+    { header: 'Area', key: 'area', width: 22 },
+    { header: 'Req. Code', key: 'reqCode', width: 14 },
+    { header: 'Requirement', key: 'requirement', width: 36 },
+    { header: 'Business Description', key: 'description', width: 58 },
     { header: 'Priority', key: 'priority', width: 12 },
-    { header: 'Description', key: 'description', width: 48 },
-    { header: 'Functions', key: 'functionCount', width: 11 },
-    { header: 'Load error', key: 'loadError', width: 24 },
-    { header: 'Requirement ID', key: 'requirementId', width: 36 },
+    { header: 'Type', key: 'type', width: 14 },
+    { header: 'Status', key: 'status', width: 14 },
+  ]
+
+  rows.forEach((r, i) => {
+    const excelRow = i + 2
+    sheet.addRow(r)
+    const acTarget = firstAcRowByReq.get(r.reqCode)
+    const codeCell = sheet.getRow(excelRow).getCell(3)
+    if (acTarget) {
+      codeCell.value = {
+        text: r.reqCode,
+        hyperlink: `#'${SHEET.ac}'!A${acTarget}`,
+      }
+      codeCell.font = {
+        ...FONT,
+        color: { argb: 'FF1D4ED8' },
+        underline: true,
+      }
+    }
+  })
+
+  configureTableSheet(sheet, { columnCount: 8, freezeCols: 3 })
+  paintPriorityAndGroup(sheet, rows, 1, 6)
+}
+
+function addAcceptanceCriteriaSheet(
+  wb: ExcelJS.Workbook,
+  rows: SpecPackExcelAcRow[]
+): Map<string, number> {
+  const sheet = wb.addWorksheet(SHEET.ac)
+  sheet.columns = [
+    { header: 'Group', key: 'group', width: 20 },
+    { header: 'Req. Code', key: 'reqCode', width: 14 },
+    { header: 'Requirement', key: 'requirement', width: 32 },
+    { header: 'AC #', key: 'acNo', width: 8 },
+    { header: 'Acceptance Criterion', key: 'criterion', width: 64 },
+    { header: 'Function', key: 'functionCode', width: 14 },
+  ]
+
+  const firstAcRowByReq = new Map<string, number>()
+  rows.forEach((r, i) => {
+    const excelRow = i + 2
+    if (!firstAcRowByReq.has(r.reqCode)) firstAcRowByReq.set(r.reqCode, excelRow)
+    sheet.addRow(r)
+  })
+
+  configureTableSheet(sheet, { columnCount: 6, freezeCols: 2 })
+
+  const groupCache = new Map<string, number>()
+  rows.forEach((r, i) => {
+    const gFill = GROUP_FILLS[groupFillIndex(r.group, groupCache)]!
+    sheet.getRow(i + 2).getCell(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: gFill },
+    }
+  })
+
+  return firstAcRowByReq
+}
+
+function addBusinessRulesSheet(
+  wb: ExcelJS.Workbook,
+  rows: SpecPackExcelBrRow[]
+): void {
+  const sheet = wb.addWorksheet(SHEET.br)
+  sheet.columns = [
+    { header: 'Group', key: 'group', width: 20 },
+    { header: 'Req. Code', key: 'reqCode', width: 14 },
+    { header: 'BR Code', key: 'brCode', width: 14 },
+    { header: 'Business Rule', key: 'businessRule', width: 32 },
+    { header: 'Detail', key: 'detail', width: 56 },
+    { header: 'Priority', key: 'priority', width: 12 },
+    { header: 'Status', key: 'status', width: 12 },
+    { header: 'Function', key: 'functionCode', width: 14 },
   ]
   for (const r of rows) sheet.addRow(r)
-  styleHeader(sheet)
-  applyBodyFont(sheet)
+
+  configureTableSheet(sheet, { columnCount: 8, freezeCols: 2 })
+  paintPriorityAndGroup(
+    sheet,
+    rows.map((r) => ({ group: r.group, priority: r.priority })),
+    1,
+    6
+  )
 }
 
-function addFunctionsSheet(
+function addDashboardSheet(
   wb: ExcelJS.Workbook,
-  rows: ReturnType<typeof flattenSpecPackForExcel>['functionRows']
+  stats: SpecPackExcelDashboardStats
 ): void {
-  const sheet = wb.addWorksheet('Functions', {
-    views: [{ state: 'frozen', ySplit: 1 }],
+  const sheet = wb.addWorksheet(SHEET.dashboard)
+  sheet.views = [{ showGridLines: false }]
+  sheet.getColumn(1).width = 28
+  sheet.getColumn(2).width = 18
+  sheet.getColumn(3).width = 8
+  sheet.getColumn(4).width = 28
+  sheet.getColumn(5).width = 12
+
+  sheet.getCell('A1').value = stats.title
+  sheet.getCell('A1').font = TITLE_FONT
+  sheet.getCell('A2').value = `Generated ${stats.generatedAt}`
+  sheet.getCell('A2').font = { ...FONT, color: { argb: 'FF6B7280' } }
+
+  const kpis: Array<[string, number]> = [
+    ['Requirements', stats.requirementCount],
+    ['Functions', stats.functionCount],
+    ['Acceptance criteria', stats.acceptanceCriteriaCount],
+    ['Business rules', stats.businessRulesCount],
+  ]
+
+  sheet.getCell('A4').value = 'Overview'
+  sheet.getCell('A4').font = SECTION_FONT
+
+  kpis.forEach(([label, value], i) => {
+    const row = 5 + i
+    sheet.getCell(`A${row}`).value = label
+    sheet.getCell(`B${row}`).value = value
+    sheet.getCell(`A${row}`).font = FONT
+    sheet.getCell(`B${row}`).font = {
+      ...FONT,
+      bold: true,
+      size: 12,
+    }
+    sheet.getCell(`A${row}`).fill = KPI_FILL
+    sheet.getCell(`B${row}`).fill = KPI_FILL
   })
+
+  const writeBreakdown = (
+    startCol: number,
+    title: string,
+    items: Array<{ label: string; count: number }>,
+    startRow: number
+  ) => {
+    const labelCell = sheet.getCell(startRow, startCol)
+    labelCell.value = title
+    labelCell.font = SECTION_FONT
+    sheet.getCell(startRow + 1, startCol).value = 'Name'
+    sheet.getCell(startRow + 1, startCol + 1).value = 'Count'
+    sheet.getCell(startRow + 1, startCol).font = HEADER_FONT
+    sheet.getCell(startRow + 1, startCol + 1).font = HEADER_FONT
+    sheet.getCell(startRow + 1, startCol).fill = HEADER_FILL
+    sheet.getCell(startRow + 1, startCol + 1).fill = HEADER_FILL
+    items.forEach((item, i) => {
+      const row = startRow + 2 + i
+      sheet.getCell(row, startCol).value = item.label
+      sheet.getCell(row, startCol + 1).value = item.count
+      sheet.getCell(row, startCol).font = FONT
+      sheet.getCell(row, startCol + 1).font = FONT
+    })
+  }
+
+  writeBreakdown(1, 'By group', stats.byGroup, 11)
+  writeBreakdown(4, 'By priority', stats.byPriority, 11)
+
+  const typeStart =
+    11 + Math.max(stats.byGroup.length, stats.byPriority.length, 1) + 3
+  writeBreakdown(1, 'By type', stats.byType, typeStart)
+}
+
+function addTechnicalDataSheet(
+  wb: ExcelJS.Workbook,
+  doc: SpecPackPreviewDocument,
+  rows: SpecPackExcelTechnicalRow[]
+): void {
+  const sheet = wb.addWorksheet(SHEET.technical)
+  sheet.state = 'hidden'
   sheet.columns = [
-    { header: 'Group', key: 'groupName', width: 20 },
-    { header: 'Chapter #', key: 'chapterNo', width: 11 },
-    { header: 'Requirement', key: 'requirementCode', width: 16 },
-    { header: 'Fn #', key: 'fnIndex', width: 8 },
-    { header: 'Code', key: 'code', width: 16 },
-    { header: 'Name', key: 'name', width: 32 },
+    { header: 'Group', key: 'group', width: 18 },
+    { header: 'Req. Code', key: 'reqCode', width: 14 },
+    { header: 'Requirement', key: 'requirementTitle', width: 28 },
+    { header: 'Requirement ID', key: 'requirementId', width: 36 },
+    { header: 'Function code', key: 'functionCode', width: 14 },
+    { header: 'Function name', key: 'functionName', width: 28 },
+    { header: 'Function ID', key: 'functionId', width: 36 },
+    { header: 'Module', key: 'module', width: 20 },
     { header: 'Type', key: 'type', width: 12 },
     { header: 'Priority', key: 'priority', width: 12 },
     { header: 'Status', key: 'status', width: 12 },
-    { header: 'Module', key: 'module', width: 20 },
-    { header: 'Description', key: 'description', width: 40 },
-    { header: 'Acceptance criteria', key: 'acceptanceCriteria', width: 36 },
-    { header: 'Business rules', key: 'businessRules', width: 36 },
     { header: 'Created', key: 'createdAt', width: 18 },
     { header: 'Updated', key: 'updatedAt', width: 18 },
-    { header: 'Function ID', key: 'functionId', width: 36 },
+    { header: 'Load error', key: 'loadError', width: 20 },
+    { header: 'Group ID', key: 'groupId', width: 36 },
+    { header: 'Pack ID', key: 'packId', width: 36 },
+    { header: 'Project ID', key: 'projectId', width: 36 },
+    { header: 'Pack note', key: 'note', width: 24 },
   ]
-  for (const r of rows) sheet.addRow(r)
-  styleHeader(sheet)
-  applyBodyFont(sheet)
+
+  for (const r of rows) {
+    sheet.addRow({
+      ...r,
+      note: doc.note ?? '',
+    })
+  }
+
+  configureTableSheet(sheet, { columnCount: 18, freezeCols: 2 })
 }
 
-function addLinksSheet(
+function addOptionalLinksSheet(
   wb: ExcelJS.Workbook,
-  rows: ReturnType<typeof flattenSpecPackForExcel>['linkRows']
+  rows: SpecPackExcelFlat['linkRows']
 ): void {
-  const sheet = wb.addWorksheet('Linked artifacts', {
-    views: [{ state: 'frozen', ySplit: 1 }],
-  })
+  if (rows.length === 0) return
+  const sheet = wb.addWorksheet(SHEET.links)
   sheet.columns = [
-    { header: 'Requirement', key: 'requirementCode', width: 16 },
-    { header: 'Function code', key: 'functionCode', width: 16 },
+    { header: 'Requirement', key: 'requirementCode', width: 14 },
+    { header: 'Function code', key: 'functionCode', width: 14 },
     { header: 'Function name', key: 'functionName', width: 28 },
     { header: 'Artifact type', key: 'artifactType', width: 14 },
-    { header: 'Code', key: 'code', width: 16 },
+    { header: 'Code', key: 'code', width: 14 },
     { header: 'Name', key: 'name', width: 32 },
     { header: 'Secondary', key: 'secondary', width: 24 },
   ]
   for (const r of rows) sheet.addRow(r)
-  styleHeader(sheet)
-  applyBodyFont(sheet)
+  configureTableSheet(sheet, { columnCount: 7, freezeCols: 2 })
 }
 
-function addUseCasesSheet(
+function addOptionalUseCasesSheet(
   wb: ExcelJS.Workbook,
-  rows: ReturnType<typeof flattenSpecPackForExcel>['useCaseRows']
+  rows: SpecPackExcelFlat['useCaseRows']
 ): void {
-  const sheet = wb.addWorksheet('Use cases', {
-    views: [{ state: 'frozen', ySplit: 1 }],
-  })
+  if (rows.length === 0) return
+  const sheet = wb.addWorksheet(SHEET.useCases)
   sheet.columns = [
-    { header: 'Requirement', key: 'requirementCode', width: 16 },
-    { header: 'Function', key: 'functionCode', width: 16 },
+    { header: 'Requirement', key: 'requirementCode', width: 14 },
+    { header: 'Function', key: 'functionCode', width: 14 },
     { header: 'UC key', key: 'useCaseKey', width: 14 },
     { header: 'UC name', key: 'useCaseName', width: 28 },
     { header: 'Goal', key: 'goal', width: 36 },
@@ -184,8 +402,7 @@ function addUseCasesSheet(
     { header: 'Flows', key: 'flows', width: 40 },
   ]
   for (const r of rows) sheet.addRow(r)
-  styleHeader(sheet)
-  applyBodyFont(sheet)
+  configureTableSheet(sheet, { columnCount: 11, freezeCols: 2 })
 }
 
 export function suggestSpecPackExcelFilename(doc: SpecPackPreviewDocument): string {
@@ -194,10 +411,19 @@ export function suggestSpecPackExcelFilename(doc: SpecPackPreviewDocument): stri
     .trim()
     .replace(/\s+/g, '-')
     .slice(0, 60)
-  return `${safe || 'spec-pack'}.xlsx`
+  return `${safe || 'spec-pack'}-scope.xlsx`
 }
 
-/** Build Spec Pack workbook from the shared preview document. */
+/** Precompute AC row map without adding a sheet (stable row numbers). */
+function buildFirstAcRowByReq(rows: SpecPackExcelAcRow[]): Map<string, number> {
+  const map = new Map<string, number>()
+  rows.forEach((r, i) => {
+    if (!map.has(r.reqCode)) map.set(r.reqCode, i + 2)
+  })
+  return map
+}
+
+/** Build stakeholder-oriented Spec Pack workbook. */
 export async function buildSpecPackExcelWorkbook(
   doc: SpecPackPreviewDocument
 ): Promise<ExcelJS.Workbook> {
@@ -206,17 +432,14 @@ export async function buildSpecPackExcelWorkbook(
   wb.creator = 'Scopery'
   wb.created = new Date()
 
-  addSummarySheet(wb, doc, {
-    groupCount: flat.sections.length,
-    requirementCount: flat.requirementRows.length,
-    functionCount: flat.functionCount,
-    useCaseCount: flat.useCaseRows.length,
-  })
-  addGroupsSheet(wb, flat.sections)
-  addRequirementsSheet(wb, flat.requirementRows)
-  addFunctionsSheet(wb, flat.functionRows)
-  addLinksSheet(wb, flat.linkRows)
-  addUseCasesSheet(wb, flat.useCaseRows)
+  const firstAcRowByReq = buildFirstAcRowByReq(flat.acRows)
+  addScopeOverviewSheet(wb, flat.scopeRows, firstAcRowByReq)
+  addAcceptanceCriteriaSheet(wb, flat.acRows)
+  addBusinessRulesSheet(wb, flat.brRows)
+  addDashboardSheet(wb, flat.dashboard)
+  addTechnicalDataSheet(wb, doc, flat.technicalRows)
+  addOptionalLinksSheet(wb, flat.linkRows)
+  addOptionalUseCasesSheet(wb, flat.useCaseRows)
 
   return wb
 }

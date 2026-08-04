@@ -6,37 +6,82 @@ import type {
 } from '../../model/spec-pack-preview'
 import { formatSpecPackDate } from '../../model/spec-pack'
 
-export type SpecPackExcelRequirementRow = {
-  groupNo: number
-  groupName: string
-  chapterNo: number
-  requirementId: string
-  code: string
-  title: string
-  type: string
-  priority: string
+/** One requirement per row — primary business reading surface. */
+export type SpecPackExcelScopeRow = {
+  group: string
+  area: string
+  reqCode: string
+  requirement: string
   description: string
-  functionCount: number
-  loadError: string
+  priority: string
+  type: string
+  status: string
 }
 
-export type SpecPackExcelFunctionRow = {
-  groupName: string
-  chapterNo: number
-  requirementCode: string
-  fnIndex: string
+/** One acceptance criterion per row. */
+export type SpecPackExcelAcRow = {
+  group: string
+  reqCode: string
+  requirement: string
+  acNo: string
+  criterion: string
+  functionCode: string
+}
+
+/** One business rule per row. */
+export type SpecPackExcelBrRow = {
+  group: string
+  reqCode: string
+  brCode: string
+  businessRule: string
+  detail: string
+  priority: string
+  status: string
+  functionCode: string
+}
+
+/** Metadata / IDs — not for stakeholder reading. */
+export type SpecPackExcelTechnicalRow = {
+  group: string
+  reqCode: string
+  requirementTitle: string
+  requirementId: string
+  functionCode: string
+  functionName: string
   functionId: string
-  code: string
-  name: string
+  module: string
   type: string
   priority: string
   status: string
-  module: string
-  description: string
-  acceptanceCriteria: string
-  businessRules: string
   createdAt: string
   updatedAt: string
+  loadError: string
+  packId: string
+  projectId: string
+  groupId: string
+}
+
+export type SpecPackExcelDashboardStats = {
+  title: string
+  generatedAt: string
+  requirementCount: number
+  functionCount: number
+  acceptanceCriteriaCount: number
+  businessRulesCount: number
+  byGroup: Array<{ label: string; count: number }>
+  byPriority: Array<{ label: string; count: number }>
+  byType: Array<{ label: string; count: number }>
+}
+
+export type SpecPackExcelFlat = {
+  sections: SpecPackPreviewSection[]
+  scopeRows: SpecPackExcelScopeRow[]
+  acRows: SpecPackExcelAcRow[]
+  brRows: SpecPackExcelBrRow[]
+  technicalRows: SpecPackExcelTechnicalRow[]
+  dashboard: SpecPackExcelDashboardStats
+  linkRows: SpecPackExcelLinkRow[]
+  useCaseRows: SpecPackExcelUseCaseRow[]
 }
 
 export type SpecPackExcelLinkRow = {
@@ -107,6 +152,43 @@ function formatFlows(
     .join('\n\n')
 }
 
+function formatUseCaseCriterion(ac: {
+  title: string
+  givenText?: string | null
+  whenText?: string | null
+  thenText?: string | null
+}): string {
+  return joinLines([
+    ac.title,
+    ac.givenText ? `Given: ${ac.givenText}` : null,
+    ac.whenText ? `When: ${ac.whenText}` : null,
+    ac.thenText ? `Then: ${ac.thenText}` : null,
+  ])
+}
+
+function uniqueJoin(values: Array<string | null | undefined>): string {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const raw of values) {
+    const v = (raw ?? '').trim()
+    if (!v || seen.has(v)) continue
+    seen.add(v)
+    out.push(v)
+  }
+  return out.join(', ')
+}
+
+function countBy(labels: string[]): Array<{ label: string; count: number }> {
+  const map = new Map<string, number>()
+  for (const raw of labels) {
+    const label = raw.trim() || '(unset)'
+    map.set(label, (map.get(label) ?? 0) + 1)
+  }
+  return [...map.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+}
+
 function resolveSections(doc: SpecPackPreviewDocument): SpecPackPreviewSection[] {
   if (doc.sections?.length) return doc.sections
   return [
@@ -117,104 +199,178 @@ function resolveSections(doc: SpecPackPreviewDocument): SpecPackPreviewSection[]
   ]
 }
 
-export function flattenSpecPackForExcel(doc: SpecPackPreviewDocument): {
-  sections: SpecPackPreviewSection[]
-  requirementRows: SpecPackExcelRequirementRow[]
-  functionRows: SpecPackExcelFunctionRow[]
-  linkRows: SpecPackExcelLinkRow[]
-  useCaseRows: SpecPackExcelUseCaseRow[]
-  functionCount: number
-} {
+function primaryArea(blocks: SpecPackPreviewFunctionBlock[]): string {
+  return uniqueJoin(blocks.map((b) => b.module?.name))
+}
+
+function primaryStatus(blocks: SpecPackPreviewFunctionBlock[]): string {
+  return uniqueJoin(blocks.map((b) => b.function.status))
+}
+
+export function flattenSpecPackForExcel(doc: SpecPackPreviewDocument): SpecPackExcelFlat {
   const sections = resolveSections(doc)
-  const requirementRows: SpecPackExcelRequirementRow[] = []
-  const functionRows: SpecPackExcelFunctionRow[] = []
+  const scopeRows: SpecPackExcelScopeRow[] = []
+  const acRows: SpecPackExcelAcRow[] = []
+  const brRows: SpecPackExcelBrRow[] = []
+  const technicalRows: SpecPackExcelTechnicalRow[] = []
   const linkRows: SpecPackExcelLinkRow[] = []
   const useCaseRows: SpecPackExcelUseCaseRow[] = []
 
-  let chapterNo = 0
   let functionCount = 0
 
-  sections.forEach((section, sIndex) => {
-    section.chapters.forEach((chapter) => {
-      chapterNo += 1
+  for (const section of sections) {
+    for (const chapter of section.chapters) {
       pushChapter(
+        doc,
         section,
-        sIndex + 1,
-        chapterNo,
         chapter,
-        requirementRows,
-        functionRows,
+        scopeRows,
+        acRows,
+        brRows,
+        technicalRows,
         linkRows,
         useCaseRows
       )
       functionCount += chapter.functions.length
-    })
-  })
+    }
+  }
 
   return {
     sections,
-    requirementRows,
-    functionRows,
+    scopeRows,
+    acRows,
+    brRows,
+    technicalRows,
     linkRows,
     useCaseRows,
-    functionCount,
+    dashboard: {
+      title: doc.title,
+      generatedAt: formatSpecPackDate(doc.generatedAt),
+      requirementCount: scopeRows.length,
+      functionCount,
+      acceptanceCriteriaCount: acRows.length,
+      businessRulesCount: brRows.length,
+      byGroup: countBy(scopeRows.map((r) => r.group)),
+      byPriority: countBy(scopeRows.map((r) => r.priority)),
+      byType: countBy(scopeRows.map((r) => r.type)),
+    },
   }
 }
 
 function pushChapter(
+  doc: SpecPackPreviewDocument,
   section: SpecPackPreviewSection,
-  groupNo: number,
-  chapterNo: number,
   chapter: SpecPackPreviewRequirementChapter,
-  requirementRows: SpecPackExcelRequirementRow[],
-  functionRows: SpecPackExcelFunctionRow[],
+  scopeRows: SpecPackExcelScopeRow[],
+  acRows: SpecPackExcelAcRow[],
+  brRows: SpecPackExcelBrRow[],
+  technicalRows: SpecPackExcelTechnicalRow[],
   linkRows: SpecPackExcelLinkRow[],
   useCaseRows: SpecPackExcelUseCaseRow[]
 ): void {
   const req = chapter.requirement
-  requirementRows.push({
-    groupNo,
-    groupName: section.group.name,
-    chapterNo,
-    requirementId: req.id,
-    code: req.code,
-    title: req.title,
-    type: req.requirementType ?? '',
-    priority: req.priority ?? '',
+  const groupName = section.group.name
+
+  scopeRows.push({
+    group: groupName,
+    area: primaryArea(chapter.functions),
+    reqCode: req.code,
+    requirement: req.title,
     description: req.description ?? '',
-    functionCount: chapter.functions.length,
-    loadError: chapter.loadError ?? '',
+    priority: req.priority ?? '',
+    type: req.requirementType ?? '',
+    status: primaryStatus(chapter.functions),
   })
 
-  chapter.functions.forEach((block, fnIdx) => {
+  let acCounter = 0
+
+  if (chapter.functions.length === 0) {
+    technicalRows.push({
+      group: groupName,
+      reqCode: req.code,
+      requirementTitle: req.title,
+      requirementId: req.id,
+      functionCode: '',
+      functionName: '',
+      functionId: '',
+      module: '',
+      type: req.requirementType ?? '',
+      priority: req.priority ?? '',
+      status: '',
+      createdAt: '',
+      updatedAt: '',
+      loadError: chapter.loadError ?? '',
+      packId: doc.packId,
+      projectId: doc.projectId,
+      groupId: section.group.id,
+    })
+  }
+
+  chapter.functions.forEach((block) => {
     const fn = block.function
-    const fnIndex = `${chapterNo}.${fnIdx + 1}`
-    functionRows.push({
-      groupName: section.group.name,
-      chapterNo,
-      requirementCode: req.code,
-      fnIndex,
+    const fnCode = fn.code ?? ''
+
+    for (const text of fn.acceptanceCriteria ?? []) {
+      const criterion = text.trim()
+      if (!criterion) continue
+      acCounter += 1
+      acRows.push({
+        group: groupName,
+        reqCode: req.code,
+        requirement: req.title,
+        acNo: String(acCounter),
+        criterion,
+        functionCode: fnCode,
+      })
+    }
+
+    for (const uc of block.useCases) {
+      for (const ac of uc.acceptanceCriteria) {
+        const criterion = formatUseCaseCriterion(ac)
+        if (!criterion) continue
+        acCounter += 1
+        acRows.push({
+          group: groupName,
+          reqCode: req.code,
+          requirement: req.title,
+          acNo: String(acCounter),
+          criterion,
+          functionCode: fnCode,
+        })
+      }
+    }
+
+    for (const rule of fn.businessRules ?? []) {
+      brRows.push({
+        group: groupName,
+        reqCode: req.code,
+        brCode: rule.code || '',
+        businessRule: rule.title || rule.code || 'Rule',
+        detail: rule.description ?? '',
+        priority: rule.severity ?? fn.priority ?? '',
+        status: rule.status ?? '',
+        functionCode: fnCode,
+      })
+    }
+
+    technicalRows.push({
+      group: groupName,
+      reqCode: req.code,
+      requirementTitle: req.title,
+      requirementId: req.id,
+      functionCode: fnCode,
+      functionName: fn.name,
       functionId: fn.id,
-      code: fn.code ?? '',
-      name: fn.name,
-      type: fn.type ?? '',
-      priority: fn.priority ?? '',
-      status: fn.status ?? '',
       module: block.module?.name ?? '',
-      description: fn.description ?? '',
-      acceptanceCriteria: (fn.acceptanceCriteria ?? []).join('\n'),
-      businessRules: (fn.businessRules ?? [])
-        .map((r) =>
-          joinLines([
-            [r.code, r.title].filter(Boolean).join(' — '),
-            r.description,
-            r.severity ? `Severity: ${r.severity}` : null,
-            r.status ? `Status: ${r.status}` : null,
-          ])
-        )
-        .join('\n\n'),
+      type: fn.type ?? req.requirementType ?? '',
+      priority: fn.priority ?? req.priority ?? '',
+      status: fn.status ?? '',
       createdAt: fn.createdAt ? formatSpecPackDate(fn.createdAt) : '',
       updatedAt: fn.updatedAt ? formatSpecPackDate(fn.updatedAt) : '',
+      loadError: chapter.loadError ?? '',
+      packId: doc.packId,
+      projectId: doc.projectId,
+      groupId: section.group.id,
     })
 
     const pushLinks = (
@@ -224,7 +380,7 @@ function pushChapter(
       for (const item of items) {
         linkRows.push({
           requirementCode: req.code,
-          functionCode: fn.code ?? '',
+          functionCode: fnCode,
           functionName: fn.name,
           artifactType: type,
           code: item.code ?? '',
@@ -244,15 +400,13 @@ function pushChapter(
     for (const uc of block.useCases) {
       useCaseRows.push({
         requirementCode: req.code,
-        functionCode: fn.code ?? '',
+        functionCode: fnCode,
         useCaseKey: uc.key,
         useCaseName: uc.name,
         goal: uc.goal ?? '',
         primaryActor: uc.primaryActorName ?? '',
         trigger: uc.triggerText ?? '',
-        conditions: uc.conditions
-          .map((c) => `[${c.type}] ${c.content}`)
-          .join('\n'),
+        conditions: uc.conditions.map((c) => `[${c.type}] ${c.content}`).join('\n'),
         businessRules: uc.businessRules
           .map((r) => `${r.code}: ${r.description}`)
           .join('\n'),

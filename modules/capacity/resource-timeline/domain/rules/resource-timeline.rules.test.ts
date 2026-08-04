@@ -87,6 +87,18 @@ describe('filterAndPruneGanttTree', () => {
     const pruned = filterAndPruneGanttTree(tree, 'nobody', false)
     expect(pruned).toHaveLength(0)
   })
+
+  it('keeps all assigned leaves when assignee is null', () => {
+    const pruned = filterAndPruneGanttTree(tree, null, false)
+    const leaves = pruned[0]!.children[0]!.children[0]!.children
+    expect(leaves.map((l) => l.id).sort()).toEqual(['t1', 't2'])
+  })
+
+  it('keeps every leaf when assignee is null and unassigned included', () => {
+    const pruned = filterAndPruneGanttTree(tree, null, true)
+    const leaves = pruned[0]!.children[0]!.children[0]!.children
+    expect(leaves.map((l) => l.id).sort()).toEqual(['t1', 't2', 't3'])
+  })
 })
 
 describe('mapWithConcurrency', () => {

@@ -9,22 +9,27 @@ function isLeaf(item: GanttTreeItem): boolean {
 
 function leafMatchesFilter(
   item: GanttTreeItem,
-  assigneeUserId: string,
+  assigneeUserId: string | null,
   includeUnassigned: boolean
 ): boolean {
   if (!isLeaf(item)) return false
+  // null = all people: keep every assigned leaf; unassigned only when toggled on.
+  if (assigneeUserId == null) {
+    if (!item.assigneeUserId) return includeUnassigned
+    return true
+  }
   if (item.assigneeUserId === assigneeUserId) return true
   if (includeUnassigned && !item.assigneeUserId) return true
   return false
 }
 
 /**
- * Keep tasks assigned to `assigneeUserId` (and optionally unassigned leaves).
- * Prune empty Phase/WBS branches; keep PROJECT when any matching leaf remains.
+ * Keep tasks for one assignee, or all assignees when `assigneeUserId` is null
+ * (optionally including unassigned leaves). Prune empty Phase/WBS branches.
  */
 export function filterAndPruneGanttTree(
   tree: GanttTreeItem[],
-  assigneeUserId: string,
+  assigneeUserId: string | null,
   includeUnassigned: boolean
 ): GanttTreeItem[] {
   const visit = (nodes: GanttTreeItem[]): GanttTreeItem[] => {

@@ -456,7 +456,7 @@ export function ResourceTimelineView() {
             Team schedule
           </Typography>
           <Typography as="p" variant="small" tone="muted" className="mt-1">
-            Cross-project timeline for one person. Unassigned work can be shown alongside.
+            Cross-project timeline for the whole team. Optionally filter to one person.
           </Typography>
         </div>
         <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
@@ -464,7 +464,7 @@ export function ResourceTimelineView() {
             <UserSearchSelect
               value={selectedUserId}
               onChange={(userId) => setSelectedUserId(userId)}
-              placeholder="Select a person"
+              placeholder="All people · filter…"
               seedPeople={people}
               allowRemoteSearch={false}
             />
@@ -485,7 +485,7 @@ export function ResourceTimelineView() {
             size="md"
             className={cn(CONTROL_H, 'shrink-0')}
             onClick={handleToday}
-            disabled={!selectedUserId || !tl.hasData}
+            disabled={!tl.hasData}
           >
             Today
           </Button>
@@ -553,13 +553,7 @@ export function ResourceTimelineView() {
         </Typography>
       ) : null}
 
-      {!selectedUserId ? (
-        <div className="flex flex-1 items-center justify-center border border-dashed border-neutral-200 bg-neutral-50 px-6 py-16">
-          <Typography tone="muted">
-            Select a person to view their schedule across projects.
-          </Typography>
-        </div>
-      ) : tl.loading ? (
+      {tl.loading ? (
         <PageSkeleton variant="cards" />
       ) : tl.error ? (
         <div className="border border-error/30 bg-error/5 p-4">
@@ -570,8 +564,13 @@ export function ResourceTimelineView() {
       ) : !tl.hasData ? (
         <div className="flex flex-1 items-center justify-center border border-dashed border-neutral-200 bg-neutral-50 px-6 py-16">
           <Typography tone="muted">
-            No matching tasks for this person
-            {includeUnassigned ? ' (including unassigned)' : ''}.
+            {selectedUserId
+              ? `No matching tasks for this person${
+                  includeUnassigned ? ' (including unassigned)' : ''
+                }.`
+              : `No scheduled tasks across projects${
+                  includeUnassigned ? '' : ' (unassigned hidden)'
+                }.`}
           </Typography>
         </div>
       ) : (

@@ -87,7 +87,7 @@ export function useResourceTimeline(
   )
 
   const load = useCallback(async () => {
-    if (!workspaceId || !selectedUserId || targetProjects.length === 0) {
+    if (!workspaceId || targetProjects.length === 0) {
       setForest([])
       setFlatItems([])
       setTaskById(new Map())
