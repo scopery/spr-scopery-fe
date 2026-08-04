@@ -379,7 +379,9 @@ export function ResourceTimelineView() {
     [assignTarget, assignTasks]
   )
 
-  const showDayLoad = tl.granularity === TimelineGranularity.Day
+  // Day load / capacity only makes sense for one person — hide in "all people" view.
+  const showDayLoad =
+    Boolean(selectedUserId) && tl.granularity === TimelineGranularity.Day
   const headerH = showDayLoad ? HEADER_H_DAY_LOAD : HEADER_H
 
   /** Precompute leaf buckets once — avoid rebuildBuckets on every hover/scroll re-render. */

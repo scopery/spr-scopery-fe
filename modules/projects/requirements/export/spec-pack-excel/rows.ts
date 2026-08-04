@@ -1,181 +1,162 @@
 import type {
   SpecPackPreviewDocument,
   SpecPackPreviewFunctionBlock,
+  SpecPackPreviewFunctionDetail,
   SpecPackPreviewRequirementChapter,
   SpecPackPreviewSection,
+  SpecPackPreviewUseCase,
 } from '../../model/spec-pack-preview'
 import { formatSpecPackDate } from '../../model/spec-pack'
 
-/** One requirement per row — primary business reading surface. */
-export type SpecPackExcelScopeRow = {
+export type SpecPackExcelRequirementRow = {
   group: string
-  area: string
-  reqCode: string
-  requirement: string
+  code: string
+  title: string
+  requirementType: string
+  priority: string
+  description: string
+}
+
+export type SpecPackExcelFunctionRow = {
+  functionCode: string
+  title: string
   description: string
   priority: string
   type: string
-  status: string
 }
 
-/** One acceptance criterion per row. */
-export type SpecPackExcelAcRow = {
-  group: string
-  reqCode: string
-  requirement: string
-  acNo: string
+export type SpecPackExcelReqFnLinkRow = {
+  requirementCode: string
+  requirementTitle: string
+  functionCode: string
+  functionTitle: string
+}
+
+export type SpecPackExcelFnAcRow = {
+  functionCode: string
+  acNo: number
   criterion: string
-  functionCode: string
 }
 
-/** One business rule per row. */
-export type SpecPackExcelBrRow = {
-  group: string
-  reqCode: string
-  brCode: string
-  businessRule: string
-  detail: string
-  priority: string
-  status: string
+export type SpecPackExcelFnBrRow = {
   functionCode: string
+  ruleCode: string
+  ruleTitle: string
+  severity: string
+  description: string
 }
 
-/** Metadata / IDs — not for stakeholder reading. */
+export type SpecPackExcelUseCaseRow = {
+  useCaseKey: string
+  name: string
+  goal: string
+  primaryActor: string
+  trigger: string
+}
+
+export type SpecPackExcelFnUcLinkRow = {
+  functionCode: string
+  functionTitle: string
+  useCaseKey: string
+  useCaseName: string
+}
+
+export type SpecPackExcelUcConditionRow = {
+  useCaseKey: string
+  sequence: number
+  conditionType: string
+  content: string
+}
+
+export type SpecPackExcelUcFlowRow = {
+  useCaseKey: string
+  flowNo: number
+  flowType: string
+  flowName: string
+  conditionText: string
+}
+
+export type SpecPackExcelUcFlowStepRow = {
+  useCaseKey: string
+  flowNo: number
+  stepNo: number
+  stepType: string
+  content: string
+}
+
+export type SpecPackExcelUcBrRow = {
+  useCaseKey: string
+  ruleCode: string
+  description: string
+}
+
+export type SpecPackExcelUcAcRow = {
+  useCaseKey: string
+  acNo: number
+  title: string
+  given: string
+  when: string
+  then: string
+}
+
 export type SpecPackExcelTechnicalRow = {
   group: string
-  reqCode: string
-  requirementTitle: string
+  groupId: string
+  requirementCode: string
   requirementId: string
   functionCode: string
-  functionName: string
   functionId: string
+  functionStatus: string
   module: string
-  type: string
-  priority: string
-  status: string
+  moduleId: string
+  useCaseKey: string
+  useCaseId: string
   createdAt: string
   updatedAt: string
   loadError: string
   packId: string
   projectId: string
-  groupId: string
+  packNote: string
 }
 
-export type SpecPackExcelDashboardStats = {
+export type SpecPackExcelSummaryStats = {
   title: string
   generatedAt: string
   requirementCount: number
-  functionCount: number
-  acceptanceCriteriaCount: number
-  businessRulesCount: number
+  uniqueFunctionCount: number
+  useCaseCount: number
+  reqFnLinkCount: number
+  fnUcLinkCount: number
   byGroup: Array<{ label: string; count: number }>
   byPriority: Array<{ label: string; count: number }>
   byType: Array<{ label: string; count: number }>
 }
 
 export type SpecPackExcelFlat = {
-  sections: SpecPackPreviewSection[]
-  scopeRows: SpecPackExcelScopeRow[]
-  acRows: SpecPackExcelAcRow[]
-  brRows: SpecPackExcelBrRow[]
-  technicalRows: SpecPackExcelTechnicalRow[]
-  dashboard: SpecPackExcelDashboardStats
-  linkRows: SpecPackExcelLinkRow[]
-  useCaseRows: SpecPackExcelUseCaseRow[]
+  summary: SpecPackExcelSummaryStats
+  requirements: SpecPackExcelRequirementRow[]
+  functions: SpecPackExcelFunctionRow[]
+  reqFnLinks: SpecPackExcelReqFnLinkRow[]
+  fnAcceptanceCriteria: SpecPackExcelFnAcRow[]
+  fnBusinessRules: SpecPackExcelFnBrRow[]
+  useCases: SpecPackExcelUseCaseRow[]
+  fnUcLinks: SpecPackExcelFnUcLinkRow[]
+  ucConditions: SpecPackExcelUcConditionRow[]
+  ucFlows: SpecPackExcelUcFlowRow[]
+  ucFlowSteps: SpecPackExcelUcFlowStepRow[]
+  ucBusinessRules: SpecPackExcelUcBrRow[]
+  ucAcceptanceCriteria: SpecPackExcelUcAcRow[]
+  technical: SpecPackExcelTechnicalRow[]
 }
 
-export type SpecPackExcelLinkRow = {
-  requirementCode: string
-  functionCode: string
-  functionName: string
-  artifactType: string
-  code: string
-  name: string
-  secondary: string
-}
-
-export type SpecPackExcelUseCaseRow = {
-  requirementCode: string
-  functionCode: string
-  useCaseKey: string
-  useCaseName: string
-  goal: string
-  primaryActor: string
-  trigger: string
-  conditions: string
-  businessRules: string
-  acceptanceCriteria: string
-  flows: string
-}
-
-function joinLines(parts: Array<string | null | undefined>): string {
-  return parts
-    .map((p) => (p ?? '').trim())
-    .filter(Boolean)
-    .join('\n')
-}
-
-function formatAcList(
-  items: Array<{
-    title: string
-    givenText?: string | null
-    whenText?: string | null
-    thenText?: string | null
-  }>
-): string {
-  return items
-    .map((ac, i) => {
-      const bits = [
-        `${i + 1}. ${ac.title}`,
-        ac.givenText ? `Given: ${ac.givenText}` : null,
-        ac.whenText ? `When: ${ac.whenText}` : null,
-        ac.thenText ? `Then: ${ac.thenText}` : null,
-      ]
-      return joinLines(bits)
-    })
-    .filter(Boolean)
-    .join('\n\n')
-}
-
-function formatFlows(
-  flows: SpecPackPreviewFunctionBlock['useCases'][number]['flows']
-): string {
-  return flows
-    .map((f) => {
-      const head = [f.flowType, f.name].filter(Boolean).join(' · ')
-      const steps = f.steps
-        .map((s, i) => `${i + 1}. [${s.stepType}] ${s.text}`)
-        .join('\n')
-      return joinLines([head, f.conditionText, steps])
-    })
-    .filter(Boolean)
-    .join('\n\n')
-}
-
-function formatUseCaseCriterion(ac: {
-  title: string
-  givenText?: string | null
-  whenText?: string | null
-  thenText?: string | null
-}): string {
-  return joinLines([
-    ac.title,
-    ac.givenText ? `Given: ${ac.givenText}` : null,
-    ac.whenText ? `When: ${ac.whenText}` : null,
-    ac.thenText ? `Then: ${ac.thenText}` : null,
-  ])
-}
-
-function uniqueJoin(values: Array<string | null | undefined>): string {
-  const seen = new Set<string>()
-  const out: string[] = []
-  for (const raw of values) {
-    const v = (raw ?? '').trim()
-    if (!v || seen.has(v)) continue
-    seen.add(v)
-    out.push(v)
-  }
-  return out.join(', ')
+function resolveSections(doc: SpecPackPreviewDocument): SpecPackPreviewSection[] {
+  if (doc.sections?.length) return doc.sections
+  return [
+    {
+      group: { id: 'legacy', name: 'Requirements', description: null },
+      chapters: doc.chapters,
+    },
+  ]
 }
 
 function countBy(labels: string[]): Array<{ label: string; count: number }> {
@@ -189,230 +170,327 @@ function countBy(labels: string[]): Array<{ label: string; count: number }> {
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
 }
 
-function resolveSections(doc: SpecPackPreviewDocument): SpecPackPreviewSection[] {
-  if (doc.sections?.length) return doc.sections
-  return [
-    {
-      group: { id: 'legacy', name: 'Requirements', description: null },
-      chapters: doc.chapters,
-    },
-  ]
+/** Prefer business code; fall back to id so uncoded functions still dedupe. */
+function functionKey(fn: SpecPackPreviewFunctionDetail): string {
+  const code = (fn.code ?? '').trim()
+  return code || fn.id
 }
 
-function primaryArea(blocks: SpecPackPreviewFunctionBlock[]): string {
-  return uniqueJoin(blocks.map((b) => b.module?.name))
+function functionDisplayCode(fn: SpecPackPreviewFunctionDetail): string {
+  return (fn.code ?? '').trim() || fn.id
 }
 
-function primaryStatus(blocks: SpecPackPreviewFunctionBlock[]): string {
-  return uniqueJoin(blocks.map((b) => b.function.status))
+function useCaseKeyOf(uc: SpecPackPreviewUseCase): string {
+  return (uc.key ?? '').trim() || uc.id
 }
 
 export function flattenSpecPackForExcel(doc: SpecPackPreviewDocument): SpecPackExcelFlat {
   const sections = resolveSections(doc)
-  const scopeRows: SpecPackExcelScopeRow[] = []
-  const acRows: SpecPackExcelAcRow[] = []
-  const brRows: SpecPackExcelBrRow[] = []
-  const technicalRows: SpecPackExcelTechnicalRow[] = []
-  const linkRows: SpecPackExcelLinkRow[] = []
-  const useCaseRows: SpecPackExcelUseCaseRow[] = []
 
-  let functionCount = 0
+  const requirements: SpecPackExcelRequirementRow[] = []
+  const functions: SpecPackExcelFunctionRow[] = []
+  const reqFnLinks: SpecPackExcelReqFnLinkRow[] = []
+  const fnAcceptanceCriteria: SpecPackExcelFnAcRow[] = []
+  const fnBusinessRules: SpecPackExcelFnBrRow[] = []
+  const useCases: SpecPackExcelUseCaseRow[] = []
+  const fnUcLinks: SpecPackExcelFnUcLinkRow[] = []
+  const ucConditions: SpecPackExcelUcConditionRow[] = []
+  const ucFlows: SpecPackExcelUcFlowRow[] = []
+  const ucFlowSteps: SpecPackExcelUcFlowStepRow[] = []
+  const ucBusinessRules: SpecPackExcelUcBrRow[] = []
+  const ucAcceptanceCriteria: SpecPackExcelUcAcRow[] = []
+  const technical: SpecPackExcelTechnicalRow[] = []
+
+  const seenFunctions = new Set<string>()
+  const seenReqFnLinks = new Set<string>()
+  const seenUseCases = new Set<string>()
+  const seenFnUcLinks = new Set<string>()
 
   for (const section of sections) {
     for (const chapter of section.chapters) {
-      pushChapter(
+      pushRequirementChapter(
         doc,
         section,
         chapter,
-        scopeRows,
-        acRows,
-        brRows,
-        technicalRows,
-        linkRows,
-        useCaseRows
+        {
+          requirements,
+          functions,
+          reqFnLinks,
+          fnAcceptanceCriteria,
+          fnBusinessRules,
+          useCases,
+          fnUcLinks,
+          ucConditions,
+          ucFlows,
+          ucFlowSteps,
+          ucBusinessRules,
+          ucAcceptanceCriteria,
+          technical,
+        },
+        { seenFunctions, seenReqFnLinks, seenUseCases, seenFnUcLinks }
       )
-      functionCount += chapter.functions.length
     }
   }
 
   return {
-    sections,
-    scopeRows,
-    acRows,
-    brRows,
-    technicalRows,
-    linkRows,
-    useCaseRows,
-    dashboard: {
+    summary: {
       title: doc.title,
       generatedAt: formatSpecPackDate(doc.generatedAt),
-      requirementCount: scopeRows.length,
-      functionCount,
-      acceptanceCriteriaCount: acRows.length,
-      businessRulesCount: brRows.length,
-      byGroup: countBy(scopeRows.map((r) => r.group)),
-      byPriority: countBy(scopeRows.map((r) => r.priority)),
-      byType: countBy(scopeRows.map((r) => r.type)),
+      requirementCount: requirements.length,
+      uniqueFunctionCount: functions.length,
+      useCaseCount: useCases.length,
+      reqFnLinkCount: reqFnLinks.length,
+      fnUcLinkCount: fnUcLinks.length,
+      byGroup: countBy(requirements.map((r) => r.group)),
+      byPriority: countBy(requirements.map((r) => r.priority)),
+      byType: countBy(requirements.map((r) => r.requirementType)),
     },
+    requirements,
+    functions,
+    reqFnLinks,
+    fnAcceptanceCriteria,
+    fnBusinessRules,
+    useCases,
+    fnUcLinks,
+    ucConditions,
+    ucFlows,
+    ucFlowSteps,
+    ucBusinessRules,
+    ucAcceptanceCriteria,
+    technical,
   }
 }
 
-function pushChapter(
+type Accumulators = {
+  requirements: SpecPackExcelRequirementRow[]
+  functions: SpecPackExcelFunctionRow[]
+  reqFnLinks: SpecPackExcelReqFnLinkRow[]
+  fnAcceptanceCriteria: SpecPackExcelFnAcRow[]
+  fnBusinessRules: SpecPackExcelFnBrRow[]
+  useCases: SpecPackExcelUseCaseRow[]
+  fnUcLinks: SpecPackExcelFnUcLinkRow[]
+  ucConditions: SpecPackExcelUcConditionRow[]
+  ucFlows: SpecPackExcelUcFlowRow[]
+  ucFlowSteps: SpecPackExcelUcFlowStepRow[]
+  ucBusinessRules: SpecPackExcelUcBrRow[]
+  ucAcceptanceCriteria: SpecPackExcelUcAcRow[]
+  technical: SpecPackExcelTechnicalRow[]
+}
+
+type Seen = {
+  seenFunctions: Set<string>
+  seenReqFnLinks: Set<string>
+  seenUseCases: Set<string>
+  seenFnUcLinks: Set<string>
+}
+
+function pushRequirementChapter(
   doc: SpecPackPreviewDocument,
   section: SpecPackPreviewSection,
   chapter: SpecPackPreviewRequirementChapter,
-  scopeRows: SpecPackExcelScopeRow[],
-  acRows: SpecPackExcelAcRow[],
-  brRows: SpecPackExcelBrRow[],
-  technicalRows: SpecPackExcelTechnicalRow[],
-  linkRows: SpecPackExcelLinkRow[],
-  useCaseRows: SpecPackExcelUseCaseRow[]
+  acc: Accumulators,
+  seen: Seen
 ): void {
   const req = chapter.requirement
   const groupName = section.group.name
 
-  scopeRows.push({
+  acc.requirements.push({
     group: groupName,
-    area: primaryArea(chapter.functions),
-    reqCode: req.code,
-    requirement: req.title,
-    description: req.description ?? '',
+    code: req.code,
+    title: req.title,
+    requirementType: req.requirementType ?? '',
     priority: req.priority ?? '',
-    type: req.requirementType ?? '',
-    status: primaryStatus(chapter.functions),
+    description: req.description ?? '',
   })
 
-  let acCounter = 0
-
   if (chapter.functions.length === 0) {
-    technicalRows.push({
+    acc.technical.push({
       group: groupName,
-      reqCode: req.code,
-      requirementTitle: req.title,
+      groupId: section.group.id,
+      requirementCode: req.code,
       requirementId: req.id,
       functionCode: '',
-      functionName: '',
       functionId: '',
+      functionStatus: '',
       module: '',
-      type: req.requirementType ?? '',
-      priority: req.priority ?? '',
-      status: '',
+      moduleId: '',
+      useCaseKey: '',
+      useCaseId: '',
       createdAt: '',
       updatedAt: '',
       loadError: chapter.loadError ?? '',
       packId: doc.packId,
       projectId: doc.projectId,
-      groupId: section.group.id,
+      packNote: doc.note ?? '',
     })
+    return
   }
 
-  chapter.functions.forEach((block) => {
-    const fn = block.function
-    const fnCode = fn.code ?? ''
+  for (const block of chapter.functions) {
+    pushFunctionUnderRequirement(doc, section, chapter, block, acc, seen)
+  }
+}
 
+function pushFunctionUnderRequirement(
+  doc: SpecPackPreviewDocument,
+  section: SpecPackPreviewSection,
+  chapter: SpecPackPreviewRequirementChapter,
+  block: SpecPackPreviewFunctionBlock,
+  acc: Accumulators,
+  seen: Seen
+): void {
+  const req = chapter.requirement
+  const fn = block.function
+  const fnKey = functionKey(fn)
+  const fnCode = functionDisplayCode(fn)
+  const isNewFunction = !seen.seenFunctions.has(fnKey)
+
+  if (isNewFunction) {
+    seen.seenFunctions.add(fnKey)
+    acc.functions.push({
+      functionCode: fnCode,
+      title: fn.name,
+      description: fn.description ?? '',
+      priority: fn.priority ?? '',
+      type: fn.type ?? '',
+    })
+
+    let acNo = 0
     for (const text of fn.acceptanceCriteria ?? []) {
       const criterion = text.trim()
       if (!criterion) continue
-      acCounter += 1
-      acRows.push({
-        group: groupName,
-        reqCode: req.code,
-        requirement: req.title,
-        acNo: String(acCounter),
-        criterion,
+      acNo += 1
+      acc.fnAcceptanceCriteria.push({
         functionCode: fnCode,
+        acNo,
+        criterion,
       })
-    }
-
-    for (const uc of block.useCases) {
-      for (const ac of uc.acceptanceCriteria) {
-        const criterion = formatUseCaseCriterion(ac)
-        if (!criterion) continue
-        acCounter += 1
-        acRows.push({
-          group: groupName,
-          reqCode: req.code,
-          requirement: req.title,
-          acNo: String(acCounter),
-          criterion,
-          functionCode: fnCode,
-        })
-      }
     }
 
     for (const rule of fn.businessRules ?? []) {
-      brRows.push({
-        group: groupName,
-        reqCode: req.code,
-        brCode: rule.code || '',
-        businessRule: rule.title || rule.code || 'Rule',
-        detail: rule.description ?? '',
-        priority: rule.severity ?? fn.priority ?? '',
-        status: rule.status ?? '',
+      acc.fnBusinessRules.push({
         functionCode: fnCode,
+        ruleCode: rule.code || '',
+        ruleTitle: rule.title || '',
+        severity: rule.severity ?? '',
+        description: rule.description ?? '',
       })
     }
+  }
 
-    technicalRows.push({
-      group: groupName,
-      reqCode: req.code,
+  const linkKey = `${req.code}::${fnKey}`
+  if (!seen.seenReqFnLinks.has(linkKey)) {
+    seen.seenReqFnLinks.add(linkKey)
+    acc.reqFnLinks.push({
+      requirementCode: req.code,
       requirementTitle: req.title,
-      requirementId: req.id,
       functionCode: fnCode,
-      functionName: fn.name,
-      functionId: fn.id,
-      module: block.module?.name ?? '',
-      type: fn.type ?? req.requirementType ?? '',
-      priority: fn.priority ?? req.priority ?? '',
-      status: fn.status ?? '',
-      createdAt: fn.createdAt ? formatSpecPackDate(fn.createdAt) : '',
-      updatedAt: fn.updatedAt ? formatSpecPackDate(fn.updatedAt) : '',
-      loadError: chapter.loadError ?? '',
-      packId: doc.packId,
-      projectId: doc.projectId,
-      groupId: section.group.id,
+      functionTitle: fn.name,
+    })
+  }
+
+  for (const uc of block.useCases) {
+    pushUseCase(fnCode, fn.name, uc, acc, seen)
+  }
+
+  acc.technical.push({
+    group: section.group.name,
+    groupId: section.group.id,
+    requirementCode: req.code,
+    requirementId: req.id,
+    functionCode: fnCode,
+    functionId: fn.id,
+    functionStatus: fn.status ?? '',
+    module: block.module?.name ?? '',
+    moduleId: fn.moduleId ?? block.module?.id ?? '',
+    useCaseKey: '',
+    useCaseId: '',
+    createdAt: fn.createdAt ? formatSpecPackDate(fn.createdAt) : '',
+    updatedAt: fn.updatedAt ? formatSpecPackDate(fn.updatedAt) : '',
+    loadError: chapter.loadError ?? '',
+    packId: doc.packId,
+    projectId: doc.projectId,
+    packNote: doc.note ?? '',
+  })
+}
+
+function pushUseCase(
+  functionCode: string,
+  functionTitle: string,
+  uc: SpecPackPreviewUseCase,
+  acc: Accumulators,
+  seen: Seen
+): void {
+  const ucKey = useCaseKeyOf(uc)
+  const isNewUc = !seen.seenUseCases.has(ucKey)
+
+  if (isNewUc) {
+    seen.seenUseCases.add(ucKey)
+    acc.useCases.push({
+      useCaseKey: ucKey,
+      name: uc.name,
+      goal: uc.goal ?? '',
+      primaryActor: uc.primaryActorName ?? '',
+      trigger: uc.triggerText ?? '',
     })
 
-    const pushLinks = (
-      type: string,
-      items: SpecPackPreviewFunctionBlock['screens']
-    ) => {
-      for (const item of items) {
-        linkRows.push({
-          requirementCode: req.code,
-          functionCode: fnCode,
-          functionName: fn.name,
-          artifactType: type,
-          code: item.code ?? '',
-          name: item.name,
-          secondary: item.secondary ?? '',
+    uc.conditions.forEach((c, i) => {
+      acc.ucConditions.push({
+        useCaseKey: ucKey,
+        sequence: i + 1,
+        conditionType: c.type,
+        content: c.content,
+      })
+    })
+
+    uc.flows.forEach((flow, flowIdx) => {
+      const flowNo = flowIdx + 1
+      acc.ucFlows.push({
+        useCaseKey: ucKey,
+        flowNo,
+        flowType: flow.flowType,
+        flowName: flow.name ?? '',
+        conditionText: flow.conditionText ?? '',
+      })
+      flow.steps.forEach((step, stepIdx) => {
+        acc.ucFlowSteps.push({
+          useCaseKey: ucKey,
+          flowNo,
+          stepNo: stepIdx + 1,
+          stepType: step.stepType,
+          content: step.text,
         })
-      }
-    }
+      })
+    })
 
-    pushLinks('module', block.module ? [block.module] : [])
-    pushLinks('screen', block.screens)
-    pushLinks('api', block.apis)
-    pushLinks('component', block.components)
-    pushLinks('entity', block.entities)
-    pushLinks('communication', block.communications)
-
-    for (const uc of block.useCases) {
-      useCaseRows.push({
-        requirementCode: req.code,
-        functionCode: fnCode,
-        useCaseKey: uc.key,
-        useCaseName: uc.name,
-        goal: uc.goal ?? '',
-        primaryActor: uc.primaryActorName ?? '',
-        trigger: uc.triggerText ?? '',
-        conditions: uc.conditions.map((c) => `[${c.type}] ${c.content}`).join('\n'),
-        businessRules: uc.businessRules
-          .map((r) => `${r.code}: ${r.description}`)
-          .join('\n'),
-        acceptanceCriteria: formatAcList(uc.acceptanceCriteria),
-        flows: formatFlows(uc.flows),
+    for (const rule of uc.businessRules) {
+      acc.ucBusinessRules.push({
+        useCaseKey: ucKey,
+        ruleCode: rule.code,
+        description: rule.description,
       })
     }
-  })
+
+    uc.acceptanceCriteria.forEach((ac, i) => {
+      acc.ucAcceptanceCriteria.push({
+        useCaseKey: ucKey,
+        acNo: i + 1,
+        title: ac.title,
+        given: ac.givenText ?? '',
+        when: ac.whenText ?? '',
+        then: ac.thenText ?? '',
+      })
+    })
+  }
+
+  const fnUcKey = `${functionCode}::${ucKey}`
+  if (!seen.seenFnUcLinks.has(fnUcKey)) {
+    seen.seenFnUcLinks.add(fnUcKey)
+    acc.fnUcLinks.push({
+      functionCode,
+      functionTitle,
+      useCaseKey: ucKey,
+      useCaseName: uc.name,
+    })
+  }
 }

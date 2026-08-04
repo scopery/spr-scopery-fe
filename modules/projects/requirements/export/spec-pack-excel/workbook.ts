@@ -2,12 +2,8 @@ import ExcelJS from 'exceljs'
 import type { SpecPackPreviewDocument } from '../../model/spec-pack-preview'
 import {
   flattenSpecPackForExcel,
-  type SpecPackExcelAcRow,
-  type SpecPackExcelBrRow,
-  type SpecPackExcelDashboardStats,
   type SpecPackExcelFlat,
-  type SpecPackExcelScopeRow,
-  type SpecPackExcelTechnicalRow,
+  type SpecPackExcelSummaryStats,
 } from './rows'
 
 const FONT: Partial<ExcelJS.Font> = { name: 'Century Gothic', size: 10 }
@@ -39,6 +35,11 @@ const KPI_FILL: ExcelJS.Fill = {
   pattern: 'solid',
   fgColor: { argb: 'FFF8FAFC' },
 }
+const LOOKUP_FILL: ExcelJS.Fill = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FFF3F4F6' },
+}
 
 const GROUP_FILLS = [
   'FFEFF6FF',
@@ -56,14 +57,23 @@ const PRIORITY_FILL: Record<string, string> = {
 }
 
 const SHEET = {
-  scope: 'Scope Overview',
-  ac: 'Acceptance Criteria',
-  br: 'Business Rules',
-  dashboard: 'Dashboard',
-  technical: 'Technical Data',
-  links: 'Linked artifacts',
-  useCases: 'Use cases',
+  summary: 'Summary',
+  requirements: 'Requirements',
+  reqFnLinks: 'Requirement - Function Links',
+  functions: 'Functions',
+  fnAc: 'Function Acceptance Criteria',
+  fnBr: 'Function Business Rules',
+  useCases: 'Use Cases',
+  fnUcLinks: 'Function - Use Case Links',
+  ucConditions: 'Use Case Conditions',
+  ucFlows: 'Use Case Flows',
+  ucFlowSteps: 'Use Case Flow Steps',
+  ucBr: 'Use Case Business Rules',
+  ucAc: 'Use Case Acceptance Criteria',
+  technical: 'Technical Metadata',
 } as const
+
+type ColDef = { header: string; key: string; width: number; lookup?: boolean }
 
 function styleHeaderRow(sheet: ExcelJS.Worksheet, columnCount: number): void {
   const row = sheet.getRow(1)
@@ -87,6 +97,41 @@ function applyBodyDefaults(sheet: ExcelJS.Worksheet): void {
   })
 }
 
+function configureTableSheet(
+  sheet: ExcelJS.Worksheet,
+  opts: { columnCount: number; freezeCols?: number }
+): void {
+  styleHeaderRow(sheet, opts.columnCount)
+  applyBodyDefaults(sheet)
+  sheet.views = [
+    {
+      state: 'frozen',
+      xSplit: opts.freezeCols ?? 1,
+      ySplit: 1,
+      showGridLines: false,
+      activeCell: 'A2',
+    },
+  ]
+  sheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: 1, column: opts.columnCount },
+  }
+}
+
+function paintLookupColumns(
+  sheet: ExcelJS.Worksheet,
+  cols: ColDef[],
+  rowCount: number
+): void {
+  cols.forEach((col, i) => {
+    if (!col.lookup) return
+    const c = i + 1
+    for (let r = 2; r <= rowCount + 1; r++) {
+      sheet.getRow(r).getCell(c).fill = LOOKUP_FILL
+    }
+  })
+}
+
 function priorityFillArgb(priority: string): string | null {
   const key = priority.trim().toLowerCase()
   if (!key) return null
@@ -101,164 +146,65 @@ function groupFillIndex(group: string, cache: Map<string, number>): number {
   return cache.get(group)!
 }
 
-function paintPriorityAndGroup(
-  sheet: ExcelJS.Worksheet,
-  rows: Array<{ group: string; priority: string }>,
-  groupCol: number,
-  priorityCol: number
-): void {
-  const groupCache = new Map<string, number>()
-  rows.forEach((r, i) => {
-    const excelRow = i + 2
-    const gFill = GROUP_FILLS[groupFillIndex(r.group, groupCache)]!
-    sheet.getRow(excelRow).getCell(groupCol).fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: gFill },
-    }
-    const pFill = priorityFillArgb(r.priority)
-    if (pFill) {
-      sheet.getRow(excelRow).getCell(priorityCol).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: pFill },
-      }
-    }
-  })
-}
-
-function configureTableSheet(
-  sheet: ExcelJS.Worksheet,
-  opts: {
-    columnCount: number
+function addDataSheet(
+  wb: ExcelJS.Workbook,
+  name: string,
+  cols: ColDef[],
+  rows: Record<string, unknown>[],
+  opts?: {
     freezeCols?: number
+    paintGroupPriority?: boolean
+    hidden?: boolean
   }
-): void {
-  styleHeaderRow(sheet, opts.columnCount)
-  applyBodyDefaults(sheet)
-  sheet.views = [
-    {
-      state: 'frozen',
-      xSplit: opts.freezeCols ?? 2,
-      ySplit: 1,
-      showGridLines: false,
-      activeCell: 'A2',
-    },
-  ]
-  sheet.autoFilter = {
-    from: { row: 1, column: 1 },
-    to: { row: 1, column: opts.columnCount },
+): ExcelJS.Worksheet {
+  const sheet = wb.addWorksheet(name)
+  if (opts?.hidden) sheet.state = 'hidden'
+  sheet.columns = cols.map(({ header, key, width }) => ({ header, key, width }))
+  for (const row of rows) sheet.addRow(row)
+  configureTableSheet(sheet, {
+    columnCount: cols.length,
+    freezeCols: opts?.freezeCols ?? 1,
+  })
+  paintLookupColumns(sheet, cols, rows.length)
+
+  if (opts?.paintGroupPriority) {
+    const groupCol = cols.findIndex((c) => c.key === 'group') + 1
+    const priorityCol = cols.findIndex((c) => c.key === 'priority') + 1
+    const groupCache = new Map<string, number>()
+    rows.forEach((row, i) => {
+      const excelRow = i + 2
+      if (groupCol > 0) {
+        const group = String(row.group ?? '')
+        const gFill = GROUP_FILLS[groupFillIndex(group, groupCache)]!
+        sheet.getRow(excelRow).getCell(groupCol).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: gFill },
+        }
+      }
+      if (priorityCol > 0) {
+        const pFill = priorityFillArgb(String(row.priority ?? ''))
+        if (pFill) {
+          sheet.getRow(excelRow).getCell(priorityCol).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: pFill },
+          }
+        }
+      }
+    })
   }
+
+  return sheet
 }
 
-function addScopeOverviewSheet(
+function addSummarySheet(
   wb: ExcelJS.Workbook,
-  rows: SpecPackExcelScopeRow[],
-  firstAcRowByReq: Map<string, number>
+  stats: SpecPackExcelSummaryStats
 ): void {
-  const sheet = wb.addWorksheet(SHEET.scope)
-  sheet.columns = [
-    { header: 'Group', key: 'group', width: 20 },
-    { header: 'Area', key: 'area', width: 22 },
-    { header: 'Req. Code', key: 'reqCode', width: 14 },
-    { header: 'Requirement', key: 'requirement', width: 36 },
-    { header: 'Business Description', key: 'description', width: 58 },
-    { header: 'Priority', key: 'priority', width: 12 },
-    { header: 'Type', key: 'type', width: 14 },
-    { header: 'Status', key: 'status', width: 14 },
-  ]
-
-  rows.forEach((r, i) => {
-    const excelRow = i + 2
-    sheet.addRow(r)
-    const acTarget = firstAcRowByReq.get(r.reqCode)
-    const codeCell = sheet.getRow(excelRow).getCell(3)
-    if (acTarget) {
-      codeCell.value = {
-        text: r.reqCode,
-        hyperlink: `#'${SHEET.ac}'!A${acTarget}`,
-      }
-      codeCell.font = {
-        ...FONT,
-        color: { argb: 'FF1D4ED8' },
-        underline: true,
-      }
-    }
-  })
-
-  configureTableSheet(sheet, { columnCount: 8, freezeCols: 3 })
-  paintPriorityAndGroup(sheet, rows, 1, 6)
-}
-
-function addAcceptanceCriteriaSheet(
-  wb: ExcelJS.Workbook,
-  rows: SpecPackExcelAcRow[]
-): Map<string, number> {
-  const sheet = wb.addWorksheet(SHEET.ac)
-  sheet.columns = [
-    { header: 'Group', key: 'group', width: 20 },
-    { header: 'Req. Code', key: 'reqCode', width: 14 },
-    { header: 'Requirement', key: 'requirement', width: 32 },
-    { header: 'AC #', key: 'acNo', width: 8 },
-    { header: 'Acceptance Criterion', key: 'criterion', width: 64 },
-    { header: 'Function', key: 'functionCode', width: 14 },
-  ]
-
-  const firstAcRowByReq = new Map<string, number>()
-  rows.forEach((r, i) => {
-    const excelRow = i + 2
-    if (!firstAcRowByReq.has(r.reqCode)) firstAcRowByReq.set(r.reqCode, excelRow)
-    sheet.addRow(r)
-  })
-
-  configureTableSheet(sheet, { columnCount: 6, freezeCols: 2 })
-
-  const groupCache = new Map<string, number>()
-  rows.forEach((r, i) => {
-    const gFill = GROUP_FILLS[groupFillIndex(r.group, groupCache)]!
-    sheet.getRow(i + 2).getCell(1).fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: gFill },
-    }
-  })
-
-  return firstAcRowByReq
-}
-
-function addBusinessRulesSheet(
-  wb: ExcelJS.Workbook,
-  rows: SpecPackExcelBrRow[]
-): void {
-  const sheet = wb.addWorksheet(SHEET.br)
-  sheet.columns = [
-    { header: 'Group', key: 'group', width: 20 },
-    { header: 'Req. Code', key: 'reqCode', width: 14 },
-    { header: 'BR Code', key: 'brCode', width: 14 },
-    { header: 'Business Rule', key: 'businessRule', width: 32 },
-    { header: 'Detail', key: 'detail', width: 56 },
-    { header: 'Priority', key: 'priority', width: 12 },
-    { header: 'Status', key: 'status', width: 12 },
-    { header: 'Function', key: 'functionCode', width: 14 },
-  ]
-  for (const r of rows) sheet.addRow(r)
-
-  configureTableSheet(sheet, { columnCount: 8, freezeCols: 2 })
-  paintPriorityAndGroup(
-    sheet,
-    rows.map((r) => ({ group: r.group, priority: r.priority })),
-    1,
-    6
-  )
-}
-
-function addDashboardSheet(
-  wb: ExcelJS.Workbook,
-  stats: SpecPackExcelDashboardStats
-): void {
-  const sheet = wb.addWorksheet(SHEET.dashboard)
+  const sheet = wb.addWorksheet(SHEET.summary)
   sheet.views = [{ showGridLines: false }]
-  sheet.getColumn(1).width = 28
+  sheet.getColumn(1).width = 32
   sheet.getColumn(2).width = 18
   sheet.getColumn(3).width = 8
   sheet.getColumn(4).width = 28
@@ -269,26 +215,23 @@ function addDashboardSheet(
   sheet.getCell('A2').value = `Generated ${stats.generatedAt}`
   sheet.getCell('A2').font = { ...FONT, color: { argb: 'FF6B7280' } }
 
-  const kpis: Array<[string, number]> = [
-    ['Requirements', stats.requirementCount],
-    ['Functions', stats.functionCount],
-    ['Acceptance criteria', stats.acceptanceCriteriaCount],
-    ['Business rules', stats.businessRulesCount],
-  ]
-
   sheet.getCell('A4').value = 'Overview'
   sheet.getCell('A4').font = SECTION_FONT
+
+  const kpis: Array<[string, number]> = [
+    ['Requirements', stats.requirementCount],
+    ['Functions (unique)', stats.uniqueFunctionCount],
+    ['Use cases', stats.useCaseCount],
+    ['Requirement–Function links', stats.reqFnLinkCount],
+    ['Function–Use Case links', stats.fnUcLinkCount],
+  ]
 
   kpis.forEach(([label, value], i) => {
     const row = 5 + i
     sheet.getCell(`A${row}`).value = label
     sheet.getCell(`B${row}`).value = value
     sheet.getCell(`A${row}`).font = FONT
-    sheet.getCell(`B${row}`).font = {
-      ...FONT,
-      bold: true,
-      size: 12,
-    }
+    sheet.getCell(`B${row}`).font = { ...FONT, bold: true, size: 12 }
     sheet.getCell(`A${row}`).fill = KPI_FILL
     sheet.getCell(`B${row}`).fill = KPI_FILL
   })
@@ -299,9 +242,8 @@ function addDashboardSheet(
     items: Array<{ label: string; count: number }>,
     startRow: number
   ) => {
-    const labelCell = sheet.getCell(startRow, startCol)
-    labelCell.value = title
-    labelCell.font = SECTION_FONT
+    sheet.getCell(startRow, startCol).value = title
+    sheet.getCell(startRow, startCol).font = SECTION_FONT
     sheet.getCell(startRow + 1, startCol).value = 'Name'
     sheet.getCell(startRow + 1, startCol + 1).value = 'Count'
     sheet.getCell(startRow + 1, startCol).font = HEADER_FONT
@@ -317,92 +259,209 @@ function addDashboardSheet(
     })
   }
 
-  writeBreakdown(1, 'By group', stats.byGroup, 11)
-  writeBreakdown(4, 'By priority', stats.byPriority, 11)
-
+  writeBreakdown(1, 'By group', stats.byGroup, 12)
+  writeBreakdown(4, 'By priority', stats.byPriority, 12)
   const typeStart =
-    11 + Math.max(stats.byGroup.length, stats.byPriority.length, 1) + 3
+    12 + Math.max(stats.byGroup.length, stats.byPriority.length, 1) + 3
   writeBreakdown(1, 'By type', stats.byType, typeStart)
 }
 
-function addTechnicalDataSheet(
-  wb: ExcelJS.Workbook,
-  doc: SpecPackPreviewDocument,
-  rows: SpecPackExcelTechnicalRow[]
-): void {
-  const sheet = wb.addWorksheet(SHEET.technical)
-  sheet.state = 'hidden'
-  sheet.columns = [
-    { header: 'Group', key: 'group', width: 18 },
-    { header: 'Req. Code', key: 'reqCode', width: 14 },
-    { header: 'Requirement', key: 'requirementTitle', width: 28 },
-    { header: 'Requirement ID', key: 'requirementId', width: 36 },
-    { header: 'Function code', key: 'functionCode', width: 14 },
-    { header: 'Function name', key: 'functionName', width: 28 },
-    { header: 'Function ID', key: 'functionId', width: 36 },
-    { header: 'Module', key: 'module', width: 20 },
-    { header: 'Type', key: 'type', width: 12 },
-    { header: 'Priority', key: 'priority', width: 12 },
-    { header: 'Status', key: 'status', width: 12 },
-    { header: 'Created', key: 'createdAt', width: 18 },
-    { header: 'Updated', key: 'updatedAt', width: 18 },
-    { header: 'Load error', key: 'loadError', width: 20 },
-    { header: 'Group ID', key: 'groupId', width: 36 },
-    { header: 'Pack ID', key: 'packId', width: 36 },
-    { header: 'Project ID', key: 'projectId', width: 36 },
-    { header: 'Pack note', key: 'note', width: 24 },
-  ]
+function buildWorkbookSheets(wb: ExcelJS.Workbook, flat: SpecPackExcelFlat): void {
+  addSummarySheet(wb, flat.summary)
 
-  for (const r of rows) {
-    sheet.addRow({
-      ...r,
-      note: doc.note ?? '',
-    })
-  }
+  addDataSheet(
+    wb,
+    SHEET.requirements,
+    [
+      { header: 'Group', key: 'group', width: 20 },
+      { header: 'Code', key: 'code', width: 14 },
+      { header: 'Title', key: 'title', width: 36 },
+      { header: 'Requirement Type', key: 'requirementType', width: 16 },
+      { header: 'Priority', key: 'priority', width: 12 },
+      { header: 'Description', key: 'description', width: 58 },
+    ],
+    flat.requirements,
+    { freezeCols: 2, paintGroupPriority: true }
+  )
 
-  configureTableSheet(sheet, { columnCount: 18, freezeCols: 2 })
-}
+  addDataSheet(
+    wb,
+    SHEET.reqFnLinks,
+    [
+      { header: 'Requirement Code', key: 'requirementCode', width: 16 },
+      {
+        header: 'Requirement Title',
+        key: 'requirementTitle',
+        width: 32,
+        lookup: true,
+      },
+      { header: 'Function Code', key: 'functionCode', width: 14 },
+      { header: 'Function Title', key: 'functionTitle', width: 32, lookup: true },
+    ],
+    flat.reqFnLinks,
+    { freezeCols: 1 }
+  )
 
-function addOptionalLinksSheet(
-  wb: ExcelJS.Workbook,
-  rows: SpecPackExcelFlat['linkRows']
-): void {
-  if (rows.length === 0) return
-  const sheet = wb.addWorksheet(SHEET.links)
-  sheet.columns = [
-    { header: 'Requirement', key: 'requirementCode', width: 14 },
-    { header: 'Function code', key: 'functionCode', width: 14 },
-    { header: 'Function name', key: 'functionName', width: 28 },
-    { header: 'Artifact type', key: 'artifactType', width: 14 },
-    { header: 'Code', key: 'code', width: 14 },
-    { header: 'Name', key: 'name', width: 32 },
-    { header: 'Secondary', key: 'secondary', width: 24 },
-  ]
-  for (const r of rows) sheet.addRow(r)
-  configureTableSheet(sheet, { columnCount: 7, freezeCols: 2 })
-}
+  addDataSheet(
+    wb,
+    SHEET.functions,
+    [
+      { header: 'Function Code', key: 'functionCode', width: 14 },
+      { header: 'Title', key: 'title', width: 36 },
+      { header: 'Description', key: 'description', width: 58 },
+      { header: 'Priority', key: 'priority', width: 12 },
+      { header: 'Type', key: 'type', width: 14 },
+    ],
+    flat.functions,
+    { freezeCols: 1, paintGroupPriority: true }
+  )
 
-function addOptionalUseCasesSheet(
-  wb: ExcelJS.Workbook,
-  rows: SpecPackExcelFlat['useCaseRows']
-): void {
-  if (rows.length === 0) return
-  const sheet = wb.addWorksheet(SHEET.useCases)
-  sheet.columns = [
-    { header: 'Requirement', key: 'requirementCode', width: 14 },
-    { header: 'Function', key: 'functionCode', width: 14 },
-    { header: 'UC key', key: 'useCaseKey', width: 14 },
-    { header: 'UC name', key: 'useCaseName', width: 28 },
-    { header: 'Goal', key: 'goal', width: 36 },
-    { header: 'Primary actor', key: 'primaryActor', width: 18 },
-    { header: 'Trigger', key: 'trigger', width: 28 },
-    { header: 'Conditions', key: 'conditions', width: 36 },
-    { header: 'Business rules', key: 'businessRules', width: 36 },
-    { header: 'Acceptance criteria', key: 'acceptanceCriteria', width: 40 },
-    { header: 'Flows', key: 'flows', width: 40 },
-  ]
-  for (const r of rows) sheet.addRow(r)
-  configureTableSheet(sheet, { columnCount: 11, freezeCols: 2 })
+  addDataSheet(
+    wb,
+    SHEET.fnAc,
+    [
+      { header: 'Function Code', key: 'functionCode', width: 14 },
+      { header: 'AC No.', key: 'acNo', width: 8 },
+      { header: 'Acceptance Criterion', key: 'criterion', width: 64 },
+    ],
+    flat.fnAcceptanceCriteria,
+    { freezeCols: 1 }
+  )
+
+  addDataSheet(
+    wb,
+    SHEET.fnBr,
+    [
+      { header: 'Function Code', key: 'functionCode', width: 14 },
+      { header: 'Rule Code', key: 'ruleCode', width: 12 },
+      { header: 'Rule Title', key: 'ruleTitle', width: 28 },
+      { header: 'Severity', key: 'severity', width: 12 },
+      { header: 'Description', key: 'description', width: 56 },
+    ],
+    flat.fnBusinessRules,
+    { freezeCols: 2 }
+  )
+
+  addDataSheet(
+    wb,
+    SHEET.useCases,
+    [
+      { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
+      { header: 'Name', key: 'name', width: 28 },
+      { header: 'Goal', key: 'goal', width: 40 },
+      { header: 'Primary Actor', key: 'primaryActor', width: 18 },
+      { header: 'Trigger', key: 'trigger', width: 36 },
+    ],
+    flat.useCases,
+    { freezeCols: 1 }
+  )
+
+  addDataSheet(
+    wb,
+    SHEET.fnUcLinks,
+    [
+      { header: 'Function Code', key: 'functionCode', width: 14 },
+      { header: 'Function Title', key: 'functionTitle', width: 28, lookup: true },
+      { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
+      { header: 'Use Case Name', key: 'useCaseName', width: 28, lookup: true },
+    ],
+    flat.fnUcLinks,
+    { freezeCols: 1 }
+  )
+
+  addDataSheet(
+    wb,
+    SHEET.ucConditions,
+    [
+      { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
+      { header: 'Sequence', key: 'sequence', width: 10 },
+      { header: 'Condition Type', key: 'conditionType', width: 22 },
+      { header: 'Content', key: 'content', width: 56 },
+    ],
+    flat.ucConditions,
+    { freezeCols: 1 }
+  )
+
+  addDataSheet(
+    wb,
+    SHEET.ucFlows,
+    [
+      { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
+      { header: 'Flow No.', key: 'flowNo', width: 10 },
+      { header: 'Flow Type', key: 'flowType', width: 14 },
+      { header: 'Flow Name', key: 'flowName', width: 28 },
+      { header: 'Condition Text', key: 'conditionText', width: 40 },
+    ],
+    flat.ucFlows,
+    { freezeCols: 1 }
+  )
+
+  addDataSheet(
+    wb,
+    SHEET.ucFlowSteps,
+    [
+      { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
+      { header: 'Flow No.', key: 'flowNo', width: 10 },
+      { header: 'Step No.', key: 'stepNo', width: 10 },
+      { header: 'Step Type', key: 'stepType', width: 16 },
+      { header: 'Content', key: 'content', width: 56 },
+    ],
+    flat.ucFlowSteps,
+    { freezeCols: 1 }
+  )
+
+  addDataSheet(
+    wb,
+    SHEET.ucBr,
+    [
+      { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
+      { header: 'Rule Code', key: 'ruleCode', width: 12 },
+      { header: 'Description', key: 'description', width: 56 },
+    ],
+    flat.ucBusinessRules,
+    { freezeCols: 1 }
+  )
+
+  addDataSheet(
+    wb,
+    SHEET.ucAc,
+    [
+      { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
+      { header: 'AC No.', key: 'acNo', width: 8 },
+      { header: 'Title', key: 'title', width: 28 },
+      { header: 'Given', key: 'given', width: 28 },
+      { header: 'When', key: 'when', width: 28 },
+      { header: 'Then', key: 'then', width: 28 },
+    ],
+    flat.ucAcceptanceCriteria,
+    { freezeCols: 1 }
+  )
+
+  addDataSheet(
+    wb,
+    SHEET.technical,
+    [
+      { header: 'Group', key: 'group', width: 18 },
+      { header: 'Group ID', key: 'groupId', width: 36 },
+      { header: 'Requirement Code', key: 'requirementCode', width: 14 },
+      { header: 'Requirement ID', key: 'requirementId', width: 36 },
+      { header: 'Function Code', key: 'functionCode', width: 14 },
+      { header: 'Function ID', key: 'functionId', width: 36 },
+      { header: 'Function Status', key: 'functionStatus', width: 14 },
+      { header: 'Module', key: 'module', width: 20 },
+      { header: 'Module ID', key: 'moduleId', width: 36 },
+      { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
+      { header: 'Use Case ID', key: 'useCaseId', width: 36 },
+      { header: 'Created', key: 'createdAt', width: 18 },
+      { header: 'Updated', key: 'updatedAt', width: 18 },
+      { header: 'Load Error', key: 'loadError', width: 20 },
+      { header: 'Pack ID', key: 'packId', width: 36 },
+      { header: 'Project ID', key: 'projectId', width: 36 },
+      { header: 'Pack Note', key: 'packNote', width: 24 },
+    ],
+    flat.technical,
+    { freezeCols: 1, hidden: true }
+  )
 }
 
 export function suggestSpecPackExcelFilename(doc: SpecPackPreviewDocument): string {
@@ -414,16 +473,7 @@ export function suggestSpecPackExcelFilename(doc: SpecPackPreviewDocument): stri
   return `${safe || 'spec-pack'}-scope.xlsx`
 }
 
-/** Precompute AC row map without adding a sheet (stable row numbers). */
-function buildFirstAcRowByReq(rows: SpecPackExcelAcRow[]): Map<string, number> {
-  const map = new Map<string, number>()
-  rows.forEach((r, i) => {
-    if (!map.has(r.reqCode)) map.set(r.reqCode, i + 2)
-  })
-  return map
-}
-
-/** Build stakeholder-oriented Spec Pack workbook. */
+/** Build normalized Spec Pack workbook (entity + link sheets). */
 export async function buildSpecPackExcelWorkbook(
   doc: SpecPackPreviewDocument
 ): Promise<ExcelJS.Workbook> {
@@ -431,15 +481,6 @@ export async function buildSpecPackExcelWorkbook(
   const wb = new ExcelJS.Workbook()
   wb.creator = 'Scopery'
   wb.created = new Date()
-
-  const firstAcRowByReq = buildFirstAcRowByReq(flat.acRows)
-  addScopeOverviewSheet(wb, flat.scopeRows, firstAcRowByReq)
-  addAcceptanceCriteriaSheet(wb, flat.acRows)
-  addBusinessRulesSheet(wb, flat.brRows)
-  addDashboardSheet(wb, flat.dashboard)
-  addTechnicalDataSheet(wb, doc, flat.technicalRows)
-  addOptionalLinksSheet(wb, flat.linkRows)
-  addOptionalUseCasesSheet(wb, flat.useCaseRows)
-
+  buildWorkbookSheets(wb, flat)
   return wb
 }
