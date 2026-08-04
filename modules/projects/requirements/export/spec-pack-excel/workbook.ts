@@ -1,6 +1,13 @@
 import ExcelJS from 'exceljs'
 import type { SpecPackPreviewDocument } from '../../model/spec-pack-preview'
 import {
+  addFunctionViewSheet,
+  addRequirementViewSheet,
+  addTraceabilitySheet,
+  addUseCaseViewSheet,
+  BUSINESS_SHEET,
+} from './business-views'
+import {
   flattenSpecPackForExcel,
   type SpecPackExcelFlat,
   type SpecPackExcelSummaryStats,
@@ -56,20 +63,20 @@ const PRIORITY_FILL: Record<string, string> = {
   low: 'FFF3F4F6',
 }
 
-const SHEET = {
-  summary: 'Summary',
-  requirements: 'Requirements',
-  reqFnLinks: 'Requirement - Function Links',
-  functions: 'Functions',
-  fnAc: 'Function Acceptance Criteria',
-  fnBr: 'Function Business Rules',
-  useCases: 'Use Cases',
-  fnUcLinks: 'Function - Use Case Links',
-  ucConditions: 'Use Case Conditions',
-  ucFlows: 'Use Case Flows',
-  ucFlowSteps: 'Use Case Flow Steps',
-  ucBr: 'Use Case Business Rules',
-  ucAc: 'Use Case Acceptance Criteria',
+/** Normalized storage sheets — hidden; business reads View sheets instead. */
+const DATA_SHEET = {
+  requirements: 'Requirements_Data',
+  functions: 'Functions_Data',
+  reqFnLinks: 'Requirement_Function_Links',
+  fnAc: 'Function_AC_Data',
+  fnBr: 'Function_BR_Data',
+  useCases: 'UseCases_Data',
+  fnUcLinks: 'Function_UseCase_Links',
+  ucConditions: 'UC_Conditions_Data',
+  ucFlows: 'UC_Flows_Data',
+  ucSteps: 'UC_Steps_Data',
+  ucBr: 'UC_BR_Data',
+  ucAc: 'UC_AC_Data',
   technical: 'Technical Metadata',
 } as const
 
@@ -156,9 +163,9 @@ function addDataSheet(
     paintGroupPriority?: boolean
     hidden?: boolean
   }
-): ExcelJS.Worksheet {
+): void {
   const sheet = wb.addWorksheet(name)
-  if (opts?.hidden) sheet.state = 'hidden'
+  if (opts?.hidden !== false) sheet.state = 'hidden'
   sheet.columns = cols.map(({ header, key, width }) => ({ header, key, width }))
   for (const row of rows) sheet.addRow(row)
   configureTableSheet(sheet, {
@@ -194,15 +201,13 @@ function addDataSheet(
       }
     })
   }
-
-  return sheet
 }
 
 function addSummarySheet(
   wb: ExcelJS.Workbook,
   stats: SpecPackExcelSummaryStats
 ): void {
-  const sheet = wb.addWorksheet(SHEET.summary)
+  const sheet = wb.addWorksheet('Summary')
   sheet.views = [{ showGridLines: false }]
   sheet.getColumn(1).width = 32
   sheet.getColumn(2).width = 18
@@ -266,12 +271,10 @@ function addSummarySheet(
   writeBreakdown(1, 'By type', stats.byType, typeStart)
 }
 
-function buildWorkbookSheets(wb: ExcelJS.Workbook, flat: SpecPackExcelFlat): void {
-  addSummarySheet(wb, flat.summary)
-
+function addNormalizedDataSheets(wb: ExcelJS.Workbook, flat: SpecPackExcelFlat): void {
   addDataSheet(
     wb,
-    SHEET.requirements,
+    DATA_SHEET.requirements,
     [
       { header: 'Group', key: 'group', width: 20 },
       { header: 'Code', key: 'code', width: 14 },
@@ -286,25 +289,7 @@ function buildWorkbookSheets(wb: ExcelJS.Workbook, flat: SpecPackExcelFlat): voi
 
   addDataSheet(
     wb,
-    SHEET.reqFnLinks,
-    [
-      { header: 'Requirement Code', key: 'requirementCode', width: 16 },
-      {
-        header: 'Requirement Title',
-        key: 'requirementTitle',
-        width: 32,
-        lookup: true,
-      },
-      { header: 'Function Code', key: 'functionCode', width: 14 },
-      { header: 'Function Title', key: 'functionTitle', width: 32, lookup: true },
-    ],
-    flat.reqFnLinks,
-    { freezeCols: 1 }
-  )
-
-  addDataSheet(
-    wb,
-    SHEET.functions,
+    DATA_SHEET.functions,
     [
       { header: 'Function Code', key: 'functionCode', width: 14 },
       { header: 'Title', key: 'title', width: 36 },
@@ -318,19 +303,35 @@ function buildWorkbookSheets(wb: ExcelJS.Workbook, flat: SpecPackExcelFlat): voi
 
   addDataSheet(
     wb,
-    SHEET.fnAc,
+    DATA_SHEET.reqFnLinks,
+    [
+      { header: 'Requirement Code', key: 'requirementCode', width: 16 },
+      {
+        header: 'Requirement Title',
+        key: 'requirementTitle',
+        width: 32,
+        lookup: true,
+      },
+      { header: 'Function Code', key: 'functionCode', width: 14 },
+      { header: 'Function Title', key: 'functionTitle', width: 32, lookup: true },
+    ],
+    flat.reqFnLinks
+  )
+
+  addDataSheet(
+    wb,
+    DATA_SHEET.fnAc,
     [
       { header: 'Function Code', key: 'functionCode', width: 14 },
       { header: 'AC No.', key: 'acNo', width: 8 },
       { header: 'Acceptance Criterion', key: 'criterion', width: 64 },
     ],
-    flat.fnAcceptanceCriteria,
-    { freezeCols: 1 }
+    flat.fnAcceptanceCriteria
   )
 
   addDataSheet(
     wb,
-    SHEET.fnBr,
+    DATA_SHEET.fnBr,
     [
       { header: 'Function Code', key: 'functionCode', width: 14 },
       { header: 'Rule Code', key: 'ruleCode', width: 12 },
@@ -344,7 +345,7 @@ function buildWorkbookSheets(wb: ExcelJS.Workbook, flat: SpecPackExcelFlat): voi
 
   addDataSheet(
     wb,
-    SHEET.useCases,
+    DATA_SHEET.useCases,
     [
       { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
       { header: 'Name', key: 'name', width: 28 },
@@ -352,39 +353,36 @@ function buildWorkbookSheets(wb: ExcelJS.Workbook, flat: SpecPackExcelFlat): voi
       { header: 'Primary Actor', key: 'primaryActor', width: 18 },
       { header: 'Trigger', key: 'trigger', width: 36 },
     ],
-    flat.useCases,
-    { freezeCols: 1 }
+    flat.useCases
   )
 
   addDataSheet(
     wb,
-    SHEET.fnUcLinks,
+    DATA_SHEET.fnUcLinks,
     [
       { header: 'Function Code', key: 'functionCode', width: 14 },
       { header: 'Function Title', key: 'functionTitle', width: 28, lookup: true },
       { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
       { header: 'Use Case Name', key: 'useCaseName', width: 28, lookup: true },
     ],
-    flat.fnUcLinks,
-    { freezeCols: 1 }
+    flat.fnUcLinks
   )
 
   addDataSheet(
     wb,
-    SHEET.ucConditions,
+    DATA_SHEET.ucConditions,
     [
       { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
       { header: 'Sequence', key: 'sequence', width: 10 },
       { header: 'Condition Type', key: 'conditionType', width: 22 },
       { header: 'Content', key: 'content', width: 56 },
     ],
-    flat.ucConditions,
-    { freezeCols: 1 }
+    flat.ucConditions
   )
 
   addDataSheet(
     wb,
-    SHEET.ucFlows,
+    DATA_SHEET.ucFlows,
     [
       { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
       { header: 'Flow No.', key: 'flowNo', width: 10 },
@@ -392,13 +390,12 @@ function buildWorkbookSheets(wb: ExcelJS.Workbook, flat: SpecPackExcelFlat): voi
       { header: 'Flow Name', key: 'flowName', width: 28 },
       { header: 'Condition Text', key: 'conditionText', width: 40 },
     ],
-    flat.ucFlows,
-    { freezeCols: 1 }
+    flat.ucFlows
   )
 
   addDataSheet(
     wb,
-    SHEET.ucFlowSteps,
+    DATA_SHEET.ucSteps,
     [
       { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
       { header: 'Flow No.', key: 'flowNo', width: 10 },
@@ -406,25 +403,23 @@ function buildWorkbookSheets(wb: ExcelJS.Workbook, flat: SpecPackExcelFlat): voi
       { header: 'Step Type', key: 'stepType', width: 16 },
       { header: 'Content', key: 'content', width: 56 },
     ],
-    flat.ucFlowSteps,
-    { freezeCols: 1 }
+    flat.ucFlowSteps
   )
 
   addDataSheet(
     wb,
-    SHEET.ucBr,
+    DATA_SHEET.ucBr,
     [
       { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
       { header: 'Rule Code', key: 'ruleCode', width: 12 },
       { header: 'Description', key: 'description', width: 56 },
     ],
-    flat.ucBusinessRules,
-    { freezeCols: 1 }
+    flat.ucBusinessRules
   )
 
   addDataSheet(
     wb,
-    SHEET.ucAc,
+    DATA_SHEET.ucAc,
     [
       { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
       { header: 'AC No.', key: 'acNo', width: 8 },
@@ -433,13 +428,12 @@ function buildWorkbookSheets(wb: ExcelJS.Workbook, flat: SpecPackExcelFlat): voi
       { header: 'When', key: 'when', width: 28 },
       { header: 'Then', key: 'then', width: 28 },
     ],
-    flat.ucAcceptanceCriteria,
-    { freezeCols: 1 }
+    flat.ucAcceptanceCriteria
   )
 
   addDataSheet(
     wb,
-    SHEET.technical,
+    DATA_SHEET.technical,
     [
       { header: 'Group', key: 'group', width: 18 },
       { header: 'Group ID', key: 'groupId', width: 36 },
@@ -459,9 +453,23 @@ function buildWorkbookSheets(wb: ExcelJS.Workbook, flat: SpecPackExcelFlat): voi
       { header: 'Project ID', key: 'projectId', width: 36 },
       { header: 'Pack Note', key: 'packNote', width: 24 },
     ],
-    flat.technical,
-    { freezeCols: 1, hidden: true }
+    flat.technical
   )
+}
+
+function setVisibleSheetOrder(wb: ExcelJS.Workbook): void {
+  const order = [
+    'Summary',
+    BUSINESS_SHEET.requirementView,
+    BUSINESS_SHEET.functionView,
+    BUSINESS_SHEET.useCaseView,
+    BUSINESS_SHEET.traceability,
+    ...Object.values(DATA_SHEET),
+  ]
+  order.forEach((name, index) => {
+    const sheet = wb.getWorksheet(name) as (ExcelJS.Worksheet & { orderNo?: number }) | undefined
+    if (sheet) sheet.orderNo = index + 1
+  })
 }
 
 export function suggestSpecPackExcelFilename(doc: SpecPackPreviewDocument): string {
@@ -473,7 +481,7 @@ export function suggestSpecPackExcelFilename(doc: SpecPackPreviewDocument): stri
   return `${safe || 'spec-pack'}-scope.xlsx`
 }
 
-/** Build normalized Spec Pack workbook (entity + link sheets). */
+/** Business views first; normalized data sheets hidden at the end. */
 export async function buildSpecPackExcelWorkbook(
   doc: SpecPackPreviewDocument
 ): Promise<ExcelJS.Workbook> {
@@ -481,6 +489,19 @@ export async function buildSpecPackExcelWorkbook(
   const wb = new ExcelJS.Workbook()
   wb.creator = 'Scopery'
   wb.created = new Date()
-  buildWorkbookSheets(wb, flat)
+
+  // Build Function View before Requirement View so linked codes can hyperlink.
+  const functionAnchors = addFunctionViewSheet(wb, flat)
+  const requirementAnchors = addRequirementViewSheet(wb, flat, functionAnchors)
+  const useCaseAnchors = addUseCaseViewSheet(wb, flat)
+  addTraceabilitySheet(wb, flat, {
+    requirements: requirementAnchors,
+    functions: functionAnchors,
+    useCases: useCaseAnchors,
+  })
+  addSummarySheet(wb, flat.summary)
+  addNormalizedDataSheets(wb, flat)
+  setVisibleSheetOrder(wb)
+
   return wb
 }

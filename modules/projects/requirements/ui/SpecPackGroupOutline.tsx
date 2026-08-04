@@ -97,6 +97,8 @@ export function SpecPackGroupOutline({
   const canDragGroups = canMutate
   const canDragReqs = canMutate
   const canRemoveReqs = allowRemoveRequirement && canMutate
+  /** Roomier type for the preview sidebar (browseOnly). */
+  const cozy = browseOnly
 
   useEffect(() => {
     if (!initiallyExpandGroupId) return
@@ -357,7 +359,12 @@ export function SpecPackGroupOutline({
       onKeyDown={onRootKeyDown}
       className={cn('flex min-h-0 flex-1 flex-col outline-none', className)}
     >
-      <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-neutral-100 px-2 py-2">
+      <div
+        className={cn(
+          'flex shrink-0 flex-wrap items-center gap-1 border-b border-neutral-100',
+          cozy ? 'px-3 py-2.5' : 'px-2 py-2'
+        )}
+      >
         {showMeta ? (
           <Button size="sm" variant="ghost" icon={<Plus size={14} />} onClick={addGroup}>
             Add group
@@ -367,7 +374,11 @@ export function SpecPackGroupOutline({
           size="sm"
           variant="ghost"
           icon={
-            allCollapsed ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />
+            allCollapsed ? (
+              <ChevronsUpDown size={cozy ? 16 : 14} />
+            ) : (
+              <ChevronsDownUp size={cozy ? 16 : 14} />
+            )
           }
           onClick={() => (allCollapsed ? expandAll() : collapseAll())}
         >
@@ -410,7 +421,12 @@ export function SpecPackGroupOutline({
                 isDraggingThis && 'opacity-40'
               )}
             >
-              <div className="flex items-start gap-1 bg-neutral-50 px-2 py-2">
+              <div
+                className={cn(
+                  'flex items-start gap-1.5 bg-neutral-50',
+                  cozy ? 'px-3 py-2.5' : 'px-2 py-2'
+                )}
+              >
                 {canDragGroups ? (
                   <span
                     draggable={editingGroupId !== group.id}
@@ -425,7 +441,10 @@ export function SpecPackGroupOutline({
                 ) : null}
                 <button
                   type="button"
-                  className="mt-0.5 shrink-0 px-0.5 text-[10px] font-medium text-neutral-500 hover:text-neutral-800"
+                  className={cn(
+                    'mt-0.5 shrink-0 px-0.5 font-medium text-neutral-500 hover:text-neutral-800',
+                    cozy ? 'text-sm' : 'text-[10px]'
+                  )}
                   onClick={() => toggleCollapsed(group.id)}
                   aria-label={isCollapsed ? 'Expand group' : 'Collapse group'}
                 >
@@ -461,27 +480,42 @@ export function SpecPackGroupOutline({
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-semibold text-neutral-800">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={cn(
+                            'font-semibold text-neutral-800',
+                            cozy ? 'text-sm leading-snug' : 'text-xs'
+                          )}
+                        >
                           {gIndex + 1}. {group.name}
                         </span>
                         {showMeta || onRequestEdit ? (
                           <button
                             type="button"
-                            className="text-neutral-400 hover:text-neutral-800"
+                            className="shrink-0 text-neutral-400 hover:text-neutral-800"
                             onClick={() => startEdit(group)}
                             aria-label={`Edit ${group.name}`}
                           >
-                            <Pencil size={12} />
+                            <Pencil size={cozy ? 14 : 12} />
                           </button>
                         ) : null}
                       </div>
                       {group.description ? (
-                        <p className="mt-0.5 line-clamp-2 text-[11px] text-neutral-500">
+                        <p
+                          className={cn(
+                            'mt-0.5 line-clamp-2 text-neutral-500',
+                            cozy ? 'text-xs leading-relaxed' : 'text-[11px]'
+                          )}
+                        >
                           {group.description}
                         </p>
                       ) : null}
-                      <p className="mt-0.5 text-[10px] text-neutral-400">
+                      <p
+                        className={cn(
+                          'mt-0.5 text-neutral-400',
+                          cozy ? 'text-xs' : 'text-[10px]'
+                        )}
+                      >
                         {group.requirements.length} requirement
                         {group.requirements.length === 1 ? '' : 's'}
                         {isCollapsed ? ' · collapsed' : ''}
@@ -528,8 +562,9 @@ export function SpecPackGroupOutline({
                       >
                         <div
                           className={cn(
-                            'flex items-start gap-1 py-1.5 pr-2',
-                            browseOnly ? 'pl-5' : 'pl-6'
+                            'flex items-start gap-1.5',
+                            cozy ? 'py-2.5 pr-3 pl-6' : 'py-1.5 pr-2',
+                            !cozy && (browseOnly ? 'pl-5' : 'pl-6')
                           )}
                         >
                           {canDragReqs ? (
@@ -542,15 +577,30 @@ export function SpecPackGroupOutline({
                             className="min-w-0 flex-1 text-left"
                             onClick={() => onSelectRequirement?.(req.id)}
                           >
-                            <div className="flex items-baseline gap-1.5">
-                              <span className="shrink-0 text-[10px] tabular-nums text-neutral-400">
+                            <div className="flex items-baseline gap-2">
+                              <span
+                                className={cn(
+                                  'shrink-0 tabular-nums text-neutral-400',
+                                  cozy ? 'text-xs' : 'text-[10px]'
+                                )}
+                              >
                                 {reqOrdinal}.
                               </span>
-                              <span className="line-clamp-2 text-xs font-semibold text-neutral-900">
+                              <span
+                                className={cn(
+                                  'line-clamp-2 font-semibold text-neutral-900',
+                                  cozy ? 'text-sm leading-snug' : 'text-xs'
+                                )}
+                              >
                                 {req.title}
                               </span>
                             </div>
-                            <p className="mt-0.5 pl-4 text-[10px] text-neutral-400">
+                            <p
+                              className={cn(
+                                'mt-0.5 text-neutral-400',
+                                cozy ? 'pl-5 text-xs' : 'pl-4 text-[10px]'
+                              )}
+                            >
                               {req.code}
                             </p>
                           </button>
