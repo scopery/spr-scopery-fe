@@ -6,9 +6,12 @@ import { Button, Checkbox, Input, Modal, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { useRequirements } from '@/modules/projects/requirements'
 import type { Requirement } from '@/modules/projects/requirements'
+import { getRequirement } from '@/modules/projects/requirements/api/requirements.api'
 import {
   canMutateRequirementLinks,
+  normalizeRequirementStatus,
   RequirementImmutableMessages,
+  RequirementStatus,
 } from '@/modules/projects/requirements/model/requirement-status'
 import { TraceLinkType } from '@/modules/quality/domain/enums/quality.enum'
 import type { FunctionalItem } from '../model/functional-catalog'
@@ -106,6 +109,7 @@ export function RequirementFunctionalLinkPanel({
 
   const [focusReqId, setFocusReqId] = useState<string | null>(null)
   const [reqQuery, setReqQuery] = useState('')
+  const [approvedOnly, setApprovedOnly] = useState(false)
   const [query, setQuery] = useState('')
   const [hideLinked, setHideLinked] = useState(true)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -113,6 +117,7 @@ export function RequirementFunctionalLinkPanel({
   const [assigning, setAssigning] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [previewId, setPreviewId] = useState<string | null>(null)
+  const [focusDescription, setFocusDescription] = useState<string | null>(null)
 
   const loadCoversLinks = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLinksLoading(true)
@@ -137,13 +142,29 @@ export function RequirementFunctionalLinkPanel({
     void loadCoversLinks()
   }, [loadCoversLinks])
 
+  const filteredRequirements = useMemo(() => {
+    const q = reqQuery.trim().toLowerCase()
+    return requirements.filter((r) => {
+      if (
+        approvedOnly &&
+        normalizeRequirementStatus(r.status) !== RequirementStatus.Approved
+      ) {
+        return false
+      }
+      if (!q) return true
+      return [r.code, r.title, r.description]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q))
+    })
+  }, [requirements, reqQuery, approvedOnly])
+
   useEffect(() => {
-    if (focusReqId && !requirements.some((r) => r.id === focusReqId)) {
-      setFocusReqId(requirements[0]?.id ?? null)
-    } else if (!focusReqId && requirements[0]?.id) {
-      setFocusReqId(requirements[0].id)
+    if (focusReqId && !filteredRequirements.some((r) => r.id === focusReqId)) {
+      setFocusReqId(filteredRequirements[0]?.id ?? null)
+    } else if (!focusReqId && filteredRequirements[0]?.id) {
+      setFocusReqId(filteredRequirements[0].id)
     }
-  }, [requirements, focusReqId])
+  }, [filteredRequirements, focusReqId])
 
   useEffect(() => {
     setSelected(new Set())
@@ -158,15 +179,23 @@ export function RequirementFunctionalLinkPanel({
   )
   const focusLinksLocked = focusReq ? !canMutateRequirementLinks(focusReq.status) : false
 
-  const filteredRequirements = useMemo(() => {
-    const q = reqQuery.trim().toLowerCase()
-    if (!q) return requirements
-    return requirements.filter((r) =>
-      [r.code, r.title, r.description]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
-    )
-  }, [requirements, reqQuery])
+  useEffect(() => {
+    if (!focusReq) {
+      setFocusDescription(null)
+      return
+    }
+    setFocusDescription(focusReq.description ?? null)
+    let cancelled = false
+    void getRequirement(workspaceId, projectId, focusReq.id)
+      .then((full) => {
+        if (cancelled) return
+        if (full.description != null) setFocusDescription(full.description)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [workspaceId, projectId, focusReq?.id, focusReq?.description])
 
   const frById = useMemo(() => {
     const map = new Map<string, FunctionalItem>()
@@ -447,6 +476,12 @@ export function RequirementFunctionalLinkPanel({
               aria-label="Search requirements"
               prefix={<Search size={14} />}
             />
+            <Checkbox
+              size="sm"
+              checked={approvedOnly}
+              onChange={(e) => setApprovedOnly(e.target.checked)}
+              label="Approved only"
+            />
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {requirements.length === 0 ? (
@@ -536,6 +571,7 @@ export function RequirementFunctionalLinkPanel({
             />
             <RequirementFocusInspector
               focusReq={focusReq}
+              description={focusDescription}
               linksLocked={focusLinksLocked}
               linked={edgesForFocus}
               assigning={assigning}
@@ -835,6 +871,7 @@ function FunctionCandidatePalette({
 
 function RequirementFocusInspector({
   focusReq,
+  description,
   linksLocked,
   linked,
   assigning,
@@ -842,6 +879,7 @@ function RequirementFocusInspector({
   onUnlink,
 }: {
   focusReq: Requirement
+  description: string | null
   linksLocked: boolean
   linked: LinkedFrEdge[]
   assigning: boolean
@@ -875,11 +913,14 @@ function RequirementFocusInspector({
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white">
       <div className="shrink-0 border-b border-neutral-100 px-3 py-2">
-        <Typography weight="medium" size="sm">
+        <Typography weight="medium" size="sm" className="[overflow-wrap:anywhere]">
           {focusReq.code}
         </Typography>
-        <Typography variant="small" tone="muted" className="truncate">
-          Requirement · {focusReq.title}
+        <Typography
+          variant="small"
+          className="mt-0.5 text-neutral-800 [overflow-wrap:anywhere]"
+        >
+          {focusReq.title}
         </Typography>
         {linksLocked ? (
           <Typography variant="caption" tone="error" className="mt-1 block">
@@ -889,6 +930,30 @@ function RequirementFocusInspector({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="space-y-3 border-b border-neutral-100 p-3">
+          <div>
+            <Typography
+              variant="caption"
+              tone="muted"
+              className="mb-1 block uppercase tracking-wide"
+            >
+              Description
+            </Typography>
+            {description?.trim() ? (
+              <Typography
+                size="sm"
+                className="whitespace-pre-wrap text-neutral-900 [overflow-wrap:anywhere]"
+              >
+                {description}
+              </Typography>
+            ) : (
+              <Typography variant="small" tone="muted">
+                No description.
+              </Typography>
+            )}
+          </div>
+        </div>
+
         <div className="space-y-2 p-3">
           <div
             onDragOver={(e) => {
@@ -969,8 +1034,12 @@ function RequirementFocusInspector({
                   className="flex items-center justify-between gap-3 py-2.5"
                 >
                   <div className="min-w-0">
-                    <div className="truncate text-sm text-neutral-900">{edge.frCode}</div>
-                    <div className="truncate text-xs text-neutral-500">{edge.frTitle}</div>
+                    <div className="text-sm text-neutral-900 [overflow-wrap:anywhere]">
+                      {edge.frCode}
+                    </div>
+                    <div className="text-xs text-neutral-500 [overflow-wrap:anywhere]">
+                      {edge.frTitle}
+                    </div>
                   </div>
                   <Button
                     size="sm"

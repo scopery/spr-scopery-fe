@@ -8,7 +8,6 @@ import {
   Typography,
   Badge,
   Button,
-  Checkbox,
   ConfirmDialog,
   DataTable,
   PageSkeleton,
@@ -41,7 +40,6 @@ import type { ScopeItem } from '@/modules/projects/scope/domain/model/scope'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
 import type { CreateRequirementPayload, Requirement } from '../model/requirements'
-import { getRequirement } from '../api/requirements.api'
 import {
   canArchiveRequirement,
   RequirementDeleteMessages,
@@ -150,12 +148,10 @@ export function ProjectRequirementsView() {
   const [evidenceCounts, setEvidenceCounts] = useState<Record<string, number>>({})
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<ListFilter>('all')
-  const [approvedOnly, setApprovedOnly] = useState(false)
   const [mainTab, setMainTab] = useState<RequirementsMainTab>('catalog')
   const [resolvedFunctionalItem, setResolvedFunctionalItem] = useState<FunctionalItem | null>(null)
   const [resolvedNfr, setResolvedNfr] = useState<NonFunctionalItem | null>(null)
   const [resolvedScopeItem, setResolvedScopeItem] = useState<ScopeItem | null>(null)
-  const [detailDescription, setDetailDescription] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
@@ -259,25 +255,12 @@ export function ProjectRequirementsView() {
         const count = evidenceCounts[r.id] ?? 0
         if (filter === 'with' && count === 0) return false
         if (filter === 'missing' && count > 0) return false
-        if (
-          approvedOnly &&
-          normalizeRequirementStatus(r.status) !== RequirementStatus.Approved
-        ) {
-          return false
-        }
       }
       if (!q) return true
       const hay = `${r.code} ${r.title} ${r.req_type ?? r.type ?? ''} ${r.status ?? ''}`.toLowerCase()
       return hay.includes(q)
     })
-  }, [
-    activeRequirements,
-    archivedRequirements,
-    evidenceCounts,
-    filter,
-    search,
-    approvedOnly,
-  ])
+  }, [activeRequirements, archivedRequirements, evidenceCounts, filter, search])
 
   useEffect(() => {
     const fromQuery = searchParams.get('requirementId')
@@ -302,20 +285,7 @@ export function ProjectRequirementsView() {
     setResolvedFunctionalItem(null)
     setResolvedNfr(null)
     setResolvedScopeItem(null)
-    setDetailDescription(null)
     if (!selected) return
-
-    setDetailDescription(selected.description ?? null)
-
-    let cancelled = false
-    void getRequirement(orgId, projectId, selected.id)
-      .then((full) => {
-        if (cancelled) return
-        if (full.description != null) {
-          setDetailDescription(full.description)
-        }
-      })
-      .catch(() => undefined)
 
     if (selected.functionalItemId) {
       getFunctionalItem(projectId, selected.functionalItemId)
@@ -332,15 +302,9 @@ export function ProjectRequirementsView() {
         .then(setResolvedScopeItem)
         .catch(() => setResolvedScopeItem(null))
     }
-
-    return () => {
-      cancelled = true
-    }
   }, [
-    orgId,
     projectId,
     selected?.id,
-    selected?.description,
     selected?.functionalItemId,
     selected?.nonFunctionalItemId,
     selected?.scopeItemId,
@@ -564,14 +528,6 @@ export function ProjectRequirementsView() {
                       )
                     })}
                   </div>
-                  {filter !== 'archived' ? (
-                    <Checkbox
-                      size="sm"
-                      checked={approvedOnly}
-                      onChange={(e) => setApprovedOnly(e.target.checked)}
-                      label="Approved only"
-                    />
-                  ) : null}
                 </div>
                 {canCreateRequirement && filter !== 'archived' ? (
                   <RequirementAddBar {...createHandlers} />
@@ -741,27 +697,11 @@ export function ProjectRequirementsView() {
                   </div>
 
                   <div className="space-y-4 px-5 py-4">
-                    <div>
-                      <Typography
-                        variant="caption"
-                        tone="muted"
-                        className="mb-1 block uppercase tracking-wide"
-                      >
-                        Description
+                    {selected.description ? (
+                      <Typography variant="small" tone="muted" className="whitespace-pre-wrap">
+                        {selected.description}
                       </Typography>
-                      {detailDescription?.trim() ? (
-                        <Typography
-                          size="sm"
-                          className="whitespace-pre-wrap text-neutral-900 [overflow-wrap:anywhere]"
-                        >
-                          {detailDescription}
-                        </Typography>
-                      ) : (
-                        <Typography variant="small" tone="muted">
-                          No description.
-                        </Typography>
-                      )}
-                    </div>
+                    ) : null}
 
                     <dl className="grid gap-2 border-t border-neutral-100 pt-4 text-sm sm:grid-cols-2">
                       <MetaRow
