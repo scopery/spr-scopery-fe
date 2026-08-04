@@ -1,11 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FileDown, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { FileDown, FileSpreadsheet, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge, Button, ContentLoader, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
-import { exportSpecPackToDoc } from '../export/spec-pack-doc'
+import { exportSpecPackToDocx } from '../export/spec-pack-docx'
+import { exportSpecPackToExcel } from '../export/spec-pack-excel'
 import { useSpecPackPreview } from '../hooks/useSpecPackPreview'
 import { useSpecPacks } from '../hooks/useSpecPacks'
 import type { Requirement } from '../model/requirements'
@@ -155,16 +156,31 @@ export function SpecPacksView({
     [selected, localGroups, document, updateGroups]
   )
 
-  const handleExport = () => {
+  const handleExportDoc = async () => {
     if (!displayDoc || !selected) return
     setExporting(true)
     try {
-      const { filename } = exportSpecPackToDoc(displayDoc)
+      const { filename } = await exportSpecPackToDocx(displayDoc)
       invalidateSpecPackPreviewCache(selected.id)
       markExported(selected.id)
       toast.success(`Exported ${filename}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Export failed')
+      toast.error(err instanceof Error ? err.message : 'DOCX export failed')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleExportExcel = async () => {
+    if (!displayDoc || !selected) return
+    setExporting(true)
+    try {
+      const { filename } = await exportSpecPackToExcel(displayDoc)
+      invalidateSpecPackPreviewCache(selected.id)
+      markExported(selected.id)
+      toast.success(`Exported ${filename}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Excel export failed')
     } finally {
       setExporting(false)
     }
@@ -347,11 +363,20 @@ export function SpecPacksView({
                 </Button>
                 <Button
                   size="sm"
+                  variant="outline"
+                  icon={<FileSpreadsheet size={14} />}
+                  disabled={!displayDoc || loading || exporting}
+                  onClick={() => void handleExportExcel()}
+                >
+                  Export Excel
+                </Button>
+                <Button
+                  size="sm"
                   icon={<FileDown size={14} />}
                   disabled={!displayDoc || loading || exporting}
-                  onClick={handleExport}
+                  onClick={() => void handleExportDoc()}
                 >
-                  Export DOC
+                  Export DOCX
                 </Button>
               </div>
             </div>

@@ -19,7 +19,16 @@ function itemLabel(item: SpecPackPreviewItem): string {
 function renderItemList(title: string, items: SpecPackPreviewItem[]): string {
   if (!items.length) return ''
   const rows = items.map((i) => `<li>${itemLabel(i)}</li>`).join('')
-  return `<h4>${escapeHtml(title)}</h4><ul>${rows}</ul>`
+  return `<h4><b>${escapeHtml(title)}</b></h4><ul>${rows}</ul>`
+}
+
+function renderChips(labels: Array<string | null | undefined>): string {
+  const chips = labels
+    .map((l) => (l ?? '').trim())
+    .filter(Boolean)
+    .map((l) => `<td class="chip-cell">${escapeHtml(l)}</td>`)
+  if (!chips.length) return ''
+  return `<table class="chip-row" role="presentation"><tr>${chips.join('')}</tr></table>`
 }
 
 function metaRow(label: string, valueHtml: string | null | undefined): string {
@@ -43,7 +52,7 @@ function renderUseCaseHtml(
 
   const conditions =
     uc.conditions.length > 0
-      ? `<h4>Conditions</h4><ul>${uc.conditions
+      ? `<h4><b>Conditions</b></h4><ul>${uc.conditions
           .map(
             (c) =>
               `<li><strong>${escapeHtml(c.type)}</strong> — ${escapeHtml(c.content)}</li>`
@@ -53,7 +62,7 @@ function renderUseCaseHtml(
 
   const rules =
     uc.businessRules.length > 0
-      ? `<h4>Business rules</h4><ul>${uc.businessRules
+      ? `<h4><b>Business rules</b></h4><ul>${uc.businessRules
           .map(
             (r) =>
               `<li><strong>${escapeHtml(r.code)}</strong> — ${escapeHtml(r.description)}</li>`
@@ -63,7 +72,7 @@ function renderUseCaseHtml(
 
   const ac =
     uc.acceptanceCriteria.length > 0
-      ? `<h4>Acceptance criteria</h4><ul>${uc.acceptanceCriteria
+      ? `<h4><b>Acceptance criteria</b></h4><ul>${uc.acceptanceCriteria
           .map((a) => {
             const gwt = [
               a.givenText ? `Given: ${escapeHtml(a.givenText)}` : null,
@@ -96,15 +105,15 @@ function renderUseCaseHtml(
       const cond = f.conditionText
         ? `<p class="muted">${escapeHtml(f.conditionText)}</p>`
         : ''
-      return `<h4>Flow · ${escapeHtml(title)}</h4>${cond}${steps}`
+      return `<h4><b>Flow · ${escapeHtml(title)}</b></h4>${cond}${steps}`
     })
     .join('')
 
   return `
     <div class="uc-block">
-      <h4>${escapeHtml(numberLabel)}. Use Case · ${escapeHtml(uc.key)} — ${escapeHtml(
+      <h4><b>${escapeHtml(numberLabel)}. Use Case · ${escapeHtml(uc.key)} — ${escapeHtml(
         uc.name
-      )}</h4>
+      )}</b></h4>
       ${metaRows ? `<table>${metaRows}</table>` : ''}
       ${conditions}
       ${rules}
@@ -150,23 +159,20 @@ export function renderFunctionBlockHtml(
 
   const acceptance =
     fn.acceptanceCriteria && fn.acceptanceCriteria.length > 0
-      ? `<h4>Acceptance criteria</h4><ol>${fn.acceptanceCriteria
+      ? `<h4><b>Acceptance criteria</b></h4><ol>${fn.acceptanceCriteria
           .map((c) => `<li>${nl2br(c)}</li>`)
           .join('')}</ol>`
       : ''
 
   const rules =
     fn.businessRules && fn.businessRules.length > 0
-      ? `<h4>Business rules</h4><table>${fn.businessRules
+      ? `<h4><b>Business rules</b></h4><table>${fn.businessRules
           .map((r) => {
             const head = [r.code, r.title].filter(Boolean).join(' — ')
-            const badges = [
-              r.severity ? `<span class="chip">${escapeHtml(r.severity)}</span>` : '',
-              r.status ? `<span class="chip">${escapeHtml(r.status)}</span>` : '',
-            ].join('')
-            return `<tr><th>${escapeHtml(head)}</th><td>${badges}${
-              r.description ? `<div>${nl2br(r.description)}</div>` : ''
-            }</td></tr>`
+            return `<tr><th>${escapeHtml(head)}</th><td>${renderChips([
+              r.severity,
+              r.status,
+            ])}${r.description ? `<div>${nl2br(r.description)}</div>` : ''}</td></tr>`
           })
           .join('')}</table>`
       : ''
@@ -177,7 +183,7 @@ export function renderFunctionBlockHtml(
 
   return `
     <div class="fn-block">
-      <h3>${escapeHtml(numberLabel)}. Function · ${escapeHtml(title)}</h3>
+      <h3><b>${escapeHtml(numberLabel)}. Function · ${escapeHtml(title)}</b></h3>
       ${metaRows ? `<table>${metaRows}</table>` : ''}
       ${acceptance}
       ${rules}
@@ -200,14 +206,11 @@ export function renderRequirementChapterHtml(
 ): string {
   const req = chapter.requirement
   const chapterNo = index + 1
-  const chips = [
-    req.requirementType ? `<span class="chip">${escapeHtml(req.requirementType)}</span>` : '',
-    req.priority ? `<span class="chip">${escapeHtml(req.priority)}</span>` : '',
-  ].join('')
+  const chips = renderChips([req.requirementType, req.priority])
 
   if (chapter.loadError) {
     return `
-      <h2>${chapterNo}. ${escapeHtml(req.code)} — ${escapeHtml(req.title)}</h2>
+      <h2><b>${chapterNo}. ${escapeHtml(req.code)} — ${escapeHtml(req.title)}</b></h2>
       <p class="error">${escapeHtml(chapter.loadError)}</p>
     `
   }
@@ -217,8 +220,8 @@ export function renderRequirementChapterHtml(
     .join('')
 
   return `
-    <h2>${chapterNo}. ${escapeHtml(req.code)} — ${escapeHtml(req.title)}</h2>
-    ${chips ? `<p>${chips}</p>` : ''}
+    <h2><b>${chapterNo}. ${escapeHtml(req.code)} — ${escapeHtml(req.title)}</b></h2>
+    ${chips ? chips : ''}
     ${
       req.description
         ? `<table><tr><th>Description</th><td>${nl2br(req.description)}</td></tr></table>`
@@ -247,7 +250,7 @@ export function renderSpecPackBodyHtml(doc: SpecPackPreviewDocument): string {
   for (const section of sections) {
     if (showGroupHeadings) {
       tocItems.push(
-        `<div class="toc-group">${escapeHtml(section.group.name)}</div>`
+        `<div class="toc-group"><b>${escapeHtml(section.group.name)}</b></div>`
       )
     }
     for (const chapter of section.chapters) {
@@ -263,7 +266,7 @@ export function renderSpecPackBodyHtml(doc: SpecPackPreviewDocument): string {
   const toc =
     chapterCounter > 0
       ? `
-    <h2>Contents</h2>
+    <h2><b>Contents</b></h2>
     <div class="toc">
       ${tocItems.join('\n')}
     </div>
@@ -274,7 +277,7 @@ export function renderSpecPackBodyHtml(doc: SpecPackPreviewDocument): string {
   const body = sections
     .map((section) => {
       const groupHeading = `
-      <h2>${escapeHtml(section.group.name)}</h2>
+      <h2><b>${escapeHtml(section.group.name)}</b></h2>
       ${
         section.group.description
           ? `<p class="muted">${nl2br(section.group.description)}</p>`
@@ -292,7 +295,7 @@ export function renderSpecPackBodyHtml(doc: SpecPackPreviewDocument): string {
     .join('\n')
 
   return `
-    <h1>${escapeHtml(doc.title)}</h1>
+    <h1><b>${escapeHtml(doc.title)}</b></h1>
     <p class="meta">
       Created ${escapeHtml(formatSpecPackDate(doc.createdAt))} · Generated ${escapeHtml(
         formatSpecPackDate(doc.generatedAt)

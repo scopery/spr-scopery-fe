@@ -17,3 +17,5 @@ export type { SpecPack, SpecPackRequirementRef, SpecPackStatus } from './model/s
 export type { SpecPackPreviewDocument } from './model/spec-pack-preview'
 export * as requirementsApi from './api/requirements.api'
 export { exportSpecPackToDoc } from './export/spec-pack-doc'
+export { exportSpecPackToDocx } from './export/spec-pack-docx'
+export { exportSpecPackToExcel } from './export/spec-pack-excel'
