@@ -417,17 +417,6 @@ export function RegisterView() {
               From vague stakeholder ideas to fully traceable, signed-off specifications. Faster
               execution. Cleaner structure. Zero compromise on quality or precision.
             </Typography>
-            <div className="flex items-center gap-4">
-              <div className="backdrop-blur-xs h-11 w-11 rounded-full border border-white/40 !bg-white/20 text-center text-sm text-white" />
-              <div>
-                <Typography as="p" className="font-calsans text-base font-medium text-white">
-                  Iris Nguyen
-                </Typography>
-                <Typography as="p" className="font-questrial text-sm text-white/80">
-                  Business Analyst at Archetype Group
-                </Typography>
-              </div>
-            </div>
           </div>
           <div className="mt-10">
             <Divider className="mb-4 border-white/50" />

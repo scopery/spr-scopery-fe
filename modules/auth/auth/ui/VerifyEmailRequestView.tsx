@@ -120,17 +120,6 @@ export function VerifyEmailRequestView() {
             <Typography as="p" className="font-questrial mb-8 text-lg leading-relaxed text-white xl:text-xl">
               Email verification keeps workspace access accountable and auditable.
             </Typography>
-            <div className="flex items-center gap-4">
-              <Avatar size="md" src="/illustrations/avatar.jpg" alt="Iris Nguyen" fallback="IN" />
-              <div>
-                <Typography as="p" className="font-calsans text-base font-medium text-white">
-                  Iris Nguyen
-                </Typography>
-                <Typography as="p" className="font-questrial text-sm text-white/80">
-                  Business Analyst at Archetype Group
-                </Typography>
-              </div>
-            </div>
           </div>
           <div className="mt-10">
             <Divider className="mb-4 border-white/50" />

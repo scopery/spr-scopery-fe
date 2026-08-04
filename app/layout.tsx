@@ -11,7 +11,7 @@ const questrial = Questrial({
 })
 
 export const metadata: Metadata = {
-  title: 'Scopery',
+  title: 'Scopeary',
   description: 'Token-first, accessible UI component library',
   icons: {
     icon: '/scopery_logo.svg',

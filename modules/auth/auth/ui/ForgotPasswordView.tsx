@@ -176,17 +176,6 @@ export function ForgotPasswordView() {
               Quick account recovery keeps your team moving. Reset access securely and get back to
               crafting precise, auditable specifications.
             </Typography>
-            <div className="flex items-center gap-4">
-              <Avatar size="md" src="/illustrations/avatar.jpg" alt="Iris Nguyen" fallback="IN" />
-              <div>
-                <Typography as="p" className="font-calsans text-base font-medium text-white">
-                  Iris Nguyen
-                </Typography>
-                <Typography as="p" className="font-questrial text-sm text-white/80">
-                  Business Analyst at Archetype Group
-                </Typography>
-              </div>
-            </div>
           </div>
 
           <div className="mt-10">
