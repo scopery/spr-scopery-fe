@@ -1,21 +1,29 @@
+import type { SpecPackGroup } from './spec-pack'
 import type { SpecPackPreviewDocument } from './spec-pack-preview'
 
-/** Reorder preview chapters to match an explicit requirement-id sequence (FE-only). */
-export function reorderSpecPackChapters(
+/**
+ * Rebuild preview sections/chapters from an explicit group structure
+ * without network — used for optimistic reorder.
+ */
+export function applySpecPackGroupsToPreview(
   doc: SpecPackPreviewDocument,
-  orderedRequirementIds: string[]
+  groups: SpecPackGroup[]
 ): SpecPackPreviewDocument {
-  const byId = new Map(doc.chapters.map((c) => [c.requirement.id, c]))
-  const chapters = orderedRequirementIds
-    .map((id) => byId.get(id))
-    .filter((c): c is NonNullable<typeof c> => Boolean(c))
+  const chapterByReqId = new Map(
+    doc.chapters.map((c) => [c.requirement.id, c] as const)
+  )
 
-  // Keep any unexpected chapters at the end (defensive).
-  for (const c of doc.chapters) {
-    if (!orderedRequirementIds.includes(c.requirement.id)) {
-      chapters.push(c)
-    }
-  }
+  const sections = groups.map((g) => ({
+    group: {
+      id: g.id,
+      name: g.name,
+      description: g.description ?? null,
+    },
+    chapters: g.requirements
+      .map((r) => chapterByReqId.get(r.id))
+      .filter((c): c is NonNullable<typeof c> => Boolean(c)),
+  }))
 
-  return { ...doc, chapters }
+  const chapters = sections.flatMap((s) => s.chapters)
+  return { ...doc, sections, chapters }
 }

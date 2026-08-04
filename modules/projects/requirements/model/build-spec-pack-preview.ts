@@ -11,7 +11,7 @@ import type { TracePreviewObject } from '@/modules/projects/traceability/model/r
 import type { FunctionalItem } from '@/modules/projects/traceability/model/functional-catalog'
 import type { UseCase, UseCaseDetail } from '@/modules/projects/traceability/model/use-case'
 import { TraceLinkType } from '@/modules/quality/domain/enums/quality.enum'
-import type { SpecPack } from './spec-pack'
+import { normalizeSpecPack, type SpecPack } from './spec-pack'
 import {
   SpecPackCacheKeys,
   SpecPackCacheTtl,
@@ -571,9 +571,11 @@ export type BuildSpecPackPreviewOptions = {
 /** Build the shared preview document used by UI + DOC export. */
 export async function buildSpecPackPreviewDocument(
   workspaceId: string,
-  pack: SpecPack,
+  packInput: SpecPack,
   opts?: BuildSpecPackPreviewOptions
 ): Promise<SpecPackPreviewDocument> {
+  const pack = normalizeSpecPack(packInput)
+
   if (!opts?.force && !opts?.bypassEntityCache) {
     const cached = getCachedSpecPackPreview(pack)
     if (cached && !cached.stale) return cached.doc
@@ -597,18 +599,32 @@ export async function buildSpecPackPreviewDocument(
   )
   const reqById = new Map(reqList.items.map((r) => [r.id, r]))
 
-  const chapters = await Promise.all(
-    pack.requirements.map((ref) => {
-      const row = reqById.get(ref.id)
-      return buildChapter(ctx, ref.id, {
-        code: ref.code,
-        title: ref.title,
-        requirementType: ref.requirementType,
-        description: row?.description ?? null,
-        functionalItemId: row?.functionalItemId ?? null,
-      })
+  const sections = await Promise.all(
+    pack.groups.map(async (group) => {
+      const chapters = await Promise.all(
+        group.requirements.map((ref) => {
+          const row = reqById.get(ref.id)
+          return buildChapter(ctx, ref.id, {
+            code: ref.code,
+            title: ref.title,
+            requirementType: ref.requirementType,
+            description: row?.description ?? null,
+            functionalItemId: row?.functionalItemId ?? null,
+          })
+        })
+      )
+      return {
+        group: {
+          id: group.id,
+          name: group.name,
+          description: group.description ?? null,
+        },
+        chapters,
+      }
     })
   )
+
+  const chapters = sections.flatMap((s) => s.chapters)
 
   const doc: SpecPackPreviewDocument = {
     packId: pack.id,
@@ -617,6 +633,7 @@ export async function buildSpecPackPreviewDocument(
     projectId: pack.projectId,
     createdAt: pack.createdAt,
     generatedAt: new Date().toISOString(),
+    sections,
     chapters,
   }
 

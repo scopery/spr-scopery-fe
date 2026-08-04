@@ -232,23 +232,63 @@ export function renderRequirementChapterHtml(
 }
 
 export function renderSpecPackBodyHtml(doc: SpecPackPreviewDocument): string {
+  const sections = doc.sections?.length
+    ? doc.sections
+    : [
+        {
+          group: { id: 'legacy', name: 'Requirements', description: null },
+          chapters: doc.chapters,
+        },
+      ]
+
+  const tocItems: string[] = []
+  let chapterCounter = 0
+  const showGroupHeadings = sections.length > 1
+  for (const section of sections) {
+    if (showGroupHeadings) {
+      tocItems.push(
+        `<div class="toc-group">${escapeHtml(section.group.name)}</div>`
+      )
+    }
+    for (const chapter of section.chapters) {
+      chapterCounter += 1
+      tocItems.push(
+        `<div class="toc-item">${chapterCounter}. ${escapeHtml(
+          chapter.requirement.code
+        )} — ${escapeHtml(chapter.requirement.title)}</div>`
+      )
+    }
+  }
+
   const toc =
-    doc.chapters.length > 1
+    chapterCounter > 0
       ? `
     <h2>Contents</h2>
-    <ol>
-      ${doc.chapters
-        .map((chapter, index) => {
-          const req = chapter.requirement
-          return `<li>${index + 1}. ${escapeHtml(req.code)} — ${escapeHtml(req.title)}</li>`
-        })
-        .join('\n')}
-    </ol>
+    <div class="toc">
+      ${tocItems.join('\n')}
+    </div>
   `
       : ''
 
-  const chapters = doc.chapters
-    .map((chapter, index) => renderRequirementChapterHtml(chapter, index))
+  chapterCounter = 0
+  const body = sections
+    .map((section) => {
+      const groupHeading = `
+      <h2>${escapeHtml(section.group.name)}</h2>
+      ${
+        section.group.description
+          ? `<p class="muted">${nl2br(section.group.description)}</p>`
+          : ''
+      }
+    `
+      const chaptersHtml = section.chapters
+        .map((chapter) => {
+          chapterCounter += 1
+          return renderRequirementChapterHtml(chapter, chapterCounter - 1)
+        })
+        .join('\n')
+      return `${groupHeading}${chaptersHtml || '<p class="muted">No requirements in this group.</p>'}`
+    })
     .join('\n')
 
   return `
@@ -258,9 +298,14 @@ export function renderSpecPackBodyHtml(doc: SpecPackPreviewDocument): string {
         formatSpecPackDate(doc.generatedAt)
       )} ·
       ${doc.chapters.length} requirement${doc.chapters.length === 1 ? '' : 's'}
+      ${
+        sections.length > 1
+          ? ` · ${sections.length} groups`
+          : ''
+      }
     </p>
     ${doc.note ? `<div class="note">${nl2br(doc.note)}</div>` : ''}
     ${toc}
-    ${chapters}
+    ${body}
   `
 }

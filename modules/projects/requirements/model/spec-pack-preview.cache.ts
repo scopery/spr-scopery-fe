@@ -30,7 +30,7 @@ export type LabelMapsSnapshot = {
 }
 
 /** Bump when preview document shape / hydrate fields change (invalidates in-memory docs). */
-const PREVIEW_DOC_SCHEMA_VERSION = 'fn-full-v1'
+const PREVIEW_DOC_SCHEMA_VERSION = 'groups-v1'
 
 function packCacheKey(pack: SpecPack): string {
   return `${PREVIEW_DOC_SCHEMA_VERSION}:${pack.projectId}:${pack.id}:${pack.updatedAt}`

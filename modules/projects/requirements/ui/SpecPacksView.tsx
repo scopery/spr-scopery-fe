@@ -9,19 +9,20 @@ import { exportSpecPackToDoc } from '../export/spec-pack-doc'
 import { useSpecPackPreview } from '../hooks/useSpecPackPreview'
 import { useSpecPacks } from '../hooks/useSpecPacks'
 import type { Requirement } from '../model/requirements'
-import { reorderSpecPackChapters } from '../model/reorder-spec-pack-chapters'
+import { applySpecPackGroupsToPreview } from '../model/reorder-spec-pack-chapters'
 import {
   SpecPackStatus,
   formatSpecPackDate,
   type SpecPack,
+  type SpecPackGroup,
 } from '../model/spec-pack'
 import type { SpecPackPreviewDocument } from '../model/spec-pack-preview'
 import {
   invalidateSpecPackPreviewCache,
   setCachedSpecPackPreview,
 } from '../model/spec-pack-preview.cache'
-import { SpecPackChapterOutline } from './SpecPackChapterOutline'
 import { SpecPackCreateModal } from './SpecPackCreateModal'
+import { SpecPackGroupOutline } from './SpecPackGroupOutline'
 import { SpecPackPreviewPanel } from './SpecPackPreviewPanel'
 
 interface SpecPacksViewProps {
@@ -39,13 +40,22 @@ function statusTone(status: SpecPack['status']): 'neutral' | 'success' | 'info' 
   return 'default'
 }
 
+function groupsSignature(groups: SpecPackGroup[]): string {
+  return groups
+    .map(
+      (g) =>
+        `${g.id}:${g.name}:${g.description ?? ''}:${g.requirements.map((r) => r.id).join(',')}`
+    )
+    .join('|')
+}
+
 export function SpecPacksView({
   workspaceId,
   projectId,
   requirements,
   canCreate = true,
 }: SpecPacksViewProps) {
-  const { packs, createPack, markExported, removePack, reorderRequirements } = useSpecPacks(
+  const { packs, createPack, markExported, removePack, updateGroups } = useSpecPacks(
     workspaceId,
     projectId
   )
@@ -53,9 +63,10 @@ export function SpecPacksView({
   const [createOpen, setCreateOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [optimisticDoc, setOptimisticDoc] = useState<SpecPackPreviewDocument | null>(null)
+  const [localGroups, setLocalGroups] = useState<SpecPackGroup[] | null>(null)
   const [outlineFocusId, setOutlineFocusId] = useState<string | null>(null)
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const pendingOrderRef = useRef<string[] | null>(null)
+  const pendingSigRef = useRef<string | null>(null)
 
   const selected = useMemo(
     () => packs.find((p) => p.id === selectedId) ?? packs[0] ?? null,
@@ -67,10 +78,10 @@ export function SpecPacksView({
     selected
   )
 
-  // Drop optimistic overlay once the hook document matches the pending order (or pack changes).
   useEffect(() => {
     setOptimisticDoc(null)
-    pendingOrderRef.current = null
+    setLocalGroups(null)
+    pendingSigRef.current = null
     if (persistTimer.current) {
       clearTimeout(persistTimer.current)
       persistTimer.current = null
@@ -79,17 +90,10 @@ export function SpecPacksView({
   }, [selected?.id])
 
   useEffect(() => {
-    if (!optimisticDoc || !document || !pendingOrderRef.current) return
-    const pending = pendingOrderRef.current
-    const current = document.chapters.map((c) => c.requirement.id)
-    if (
-      pending.length === current.length &&
-      pending.every((id, i) => id === current[i])
-    ) {
-      setOptimisticDoc(null)
-      pendingOrderRef.current = null
-    }
-  }, [document, optimisticDoc])
+    if (!selected) return
+    if (pendingSigRef.current) return
+    setLocalGroups(selected.groups)
+  }, [selected])
 
   useEffect(() => {
     return () => {
@@ -98,42 +102,32 @@ export function SpecPacksView({
   }, [])
 
   const displayDoc = optimisticDoc ?? document
+  const outlineGroups = localGroups ?? selected?.groups ?? []
 
-  const outlineItems = useMemo(() => {
-    if (displayDoc) {
-      return displayDoc.chapters.map((c) => ({
-        id: c.requirement.id,
-        code: c.requirement.code,
-        title: c.requirement.title,
-      }))
-    }
-    return (
-      selected?.requirements.map((r) => ({
-        id: r.id,
-        code: r.code,
-        title: r.title,
-      })) ?? []
-    )
-  }, [displayDoc, selected])
-
-  const handleChapterReorder = useCallback(
-    (orderedIds: string[]) => {
+  const handleGroupsChange = useCallback(
+    (groups: SpecPackGroup[]) => {
       if (!selected) return
-      pendingOrderRef.current = orderedIds
+      setLocalGroups(groups)
+      pendingSigRef.current = groupsSignature(groups)
 
-      const base = optimisticDoc ?? document
-      const nextDoc = base ? reorderSpecPackChapters(base, orderedIds) : null
-      if (nextDoc) setOptimisticDoc(nextDoc)
+      setOptimisticDoc((prev) => {
+        const base = prev ?? document
+        return base ? applySpecPackGroupsToPreview(base, groups) : prev
+      })
 
       if (persistTimer.current) clearTimeout(persistTimer.current)
       const packId = selected.id
       persistTimer.current = setTimeout(() => {
-        const updated = reorderRequirements(packId, orderedIds)
-        if (!updated || !nextDoc) return
-        setCachedSpecPackPreview(updated, nextDoc)
+        const updated = updateGroups(packId, groups)
+        if (!updated) return
+        setOptimisticDoc((prev) => {
+          if (prev) setCachedSpecPackPreview(updated, prev)
+          pendingSigRef.current = null
+          return prev
+        })
       }, REORDER_DEBOUNCE_MS)
     },
-    [selected, optimisticDoc, document, reorderRequirements]
+    [selected, document, updateGroups]
   )
 
   const handleExport = () => {
@@ -153,7 +147,7 @@ export function SpecPacksView({
 
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden border border-neutral-300 bg-white lg:flex-row">
-      <aside className="flex max-h-[220px] w-full shrink-0 flex-col overflow-hidden border-b border-neutral-200 lg:max-h-none lg:h-auto lg:w-[280px] lg:self-stretch lg:border-b-0 lg:border-r">
+      <aside className="flex max-h-[220px] w-full shrink-0 flex-col overflow-hidden border-b border-neutral-200 lg:max-h-none lg:h-auto lg:w-[260px] lg:self-stretch lg:border-b-0 lg:border-r">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-neutral-100 px-3 py-2.5">
           <div>
             <Typography variant="small" weight="medium">
@@ -175,7 +169,7 @@ export function SpecPacksView({
             <div className="flex h-full flex-col items-center justify-center px-6 py-12 text-center">
               <Typography weight="medium">No packs yet</Typography>
               <Typography variant="small" tone="muted" className="mt-1 max-w-[220px]">
-                Bundle requirements into a Spec Pack, set reading order, then export to DOC.
+                Bundle requirements into named groups, set reading order, then export.
               </Typography>
               {canCreate ? (
                 <Button className="mt-4" size="sm" onClick={() => setCreateOpen(true)}>
@@ -211,10 +205,11 @@ export function SpecPacksView({
                         </Badge>
                       </div>
                       <p className="mt-1 text-xs text-neutral-500">
+                        {pack.groups.length} group{pack.groups.length === 1 ? '' : 's'} ·{' '}
                         {pack.requirements.length} req · {formatSpecPackDate(pack.createdAt)}
                       </p>
                       <p className="mt-1 line-clamp-1 text-[11px] text-neutral-400">
-                        {pack.requirements.map((r) => r.code).join(', ')}
+                        {pack.groups.map((g) => g.name).join(' · ')}
                       </p>
                     </button>
                   </li>
@@ -226,20 +221,21 @@ export function SpecPacksView({
       </aside>
 
       {selected ? (
-        <aside className="flex max-h-[200px] w-full shrink-0 flex-col overflow-hidden border-b border-neutral-200 lg:max-h-none lg:h-auto lg:w-[240px] lg:self-stretch lg:border-b-0 lg:border-r">
+        <aside className="flex max-h-[260px] w-full shrink-0 flex-col overflow-hidden border-b border-neutral-200 lg:max-h-none lg:h-auto lg:w-[280px] lg:self-stretch lg:border-b-0 lg:border-r">
           <div className="shrink-0 border-b border-neutral-100 px-3 py-2.5">
             <Typography variant="small" weight="medium">
-              Reading order
+              Groups & reading order
             </Typography>
             <Typography variant="caption" tone="muted">
-              Drag to reorder · updates preview live
+              Drag groups / requirements · edit name & description
             </Typography>
           </div>
-          <SpecPackChapterOutline
-            items={outlineItems}
-            activeId={outlineFocusId}
-            onSelect={setOutlineFocusId}
-            onReorder={handleChapterReorder}
+          <SpecPackGroupOutline
+            groups={outlineGroups}
+            activeRequirementId={outlineFocusId}
+            onSelectRequirement={setOutlineFocusId}
+            onChange={handleGroupsChange}
+            editableMeta
           />
         </aside>
       ) : null}

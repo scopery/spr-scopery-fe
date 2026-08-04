@@ -85,6 +85,15 @@ export interface SpecPackPreviewRequirementChapter {
   loadError?: string | null
 }
 
+export interface SpecPackPreviewSection {
+  group: {
+    id: string
+    name: string
+    description?: string | null
+  }
+  chapters: SpecPackPreviewRequirementChapter[]
+}
+
 export interface SpecPackPreviewDocument {
   packId: string
   title: string
@@ -92,5 +101,8 @@ export interface SpecPackPreviewDocument {
   projectId: string
   createdAt: string
   generatedAt: string
+  /** Grouped reading sections (source of truth for DOC order). */
+  sections: SpecPackPreviewSection[]
+  /** Flattened chapters — convenience for consumers that ignore groups. */
   chapters: SpecPackPreviewRequirementChapter[]
 }

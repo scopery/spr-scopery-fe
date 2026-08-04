@@ -47,8 +47,19 @@ export function specPackDocStyles(): string {
       vertical-align: top;
     }
     th { background: #f3f4f6; font-weight: 600; width: 28%; }
-    ul { margin: 4px 0 10px 18px; padding: 0; }
+    ul, ol { margin: 4px 0 10px 18px; padding: 0; }
     li { margin: 2px 0; }
+    .toc { margin: 0 0 16px; }
+    .toc-group {
+      font-weight: 600;
+      margin: 10px 0 4px;
+      color: #111827;
+    }
+    .toc-item {
+      margin: 2px 0;
+      color: #374151;
+    }
+    .toc-group ~ .toc-item { margin-left: 1rem; }
     .muted { color: #6b7280; }
     .error { color: #b91c1c; }
     .fn-block {

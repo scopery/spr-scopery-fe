@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import type { CreateSpecPackInput, SpecPack } from '../model/spec-pack'
+import type { CreateSpecPackInput, SpecPack, SpecPackGroup } from '../model/spec-pack'
 import { specPackLocalStore } from '../store/spec-pack.local-store'
 
 export function useSpecPacks(workspaceId: string | null, projectId: string | null) {
@@ -51,14 +51,10 @@ export function useSpecPacks(workspaceId: string | null, projectId: string | nul
     [projectId, reload]
   )
 
-  const reorderRequirements = useCallback(
-    (packId: string, orderedIds: string[]) => {
+  const updateGroups = useCallback(
+    (packId: string, groups: SpecPackGroup[]) => {
       if (!projectId) return null
-      const updated = specPackLocalStore.reorderRequirements(
-        projectId,
-        packId,
-        orderedIds
-      )
+      const updated = specPackLocalStore.updateGroups(projectId, packId, groups)
       if (updated) reload()
       return updated
     },
@@ -80,7 +76,7 @@ export function useSpecPacks(workspaceId: string | null, projectId: string | nul
     createPack,
     markExported,
     removePack,
-    reorderRequirements,
+    updateGroups,
     getPack,
   }
 }
