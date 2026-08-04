@@ -8,51 +8,38 @@ const HEADER_FONT: Partial<ExcelJS.Font> = {
   bold: true,
   color: { argb: 'FF1F2937' },
 }
-const BLOCK_FONT: Partial<ExcelJS.Font> = {
-  name: 'Century Gothic',
-  size: 12,
-  bold: true,
-  color: { argb: 'FF111827' },
-}
-const SECTION_FONT: Partial<ExcelJS.Font> = {
-  name: 'Century Gothic',
-  size: 10,
-  bold: true,
-  color: { argb: 'FF374151' },
-}
-const FIELD_FONT: Partial<ExcelJS.Font> = {
-  name: 'Century Gothic',
-  size: 10,
-  bold: true,
-  color: { argb: 'FF4B5563' },
-}
-
-const BLOCK_FILL: ExcelJS.Fill = {
-  type: 'pattern',
-  pattern: 'solid',
-  fgColor: { argb: 'FFE5E7EB' },
-}
-const SECTION_FILL: ExcelJS.Fill = {
-  type: 'pattern',
-  pattern: 'solid',
-  fgColor: { argb: 'FFF3F4F6' },
-}
-const HEADER_FILL: ExcelJS.Fill = {
-  type: 'pattern',
-  pattern: 'solid',
-  fgColor: { argb: 'FFF9FAFB' },
-}
 const LINK_FONT: Partial<ExcelJS.Font> = {
   name: 'Century Gothic',
   size: 10,
   color: { argb: 'FF1D4ED8' },
   underline: true,
 }
+const HEADER_FILL: ExcelJS.Fill = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FFE5E7EB' },
+}
+
+const GROUP_FILLS = [
+  'FFEFF6FF',
+  'FFF0FDF4',
+  'FFFFF7ED',
+  'FFF5F3FF',
+  'FFFDF2F8',
+] as const
+
+const PRIORITY_FILL: Record<string, string> = {
+  critical: 'FFFEE2E2',
+  high: 'FFFFEDD5',
+  medium: 'FFFEF9C3',
+  low: 'FFF3F4F6',
+}
 
 export const BUSINESS_SHEET = {
-  requirementView: 'Requirement View',
-  functionView: 'Function View',
-  useCaseView: 'Use Case View',
+  summary: 'Summary',
+  requirements: 'Requirements',
+  functions: 'Functions',
+  useCases: 'Use Cases',
   traceability: 'Traceability',
 } as const
 
@@ -63,419 +50,466 @@ export function codeTitle(code: string, title: string): string {
   return c || t
 }
 
-type Writer = {
-  sheet: ExcelJS.Worksheet
-  row: number
+export type SheetAnchors = {
+  requirements: Map<string, number>
+  functions: Map<string, number>
+  useCases: Map<string, number>
 }
 
-function ensureWidths(sheet: ExcelJS.Worksheet, widths: number[]): void {
-  widths.forEach((w, i) => {
-    sheet.getColumn(i + 1).width = w
-  })
+function styleHeader(sheet: ExcelJS.Worksheet, columnCount: number): void {
+  const row = sheet.getRow(1)
+  row.height = 22
+  row.font = HEADER_FONT
+  for (let c = 1; c <= columnCount; c++) {
+    const cell = row.getCell(c)
+    cell.fill = HEADER_FILL
+    cell.alignment = { vertical: 'middle', wrapText: true }
+    cell.border = {
+      bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+    }
+  }
 }
 
-function paintRow(
+function configureListSheet(
   sheet: ExcelJS.Worksheet,
-  rowNumber: number,
-  values: Array<string | number | ExcelJS.CellValue>,
-  opts?: {
-    outlineLevel?: number
-    font?: Partial<ExcelJS.Font>
-    fill?: ExcelJS.Fill
-    boldFirst?: boolean
-  }
-): ExcelJS.Row {
-  const row = sheet.getRow(rowNumber)
-  row.outlineLevel = opts?.outlineLevel ?? 0
-  values.forEach((value, i) => {
-    const cell = row.getCell(i + 1)
-    cell.value = value
-    cell.font = opts?.font ?? FONT
-    cell.alignment = { vertical: 'top', wrapText: true }
-    if (opts?.fill) cell.fill = opts.fill
-    if (opts?.boldFirst && i === 0) cell.font = FIELD_FONT
-  })
-  return row
-}
-
-function writeBlank(w: Writer, outlineLevel = 0): void {
-  const row = w.sheet.getRow(w.row)
-  row.outlineLevel = outlineLevel
-  w.row += 1
-}
-
-function writeBlockHeader(w: Writer, title: string): number {
-  const start = w.row
-  paintRow(w.sheet, w.row, [title], {
-    outlineLevel: 0,
-    font: BLOCK_FONT,
-    fill: BLOCK_FILL,
-  })
-  w.row += 1
-  return start
-}
-
-function writeSectionHeader(w: Writer, title: string): void {
-  paintRow(w.sheet, w.row, [title], {
-    outlineLevel: 1,
-    font: SECTION_FONT,
-    fill: SECTION_FILL,
-  })
-  w.row += 1
-}
-
-function writeField(w: Writer, field: string, value: string): void {
-  paintRow(w.sheet, w.row, [field, value], {
-    outlineLevel: 1,
-    boldFirst: true,
-  })
-  w.row += 1
-}
-
-function writeTableHeader(w: Writer, headers: string[], outlineLevel = 1): void {
-  paintRow(w.sheet, w.row, headers, {
-    outlineLevel,
-    font: HEADER_FONT,
-    fill: HEADER_FILL,
-  })
-  w.row += 1
-}
-
-function writeTableRow(
-  w: Writer,
-  values: Array<string | number | ExcelJS.CellValue>,
-  outlineLevel = 1
-): ExcelJS.Row {
-  const row = paintRow(w.sheet, w.row, values, { outlineLevel })
-  w.row += 1
-  return row
-}
-
-function prepViewSheet(sheet: ExcelJS.Worksheet, widths: number[]): void {
-  ensureWidths(sheet, widths)
-  sheet.views = [{ showGridLines: false, state: 'frozen', ySplit: 1 }]
-  sheet.properties.outlineLevelRow = 1
-  // summaryBelow:false → collapse control sits on the parent (block header) row
-  ;(sheet.properties as ExcelJS.Worksheet['properties'] & {
-    outlineProperties?: { summaryBelow: boolean; summaryRight: boolean }
-  }).outlineProperties = {
-    summaryBelow: false,
-    summaryRight: false,
+  columnCount: number,
+  freezeCols = 2
+): void {
+  styleHeader(sheet, columnCount)
+  sheet.views = [
+    {
+      state: 'frozen',
+      xSplit: freezeCols,
+      ySplit: 1,
+      showGridLines: false,
+      activeCell: 'A2',
+    },
+  ]
+  sheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: 1, column: columnCount },
   }
 }
 
-/** Map function code → first row of its Function View block. */
-export function addFunctionViewSheet(
+function applyBody(sheet: ExcelJS.Worksheet): void {
+  sheet.eachRow((row, n) => {
+    if (n === 1) return
+    row.font = FONT
+    row.alignment = { vertical: 'top', wrapText: true }
+  })
+}
+
+function priorityFillArgb(priority: string): string | null {
+  const key = priority.trim().toLowerCase()
+  if (!key) return null
+  for (const [token, fill] of Object.entries(PRIORITY_FILL)) {
+    if (key.includes(token)) return fill
+  }
+  return null
+}
+
+function groupFillIndex(group: string, cache: Map<string, number>): number {
+  if (!cache.has(group)) cache.set(group, cache.size % GROUP_FILLS.length)
+  return cache.get(group)!
+}
+
+function paintGroupAndPriority(
+  sheet: ExcelJS.Worksheet,
+  rows: Array<{ group?: string; priority?: string }>,
+  groupCol: number | null,
+  priorityCol: number | null
+): void {
+  const cache = new Map<string, number>()
+  rows.forEach((r, i) => {
+    const excelRow = i + 2
+    if (groupCol != null && r.group) {
+      const fill = GROUP_FILLS[groupFillIndex(r.group, cache)]!
+      sheet.getRow(excelRow).getCell(groupCol).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: fill },
+      }
+    }
+    if (priorityCol != null && r.priority) {
+      const fill = priorityFillArgb(r.priority)
+      if (fill) {
+        sheet.getRow(excelRow).getCell(priorityCol).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: fill },
+        }
+      }
+    }
+  })
+}
+
+function setHyperlink(
+  cell: ExcelJS.Cell,
+  text: string,
+  sheetName: string,
+  row: number,
+  colLetter = 'A'
+): void {
+  if (!text || row < 2) {
+    cell.value = text
+    return
+  }
+  cell.value = {
+    text,
+    hyperlink: `#'${sheetName}'!${colLetter}${row}`,
+  }
+  cell.font = LINK_FONT
+}
+
+function formatFnAc(flat: SpecPackExcelFlat, functionCode: string): string {
+  return flat.fnAcceptanceCriteria
+    .filter((r) => r.functionCode === functionCode)
+    .map((r) => `${r.acNo}. ${r.criterion}`)
+    .join('\n')
+}
+
+function formatFnBr(flat: SpecPackExcelFlat, functionCode: string): string {
+  return flat.fnBusinessRules
+    .filter((r) => r.functionCode === functionCode)
+    .map((r) => {
+      const head = [r.ruleCode, r.severity].filter(Boolean).join(' | ')
+      return [head, r.ruleTitle, r.description].filter(Boolean).join('\n')
+    })
+    .join('\n\n')
+}
+
+function formatUcConditions(flat: SpecPackExcelFlat, useCaseKey: string): string {
+  return flat.ucConditions
+    .filter((c) => c.useCaseKey === useCaseKey)
+    .map((c) => `${c.conditionType} — ${c.content}`)
+    .join('\n')
+}
+
+function formatUcFlows(flat: SpecPackExcelFlat, useCaseKey: string): string {
+  const flows = flat.ucFlows.filter((f) => f.useCaseKey === useCaseKey)
+  return flows
+    .map((flow) => {
+      const title = [flow.flowType, flow.flowName].filter(Boolean).join(' — ')
+      const lines = [title]
+      if (flow.conditionText) lines.push(`Condition: ${flow.conditionText}`)
+      const steps = flat.ucFlowSteps.filter(
+        (s) => s.useCaseKey === useCaseKey && s.flowNo === flow.flowNo
+      )
+      for (const step of steps) {
+        lines.push(`${step.stepNo}. [${step.stepType}] ${step.content}`)
+      }
+      return lines.join('\n')
+    })
+    .join('\n\n')
+}
+
+function formatUcBr(flat: SpecPackExcelFlat, useCaseKey: string): string {
+  return flat.ucBusinessRules
+    .filter((r) => r.useCaseKey === useCaseKey)
+    .map((r) => `${r.ruleCode}\n${r.description}`)
+    .join('\n\n')
+}
+
+function formatUcAc(flat: SpecPackExcelFlat, useCaseKey: string): string {
+  return flat.ucAcceptanceCriteria
+    .filter((r) => r.useCaseKey === useCaseKey)
+    .map((r) => {
+      const lines = [r.title]
+      if (r.given) lines.push(`GIVEN ${r.given}`)
+      if (r.when) lines.push(`WHEN ${r.when}`)
+      if (r.then) lines.push(`THEN ${r.then}`)
+      return lines.join('\n')
+    })
+    .join('\n\n')
+}
+
+/** Build Functions sheet first so Requirements can hyperlink into it. */
+export function addFunctionsListSheet(
   wb: ExcelJS.Workbook,
   flat: SpecPackExcelFlat
 ): Map<string, number> {
-  const sheet = wb.addWorksheet(BUSINESS_SHEET.functionView)
-  prepViewSheet(sheet, [22, 56, 14, 14, 48])
-  paintRow(sheet, 1, ['Function View — each function is a self-contained block'], {
-    font: SECTION_FONT,
+  const sheet = wb.addWorksheet(BUSINESS_SHEET.functions)
+  const headers = [
+    'Function Code',
+    'Function Title',
+    'Description',
+    'Type',
+    'Priority',
+    'Linked Requirements',
+    'Acceptance Criteria',
+    'Business Rules',
+  ]
+  sheet.columns = [
+    { header: headers[0], key: 'functionCode', width: 14 },
+    { header: headers[1], key: 'title', width: 32 },
+    { header: headers[2], key: 'description', width: 48 },
+    { header: headers[3], key: 'type', width: 14 },
+    { header: headers[4], key: 'priority', width: 12 },
+    { header: headers[5], key: 'linkedRequirements', width: 40 },
+    { header: headers[6], key: 'acceptanceCriteria', width: 44 },
+    { header: headers[7], key: 'businessRules', width: 40 },
+  ]
+
+  const anchors = new Map<string, number>()
+  flat.functions.forEach((fn, i) => {
+    const excelRow = i + 2
+    anchors.set(fn.functionCode, excelRow)
+    const linked = flat.reqFnLinks
+      .filter((l) => l.functionCode === fn.functionCode)
+      .map((l) => codeTitle(l.requirementCode, l.requirementTitle))
+      .join('\n')
+    sheet.addRow({
+      functionCode: fn.functionCode,
+      title: fn.title,
+      description: fn.description,
+      type: fn.type,
+      priority: fn.priority,
+      linkedRequirements: linked,
+      acceptanceCriteria: formatFnAc(flat, fn.functionCode),
+      businessRules: formatFnBr(flat, fn.functionCode),
+    })
   })
 
-  const anchorByFn = new Map<string, number>()
-  const w: Writer = { sheet, row: 3 }
-
-  for (const fn of flat.functions) {
-    const anchor = writeBlockHeader(
-      w,
-      `FUNCTION · ${codeTitle(fn.functionCode, fn.title)}`
-    )
-    anchorByFn.set(fn.functionCode, anchor)
-
-    writeSectionHeader(w, 'FUNCTION INFORMATION')
-    writeField(w, 'Function', codeTitle(fn.functionCode, fn.title))
-    writeField(w, 'Type', fn.type)
-    writeField(w, 'Priority', fn.priority)
-    writeField(w, 'Description', fn.description)
-
-    const linkedReqs = flat.reqFnLinks.filter((l) => l.functionCode === fn.functionCode)
-    writeSectionHeader(w, 'LINKED REQUIREMENTS')
-    if (linkedReqs.length === 0) {
-      writeTableRow(w, ['(none)'])
-    } else {
-      writeTableHeader(w, ['Requirement', 'Requirement Title'])
-      for (const link of linkedReqs) {
-        writeTableRow(w, [link.requirementCode, link.requirementTitle])
-      }
-    }
-
-    const acs = flat.fnAcceptanceCriteria.filter((r) => r.functionCode === fn.functionCode)
-    writeSectionHeader(w, 'ACCEPTANCE CRITERIA')
-    if (acs.length === 0) {
-      writeTableRow(w, ['(none)'])
-    } else {
-      writeTableHeader(w, ['No.', 'Acceptance Criterion'])
-      for (const ac of acs) writeTableRow(w, [ac.acNo, ac.criterion])
-    }
-
-    const brs = flat.fnBusinessRules.filter((r) => r.functionCode === fn.functionCode)
-    writeSectionHeader(w, 'BUSINESS RULES')
-    if (brs.length === 0) {
-      writeTableRow(w, ['(none)'])
-    } else {
-      writeTableHeader(w, ['Rule', 'Rule Title', 'Severity', 'Description'])
-      for (const br of brs) {
-        writeTableRow(w, [br.ruleCode, br.ruleTitle, br.severity, br.description])
-      }
-    }
-
-    writeBlank(w, 0)
-  }
-
-  return anchorByFn
+  configureListSheet(sheet, headers.length, 1)
+  applyBody(sheet)
+  paintGroupAndPriority(
+    sheet,
+    flat.functions.map((f) => ({ priority: f.priority })),
+    null,
+    5
+  )
+  return anchors
 }
 
-/** Map requirement code → first row of its Requirement View block. */
-export function addRequirementViewSheet(
+export function addRequirementsListSheet(
   wb: ExcelJS.Workbook,
   flat: SpecPackExcelFlat,
   functionAnchors: Map<string, number>
 ): Map<string, number> {
-  const sheet = wb.addWorksheet(BUSINESS_SHEET.requirementView)
-  prepViewSheet(sheet, [22, 42, 14, 14, 48])
-  paintRow(sheet, 1, ['Requirement View — linked functions shown below each requirement'], {
-    font: SECTION_FONT,
-  })
-
-  const fnByCode = new Map(flat.functions.map((f) => [f.functionCode, f]))
-  const anchorByReq = new Map<string, number>()
-  const w: Writer = { sheet, row: 3 }
-
-  for (const req of flat.requirements) {
-    const anchor = writeBlockHeader(w, `REQUIREMENT · ${codeTitle(req.code, req.title)}`)
-    anchorByReq.set(req.code, anchor)
-
-    writeSectionHeader(w, 'REQUIREMENT INFORMATION')
-    writeField(w, 'Requirement', codeTitle(req.code, req.title))
-    writeField(w, 'Group', req.group)
-    writeField(w, 'Requirement Type', req.requirementType)
-    writeField(w, 'Priority', req.priority)
-    writeField(w, 'Description', req.description)
-
-    const linked = flat.reqFnLinks.filter((l) => l.requirementCode === req.code)
-    writeSectionHeader(w, 'LINKED FUNCTIONS')
-    if (linked.length === 0) {
-      writeTableRow(w, ['(none)'])
-    } else {
-      writeTableHeader(w, ['Function', 'Function Title', 'Priority', 'Type'])
-      for (const link of linked) {
-        const fn = fnByCode.get(link.functionCode)
-        const row = writeTableRow(w, [
-          link.functionCode,
-          link.functionTitle,
-          fn?.priority ?? '',
-          fn?.type ?? '',
-        ])
-        const target = functionAnchors.get(link.functionCode)
-        if (target) {
-          const cell = row.getCell(1)
-          cell.value = {
-            text: link.functionCode,
-            hyperlink: `#'${BUSINESS_SHEET.functionView}'!A${target}`,
-          }
-          cell.font = LINK_FONT
-        }
-      }
-    }
-
-    writeBlank(w, 0)
-  }
-
-  return anchorByReq
-}
-
-export function addUseCaseViewSheet(
-  wb: ExcelJS.Workbook,
-  flat: SpecPackExcelFlat
-): Map<string, number> {
-  const sheet = wb.addWorksheet(BUSINESS_SHEET.useCaseView)
-  prepViewSheet(sheet, [22, 42, 16, 48, 36])
-  paintRow(sheet, 1, ['Use Case View — full use case detail in one block'], {
-    font: SECTION_FONT,
-  })
-
-  const anchorByUc = new Map<string, number>()
-  const w: Writer = { sheet, row: 3 }
-
-  for (const uc of flat.useCases) {
-    const parentLinks = flat.fnUcLinks.filter((l) => l.useCaseKey === uc.useCaseKey)
-    const parentLabel = parentLinks
-      .map((l) => codeTitle(l.functionCode, l.functionTitle))
-      .join('\n')
-
-    const anchor = writeBlockHeader(w, `USE CASE · ${codeTitle(uc.useCaseKey, uc.name)}`)
-    anchorByUc.set(uc.useCaseKey, anchor)
-
-    writeSectionHeader(w, 'USE CASE INFORMATION')
-    writeField(w, 'Use Case', codeTitle(uc.useCaseKey, uc.name))
-    writeField(w, 'Parent Function', parentLabel || '(none)')
-    writeField(w, 'Goal', uc.goal)
-    writeField(w, 'Primary Actor', uc.primaryActor)
-    writeField(w, 'Trigger', uc.trigger)
-
-    writeSectionHeader(
-      w,
-      'RELATED REQUIREMENTS (through parent function — not owned by the use case)'
+  const sheet = wb.addWorksheet(BUSINESS_SHEET.requirements)
+  const maxLinks = Math.max(
+    1,
+    ...flat.requirements.map(
+      (req) =>
+        flat.reqFnLinks.filter((l) => l.requirementCode === req.code).length
     )
-    const relatedReqs = new Map<string, string>()
-    for (const pl of parentLinks) {
-      for (const link of flat.reqFnLinks) {
-        if (link.functionCode !== pl.functionCode) continue
-        relatedReqs.set(link.requirementCode, link.requirementTitle)
-      }
-    }
-    if (relatedReqs.size === 0) {
-      writeTableRow(w, ['(none)'])
-    } else {
-      writeTableHeader(w, ['Requirement', 'Requirement Title'])
-      for (const [code, title] of relatedReqs) writeTableRow(w, [code, title])
-    }
+  )
 
-    const conditions = flat.ucConditions.filter((c) => c.useCaseKey === uc.useCaseKey)
-    writeSectionHeader(w, 'CONDITIONS')
-    if (conditions.length === 0) {
-      writeTableRow(w, ['(none)'])
-    } else {
-      writeTableHeader(w, ['Type', 'Content'])
-      for (const c of conditions) writeTableRow(w, [c.conditionType, c.content])
-    }
+  const baseHeaders = [
+    'Group',
+    'Requirement Code',
+    'Requirement Title',
+    'Description',
+    'Requirement Type',
+    'Priority',
+  ]
+  const linkHeaders = Array.from(
+    { length: maxLinks },
+    (_, i) => `Linked Function ${i + 1}`
+  )
+  const headers = [...baseHeaders, ...linkHeaders]
 
-    const flows = flat.ucFlows.filter((f) => f.useCaseKey === uc.useCaseKey)
-    if (flows.length === 0) {
-      writeSectionHeader(w, 'FLOWS')
-      writeTableRow(w, ['(none)'])
-    } else {
-      for (const flow of flows) {
-        const flowTitle =
-          flow.flowType === 'MAIN'
-            ? 'MAIN FLOW'
-            : `${flow.flowType} FLOW${flow.flowName ? ` — ${flow.flowName}` : ''}`
-        writeSectionHeader(w, flowTitle)
-        if (flow.conditionText) writeField(w, 'Condition Text', flow.conditionText)
-        const steps = flat.ucFlowSteps.filter(
-          (s) => s.useCaseKey === uc.useCaseKey && s.flowNo === flow.flowNo
+  sheet.columns = [
+    { header: 'Group', key: 'group', width: 18 },
+    { header: 'Requirement Code', key: 'code', width: 14 },
+    { header: 'Requirement Title', key: 'title', width: 32 },
+    { header: 'Description', key: 'description', width: 48 },
+    { header: 'Requirement Type', key: 'requirementType', width: 16 },
+    { header: 'Priority', key: 'priority', width: 12 },
+    ...linkHeaders.map((h, i) => ({
+      header: h,
+      key: `linkedFn${i + 1}`,
+      width: 36,
+    })),
+  ]
+
+  const anchors = new Map<string, number>()
+  flat.requirements.forEach((req, i) => {
+    const excelRow = i + 2
+    anchors.set(req.code, excelRow)
+    const links = flat.reqFnLinks.filter((l) => l.requirementCode === req.code)
+    const row: Record<string, string> = {
+      group: req.group,
+      code: req.code,
+      title: req.title,
+      description: req.description,
+      requirementType: req.requirementType,
+      priority: req.priority,
+    }
+    for (let n = 0; n < maxLinks; n++) {
+      const link = links[n]
+      row[`linkedFn${n + 1}`] = link
+        ? codeTitle(link.functionCode, link.functionTitle)
+        : ''
+    }
+    sheet.addRow(row)
+
+    links.forEach((link, n) => {
+      const cell = sheet.getRow(excelRow).getCell(baseHeaders.length + n + 1)
+      const target = functionAnchors.get(link.functionCode)
+      if (target) {
+        setHyperlink(
+          cell,
+          codeTitle(link.functionCode, link.functionTitle),
+          BUSINESS_SHEET.functions,
+          target
         )
-        if (steps.length === 0) {
-          writeTableRow(w, ['(no steps)'], 2)
-        } else {
-          writeTableHeader(w, ['Step', 'Step Type', 'Content'], 2)
-          for (const step of steps) {
-            writeTableRow(w, [step.stepNo, step.stepType, step.content], 2)
-          }
-        }
       }
-    }
+    })
+  })
 
-    const brs = flat.ucBusinessRules.filter((r) => r.useCaseKey === uc.useCaseKey)
-    writeSectionHeader(w, 'USE CASE BUSINESS RULES')
-    if (brs.length === 0) {
-      writeTableRow(w, ['(none)'])
-    } else {
-      writeTableHeader(w, ['Rule Code', 'Description'])
-      for (const br of brs) writeTableRow(w, [br.ruleCode, br.description])
-    }
-
-    const acs = flat.ucAcceptanceCriteria.filter((r) => r.useCaseKey === uc.useCaseKey)
-    writeSectionHeader(w, 'USE CASE ACCEPTANCE CRITERIA')
-    if (acs.length === 0) {
-      writeTableRow(w, ['(none)'])
-    } else {
-      writeTableHeader(w, ['Title', 'Given', 'When', 'Then'])
-      for (const ac of acs) writeTableRow(w, [ac.title, ac.given, ac.when, ac.then])
-    }
-
-    writeBlank(w, 0)
-  }
-
-  return anchorByUc
+  configureListSheet(sheet, headers.length, 2)
+  applyBody(sheet)
+  paintGroupAndPriority(
+    sheet,
+    flat.requirements.map((r) => ({ group: r.group, priority: r.priority })),
+    1,
+    6
+  )
+  return anchors
 }
 
-export function addTraceabilitySheet(
+export function addUseCasesListSheet(
   wb: ExcelJS.Workbook,
   flat: SpecPackExcelFlat,
-  anchors: {
-    requirements: Map<string, number>
-    functions: Map<string, number>
-    useCases: Map<string, number>
-  }
+  functionAnchors: Map<string, number>
+): Map<string, number> {
+  const sheet = wb.addWorksheet(BUSINESS_SHEET.useCases)
+  const headers = [
+    'Use Case Key',
+    'Use Case Name',
+    'Parent Function',
+    'Goal',
+    'Primary Actor',
+    'Trigger',
+    'Conditions',
+    'Flows and Steps',
+    'Business Rules',
+    'Acceptance Criteria',
+  ]
+  sheet.columns = [
+    { header: headers[0], key: 'useCaseKey', width: 16 },
+    { header: headers[1], key: 'name', width: 28 },
+    { header: headers[2], key: 'parentFunction', width: 40 },
+    { header: headers[3], key: 'goal', width: 32 },
+    { header: headers[4], key: 'primaryActor', width: 16 },
+    { header: headers[5], key: 'trigger', width: 28 },
+    { header: headers[6], key: 'conditions', width: 36 },
+    { header: headers[7], key: 'flows', width: 44 },
+    { header: headers[8], key: 'businessRules', width: 32 },
+    { header: headers[9], key: 'acceptanceCriteria', width: 40 },
+  ]
+
+  const anchors = new Map<string, number>()
+  flat.useCases.forEach((uc, i) => {
+    const excelRow = i + 2
+    anchors.set(uc.useCaseKey, excelRow)
+    const parents = flat.fnUcLinks.filter((l) => l.useCaseKey === uc.useCaseKey)
+    const primary = parents[0]
+    const parentLabel = primary
+      ? codeTitle(primary.functionCode, primary.functionTitle)
+      : parents
+          .map((p) => codeTitle(p.functionCode, p.functionTitle))
+          .join('\n')
+
+    sheet.addRow({
+      useCaseKey: uc.useCaseKey,
+      name: uc.name,
+      parentFunction: parentLabel,
+      goal: uc.goal,
+      primaryActor: uc.primaryActor,
+      trigger: uc.trigger,
+      conditions: formatUcConditions(flat, uc.useCaseKey),
+      flows: formatUcFlows(flat, uc.useCaseKey),
+      businessRules: formatUcBr(flat, uc.useCaseKey),
+      acceptanceCriteria: formatUcAc(flat, uc.useCaseKey),
+    })
+
+    if (primary) {
+      const target = functionAnchors.get(primary.functionCode)
+      if (target) {
+        setHyperlink(
+          sheet.getRow(excelRow).getCell(3),
+          parentLabel,
+          BUSINESS_SHEET.functions,
+          target
+        )
+      }
+    }
+  })
+
+  configureListSheet(sheet, headers.length, 1)
+  applyBody(sheet)
+  return anchors
+}
+
+export function addTraceabilityListSheet(
+  wb: ExcelJS.Workbook,
+  flat: SpecPackExcelFlat,
+  anchors: SheetAnchors
 ): void {
   const sheet = wb.addWorksheet(BUSINESS_SHEET.traceability)
-  ensureWidths(sheet, [16, 36, 14, 36, 16, 32])
-  sheet.views = [{ showGridLines: false, state: 'frozen', ySplit: 1 }]
-
-  const headers = [
-    'Requirement',
-    'Requirement Title',
-    'Function',
-    'Function Title',
-    'Use Case',
-    'Use Case Name',
+  sheet.columns = [
+    { header: 'Requirement Code', key: 'requirementCode', width: 14 },
+    { header: 'Requirement Title', key: 'requirementTitle', width: 32 },
+    { header: 'Function Code', key: 'functionCode', width: 14 },
+    { header: 'Function Title', key: 'functionTitle', width: 32 },
+    { header: 'Use Case Key', key: 'useCaseKey', width: 16 },
+    { header: 'Use Case Name', key: 'useCaseName', width: 28 },
   ]
-  paintRow(sheet, 1, headers, { font: HEADER_FONT, fill: HEADER_FILL })
-  sheet.autoFilter = {
-    from: { row: 1, column: 1 },
-    to: { row: 1, column: 6 },
-  }
 
   let rowNum = 2
   for (const link of flat.reqFnLinks) {
     const ucLinks = flat.fnUcLinks.filter((u) => u.functionCode === link.functionCode)
-    const rows =
+    const paths =
       ucLinks.length > 0
-        ? ucLinks.map((u) => ({
-            ucKey: u.useCaseKey,
-            ucName: u.useCaseName,
-          }))
-        : [{ ucKey: '', ucName: '' }]
+        ? ucLinks
+        : [{ useCaseKey: '', useCaseName: '', functionCode: '', functionTitle: '' }]
 
-    for (const uc of rows) {
+    for (const uc of paths) {
+      sheet.addRow({
+        requirementCode: link.requirementCode,
+        requirementTitle: link.requirementTitle,
+        functionCode: link.functionCode,
+        functionTitle: link.functionTitle,
+        useCaseKey: uc.useCaseKey,
+        useCaseName: uc.useCaseName,
+      })
       const row = sheet.getRow(rowNum)
-      row.font = FONT
-      row.alignment = { vertical: 'top', wrapText: true }
-
-      const reqCell = row.getCell(1)
       const reqAnchor = anchors.requirements.get(link.requirementCode)
       if (reqAnchor) {
-        reqCell.value = {
-          text: link.requirementCode,
-          hyperlink: `#'${BUSINESS_SHEET.requirementView}'!A${reqAnchor}`,
-        }
-        reqCell.font = LINK_FONT
-      } else {
-        reqCell.value = link.requirementCode
+        setHyperlink(
+          row.getCell(1),
+          link.requirementCode,
+          BUSINESS_SHEET.requirements,
+          reqAnchor,
+          'B'
+        )
       }
-      row.getCell(2).value = link.requirementTitle
-
-      const fnCell = row.getCell(3)
       const fnAnchor = anchors.functions.get(link.functionCode)
       if (fnAnchor) {
-        fnCell.value = {
-          text: link.functionCode,
-          hyperlink: `#'${BUSINESS_SHEET.functionView}'!A${fnAnchor}`,
-        }
-        fnCell.font = LINK_FONT
-      } else {
-        fnCell.value = link.functionCode
+        setHyperlink(
+          row.getCell(3),
+          link.functionCode,
+          BUSINESS_SHEET.functions,
+          fnAnchor
+        )
       }
-      row.getCell(4).value = link.functionTitle
-
-      const ucCell = row.getCell(5)
-      const ucAnchor = uc.ucKey ? anchors.useCases.get(uc.ucKey) : undefined
-      if (uc.ucKey && ucAnchor) {
-        ucCell.value = {
-          text: uc.ucKey,
-          hyperlink: `#'${BUSINESS_SHEET.useCaseView}'!A${ucAnchor}`,
+      if (uc.useCaseKey) {
+        const ucAnchor = anchors.useCases.get(uc.useCaseKey)
+        if (ucAnchor) {
+          setHyperlink(
+            row.getCell(5),
+            uc.useCaseKey,
+            BUSINESS_SHEET.useCases,
+            ucAnchor
+          )
         }
-        ucCell.font = LINK_FONT
-      } else {
-        ucCell.value = uc.ucKey
       }
-      row.getCell(6).value = uc.ucName
-
       rowNum += 1
     }
   }
+
+  configureListSheet(sheet, 6, 1)
+  applyBody(sheet)
 }

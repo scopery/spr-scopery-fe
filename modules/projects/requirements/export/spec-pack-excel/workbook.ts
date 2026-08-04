@@ -1,10 +1,10 @@
 import ExcelJS from 'exceljs'
 import type { SpecPackPreviewDocument } from '../../model/spec-pack-preview'
 import {
-  addFunctionViewSheet,
-  addRequirementViewSheet,
-  addTraceabilitySheet,
-  addUseCaseViewSheet,
+  addFunctionsListSheet,
+  addRequirementsListSheet,
+  addTraceabilityListSheet,
+  addUseCasesListSheet,
   BUSINESS_SHEET,
 } from './business-views'
 import {
@@ -48,35 +48,20 @@ const LOOKUP_FILL: ExcelJS.Fill = {
   fgColor: { argb: 'FFF3F4F6' },
 }
 
-const GROUP_FILLS = [
-  'FFEFF6FF',
-  'FFF0FDF4',
-  'FFFFF7ED',
-  'FFF5F3FF',
-  'FFFDF2F8',
-] as const
-
-const PRIORITY_FILL: Record<string, string> = {
-  critical: 'FFFEE2E2',
-  high: 'FFFFEDD5',
-  medium: 'FFFEF9C3',
-  low: 'FFF3F4F6',
-}
-
-/** Normalized storage sheets — hidden; business reads View sheets instead. */
+/** Hidden normalized / raw storage sheets. */
 const DATA_SHEET = {
-  requirements: 'Requirements_Data',
-  functions: 'Functions_Data',
-  reqFnLinks: 'Requirement_Function_Links',
-  fnAc: 'Function_AC_Data',
-  fnBr: 'Function_BR_Data',
-  useCases: 'UseCases_Data',
-  fnUcLinks: 'Function_UseCase_Links',
-  ucConditions: 'UC_Conditions_Data',
-  ucFlows: 'UC_Flows_Data',
-  ucSteps: 'UC_Steps_Data',
-  ucBr: 'UC_BR_Data',
-  ucAc: 'UC_AC_Data',
+  requirements: 'Raw Requirements',
+  functions: 'Raw Functions',
+  reqFnLinks: 'Raw Req-Function Links',
+  fnAc: 'Raw Function AC',
+  fnBr: 'Raw Function BR',
+  useCases: 'Raw Use Cases',
+  fnUcLinks: 'Raw Function-UC Links',
+  ucConditions: 'Raw UC Conditions',
+  ucFlows: 'Raw UC Flows',
+  ucSteps: 'Raw UC Steps',
+  ucBr: 'Raw UC BR',
+  ucAc: 'Raw UC AC',
   technical: 'Technical Metadata',
 } as const
 
@@ -139,33 +124,15 @@ function paintLookupColumns(
   })
 }
 
-function priorityFillArgb(priority: string): string | null {
-  const key = priority.trim().toLowerCase()
-  if (!key) return null
-  for (const [token, fill] of Object.entries(PRIORITY_FILL)) {
-    if (key.includes(token)) return fill
-  }
-  return null
-}
-
-function groupFillIndex(group: string, cache: Map<string, number>): number {
-  if (!cache.has(group)) cache.set(group, cache.size % GROUP_FILLS.length)
-  return cache.get(group)!
-}
-
 function addDataSheet(
   wb: ExcelJS.Workbook,
   name: string,
   cols: ColDef[],
   rows: Record<string, unknown>[],
-  opts?: {
-    freezeCols?: number
-    paintGroupPriority?: boolean
-    hidden?: boolean
-  }
+  opts?: { freezeCols?: number }
 ): void {
   const sheet = wb.addWorksheet(name)
-  if (opts?.hidden !== false) sheet.state = 'hidden'
+  sheet.state = 'hidden'
   sheet.columns = cols.map(({ header, key, width }) => ({ header, key, width }))
   for (const row of rows) sheet.addRow(row)
   configureTableSheet(sheet, {
@@ -173,41 +140,13 @@ function addDataSheet(
     freezeCols: opts?.freezeCols ?? 1,
   })
   paintLookupColumns(sheet, cols, rows.length)
-
-  if (opts?.paintGroupPriority) {
-    const groupCol = cols.findIndex((c) => c.key === 'group') + 1
-    const priorityCol = cols.findIndex((c) => c.key === 'priority') + 1
-    const groupCache = new Map<string, number>()
-    rows.forEach((row, i) => {
-      const excelRow = i + 2
-      if (groupCol > 0) {
-        const group = String(row.group ?? '')
-        const gFill = GROUP_FILLS[groupFillIndex(group, groupCache)]!
-        sheet.getRow(excelRow).getCell(groupCol).fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: gFill },
-        }
-      }
-      if (priorityCol > 0) {
-        const pFill = priorityFillArgb(String(row.priority ?? ''))
-        if (pFill) {
-          sheet.getRow(excelRow).getCell(priorityCol).fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: pFill },
-          }
-        }
-      }
-    })
-  }
 }
 
 function addSummarySheet(
   wb: ExcelJS.Workbook,
   stats: SpecPackExcelSummaryStats
 ): void {
-  const sheet = wb.addWorksheet('Summary')
+  const sheet = wb.addWorksheet(BUSINESS_SHEET.summary)
   sheet.views = [{ showGridLines: false }]
   sheet.getColumn(1).width = 32
   sheet.getColumn(2).width = 18
@@ -284,7 +223,7 @@ function addNormalizedDataSheets(wb: ExcelJS.Workbook, flat: SpecPackExcelFlat):
       { header: 'Description', key: 'description', width: 58 },
     ],
     flat.requirements,
-    { freezeCols: 2, paintGroupPriority: true }
+    { freezeCols: 2 }
   )
 
   addDataSheet(
@@ -297,8 +236,7 @@ function addNormalizedDataSheets(wb: ExcelJS.Workbook, flat: SpecPackExcelFlat):
       { header: 'Priority', key: 'priority', width: 12 },
       { header: 'Type', key: 'type', width: 14 },
     ],
-    flat.functions,
-    { freezeCols: 1, paintGroupPriority: true }
+    flat.functions
   )
 
   addDataSheet(
@@ -459,15 +397,17 @@ function addNormalizedDataSheets(wb: ExcelJS.Workbook, flat: SpecPackExcelFlat):
 
 function setVisibleSheetOrder(wb: ExcelJS.Workbook): void {
   const order = [
-    'Summary',
-    BUSINESS_SHEET.requirementView,
-    BUSINESS_SHEET.functionView,
-    BUSINESS_SHEET.useCaseView,
+    BUSINESS_SHEET.summary,
+    BUSINESS_SHEET.requirements,
+    BUSINESS_SHEET.functions,
+    BUSINESS_SHEET.useCases,
     BUSINESS_SHEET.traceability,
     ...Object.values(DATA_SHEET),
   ]
   order.forEach((name, index) => {
-    const sheet = wb.getWorksheet(name) as (ExcelJS.Worksheet & { orderNo?: number }) | undefined
+    const sheet = wb.getWorksheet(name) as
+      | (ExcelJS.Worksheet & { orderNo?: number })
+      | undefined
     if (sheet) sheet.orderNo = index + 1
   })
 }
@@ -481,7 +421,7 @@ export function suggestSpecPackExcelFilename(doc: SpecPackPreviewDocument): stri
   return `${safe || 'spec-pack'}-scope.xlsx`
 }
 
-/** Business views first; normalized data sheets hidden at the end. */
+/** List-style business sheets + hidden raw/normalized data. */
 export async function buildSpecPackExcelWorkbook(
   doc: SpecPackPreviewDocument
 ): Promise<ExcelJS.Workbook> {
@@ -490,11 +430,11 @@ export async function buildSpecPackExcelWorkbook(
   wb.creator = 'Scopery'
   wb.created = new Date()
 
-  // Build Function View before Requirement View so linked codes can hyperlink.
-  const functionAnchors = addFunctionViewSheet(wb, flat)
-  const requirementAnchors = addRequirementViewSheet(wb, flat, functionAnchors)
-  const useCaseAnchors = addUseCaseViewSheet(wb, flat)
-  addTraceabilitySheet(wb, flat, {
+  // Functions first → Requirements can hyperlink Linked Function cells.
+  const functionAnchors = addFunctionsListSheet(wb, flat)
+  const requirementAnchors = addRequirementsListSheet(wb, flat, functionAnchors)
+  const useCaseAnchors = addUseCasesListSheet(wb, flat, functionAnchors)
+  addTraceabilityListSheet(wb, flat, {
     requirements: requirementAnchors,
     functions: functionAnchors,
     useCases: useCaseAnchors,
