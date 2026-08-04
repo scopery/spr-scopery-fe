@@ -38,10 +38,10 @@ export function specPackDocStyles(): string {
       margin: 18px 0 6px;
     }
     h4 {
-      font-size: 11pt;
+      font-size: 11.5pt;
       font-weight: 700;
-      margin: 12px 0 4px;
-      color: #374151;
+      margin: 14px 0 6px;
+      color: #111827;
     }
     p { margin: 0 0 8px; font-weight: 400; }
     .meta {
@@ -115,16 +115,29 @@ export function specPackDocStyles(): string {
     }
     .toc-group ~ .toc-item { margin-left: 1rem; }
     .muted { color: #6b7280; font-weight: 400; }
+    .code-muted {
+      color: #6b7280;
+      font-weight: 400;
+      font-size: 10pt;
+    }
     .error { color: #b91c1c; }
+    /* Indent only — no outline box around functions */
     .fn-block {
-      border: 1px solid #e5e7eb;
-      padding: 10px 12px;
-      margin: 10px 0 14px;
+      border: none;
+      padding: 0 0 8px 18px;
+      margin: 8px 0 16px;
     }
     .uc-block {
-      border-top: 1px solid #e5e7eb;
-      margin-top: 12px;
-      padding-top: 10px;
+      border-top: none;
+      margin-top: 10px;
+      padding-top: 4px;
+      padding-left: 12px;
+    }
+    .section-label {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #374151;
+      margin: 12px 0 4px;
     }
   `
 }

@@ -542,16 +542,16 @@ export function SpecPackGroupOutline({
                             className="min-w-0 flex-1 text-left"
                             onClick={() => onSelectRequirement?.(req.id)}
                           >
-                            <div className="flex items-baseline gap-1">
-                              <span className="text-[10px] tabular-nums text-neutral-400">
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="shrink-0 text-[10px] tabular-nums text-neutral-400">
                                 {reqOrdinal}.
                               </span>
-                              <span className="truncate text-xs font-medium text-neutral-800">
-                                {req.code}
+                              <span className="line-clamp-2 text-xs font-semibold text-neutral-900">
+                                {req.title}
                               </span>
                             </div>
-                            <p className="line-clamp-2 pl-4 text-[11px] text-neutral-500">
-                              {req.title}
+                            <p className="mt-0.5 pl-4 text-[10px] text-neutral-400">
+                              {req.code}
                             </p>
                           </button>
                           {canRemoveReqs ? (

@@ -19,7 +19,7 @@ function itemLabel(item: SpecPackPreviewItem): string {
 function renderItemList(title: string, items: SpecPackPreviewItem[]): string {
   if (!items.length) return ''
   const rows = items.map((i) => `<li>${itemLabel(i)}</li>`).join('')
-  return `<h4><b>${escapeHtml(title)}</b></h4><ul>${rows}</ul>`
+  return `<p class="section-label">${escapeHtml(title)}</p><ul>${rows}</ul>`
 }
 
 function renderChips(labels: Array<string | null | undefined>): string {
@@ -52,7 +52,7 @@ function renderUseCaseHtml(
 
   const conditions =
     uc.conditions.length > 0
-      ? `<h4><b>Conditions</b></h4><ul>${uc.conditions
+      ? `<p class="section-label">Conditions</p><ul>${uc.conditions
           .map(
             (c) =>
               `<li><strong>${escapeHtml(c.type)}</strong> — ${escapeHtml(c.content)}</li>`
@@ -62,7 +62,7 @@ function renderUseCaseHtml(
 
   const rules =
     uc.businessRules.length > 0
-      ? `<h4><b>Business rules</b></h4><ul>${uc.businessRules
+      ? `<p class="section-label">Business rules</p><ul>${uc.businessRules
           .map(
             (r) =>
               `<li><strong>${escapeHtml(r.code)}</strong> — ${escapeHtml(r.description)}</li>`
@@ -72,7 +72,7 @@ function renderUseCaseHtml(
 
   const ac =
     uc.acceptanceCriteria.length > 0
-      ? `<h4><b>Acceptance criteria</b></h4><ul>${uc.acceptanceCriteria
+      ? `<p class="section-label">Acceptance criteria</p><ul>${uc.acceptanceCriteria
           .map((a) => {
             const gwt = [
               a.givenText ? `Given: ${escapeHtml(a.givenText)}` : null,
@@ -105,15 +105,15 @@ function renderUseCaseHtml(
       const cond = f.conditionText
         ? `<p class="muted">${escapeHtml(f.conditionText)}</p>`
         : ''
-      return `<h4><b>Flow · ${escapeHtml(title)}</b></h4>${cond}${steps}`
+      return `<p class="section-label">Flow · ${escapeHtml(title)}</p>${cond}${steps}`
     })
     .join('')
 
   return `
     <div class="uc-block">
-      <h4><b>${escapeHtml(numberLabel)}. Use Case · ${escapeHtml(uc.key)} — ${escapeHtml(
-        uc.name
-      )}</b></h4>
+      <p class="section-label">${escapeHtml(numberLabel)}. ${escapeHtml(uc.name)}${
+        uc.key ? ` <span class="code-muted">${escapeHtml(uc.key)}</span>` : ''
+      }</p>
       ${metaRows ? `<table>${metaRows}</table>` : ''}
       ${conditions}
       ${rules}
@@ -130,7 +130,8 @@ export function renderFunctionBlockHtml(
 ): string {
   const fn = block.function
   const numberLabel = `${chapterNo}.${functionNo}`
-  const title = [fn.code, fn.name].filter(Boolean).join(' — ')
+  const fnName = fn.name || fn.code || 'Function'
+  const fnCode = fn.code && fn.name ? fn.code : null
 
   const metaRows = [
     metaRow('Code', fn.code ? escapeHtml(fn.code) : null),
@@ -159,17 +160,17 @@ export function renderFunctionBlockHtml(
 
   const acceptance =
     fn.acceptanceCriteria && fn.acceptanceCriteria.length > 0
-      ? `<h4><b>Acceptance criteria</b></h4><ol>${fn.acceptanceCriteria
+      ? `<p class="section-label">Acceptance criteria</p><ol>${fn.acceptanceCriteria
           .map((c) => `<li>${nl2br(c)}</li>`)
           .join('')}</ol>`
       : ''
 
   const rules =
     fn.businessRules && fn.businessRules.length > 0
-      ? `<h4><b>Business rules</b></h4><table>${fn.businessRules
+      ? `<p class="section-label">Business rules</p><table>${fn.businessRules
           .map((r) => {
-            const head = [r.code, r.title].filter(Boolean).join(' — ')
-            return `<tr><th>${escapeHtml(head)}</th><td>${renderChips([
+            const head = [r.title, r.code].filter(Boolean).join(' · ')
+            return `<tr><th>${escapeHtml(head || 'Rule')}</th><td>${renderChips([
               r.severity,
               r.status,
             ])}${r.description ? `<div>${nl2br(r.description)}</div>` : ''}</td></tr>`
@@ -183,7 +184,9 @@ export function renderFunctionBlockHtml(
 
   return `
     <div class="fn-block">
-      <h3><b>${escapeHtml(numberLabel)}. Function · ${escapeHtml(title)}</b></h3>
+      <h4><b>${escapeHtml(numberLabel)}. ${escapeHtml(fnName)}</b>${
+        fnCode ? ` <span class="code-muted">${escapeHtml(fnCode)}</span>` : ''
+      }</h4>
       ${metaRows ? `<table>${metaRows}</table>` : ''}
       ${acceptance}
       ${rules}
@@ -207,10 +210,13 @@ export function renderRequirementChapterHtml(
   const req = chapter.requirement
   const chapterNo = index + 1
   const chips = renderChips([req.requirementType, req.priority])
+  const titleHtml = `<b>${chapterNo}. ${escapeHtml(req.title)}</b>${
+    req.code ? ` <span class="code-muted">${escapeHtml(req.code)}</span>` : ''
+  }`
 
   if (chapter.loadError) {
     return `
-      <h2><b>${chapterNo}. ${escapeHtml(req.code)} — ${escapeHtml(req.title)}</b></h2>
+      <h3>${titleHtml}</h3>
       <p class="error">${escapeHtml(chapter.loadError)}</p>
     `
   }
@@ -220,7 +226,7 @@ export function renderRequirementChapterHtml(
     .join('')
 
   return `
-    <h2><b>${chapterNo}. ${escapeHtml(req.code)} — ${escapeHtml(req.title)}</b></h2>
+    <h3>${titleHtml}</h3>
     ${chips ? chips : ''}
     ${
       req.description
@@ -257,8 +263,12 @@ export function renderSpecPackBodyHtml(doc: SpecPackPreviewDocument): string {
       chapterCounter += 1
       tocItems.push(
         `<div class="toc-item">${chapterCounter}. ${escapeHtml(
+          chapter.requirement.title
+        )}${
           chapter.requirement.code
-        )} — ${escapeHtml(chapter.requirement.title)}</div>`
+            ? ` <span class="code-muted">${escapeHtml(chapter.requirement.code)}</span>`
+            : ''
+        }</div>`
       )
     }
   }
@@ -266,7 +276,7 @@ export function renderSpecPackBodyHtml(doc: SpecPackPreviewDocument): string {
   const toc =
     chapterCounter > 0
       ? `
-    <h2><b>Contents</b></h2>
+    <p class="toc-heading">Contents</p>
     <div class="toc">
       ${tocItems.join('\n')}
     </div>

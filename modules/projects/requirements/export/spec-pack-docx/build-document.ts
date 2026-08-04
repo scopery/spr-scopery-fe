@@ -69,31 +69,36 @@ function para(
 function heading1(label: string): Paragraph {
   return new Paragraph({
     heading: HeadingLevel.HEADING_1,
-    spacing: { after: 160 },
-    children: [text(label, { bold: true, size: 32 })],
-  })
-}
-
-function heading2(label: string): Paragraph {
-  return new Paragraph({
-    heading: HeadingLevel.HEADING_2,
     spacing: { before: 280, after: 120 },
-    border: {
-      bottom: { style: BorderStyle.SINGLE, size: 6, color: 'D1D5DB', space: 4 },
-    },
-    children: [text(label, { bold: true, size: 26 })],
+    children: [text(label, { bold: true, size: 28 })],
   })
 }
 
-function heading3(label: string): Paragraph {
+/** Heading with bold title + optional muted code (for Word auto-TOC). */
+function headingWithTitle(
+  level: (typeof HeadingLevel)[keyof typeof HeadingLevel],
+  opts: {
+    prefix?: string
+    title: string
+    code?: string | null
+    size: number
+    spacingBefore?: number
+  }
+): Paragraph {
   return new Paragraph({
-    heading: HeadingLevel.HEADING_3,
-    spacing: { before: 200, after: 100 },
-    children: [text(label, { bold: true, size: 22 })],
+    heading: level,
+    spacing: { before: opts.spacingBefore ?? 200, after: 100 },
+    children: [
+      ...(opts.prefix ? [text(`${opts.prefix} `, { bold: true, size: opts.size })] : []),
+      text(opts.title, { bold: true, size: opts.size }),
+      ...(opts.code
+        ? [text(`  ${opts.code}`, { muted: true, size: Math.max(18, opts.size - 4) })]
+        : []),
+    ],
   })
 }
 
-function heading4(label: string): Paragraph {
+function sectionLabel(label: string): Paragraph {
   return new Paragraph({
     spacing: { before: 160, after: 80 },
     children: [text(label, { bold: true, size: 20, muted: true })],
@@ -102,6 +107,14 @@ function heading4(label: string): Paragraph {
 
 function mutedPara(content: string): Paragraph {
   return para([text(content, { muted: true })])
+}
+
+function docTitle(label: string): Paragraph {
+  // Not a Heading style — keeps Word TOC clean for Groups / Requirements / Functions.
+  return new Paragraph({
+    spacing: { after: 160 },
+    children: [text(label, { bold: true, size: 36 })],
+  })
 }
 
 /** Status / type / priority as separate bordered cells (Word-safe). */
@@ -175,11 +188,21 @@ function bullet(label: string, body?: string): Paragraph {
 function itemList(title: string, items: SpecPackPreviewItem[]): Array<Paragraph> {
   if (!items.length) return []
   return [
-    heading4(title),
+    sectionLabel(title),
     ...items.map((i) => {
-      const code = i.code ? `${i.code} · ` : ''
+      const name = i.name
+      const code = i.code ? `  ${i.code}` : ''
       const secondary = i.secondary ? ` (${i.secondary})` : ''
-      return bullet(`${code}${i.name}${secondary}`)
+      return new Paragraph({
+        spacing: { after: 60 },
+        indent: { left: 360 },
+        children: [
+          text('• '),
+          text(name, { bold: true }),
+          ...(code ? [text(code, { muted: true })] : []),
+          ...(secondary ? [text(secondary, { muted: true })] : []),
+        ],
+      })
     }),
   ]
 }
@@ -196,7 +219,7 @@ function resolveSections(doc: SpecPackPreviewDocument): SpecPackPreviewSection[]
 
 function renderUseCase(uc: SpecPackPreviewUseCase, numberLabel: string): Array<Paragraph | Table> {
   const out: Array<Paragraph | Table> = [
-    heading4(`${numberLabel}. Use Case · ${uc.key} — ${uc.name}`),
+    sectionLabel(`${numberLabel}. ${uc.name}${uc.key ? `  (${uc.key})` : ''}`),
   ]
   const meta = metaTable([
     ['Goal', uc.goal],
@@ -206,15 +229,15 @@ function renderUseCase(uc: SpecPackPreviewUseCase, numberLabel: string): Array<P
   if (meta) out.push(meta)
 
   if (uc.conditions.length) {
-    out.push(heading4('Conditions'))
+    out.push(sectionLabel('Conditions'))
     for (const c of uc.conditions) out.push(bullet(c.type, c.content))
   }
   if (uc.businessRules.length) {
-    out.push(heading4('Business rules'))
+    out.push(sectionLabel('Business rules'))
     for (const r of uc.businessRules) out.push(bullet(r.code, r.description))
   }
   if (uc.acceptanceCriteria.length) {
-    out.push(heading4('Acceptance criteria'))
+    out.push(sectionLabel('Acceptance criteria'))
     for (const a of uc.acceptanceCriteria) {
       const gwt = [
         a.givenText ? `Given: ${a.givenText}` : null,
@@ -228,7 +251,7 @@ function renderUseCase(uc: SpecPackPreviewUseCase, numberLabel: string): Array<P
   }
   for (const f of uc.flows) {
     const title = [f.flowType, f.name].filter(Boolean).join(' · ')
-    out.push(heading4(`Flow · ${title}`))
+    out.push(sectionLabel(`Flow · ${title}`))
     if (f.conditionText) out.push(mutedPara(f.conditionText))
     if (!f.steps.length) out.push(mutedPara('No steps.'))
     else {
@@ -253,9 +276,16 @@ function renderFunction(
 ): Array<Paragraph | Table> {
   const fn = block.function
   const numberLabel = `${chapterNo}.${functionNo}`
-  const title = [fn.code, fn.name].filter(Boolean).join(' — ')
+  const fnName = fn.name || fn.code || 'Function'
   const out: Array<Paragraph | Table> = [
-    heading3(`${numberLabel}. Function · ${title}`),
+    // Heading 3 → shows in Word TOC (levels 1–3)
+    headingWithTitle(HeadingLevel.HEADING_3, {
+      prefix: `${numberLabel}.`,
+      title: fnName,
+      code: fn.code && fn.name ? fn.code : null,
+      size: 22,
+      spacingBefore: 160,
+    }),
   ]
 
   const meta = metaTable([
@@ -267,7 +297,7 @@ function renderFunction(
     [
       'Module',
       block.module
-        ? [block.module.code, block.module.name].filter(Boolean).join(' · ')
+        ? [block.module.name, block.module.code].filter(Boolean).join(' · ')
         : fn.moduleId,
     ],
     ['Description', fn.description],
@@ -277,15 +307,20 @@ function renderFunction(
   if (meta) out.push(meta)
 
   if (fn.acceptanceCriteria?.length) {
-    out.push(heading4('Acceptance criteria'))
+    out.push(sectionLabel('Acceptance criteria'))
     fn.acceptanceCriteria.forEach((c, i) => out.push(para(`${i + 1}. ${c}`)))
   }
 
   if (fn.businessRules?.length) {
-    out.push(heading4('Business rules'))
+    out.push(sectionLabel('Business rules'))
     for (const r of fn.businessRules) {
-      const head = [r.code, r.title].filter(Boolean).join(' — ')
-      out.push(para([text(head, { bold: true })]))
+      const head = r.title || r.code || 'Rule'
+      out.push(
+        para([
+          text(head, { bold: true }),
+          ...(r.code && r.title ? [text(`  ${r.code}`, { muted: true })] : []),
+        ])
+      )
       const chips = chipRow([r.severity, r.status])
       if (chips) out.push(chips)
       if (r.description) out.push(para(r.description))
@@ -314,7 +349,14 @@ function renderChapter(
 ): Array<Paragraph | Table> {
   const req = chapter.requirement
   const out: Array<Paragraph | Table> = [
-    heading2(`${chapterNo}. ${req.code} — ${req.title}`),
+    // Heading 2 → Word TOC
+    headingWithTitle(HeadingLevel.HEADING_2, {
+      prefix: `${chapterNo}.`,
+      title: req.title,
+      code: req.code,
+      size: 24,
+      spacingBefore: 240,
+    }),
   ]
   const chips = chipRow([req.requirementType, req.priority])
   if (chips) out.push(chips)
@@ -343,7 +385,7 @@ export async function buildSpecPackDocx(doc: SpecPackPreviewDocument): Promise<B
   const sections = resolveSections(doc)
   const children: Array<Paragraph | Table> = []
 
-  children.push(heading1(doc.title))
+  children.push(docTitle(doc.title))
   children.push(
     para(
       [
@@ -386,28 +428,12 @@ export async function buildSpecPackDocx(doc: SpecPackPreviewDocument): Promise<B
     )
   }
 
-  // TOC
-  let chapterCounter = 0
-  const showGroupHeadings = sections.length > 1
-  children.push(heading2('Contents'))
-  for (const section of sections) {
-    if (showGroupHeadings) {
-      children.push(para([text(section.group.name, { bold: true })]))
-    }
-    for (const chapter of section.chapters) {
-      chapterCounter += 1
-      children.push(
-        para(
-          `${chapterCounter}. ${chapter.requirement.code} — ${chapter.requirement.title}`,
-          { spacingAfter: 60 }
-        )
-      )
-    }
-  }
+  // No baked-in Contents — use Word References → Table of Contents
+  // (Headings: H1 Group · H2 Requirement · H3 Function).
 
-  chapterCounter = 0
+  let chapterCounter = 0
   for (const section of sections) {
-    children.push(heading2(section.group.name))
+    children.push(heading1(section.group.name))
     if (section.group.description?.trim()) {
       children.push(mutedPara(section.group.description))
     }
