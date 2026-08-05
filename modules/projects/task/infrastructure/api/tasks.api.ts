@@ -98,6 +98,38 @@ export async function assignTask(
   })
 }
 
+/**
+ * Keep task plan fields aligned with Gantt bar dates.
+ * Timeline endDate ↔ task.dueDate; startDate ↔ plannedStartDate.
+ * Uses get+put merge so other task fields are not wiped.
+ */
+export async function syncTaskScheduleDates(
+  projectId: string,
+  taskId: string,
+  dates: {
+    plannedStartDate?: string | null
+    dueDate: string | null
+  }
+): Promise<ProjectTask> {
+  const task = await getTask(projectId, taskId)
+  return updateTask(projectId, taskId, {
+    projectPhaseId: task.projectPhaseId,
+    wbsNodeId: task.wbsNodeId,
+    title: task.title,
+    description: task.description,
+    inChargeUserId: task.inChargeUserId,
+    plannedRoleCode: task.plannedRoleCode,
+    plannedRoleName: task.plannedRoleName,
+    estimateHours: task.estimateHours,
+    plannedStartDate:
+      dates.plannedStartDate !== undefined
+        ? dates.plannedStartDate
+        : task.plannedStartDate,
+    dueDate: dates.dueDate,
+    priority: task.priority,
+  })
+}
+
 export async function startTask(projectId: string, taskId: string): Promise<ProjectTask> {
   return apiClient.patch<ProjectTask>(PROJECT_ENDPOINTS.tasks.start(projectId, taskId))
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ApiError } from '@/shared/lib/api-types'
+import { tasksApi } from '@/modules/projects/task'
 import * as ganttApi from '../../infrastructure/api/gantt.api'
 import {
   buildGanttTree,
@@ -96,6 +97,11 @@ export function useProjectGantt(projectId: string | null, params?: GanttViewPara
     async (taskId: string, body: MoveGanttTaskPayload, opts?: { refresh?: boolean }) => {
       if (!projectId) return
       await ganttApi.moveGanttTask(projectId, taskId, body)
+      // Keep task.dueDate / plannedStartDate in lockstep with the Gantt bar.
+      await tasksApi.syncTaskScheduleDates(projectId, taskId, {
+        plannedStartDate: body.manualStartDate,
+        dueDate: body.manualFinishDate,
+      })
       if (opts?.refresh !== false) {
         await load()
       }
@@ -107,6 +113,10 @@ export function useProjectGantt(projectId: string | null, params?: GanttViewPara
     async (taskId: string, body: ResizeGanttTaskPayload, opts?: { refresh?: boolean }) => {
       if (!projectId) return
       await ganttApi.resizeGanttTask(projectId, taskId, body)
+      // Resize only changes finish → sync dueDate; leave plannedStartDate as-is.
+      await tasksApi.syncTaskScheduleDates(projectId, taskId, {
+        dueDate: body.manualFinishDate,
+      })
       if (opts?.refresh !== false) {
         await load()
       }
