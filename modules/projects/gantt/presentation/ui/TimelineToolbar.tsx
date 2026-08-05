@@ -50,6 +50,9 @@ type Props = {
   onToggleCriticalPath: () => void
   onToggleHideUnscheduled: () => void
   onCaptureBaseline: () => void
+  onExportExcel?: () => void
+  exportingExcel?: boolean
+  canExportExcel?: boolean
   phaseJumpSlot?: ReactNode
 }
 
@@ -94,6 +97,9 @@ export function TimelineToolbar({
   onToggleCriticalPath,
   onToggleHideUnscheduled,
   onCaptureBaseline,
+  onExportExcel,
+  exportingExcel = false,
+  canExportExcel = true,
   phaseJumpSlot,
 }: Props) {
   const [fitOpen, setFitOpen] = useState(false)
@@ -294,6 +300,23 @@ export function TimelineToolbar({
             >
               {hideUnscheduled ? 'Show' : 'Hide'} Unscheduled Tasks
             </button>
+            {onExportExcel ? (
+              <button
+                type="button"
+                className={cn(
+                  anchoredMenuItemClassName,
+                  (!canExportExcel || exportingExcel) && 'opacity-50'
+                )}
+                disabled={!canExportExcel || exportingExcel}
+                onClick={() => {
+                  if (!canExportExcel || exportingExcel) return
+                  setViewOpen(false)
+                  onExportExcel()
+                }}
+              >
+                {exportingExcel ? 'Exporting…' : 'Export to Excel'}
+              </button>
+            ) : null}
           </AnchoredMenu>
         </div>
 

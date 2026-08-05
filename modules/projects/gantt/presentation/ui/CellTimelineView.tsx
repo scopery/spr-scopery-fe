@@ -75,6 +75,7 @@ import { ProgressUpdatePopover } from './ProgressUpdatePopover'
 import { AllocationEditorPanel } from './AllocationEditorPanel'
 import { TimelineDependenciesPanel } from './TimelineDependenciesPanel'
 import { TimelineDependencyLinks } from './TimelineDependencyLinks'
+import { downloadGanttExcel } from '../exportGanttExcel'
 import { TimelineToolbar } from './TimelineToolbar'
 import { PhaseDetailDrawer } from './PhaseDetailDrawer'
 import { PhaseJumpSelect } from './PhaseJumpSelect'
@@ -212,6 +213,7 @@ export function CellTimelineView() {
   const [createPhaseOpen, setCreatePhaseOpen] = useState(false)
   const [createWbsOpen, setCreateWbsOpen] = useState(false)
   const [addMenuOpen, setAddMenuOpen] = useState(false)
+  const [exportingExcel, setExportingExcel] = useState(false)
   const addMenuRef = useRef<HTMLDivElement>(null)
 
   const planning = true // Cell editing always on for Day/Week; Month/Quarter are view-first
@@ -1330,6 +1332,24 @@ export function CellTimelineView() {
         onCaptureBaseline={() => {
           tl.captureBaseline(taskRows)
           toast.success('Baseline captured locally')
+        }}
+        canExportExcel={tl.items.length > 0}
+        exportingExcel={exportingExcel}
+        onExportExcel={() => {
+          if (tl.items.length === 0) {
+            toast.error('Nothing to export yet')
+            return
+          }
+          setExportingExcel(true)
+          void downloadGanttExcel(tl.tree.length ? tl.tree : tl.items, {
+            projectName: project?.name ?? project?.code ?? 'Project',
+            fileName: `${project?.code ?? 'project'}-timeline`,
+          })
+            .then(() => toast.success('Excel downloaded'))
+            .catch((err) => {
+              toast.error(err instanceof Error ? err.message : 'Export failed')
+            })
+            .finally(() => setExportingExcel(false))
         }}
         phaseJumpSlot={<PhaseJumpSelect phases={tl.phaseRows} onJump={jumpToPhase} />}
       />

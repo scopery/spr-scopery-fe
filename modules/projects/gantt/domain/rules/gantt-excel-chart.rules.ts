@@ -1,18 +1,19 @@
+import {
+  TIMELINE_EXCEL_BAR_COLORS,
+  TIMELINE_EXCEL_MAX_DAY_COLUMNS,
+  buildTimelineExcelChartColumns,
+  spanOverlapsChartColumn,
+  toExcelDateOnly,
+  type TimelineExcelChartColumn,
+  type TimelineExcelChartScale,
+} from '@/shared/lib/excel'
 import { toDateOnly } from './gantt.rules'
 import type { GanttItem } from '../model/gantt'
 
-/** Soft cap so Excel stays usable for long projects. */
-export const GANTT_EXCEL_MAX_DAY_COLUMNS = 120
+export const GANTT_EXCEL_MAX_DAY_COLUMNS = TIMELINE_EXCEL_MAX_DAY_COLUMNS
 
-export type GanttExcelChartScale = 'day' | 'week'
-
-export interface GanttExcelChartColumn {
-  /** Inclusive start YYYY-MM-DD */
-  start: string
-  /** Inclusive end YYYY-MM-DD (same as start for day scale) */
-  end: string
-  label: string
-}
+export type GanttExcelChartScale = TimelineExcelChartScale
+export type GanttExcelChartColumn = TimelineExcelChartColumn
 
 export interface FlattenedGanttExcelRow {
   item: GanttItem
@@ -31,126 +32,54 @@ export function flattenGanttItemsForExport(items: GanttItem[]): FlattenedGanttEx
   return out
 }
 
-function parseDateOnly(value: string): Date {
-  const [y, m, d] = value.split('-').map(Number)
-  return new Date(y, m - 1, d)
-}
-
-function formatDateOnly(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
-
-function addDays(dateOnly: string, days: number): string {
-  const d = parseDateOnly(dateOnly)
-  d.setDate(d.getDate() + days)
-  return formatDateOnly(d)
-}
-
-function dayDiffInclusive(start: string, end: string): number {
-  const a = parseDateOnly(start).getTime()
-  const b = parseDateOnly(end).getTime()
-  return Math.max(1, Math.round((b - a) / (24 * 60 * 60 * 1000)) + 1)
-}
-
-function rangesOverlap(
-  aStart: string,
-  aEnd: string,
-  bStart: string,
-  bEnd: string
-): boolean {
-  return aStart <= bEnd && bStart <= aEnd
-}
-
-function shortDayLabel(dateOnly: string): string {
-  const d = parseDateOnly(dateOnly)
-  return `${d.getMonth() + 1}/${d.getDate()}`
-}
-
 /**
  * Build a contiguous day or week axis covering scheduled items.
- * Falls back to week scale when the span would exceed `maxDayColumns`.
+ * Delegates to shared timeline Excel chart helpers.
  */
 export function buildGanttExcelChartColumns(
   items: FlattenedGanttExcelRow[],
   maxDayColumns: number = GANTT_EXCEL_MAX_DAY_COLUMNS
 ): { scale: GanttExcelChartScale; columns: GanttExcelChartColumn[] } {
-  let min: string | null = null
-  let max: string | null = null
-
-  for (const { item } of items) {
-    const start = toDateOnly(item.startDate)
-    const end = toDateOnly(item.endDate ?? item.startDate)
-    if (!start) continue
-    const finish = end && end >= start ? end : start
-    if (!min || start < min) min = start
-    if (!max || finish > max) max = finish
-  }
-
-  if (!min || !max) {
-    return { scale: 'day', columns: [] }
-  }
-
-  // Small pad so bars are not glued to edges
-  min = addDays(min, -1)
-  max = addDays(max, 1)
-
-  const span = dayDiffInclusive(min, max)
-  if (span <= maxDayColumns) {
-    const columns: GanttExcelChartColumn[] = []
-    let cursor = min
-    while (cursor <= max) {
-      columns.push({ start: cursor, end: cursor, label: shortDayLabel(cursor) })
-      cursor = addDays(cursor, 1)
-    }
-    return { scale: 'day', columns }
-  }
-
-  // Week buckets (Mon–Sun-ish: 7-day chunks from min)
-  const columns: GanttExcelChartColumn[] = []
-  let cursor = min
-  while (cursor <= max) {
-    const weekEnd = addDays(cursor, 6)
-    const end = weekEnd > max ? max : weekEnd
-    columns.push({
-      start: cursor,
-      end,
-      label: `${shortDayLabel(cursor)}`,
-    })
-    cursor = addDays(end, 1)
-  }
-  return { scale: 'week', columns }
+  return buildTimelineExcelChartColumns(
+    items.map(({ item }) => ({
+      startDate: toDateOnly(item.startDate),
+      endDate: toDateOnly(item.endDate ?? item.startDate),
+    })),
+    maxDayColumns
+  )
 }
 
 export function itemOverlapsChartColumn(
   item: GanttItem,
   column: GanttExcelChartColumn
 ): boolean {
-  const start = toDateOnly(item.startDate)
-  if (!start) return false
-  const endRaw = toDateOnly(item.endDate ?? item.startDate)
-  const end = endRaw && endRaw >= start ? endRaw : start
-  return rangesOverlap(start, end, column.start, column.end)
+  return spanOverlapsChartColumn(
+    {
+      startDate: toDateOnly(item.startDate),
+      endDate: toDateOnly(item.endDate ?? item.startDate),
+    },
+    column
+  )
 }
 
-/** Hex fills for Excel cell background (ARGB without alpha prefix for ExcelJS). */
+/** Hex fills for Excel cell background (RRGGBB). Shared palette in `@/shared/lib/excel`. */
 export function ganttExcelBarFillHex(item: GanttItem): string {
   const status = (item.scheduleStatus ?? '').toUpperCase()
-  if (status === 'UNSCHEDULED') return 'D4D4D8' // zinc-300
-  if (status === 'AT_RISK' || status === 'DELAYED') return 'F59E0B' // amber-500
+  if (status === 'UNSCHEDULED') return TIMELINE_EXCEL_BAR_COLORS.unscheduled
+  if (status === 'AT_RISK' || status === 'DELAYED') return TIMELINE_EXCEL_BAR_COLORS.atRisk
   switch ((item.itemType ?? '').toUpperCase()) {
     case 'PROJECT':
-      return 'E4EA94'
+      return TIMELINE_EXCEL_BAR_COLORS.project
     case 'PHASE':
-      return 'AEE2DD'
+      return TIMELINE_EXCEL_BAR_COLORS.phase
     case 'WBS_NODE':
-      return 'EDCFEA'
+      return TIMELINE_EXCEL_BAR_COLORS.wbs
     case 'MILESTONE':
-      return '8B5CF6' // violet-500
+      return TIMELINE_EXCEL_BAR_COLORS.milestone
     case 'TASK':
     default:
-      return 'A8B8FC'
+      return TIMELINE_EXCEL_BAR_COLORS.task
   }
 }
+
+export { toExcelDateOnly }

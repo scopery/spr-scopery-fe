@@ -37,6 +37,7 @@ import {
   type TimelineMetricType,
 } from '@/modules/projects/gantt'
 import { useResourceTimeline } from '../hooks/useResourceTimeline'
+import { downloadTeamScheduleExcel } from '../exportTeamScheduleExcel'
 import {
   AssignTaskConfirmModal,
   type AssignTaskConfirmTarget,
@@ -123,6 +124,7 @@ export function ResourceTimelineView() {
   const [includeUnassigned, setIncludeUnassigned] = useState(true)
   const [metric, setMetric] = useState<TimelineMetricType>(TimelineMetric.Schedule)
   const [viewOpen, setViewOpen] = useState(false)
+  const [exportingExcel, setExportingExcel] = useState(false)
   const [hoverRowId, setHoverRowId] = useState<string | null>(null)
   const [assignTarget, setAssignTarget] = useState<AssignTaskConfirmTarget | null>(
     null
@@ -239,6 +241,29 @@ export function ResourceTimelineView() {
       if (scrollCanvasToTodayColumn()) pendingScrollToTodayRef.current = false
     })
   }, [tl.goToday, scrollCanvasToTodayColumn])
+
+  const handleExportExcel = useCallback(async () => {
+    if (!tl.hasData || exportingExcel) return
+    setExportingExcel(true)
+    try {
+      await downloadTeamScheduleExcel(tl.rows, {
+        personLabelFor: labelFor,
+        projectNameForTask: tl.projectNameForTask,
+        fileName: selectedUserId
+          ? `team-schedule-${labelFor(selectedUserId)}`
+          : 'team-schedule',
+      })
+    } finally {
+      setExportingExcel(false)
+    }
+  }, [
+    exportingExcel,
+    labelFor,
+    selectedUserId,
+    tl.hasData,
+    tl.projectNameForTask,
+    tl.rows,
+  ])
 
   useEffect(() => {
     if (!pendingScrollToTodayRef.current) return
@@ -544,6 +569,22 @@ export function ResourceTimelineView() {
                   </button>
                 )
               })}
+              <div className="border-t border-neutral-100" />
+              <button
+                type="button"
+                className={cn(
+                  anchoredMenuItemClassName,
+                  (!tl.hasData || exportingExcel) && 'opacity-50'
+                )}
+                disabled={!tl.hasData || exportingExcel}
+                onClick={() => {
+                  if (!tl.hasData || exportingExcel) return
+                  setViewOpen(false)
+                  void handleExportExcel()
+                }}
+              >
+                {exportingExcel ? 'Exporting…' : 'Export to Excel'}
+              </button>
             </AnchoredMenu>
           </div>
         </div>
