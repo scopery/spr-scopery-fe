@@ -1,7 +1,11 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useParams } from 'next/navigation'
 import { Input, Modal, Select, Textarea, Typography } from '@/shared/ui'
+import { AiTextareaEditToolbar } from '@/modules/ai-assistant'
+import { useDebouncedLocalDraft } from '@/shared/lib/useDebouncedLocalDraft'
+import { requirementDraftKey } from '@/shared/lib/localDraft'
 import type { Requirement, UpdateRequirementPayload } from '../model/requirements'
 import {
   isRequirementContentImmutable,
@@ -27,9 +31,7 @@ const PRIORITY_OPTIONS = [
 ]
 
 export type EditRequirementSubmit = UpdateRequirementPayload & {
-  /** Lifecycle target — applied via approve/reject/defer/implement endpoints. */
   status?: RequirementStatusValue
-  /** When true, parent must not PATCH body fields (Approved/Archived are immutable). */
   contentLocked?: boolean
 }
 
@@ -38,6 +40,16 @@ interface EditRequirementModalProps {
   requirement: Requirement | null
   onClose: () => void
   onSubmit: (body: EditRequirementSubmit) => Promise<void>
+  workspaceId?: string
+}
+
+type RequirementFormDraft = {
+  title: string
+  code: string
+  description: string
+  requirementType: string
+  priority: string
+  status: RequirementStatusValue
 }
 
 function FieldLabel({ children }: { children: ReactNode }) {
@@ -87,7 +99,12 @@ export function EditRequirementModal({
   requirement,
   onClose,
   onSubmit,
+  workspaceId: workspaceIdProp,
 }: EditRequirementModalProps) {
+  const params = useParams<{ workspaceId?: string; projectId?: string }>()
+  const workspaceId = workspaceIdProp ?? params.workspaceId
+  const projectId = params.projectId ?? requirement?.project_id ?? ''
+
   const [title, setTitle] = useState('')
   const [code, setCode] = useState('')
   const [description, setDescription] = useState('')
@@ -96,9 +113,45 @@ export function EditRequirementModal({
   const [status, setStatus] = useState<RequirementStatusValue>(RequirementStatus.Draft)
   const [loading, setLoading] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const descRef = useRef<HTMLTextAreaElement>(null)
 
   const contentLocked = isRequirementContentImmutable(requirement?.status)
   const isArchived = normalizeRequirementStatus(requirement?.status) === RequirementStatus.Archived
+
+  const draftKey =
+    open && requirement && projectId
+      ? requirementDraftKey(projectId, requirement.id)
+      : null
+
+  const draftData = useMemo<RequirementFormDraft>(
+    () => ({ title, code, description, requirementType, priority, status }),
+    [title, code, description, requirementType, priority, status]
+  )
+
+  const { draftHint, clearDraft } = useDebouncedLocalDraft<RequirementFormDraft>({
+    storageKey: draftKey,
+    data: draftData,
+    enabled: open && Boolean(requirement) && !contentLocked,
+    debounceMs: 600,
+    shouldHydrate: (draft) => {
+      if (!requirement) return false
+      return (
+        draft.title !== (requirement.title ?? '') ||
+        draft.code !== (requirement.code ?? '') ||
+        draft.description !== (requirement.description ?? '') ||
+        draft.requirementType !== toFormRequirementType(requirement) ||
+        draft.priority !== toFormPriority(requirement.priority)
+      )
+    },
+    onHydrate: (draft) => {
+      setTitle(draft.title)
+      setCode(draft.code)
+      setDescription(draft.description)
+      setRequirementType(draft.requirementType)
+      setPriority(draft.priority)
+      setStatus(normalizeRequirementStatus(draft.status))
+    },
+  })
 
   useEffect(() => {
     if (!open || !requirement) return
@@ -110,7 +163,9 @@ export function EditRequirementModal({
     setStatus(normalizeRequirementStatus(requirement.status))
     setFormError(null)
     setLoading(false)
-  }, [open, requirement])
+    // Only re-seed when opening / switching requirement — draft hydrate runs after.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: avoid wiping in-progress edits on parent refetch
+  }, [open, requirement?.id])
 
   const handleSubmit = async () => {
     if (!requirement) return
@@ -151,6 +206,7 @@ export function EditRequirementModal({
           contentLocked: false,
         })
       }
+      clearDraft()
       onClose()
     } catch {
       // Parent shows toast; keep modal open
@@ -172,7 +228,7 @@ export function EditRequirementModal({
     ? 'This requirement is archived (hidden from the active register). You can still edit fields or change status to restore it.'
     : contentLocked
       ? RequirementImmutableMessages.CONTENT_LOCKED
-      : 'Update code, title, type, priority, status, or description. Status changes use the lifecycle APIs (approve / reject / defer / implement). Use Archive to soft-delete.'
+      : 'Update fields below. Select text in Description and use AI to rewrite. Drafts autosave in this browser.'
 
   return (
     <Modal
@@ -194,6 +250,11 @@ export function EditRequirementModal({
         <Typography variant="small" tone="muted">
           {helperText}
         </Typography>
+        {draftHint && !contentLocked ? (
+          <Typography variant="caption" tone="muted">
+            {draftHint}
+          </Typography>
+        ) : null}
         <Input
           label="Code"
           required
@@ -241,16 +302,36 @@ export function EditRequirementModal({
             placeholder="Select status"
           />
         </div>
-        <Textarea
-          label="Description"
-          fullWidth
-          rows={4}
-          resize="vertical"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe the requirement…"
-          disabled={contentLocked}
-        />
+        <div className="relative">
+          <Textarea
+            ref={descRef}
+            label="Description"
+            fullWidth
+            rows={5}
+            resize="vertical"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe the requirement… Select text for AI edit."
+            disabled={contentLocked}
+          />
+          {!contentLocked ? (
+            <AiTextareaEditToolbar
+              textareaRef={descRef}
+              value={description}
+              workspaceId={workspaceId}
+              documentKind="requirement"
+              onApply={(next, selection) => {
+                setDescription(next)
+                requestAnimationFrame(() => {
+                  const el = descRef.current
+                  if (!el) return
+                  el.focus()
+                  el.setSelectionRange(selection.start, selection.end)
+                })
+              }}
+            />
+          ) : null}
+        </div>
         {formError ? (
           <Typography variant="small" tone="error">
             {formError}

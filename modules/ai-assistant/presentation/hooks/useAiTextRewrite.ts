@@ -8,6 +8,13 @@ import { AI_ASSISTANT_ENDPOINTS } from '../../infrastructure/api/endpoints'
 
 export type AiTextRewritePhase = 'input' | 'loading' | 'review' | 'error'
 
+/** Prompt context — keeps rewrite tone aligned with the surface being edited. */
+export type AiTextRewriteDocumentKind =
+  | 'meeting_notes'
+  | 'requirement'
+  | 'functional_item'
+  | 'document'
+
 function resolveStreamUrl(url: string): string {
   if (url.startsWith('http')) return url
   const base =
@@ -15,11 +22,28 @@ function resolveStreamUrl(url: string): string {
   return `${base}${url.startsWith('/') ? url : `/${url}`}`
 }
 
+function documentKindLabel(kind: AiTextRewriteDocumentKind): string {
+  switch (kind) {
+    case 'requirement':
+      return 'a software requirement description'
+    case 'functional_item':
+      return 'a functional item (function) description'
+    case 'document':
+      return 'a document'
+    case 'meeting_notes':
+    default:
+      return 'meeting notes'
+  }
+}
+
 /**
  * Shared select → instruct → stream → review rewrite flow
  * (same pattern as document floating toolbar AI Edit).
  */
-export function useAiTextRewrite(workspaceId?: string) {
+export function useAiTextRewrite(
+  workspaceId?: string,
+  documentKind: AiTextRewriteDocumentKind = 'meeting_notes'
+) {
   const [phase, setPhase] = useState<AiTextRewritePhase | null>(null)
   const [instruction, setInstruction] = useState('')
   const [streamingPreview, setStreamingPreview] = useState('')
@@ -28,6 +52,8 @@ export function useAiTextRewrite(workspaceId?: string) {
 
   const selectedTextRef = useRef('')
   const cancelStreamRef = useRef<(() => void) | null>(null)
+  const kindRef = useRef(documentKind)
+  kindRef.current = documentKind
 
   const close = useCallback(() => {
     cancelStreamRef.current?.()
@@ -72,7 +98,7 @@ export function useAiTextRewrite(workspaceId?: string) {
       })
 
       const prompt =
-        `You are a writing assistant editing meeting notes. ` +
+        `You are a writing assistant editing ${documentKindLabel(kindRef.current)}. ` +
         `The user selected this text:\n\n` +
         `<selected_text>\n${selectedText}\n</selected_text>\n\n` +
         `Instruction: ${instr}\n\n` +

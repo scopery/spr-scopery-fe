@@ -1,7 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { Input, Modal, Select, Textarea, Typography } from '@/shared/ui'
+import { AiTextareaEditToolbar } from '@/modules/ai-assistant'
+import { useDebouncedLocalDraft } from '@/shared/lib/useDebouncedLocalDraft'
+import { requirementDraftKey } from '@/shared/lib/localDraft'
 import type { CreateRequirementPayload } from '../model/requirements'
 
 const TYPE_OPTIONS = [
@@ -22,6 +26,16 @@ interface CreateRequirementModalProps {
   open: boolean
   onClose: () => void
   onSubmit: (body: CreateRequirementPayload) => Promise<void>
+  workspaceId?: string
+  projectId?: string
+}
+
+type CreateDraft = {
+  title: string
+  code: string
+  description: string
+  requirementType: string
+  priority: string
 }
 
 function autoCode(title: string, type: string) {
@@ -43,7 +57,17 @@ function autoCode(title: string, type: string) {
   return `${prefix}-${slug || 'NEW'}`
 }
 
-export function CreateRequirementModal({ open, onClose, onSubmit }: CreateRequirementModalProps) {
+export function CreateRequirementModal({
+  open,
+  onClose,
+  onSubmit,
+  workspaceId: workspaceIdProp,
+  projectId: projectIdProp,
+}: CreateRequirementModalProps) {
+  const params = useParams<{ workspaceId?: string; projectId?: string }>()
+  const workspaceId = workspaceIdProp ?? params.workspaceId
+  const projectId = projectIdProp ?? params.projectId ?? ''
+
   const [title, setTitle] = useState('')
   const [code, setCode] = useState('')
   const [description, setDescription] = useState('')
@@ -51,6 +75,29 @@ export function CreateRequirementModal({ open, onClose, onSubmit }: CreateRequir
   const [priority, setPriority] = useState('MEDIUM')
   const [loading, setLoading] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const descRef = useRef<HTMLTextAreaElement>(null)
+
+  const draftKey = open && projectId ? requirementDraftKey(projectId, 'new') : null
+  const draftData = useMemo<CreateDraft>(
+    () => ({ title, code, description, requirementType, priority }),
+    [title, code, description, requirementType, priority]
+  )
+
+  const { draftHint, clearDraft } = useDebouncedLocalDraft<CreateDraft>({
+    storageKey: draftKey,
+    data: draftData,
+    enabled: open,
+    debounceMs: 600,
+    shouldHydrate: (draft) =>
+      Boolean(draft.title.trim() || draft.code.trim() || draft.description.trim()),
+    onHydrate: (draft) => {
+      setTitle(draft.title)
+      setCode(draft.code)
+      setDescription(draft.description)
+      setRequirementType(draft.requirementType || 'FUNCTIONAL')
+      setPriority(draft.priority || 'MEDIUM')
+    },
+  })
 
   useEffect(() => {
     if (!open) return
@@ -78,6 +125,7 @@ export function CreateRequirementModal({ open, onClose, onSubmit }: CreateRequir
         requirementType,
         priority,
       })
+      clearDraft()
       onClose()
     } catch {
       // Parent shows toast; keep modal open
@@ -104,10 +152,14 @@ export function CreateRequirementModal({ open, onClose, onSubmit }: CreateRequir
     >
       <div className="space-y-4">
         <Typography variant="small" tone="muted">
-          Creates a project requirement in the register. You can link supporting documents as
-          evidence after it is created. Catalog FR/NFR items are managed separately in Functional
-          Catalog.
+          Creates a project requirement in the register. Select description text and use AI to
+          refine wording. Drafts autosave in this browser if you leave mid-edit.
         </Typography>
+        {draftHint ? (
+          <Typography variant="caption" tone="muted">
+            {draftHint}
+          </Typography>
+        ) : null}
         <Input
           label="Title"
           required
@@ -140,14 +192,33 @@ export function CreateRequirementModal({ open, onClose, onSubmit }: CreateRequir
           </Typography>
           <Select value={priority} onValueChange={setPriority} options={PRIORITY_OPTIONS} />
         </div>
-        <Textarea
-          label="Description"
-          fullWidth
-          rows={4}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe the requirement…"
-        />
+        <div className="relative">
+          <Textarea
+            ref={descRef}
+            label="Description"
+            fullWidth
+            rows={5}
+            resize="vertical"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe the requirement… Select text for AI edit."
+          />
+          <AiTextareaEditToolbar
+            textareaRef={descRef}
+            value={description}
+            workspaceId={workspaceId}
+            documentKind="requirement"
+            onApply={(next, selection) => {
+              setDescription(next)
+              requestAnimationFrame(() => {
+                const el = descRef.current
+                if (!el) return
+                el.focus()
+                el.setSelectionRange(selection.start, selection.end)
+              })
+            }}
+          />
+        </div>
         {formError ? (
           <Typography variant="small" tone="error">
             {formError}

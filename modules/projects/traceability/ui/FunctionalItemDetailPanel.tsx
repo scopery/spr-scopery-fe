@@ -1,12 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Pencil, Plus, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, Input, PageSkeleton, Stack, Typography } from '@/shared/ui'
+import { AiTextareaEditToolbar } from '@/modules/ai-assistant'
 import { ROUTES } from '@/constants/routes'
 import { ApiError } from '@/shared/lib/api-types'
+import { functionalItemDraftKey } from '@/shared/lib/localDraft'
+import { useDebouncedLocalDraft } from '@/shared/lib/useDebouncedLocalDraft'
 import { cn } from '@/utils/cn'
 import {
   BusinessRuleSeverity,
@@ -111,6 +114,13 @@ function ViewField({
 
 const SEVERITY_OPTIONS = Object.values(BusinessRuleSeverity)
 
+type FnEditDraft = {
+  title: string
+  description: string
+  priority: string
+  type: string
+}
+
 const RULE_COLS = [
   {
     key: 'code',
@@ -155,6 +165,36 @@ export function FunctionalItemDetailPanel({
   const [editType, setEditType] = useState(item.type)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const descRef = useRef<HTMLTextAreaElement>(null)
+
+  const draftKey = editing ? functionalItemDraftKey(projectId, item.id) : null
+  const draftData = useMemo<FnEditDraft>(
+    () => ({
+      title: editTitle,
+      description: editDescription,
+      priority: editPriority,
+      type: editType,
+    }),
+    [editTitle, editDescription, editPriority, editType]
+  )
+
+  const { draftHint, clearDraft } = useDebouncedLocalDraft<FnEditDraft>({
+    storageKey: draftKey,
+    data: draftData,
+    enabled: editing,
+    debounceMs: 600,
+    shouldHydrate: (draft) =>
+      draft.title !== item.title ||
+      draft.description !== (item.description ?? '') ||
+      draft.priority !== item.priority ||
+      draft.type !== item.type,
+    onHydrate: (draft) => {
+      setEditTitle(draft.title)
+      setEditDescription(draft.description)
+      setEditPriority(draft.priority)
+      setEditType(draft.type)
+    },
+  })
 
   const { nodeById } = useArchitectureNodeCatalog(
     workspaceId,
@@ -301,6 +341,7 @@ export function FunctionalItemDetailPanel({
         type: editType,
         acceptanceCriteria: item.acceptanceCriteria ?? null,
       })
+      clearDraft()
       setEditing(false)
     } catch (err: unknown) {
       setFormError(
@@ -313,7 +354,7 @@ export function FunctionalItemDetailPanel({
     } finally {
       setSaving(false)
     }
-  }, [editDescription, editPriority, editTitle, editType, item, onSave])
+  }, [clearDraft, editDescription, editPriority, editTitle, editType, item, onSave])
 
   const saveAcceptance = useCallback(async () => {
     if (!onSave) return
@@ -402,13 +443,48 @@ export function FunctionalItemDetailPanel({
                 disabled={saving}
                 large
               />
-              <DashedField
-                label="Description"
-                value={editDescription}
-                onChange={setEditDescription}
-                placeholder="Optional"
-                disabled={saving}
-              />
+              <div className="relative min-w-0">
+                <label className="block min-w-0">
+                  <span className="mb-1 block text-xs text-neutral-500">Description</span>
+                  <textarea
+                    ref={descRef}
+                    value={editDescription}
+                    disabled={saving}
+                    placeholder="Optional — select text for AI edit"
+                    aria-label="Description"
+                    rows={5}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    className={cn(
+                      'w-full min-w-0 resize-y border-0 border-b border-dashed border-neutral-300 bg-transparent px-0 py-1.5',
+                      'text-sm text-neutral-900 outline-none transition-colors',
+                      'placeholder:text-neutral-400',
+                      'hover:border-neutral-400 focus:border-neutral-800 focus:border-solid',
+                      'disabled:cursor-default disabled:opacity-60'
+                    )}
+                  />
+                </label>
+                <AiTextareaEditToolbar
+                  textareaRef={descRef}
+                  value={editDescription}
+                  workspaceId={workspaceId}
+                  documentKind="functional_item"
+                  disabled={saving}
+                  onApply={(next, selection) => {
+                    setEditDescription(next)
+                    requestAnimationFrame(() => {
+                      const el = descRef.current
+                      if (!el) return
+                      el.focus()
+                      el.setSelectionRange(selection.start, selection.end)
+                    })
+                  }}
+                />
+              </div>
+              {draftHint ? (
+                <Typography variant="caption" tone="muted">
+                  {draftHint}
+                </Typography>
+              ) : null}
               <DashedField
                 label="Priority"
                 value={editPriority}
