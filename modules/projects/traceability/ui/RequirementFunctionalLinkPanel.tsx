@@ -18,6 +18,8 @@ import type { FunctionalItem } from '../model/functional-catalog'
 import * as useCaseApi from '../api/use-case.api'
 import * as traceApi from '../api/traceability.api'
 import type { TraceLink } from '../api/traceability.api'
+import { isRequirementLinkConflict } from '../domain/rules/requirement-link.rules'
+import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 
 /** Drag MIME — drag Functions onto a focused Requirement. */
 const FR_ASSIGN_MIME = 'application/x-scopery-fr-to-req-assign'
@@ -312,18 +314,17 @@ export function RequirementFunctionalLinkPanel({
         const toCreate = payloads.filter((p) => !linkedFrIdsForFocus.has(p.functionalItemId))
         if (toCreate.length === 0) return
 
-        try {
-          await traceApi.batchCreateTraceLinks(projectId, {
-            links: toCreate.map((p) => ({
-              sourceType: SOURCE_REQUIREMENT,
-              sourceId: focusReqId,
-              targetType: TARGET_FUNCTIONAL_ITEM,
-              targetId: p.functionalItemId,
-              linkType: TraceLinkType.Covers,
-            })),
-          })
-        } catch {
-          for (const p of toCreate) {
+        // BE preferred: junction API first, then COVERS trace link (idempotent on conflict).
+        for (const p of toCreate) {
+          try {
+            await useCaseApi.linkRequirementToFunction(projectId, p.functionalItemId, {
+              requirementId: focusReqId,
+            })
+          } catch (err: unknown) {
+            if (!isRequirementLinkConflict(err)) throw err
+          }
+
+          try {
             await traceApi.createTraceLink(projectId, {
               sourceType: SOURCE_REQUIREMENT,
               sourceId: focusReqId,
@@ -331,33 +332,30 @@ export function RequirementFunctionalLinkPanel({
               targetId: p.functionalItemId,
               linkType: TraceLinkType.Covers,
             })
+          } catch (err: unknown) {
+            if (!isRequirementLinkConflict(err)) throw err
           }
         }
 
-        // Spec Pack / coverage read app_requirement_function — keep junction in sync
-        await Promise.all(
-          toCreate.map((p) =>
-            useCaseApi
-              .linkRequirementToFunction(projectId, p.functionalItemId, {
-                requirementId: focusReqId,
-              })
-              .catch(() => undefined)
-          )
-        )
-
-        // Keep FK in sync as primary pointer (first / if empty)
-        if (focus && !focus.functionalItemId && toCreate[0]) {
-          await updateRequirement(focusReqId, {
-            functionalItemId: toCreate[0].functionalItemId,
-            status: focus.status ?? undefined,
-          })
+        // Legacy FK pointer — only when still empty locally (junction may have set it on BE).
+        if (focus && !focus.functionalItemId?.trim() && toCreate[0]) {
+          try {
+            await updateRequirement(focusReqId, {
+              functionalItemId: toCreate[0].functionalItemId,
+            })
+          } catch (err: unknown) {
+            if (!isRequirementLinkConflict(err)) throw err
+          }
         }
 
-        await loadCoversLinks({ silent: true })
+        await Promise.all([
+          loadCoversLinks({ silent: true }),
+          refetchRequirements(),
+        ])
         setSelected(new Set())
         setBulkOpen(false)
       } catch (err: unknown) {
-        setFormError(err instanceof Error ? err.message : 'Failed to assign')
+        setFormError(getProblemToastMessage(err))
       } finally {
         setAssigning(false)
       }
@@ -369,6 +367,7 @@ export function RequirementFunctionalLinkPanel({
       requirements,
       updateRequirement,
       loadCoversLinks,
+      refetchRequirements,
     ]
   )
 

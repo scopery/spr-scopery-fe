@@ -1,0 +1,13 @@
+import { ApiError } from '@/shared/lib/api-types'
+
+/** 409 when req↔function link or COVERS trace link already exists — safe to treat as success. */
+export function isRequirementLinkConflict(err: unknown): boolean {
+  if (!(err instanceof ApiError) || err.status !== 409) return false
+  const code = err.problem.code
+  return (
+    code === 'TRACE_LINK_EXISTS' ||
+    code === 'LINK_EXISTS' ||
+    code === 'RESOURCE_CONFLICT' ||
+    code === 'ALREADY_EXISTS'
+  )
+}
