@@ -147,3 +147,56 @@ export function formatExcelExportTimestamp(iso = new Date().toISOString()): stri
   if (Number.isNaN(date.getTime())) return d
   return date.toLocaleDateString()
 }
+
+/** Display date for report cells (dd/mm/yyyy local). */
+export function formatExcelDisplayDate(value: string | null | undefined): string {
+  const d = toExcelDateOnly(value)
+  if (!d) return '—'
+  const [y, mo, day] = d.split('-')
+  return `${day}/${mo}/${y}`
+}
+
+export function todayExcelDateOnly(): string {
+  return formatDateOnly(new Date())
+}
+
+/** Group chart columns into month bands for a header row above day/week labels. */
+export function buildMonthGroups(
+  columns: TimelineExcelChartColumn[]
+): Array<{ label: string; startIndex: number; endIndex: number }> {
+  const groups: Array<{ label: string; startIndex: number; endIndex: number }> = []
+  for (let i = 0; i < columns.length; i++) {
+    const d = parseDateOnly(columns[i].start)
+    const label = d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
+    const last = groups[groups.length - 1]
+    if (last && last.label === label) {
+      last.endIndex = i
+    } else {
+      groups.push({ label, startIndex: i, endIndex: i })
+    }
+  }
+  return groups
+}
+
+export function findTodayColumnIndex(
+  columns: TimelineExcelChartColumn[],
+  today = todayExcelDateOnly()
+): number {
+  return columns.findIndex((c) => today >= c.start && today <= c.end)
+}
+
+/** Progress reaches this date along the plan span (inclusive start). */
+export function progressReachDate(
+  planStart: string | null,
+  planEnd: string | null,
+  progressPercent: number | null
+): string | null {
+  if (!planStart || !planEnd) return null
+  const pct = Math.min(100, Math.max(0, progressPercent ?? 0))
+  if (pct <= 0) return null
+  if (pct >= 100) return planEnd
+  const total = dayDiffInclusive(planStart, planEnd)
+  const reach = Math.max(1, Math.round((total * pct) / 100)) - 1
+  return addDays(planStart, reach)
+}
+

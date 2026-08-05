@@ -1340,10 +1340,30 @@ export function CellTimelineView() {
             toast.error('Nothing to export yet')
             return
           }
+          const enrichmentBySourceId = new Map(
+            tl.tasks.map((t) => {
+              const row = tl.allRows.find(
+                (r) => r.sourceEntityId === t.id && r.kind === 'task'
+              )
+              return [
+                t.id,
+                {
+                  status: String(t.status),
+                  progressPercent: row?.progressPercent ?? null,
+                  atRisk: row?.atRisk ?? false,
+                  inChargeUserId: t.inChargeUserId,
+                  dueDate: t.dueDate,
+                  estimateHours: t.estimateHours,
+                },
+              ] as const
+            })
+          )
           setExportingExcel(true)
           void downloadGanttExcel(tl.tree.length ? tl.tree : tl.items, {
             projectName: project?.name ?? project?.code ?? 'Project',
             fileName: `${project?.code ?? 'project'}-timeline`,
+            ownerLabelFor: (userId) => labelFor(userId) || userId,
+            enrichmentBySourceId,
           })
             .then(() => toast.success('Excel downloaded'))
             .catch((err) => {

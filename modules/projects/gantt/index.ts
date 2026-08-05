@@ -37,6 +37,20 @@ export {
   resolveRecalculatePlanningWindow,
 } from './domain/rules/gantt.rules'
 export {
+  buildTimelineExcelReportRows,
+  buildTimelineExcelOverviewInsights,
+  deriveReportWorkStatus,
+  computeVarianceDays,
+  formatVarianceLabel,
+  ReportWorkStatus,
+  REPORT_STATUS_LABEL,
+} from './domain/rules/timeline-excel-report.rules'
+export type {
+  TimelineExcelEnrichment,
+  TimelineExcelReportRow,
+  TimelineExcelOverviewInsights,
+} from './domain/rules/timeline-excel-report.rules'
+export {
   collectProjectCollapseIds,
   flattenTimelineRows,
 } from './domain/rules/timeline-rows.rules'

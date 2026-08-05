@@ -1,47 +1,19 @@
 import {
-  TIMELINE_EXCEL_BAR_COLORS,
-  downloadTimelineExcelWorkbook,
+  downloadScheduleReportWorkbook,
+  formatExcelDisplayDate,
   toExcelDateOnly,
-  type TimelineExcelListColumn,
-  type TimelineExcelRow,
+  type ScheduleReportExcelRow,
 } from '@/shared/lib/excel'
-import { ganttItemTypeLabel, type TimelineFlatRow } from '@/modules/projects/gantt'
-
-const TEAM_LIST_COLUMNS: TimelineExcelListColumn[] = [
-  { key: 'type', header: 'Type', width: 12 },
-  { key: 'title', header: 'Title', width: 40 },
-  { key: 'person', header: 'Person', width: 24 },
-  { key: 'project', header: 'Project', width: 28 },
-  { key: 'status', header: 'Schedule status', width: 16 },
-  { key: 'start', header: 'Start date', width: 14 },
-  { key: 'finish', header: 'Finish date', width: 14 },
-  { key: 'duration', header: 'Duration (days)', width: 14 },
-  { key: 'estimate', header: 'Estimate (h)', width: 12 },
-]
-
-function barFillForRow(row: TimelineFlatRow): string {
-  const status = (row.scheduleStatus ?? '').toUpperCase()
-  if (status === 'UNSCHEDULED') return TIMELINE_EXCEL_BAR_COLORS.unscheduled
-  if (status === 'AT_RISK' || status === 'DELAYED') return TIMELINE_EXCEL_BAR_COLORS.atRisk
-  if (!row.assigneeUserId && (row.kind === 'task' || row.kind === 'milestone')) {
-    return TIMELINE_EXCEL_BAR_COLORS.unassigned
-  }
-  switch ((row.itemType ?? '').toUpperCase()) {
-    case 'PROJECT':
-      return TIMELINE_EXCEL_BAR_COLORS.project
-    case 'PHASE':
-      return TIMELINE_EXCEL_BAR_COLORS.phase
-    case 'WBS_NODE':
-      return row.wbsNodeType === 'MILESTONE'
-        ? TIMELINE_EXCEL_BAR_COLORS.milestone
-        : TIMELINE_EXCEL_BAR_COLORS.wbs
-    case 'MILESTONE':
-      return TIMELINE_EXCEL_BAR_COLORS.milestone
-    case 'TASK':
-    default:
-      return TIMELINE_EXCEL_BAR_COLORS.task
-  }
-}
+import {
+  REPORT_STATUS_LABEL,
+  buildTimelineExcelOverviewInsights,
+  computeVarianceDays,
+  deriveReportWorkStatus,
+  formatVarianceLabel,
+  ganttItemTypeLabel,
+  type TimelineFlatRow,
+  type TimelineExcelReportRow,
+} from '@/modules/projects/gantt'
 
 export interface TeamScheduleExcelOptions {
   workspaceName?: string | null
@@ -50,70 +22,159 @@ export interface TeamScheduleExcelOptions {
   projectNameForTask: (sourceEntityId: string | null | undefined) => string | null
 }
 
-function mapRows(
+function mapToReportRows(
   rows: TimelineFlatRow[],
   opts: TeamScheduleExcelOptions
-): TimelineExcelRow[] {
+): TimelineExcelReportRow[] {
+  const counters: number[] = []
+  const wbsForDepth = (depth: number): string => {
+    while (counters.length <= depth) counters.push(0)
+    counters[depth] += 1
+    counters.length = depth + 1
+    return counters.map(String).join('.')
+  }
+
   return rows
     .filter((row) => row.kind !== 'add')
     .map((row) => {
+      const planStart = toExcelDateOnly(row.startDate)
+      const planEnd = toExcelDateOnly(row.endDate)
+      const isLeaf = row.kind === 'task' || row.kind === 'milestone'
+      const owner =
+        row.assigneeUserId != null
+          ? opts.personLabelFor(row.assigneeUserId)
+          : isLeaf
+            ? 'Unassigned'
+            : '—'
+      const reportStatus = deriveReportWorkStatus({
+        itemType: row.itemType,
+        scheduleStatus: row.scheduleStatus,
+        planStart,
+        planEnd,
+        progressPercent: row.progressPercent,
+        taskStatus: row.status,
+        atRisk: row.atRisk,
+      })
+      const varianceDays = computeVarianceDays({
+        reportStatus,
+        planStart,
+        planEnd,
+      })
       const isMilestone =
         row.kind === 'milestone' ||
         row.itemType === 'MILESTONE' ||
         row.wbsNodeType === 'MILESTONE'
-      const person =
-        row.assigneeUserId != null
-          ? opts.personLabelFor(row.assigneeUserId)
-          : row.kind === 'task' || row.kind === 'milestone'
-            ? 'Unassigned'
-            : ''
-      const project =
-        row.kind === 'task' || row.kind === 'milestone'
-          ? opts.projectNameForTask(row.sourceEntityId) ?? ''
-          : ''
+      const project = isLeaf
+        ? opts.projectNameForTask(row.sourceEntityId) ?? ''
+        : ''
 
       return {
+        wbs: wbsForDepth(row.depth),
+        workItem: project
+          ? `${row.displayPrimary || row.title} (${project})`
+          : row.displayPrimary || row.title,
         typeLabel: ganttItemTypeLabel(row.itemType),
-        title: row.displayPrimary || row.title,
-        depth: row.depth,
-        scheduleStatus: row.scheduleStatus,
-        startDate: toExcelDateOnly(row.startDate),
-        endDate: toExcelDateOnly(row.endDate),
-        fillHex: barFillForRow(row),
+        itemType: (row.itemType ?? '').toUpperCase(),
+        owner,
+        reportStatus,
+        statusLabel: REPORT_STATUS_LABEL[reportStatus],
+        planStart,
+        planEnd,
+        dueDate: planEnd,
+        progressPercent:
+          row.progressPercent != null ? Math.round(row.progressPercent) : null,
+        varianceDays,
         isMilestone,
-        cells: {
-          person,
-          project,
-          estimate: row.estimateHours ?? '',
+        isLeafWork: isLeaf,
+        depth: row.depth,
+        raw: {
+          ganttItemId: row.id,
+          sourceEntityId: row.sourceEntityId ?? '',
+          phaseId: row.phaseId ?? '',
+          wbsNodeId: '',
+          assigneeUserId: row.assigneeUserId ?? '',
+          scheduleStatus: row.scheduleStatus ?? '',
+          parentItemId: row.parentPhaseSourceId ?? '',
         },
       }
     })
 }
 
 /**
- * Team Schedule → Excel (same shared style as Project Timeline).
- * Change look-and-feel in `@/shared/lib/excel/style.ts`.
+ * Team Schedule → same decision-support Excel shape as Project Timeline.
  */
 export async function downloadTeamScheduleExcel(
   rows: TimelineFlatRow[],
   opts: TeamScheduleExcelOptions
 ): Promise<void> {
-  const excelRows = mapRows(rows, opts)
-  const leafTasks = excelRows.filter(
-    (r) => r.typeLabel === 'Task' || r.typeLabel === 'Milestone'
-  )
-  const unassigned = leafTasks.filter((r) => r.cells?.person === 'Unassigned')
+  const reportRows = mapToReportRows(rows, opts)
+  const insights = buildTimelineExcelOverviewInsights(reportRows)
 
-  await downloadTimelineExcelWorkbook(excelRows, {
-    title: opts.workspaceName ? `Team Schedule · ${opts.workspaceName}` : 'Team Schedule',
+  const scheduleRows: ScheduleReportExcelRow[] = reportRows.map((r) => ({
+    wbs: r.wbs,
+    workItem: r.workItem,
+    owner: r.owner,
+    statusLabel: r.statusLabel,
+    statusKey: r.reportStatus,
+    planStart: r.planStart,
+    planEnd: r.planEnd,
+    dueDate: r.dueDate,
+    progressPercent: r.progressPercent,
+    varianceLabel: formatVarianceLabel(r.varianceDays),
+    isMilestone: r.isMilestone,
+    isLeafWork: r.isLeafWork,
+    raw: r.raw,
+  }))
+
+  await downloadScheduleReportWorkbook(scheduleRows, {
     fileName: opts.fileName,
     fileNameFallback: 'team-schedule',
-    listSheetName: 'Schedule',
-    chartSheetName: 'Gantt',
-    listColumns: TEAM_LIST_COLUMNS,
-    summaryLines: [
-      ['Tasks & milestones', leafTasks.length],
-      ['Unassigned', unassigned.length],
-    ],
+    overview: {
+      title: opts.workspaceName
+        ? `Team Schedule · ${opts.workspaceName}`
+        : 'Team Schedule',
+      narrative: insights.narrative,
+      kpis: [
+        { label: 'In progress', value: insights.inProgressCount },
+        { label: 'Overdue', value: insights.overdueCount },
+        { label: 'At risk', value: insights.atRiskCount },
+        { label: 'Due this week', value: insights.dueThisWeekCount },
+        {
+          label: 'Overall progress',
+          value:
+            insights.overallProgressPercent != null
+              ? `${insights.overallProgressPercent}%`
+              : '—',
+        },
+        { label: 'Upcoming (14d)', value: insights.upcoming14Count },
+      ],
+      metaLines: [
+        [
+          'Project span',
+          insights.projectStart && insights.projectEnd
+            ? `${formatExcelDisplayDate(insights.projectStart)} – ${formatExcelDisplayDate(
+                insights.projectEnd
+              )}`
+            : '—',
+        ],
+      ],
+      lists: [
+        {
+          title: 'Overdue',
+          headers: ['WBS', 'Work item', 'Plan end', 'Late by'],
+          rows: insights.overdueItems.map((i) => [
+            i.wbs,
+            i.title,
+            formatExcelDisplayDate(i.planEnd),
+            i.varianceDays != null ? `${i.varianceDays}d` : '—',
+          ]),
+        },
+        {
+          title: 'Workload by person',
+          headers: ['Owner', 'Items'],
+          rows: insights.workloadByOwner.map((w) => [w.owner, w.count]),
+        },
+      ],
+    },
   })
 }

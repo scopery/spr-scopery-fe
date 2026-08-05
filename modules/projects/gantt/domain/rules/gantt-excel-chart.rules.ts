@@ -1,5 +1,5 @@
 import {
-  TIMELINE_EXCEL_BAR_COLORS,
+  TIMELINE_EXCEL_STATUS_COLORS,
   TIMELINE_EXCEL_MAX_DAY_COLUMNS,
   buildTimelineExcelChartColumns,
   spanOverlapsChartColumn,
@@ -62,23 +62,23 @@ export function itemOverlapsChartColumn(
   )
 }
 
-/** Hex fills for Excel cell background (RRGGBB). Shared palette in `@/shared/lib/excel`. */
 export function ganttExcelBarFillHex(item: GanttItem): string {
   const status = (item.scheduleStatus ?? '').toUpperCase()
-  if (status === 'UNSCHEDULED') return TIMELINE_EXCEL_BAR_COLORS.unscheduled
-  if (status === 'AT_RISK' || status === 'DELAYED') return TIMELINE_EXCEL_BAR_COLORS.atRisk
+  if (status === 'UNSCHEDULED') return TIMELINE_EXCEL_STATUS_COLORS.unscheduled
+  if (status === 'AT_RISK') return TIMELINE_EXCEL_STATUS_COLORS.atRisk
+  if (status === 'DELAYED') return TIMELINE_EXCEL_STATUS_COLORS.delayed
   switch ((item.itemType ?? '').toUpperCase()) {
     case 'PROJECT':
-      return TIMELINE_EXCEL_BAR_COLORS.project
+      return TIMELINE_EXCEL_STATUS_COLORS.project
     case 'PHASE':
-      return TIMELINE_EXCEL_BAR_COLORS.phase
+      return TIMELINE_EXCEL_STATUS_COLORS.phase
     case 'WBS_NODE':
-      return TIMELINE_EXCEL_BAR_COLORS.wbs
+      return TIMELINE_EXCEL_STATUS_COLORS.wbs
     case 'MILESTONE':
-      return TIMELINE_EXCEL_BAR_COLORS.milestone
+      return TIMELINE_EXCEL_STATUS_COLORS.milestone
     case 'TASK':
     default:
-      return TIMELINE_EXCEL_BAR_COLORS.task
+      return TIMELINE_EXCEL_STATUS_COLORS.inProgress
   }
 }
 
