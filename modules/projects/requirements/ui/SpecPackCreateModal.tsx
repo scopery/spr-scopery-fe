@@ -7,6 +7,11 @@ import { Badge, Button, Checkbox, Input, Modal, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { getRequirement } from '../api/requirements.api'
 import type { Requirement } from '../model/requirements'
+import type { ScopePackage } from '@/modules/projects/scope'
+import {
+  matchesRequirementScopeFilter,
+  type RequirementScopeFilter,
+} from '../model/requirement-scope.rules'
 import {
   requirementPriorityBadgeProps,
   requirementPriorityLabel,
@@ -19,11 +24,13 @@ import {
   type SpecPackGroup,
 } from '../model/spec-pack'
 import { SpecPackGroupOutline, toRequirementRef } from './SpecPackGroupOutline'
+import { RequirementScopeFilterSelect } from './RequirementScopeFilterSelect'
 
 interface SpecPackCreateModalProps {
   open: boolean
   onClose: () => void
   requirements: Requirement[]
+  scopePackages?: ScopePackage[]
   onCreate: (input: CreateSpecPackInput) => void
 }
 
@@ -72,11 +79,13 @@ export function SpecPackCreateModal({
   open,
   onClose,
   requirements,
+  scopePackages = [],
   onCreate,
 }: SpecPackCreateModalProps) {
   const params = useParams()
   const projectId = params.projectId as string
   const [query, setQuery] = useState('')
+  const [scopeFilter, setScopeFilter] = useState<RequirementScopeFilter>('all')
   const [groups, setGroups] = useState<SpecPackGroup[]>(() => [defaultSpecPackGroup()])
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null)
   const [focusedId, setFocusedId] = useState<string | null>(null)
@@ -88,6 +97,7 @@ export function SpecPackCreateModal({
     if (!open) return
     const initial = defaultSpecPackGroup()
     setQuery('')
+    setScopeFilter('all')
     setGroups([initial])
     setActiveGroupId(initial.id)
     setFocusedId(null)
@@ -95,6 +105,12 @@ export function SpecPackCreateModal({
     setNote('')
     setEnriched({})
   }, [open])
+
+  const scopePackageById = useMemo(() => {
+    const map = new Map<string, ScopePackage>()
+    for (const p of scopePackages) map.set(p.id, p)
+    return map
+  }, [scopePackages])
 
   const items = useMemo(
     () =>
@@ -116,13 +132,19 @@ export function SpecPackCreateModal({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return items
-    return items.filter((r) =>
-      `${r.code} ${r.title} ${reqTypeLabel(r)} ${r.description ?? ''}`
+    return items.filter((r) => {
+      if (!matchesRequirementScopeFilter(r, scopeFilter)) return false
+      if (!q) return true
+      const scopeLabel = r.scopePackageId
+        ? `${scopePackageById.get(r.scopePackageId)?.code ?? ''} ${
+            scopePackageById.get(r.scopePackageId)?.name ?? ''
+          }`
+        : 'unscoped'
+      return `${r.code} ${r.title} ${reqTypeLabel(r)} ${r.description ?? ''} ${scopeLabel}`
         .toLowerCase()
         .includes(q)
-    )
-  }, [items, query])
+    })
+  }, [items, query, scopeFilter, scopePackageById])
 
   useEffect(() => {
     if (!open || filtered.length === 0) {
@@ -279,13 +301,20 @@ export function SpecPackCreateModal({
                 <Typography variant="small" weight="semibold">
                   Requirements
                 </Typography>
+                <RequirementScopeFilterSelect
+                  projectId={projectId}
+                  value={scopeFilter}
+                  onChange={setScopeFilter}
+                  packages={scopePackages}
+                  className="w-full"
+                />
                 <div className="flex items-center gap-1.5 border border-neutral-200 bg-white px-2 py-1.5">
                   <Search size={14} className="text-neutral-400" />
                   <input
                     className="w-full bg-transparent text-sm outline-none"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search…"
+                    placeholder="Search code, title, scope…"
                   />
                 </div>
                 <div className="flex gap-1">

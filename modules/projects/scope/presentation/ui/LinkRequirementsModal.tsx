@@ -8,6 +8,7 @@ import {
   listRequirements,
 } from '@/modules/projects/requirements/api/requirements.api'
 import type { Requirement } from '@/modules/projects/requirements/model/requirements'
+import { isRequirementLinkableToScope } from '@/modules/projects/requirements/model/requirement-scope.rules'
 import {
   requirementPriorityBadgeProps,
   requirementPriorityLabel,
@@ -92,16 +93,25 @@ export function LinkRequirementsModal({
       .finally(() => setLoading(false))
   }, [open, projectId])
 
-  const byId = useMemo(() => new Map(all.map((r) => [r.id, r])), [all])
+  /** Active + not in any scope (and not already linked to this package). */
+  const linkable = useMemo(
+    () =>
+      all.filter(
+        (r) => isRequirementLinkableToScope(r) && !linkedIds.has(r.id)
+      ),
+    [all, linkedIds]
+  )
+
+  const byId = useMemo(() => new Map(linkable.map((r) => [r.id, r])), [linkable])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return all
-    return all.filter((r) => {
+    if (!q) return linkable
+    return linkable.filter((r) => {
       const hay = `${r.code} ${r.title} ${reqTypeLabel(r)} ${r.description ?? ''}`.toLowerCase()
       return hay.includes(q)
     })
-  }, [all, query])
+  }, [linkable, query])
 
   // Keep focus on a visible row (or first filtered) when list/query changes.
   useEffect(() => {
@@ -116,12 +126,14 @@ export function LinkRequirementsModal({
   const selectedItems = useMemo(
     () =>
       [...selected]
-        .map((id) => byId.get(id))
+        .map((id) => byId.get(id) ?? all.find((r) => r.id === id))
         .filter((r): r is Requirement => Boolean(r)),
-    [selected, byId]
+    [selected, byId, all]
   )
 
-  const focused = focusedId ? byId.get(focusedId) ?? null : null
+  const focused = focusedId
+    ? byId.get(focusedId) ?? all.find((r) => r.id === focusedId) ?? null
+    : null
   const focusedAlreadyLinked = focused ? linkedIds.has(focused.id) : false
   const focusedSelected = focused ? selected.has(focused.id) : false
 
@@ -154,6 +166,7 @@ export function LinkRequirementsModal({
 
   const toggle = (id: string) => {
     if (linkedIds.has(id)) return
+    if (!byId.has(id) && !selected.has(id)) return
     setSelected((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -173,9 +186,7 @@ export function LinkRequirementsModal({
   const selectFilteredAvailable = () => {
     setSelected((prev) => {
       const next = new Set(prev)
-      for (const r of filtered) {
-        if (!linkedIds.has(r.id)) next.add(r.id)
-      }
+      for (const r of filtered) next.add(r.id)
       return next
     })
   }
@@ -214,7 +225,8 @@ export function LinkRequirementsModal({
     >
       <div className="space-y-3">
         <Typography variant="small" tone="muted">
-          Search on the left, preview details in the middle, then add to the selection on the right.
+          Only active requirements that are not yet in any scope package. Search on the left,
+          preview in the middle, then add to the selection on the right.
         </Typography>
         {error ? (
           <Typography variant="small" tone="error">
@@ -230,13 +242,18 @@ export function LinkRequirementsModal({
           <Typography variant="small" tone="muted">
             No requirements in this project yet.
           </Typography>
+        ) : linkable.length === 0 ? (
+          <Typography variant="small" tone="muted">
+            No active unscoped requirements available to link. Requirements already in a scope
+            package do not appear here.
+          </Typography>
         ) : (
           <div className="grid grid-cols-1 gap-0 overflow-hidden border border-neutral-200 lg:h-[min(52vh,440px)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.25fr)_minmax(0,0.95fr)]">
             {/* Left: searchable catalog */}
             <section className="flex min-h-0 flex-col border-b border-neutral-200 lg:h-full lg:border-b-0 lg:border-r">
               <div className="shrink-0 space-y-2 border-b border-neutral-100 px-3 py-2.5">
                 <Typography variant="small" weight="semibold">
-                  Requirements
+                  Available requirements
                 </Typography>
                 <div className="flex items-center gap-1.5 border border-neutral-200 bg-white px-2 py-1.5">
                   <Search size={14} className="shrink-0 text-neutral-400" />
@@ -267,8 +284,7 @@ export function LinkRequirementsModal({
                   </li>
                 ) : (
                   filtered.map((r) => {
-                    const alreadyLinked = linkedIds.has(r.id)
-                    const checked = alreadyLinked || selected.has(r.id)
+                    const checked = selected.has(r.id)
                     const focusedRow = focusedId === r.id
                     return (
                       <li key={r.id} className="border-b border-neutral-100 last:border-b-0">
@@ -276,14 +292,12 @@ export function LinkRequirementsModal({
                           className={cn(
                             'flex items-start gap-2 px-3 py-2 text-sm',
                             focusedRow && 'bg-neutral-100',
-                            !focusedRow && !alreadyLinked && 'hover:bg-neutral-50',
-                            alreadyLinked && 'bg-neutral-50/80 opacity-70'
+                            !focusedRow && 'hover:bg-neutral-50'
                           )}
                         >
                           <Checkbox
                             size="sm"
                             checked={checked}
-                            disabled={alreadyLinked}
                             onChange={() => {
                               setFocusedId(r.id)
                               toggle(r.id)
@@ -301,7 +315,6 @@ export function LinkRequirementsModal({
                             <span className="text-xs text-neutral-500">
                               {r.code}
                               {` · ${reqTypeLabel(r)}`}
-                              {alreadyLinked ? ' · Already linked' : ''}
                             </span>
                           </button>
                         </div>
@@ -352,11 +365,6 @@ export function LinkRequirementsModal({
                             )
                           })()
                         : null}
-                      {focusedAlreadyLinked ? (
-                        <Badge variant="soft" tone="warning">
-                          Already linked
-                        </Badge>
-                      ) : null}
                       {focusedSelected ? (
                         <Badge variant="soft" tone="success">
                           Selected
@@ -382,10 +390,7 @@ export function LinkRequirementsModal({
                       label="Priority"
                       value={requirementPriorityLabel(focused.priority)}
                     />
-                    <PreviewField
-                      label="Type"
-                      value={reqTypeLabel(focused)}
-                    />
+                    <PreviewField label="Type" value={reqTypeLabel(focused)} />
                     <PreviewField label="Created" value={formatDate(focused.created_at)} />
                     <PreviewField
                       label="Updated"

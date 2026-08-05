@@ -31,12 +31,13 @@ import {
   getFunctionalItem,
   getNonFunctionalItem,
 } from '@/modules/projects/traceability/api/functional-catalog.api'
-import { getScopeItem } from '@/modules/projects/scope/infrastructure/api/scope.api'
 import type {
   FunctionalItem,
   NonFunctionalItem,
 } from '@/modules/projects/traceability/model/functional-catalog'
-import type { ScopeItem } from '@/modules/projects/scope/domain/model/scope'
+import { getScopeItem } from '@/modules/projects/scope/infrastructure/api/scope.api'
+import * as scopeApi from '@/modules/projects/scope/infrastructure/api/scope.api'
+import type { ScopeItem, ScopePackage } from '@/modules/projects/scope/domain/model/scope'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
 import type { CreateRequirementPayload, Requirement } from '../model/requirements'
@@ -49,6 +50,10 @@ import {
   requirementPriorityLabel,
 } from '../model/requirement-priority'
 import {
+  matchesRequirementScopeFilter,
+  type RequirementScopeFilter,
+} from '../model/requirement-scope.rules'
+import {
   normalizeRequirementStatus,
   RequirementStatus,
   requirementStatusBadgeProps,
@@ -56,6 +61,7 @@ import {
 } from '../model/requirement-status'
 import { EditRequirementModal, type EditRequirementSubmit } from './EditRequirementModal'
 import { RequirementAddBar } from './RequirementAddBar'
+import { RequirementScopeFilterSelect } from './RequirementScopeFilterSelect'
 import { SpecPacksView } from './SpecPacksView'
 
 type ListFilter = 'all' | 'with' | 'missing' | 'archived'
@@ -148,6 +154,8 @@ export function ProjectRequirementsView() {
   const [evidenceCounts, setEvidenceCounts] = useState<Record<string, number>>({})
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<ListFilter>('all')
+  const [scopeFilter, setScopeFilter] = useState<RequirementScopeFilter>('all')
+  const [scopePackages, setScopePackages] = useState<ScopePackage[]>([])
   const [mainTab, setMainTab] = useState<RequirementsMainTab>('catalog')
   const [resolvedFunctionalItem, setResolvedFunctionalItem] = useState<FunctionalItem | null>(null)
   const [resolvedNfr, setResolvedNfr] = useState<NonFunctionalItem | null>(null)
@@ -247,6 +255,28 @@ export function ProjectRequirementsView() {
     [activeRequirements, evidenceCounts]
   )
 
+  useEffect(() => {
+    if (!projectId) return
+    let cancelled = false
+    void scopeApi
+      .listScopePackages(projectId)
+      .then((list) => {
+        if (!cancelled) setScopePackages(Array.isArray(list) ? list : [])
+      })
+      .catch(() => {
+        if (!cancelled) setScopePackages([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [projectId])
+
+  const scopePackageById = useMemo(() => {
+    const map = new Map<string, ScopePackage>()
+    for (const p of scopePackages) map.set(p.id, p)
+    return map
+  }, [scopePackages])
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     const pool = filter === 'archived' ? archivedRequirements : activeRequirements
@@ -256,11 +286,26 @@ export function ProjectRequirementsView() {
         if (filter === 'with' && count === 0) return false
         if (filter === 'missing' && count > 0) return false
       }
+      if (!matchesRequirementScopeFilter(r, scopeFilter)) return false
       if (!q) return true
-      const hay = `${r.code} ${r.title} ${r.req_type ?? r.type ?? ''} ${r.status ?? ''}`.toLowerCase()
+      const scopeLabel = r.scopePackageId
+        ? `${scopePackageById.get(r.scopePackageId)?.code ?? ''} ${
+            scopePackageById.get(r.scopePackageId)?.name ?? ''
+          }`
+        : 'unscoped'
+      const hay =
+        `${r.code} ${r.title} ${r.req_type ?? r.type ?? ''} ${r.status ?? ''} ${scopeLabel}`.toLowerCase()
       return hay.includes(q)
     })
-  }, [activeRequirements, archivedRequirements, evidenceCounts, filter, search])
+  }, [
+    activeRequirements,
+    archivedRequirements,
+    evidenceCounts,
+    filter,
+    scopeFilter,
+    scopePackageById,
+    search,
+  ])
 
   useEffect(() => {
     const fromQuery = searchParams.get('requirementId')
@@ -478,6 +523,7 @@ export function ProjectRequirementsView() {
               workspaceId={orgId}
               projectId={projectId}
               requirements={activeRequirements}
+              scopePackages={scopePackages}
               canCreate={canCreateRequirement}
             />
           ) : (
@@ -495,6 +541,13 @@ export function ProjectRequirementsView() {
                       className="w-full bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
                     />
                   </div>
+                  <RequirementScopeFilterSelect
+                    projectId={projectId}
+                    value={scopeFilter}
+                    onChange={setScopeFilter}
+                    packages={scopePackages}
+                    className="w-[180px]"
+                  />
                   <div className="flex flex-wrap gap-0.5">
                     {(
                       [
@@ -593,13 +646,38 @@ export function ProjectRequirementsView() {
                       {
                         id: 'priority',
                         header: 'Priority',
-                        width: '12%',
+                        width: '10%',
                         accessor: (row) => requirementPriorityLabel(row.priority),
+                      },
+                      {
+                        id: 'scope',
+                        header: 'Scope',
+                        width: '16%',
+                        cell: (row) => {
+                          if (!row.scopePackageId) {
+                            return (
+                              <Typography as="span" size="xs" tone="muted">
+                                Unscoped
+                              </Typography>
+                            )
+                          }
+                          const pkg = scopePackageById.get(row.scopePackageId)
+                          return (
+                            <Typography
+                              as="span"
+                              size="xs"
+                              className="text-neutral-700"
+                              title={pkg?.name}
+                            >
+                              {pkg ? pkg.code : 'Linked'}
+                            </Typography>
+                          )
+                        },
                       },
                       {
                         id: 'evidence',
                         header: 'Evidence',
-                        width: '16%',
+                        width: '14%',
                         cell: (row) => {
                           const count = evidenceCounts[row.id] ?? 0
                           if (count > 0) {

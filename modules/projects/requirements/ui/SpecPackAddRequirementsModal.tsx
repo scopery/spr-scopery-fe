@@ -4,18 +4,26 @@ import { useEffect, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
 import { Button, Checkbox, Modal, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
+import type { ScopePackage } from '@/modules/projects/scope'
 import type { Requirement } from '../model/requirements'
+import {
+  matchesRequirementScopeFilter,
+  type RequirementScopeFilter,
+} from '../model/requirement-scope.rules'
 import {
   flattenSpecPackRequirements,
   type SpecPackGroup,
 } from '../model/spec-pack'
 import { toRequirementRef } from './SpecPackGroupOutline'
+import { RequirementScopeFilterSelect } from './RequirementScopeFilterSelect'
 
 interface SpecPackAddRequirementsModalProps {
   open: boolean
   onClose: () => void
   groups: SpecPackGroup[]
   requirements: Requirement[]
+  scopePackages?: ScopePackage[]
+  projectId: string
   defaultGroupId?: string | null
   onAdd: (nextGroups: SpecPackGroup[]) => void
 }
@@ -25,10 +33,13 @@ export function SpecPackAddRequirementsModal({
   onClose,
   groups,
   requirements,
+  scopePackages = [],
+  projectId,
   defaultGroupId,
   onAdd,
 }: SpecPackAddRequirementsModalProps) {
   const [query, setQuery] = useState('')
+  const [scopeFilter, setScopeFilter] = useState<RequirementScopeFilter>('all')
   const [groupId, setGroupId] = useState<string>('')
   const [picked, setPicked] = useState<Set<string>>(new Set())
 
@@ -37,6 +48,12 @@ export function SpecPackAddRequirementsModal({
     [groups]
   )
 
+  const scopePackageById = useMemo(() => {
+    const map = new Map<string, ScopePackage>()
+    for (const p of scopePackages) map.set(p.id, p)
+    return map
+  }, [scopePackages])
+
   const available = useMemo(
     () => requirements.filter((r) => !inPackIds.has(r.id)),
     [requirements, inPackIds]
@@ -44,15 +61,22 @@ export function SpecPackAddRequirementsModal({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return available
-    return available.filter((r) =>
-      `${r.code} ${r.title}`.toLowerCase().includes(q)
-    )
-  }, [available, query])
+    return available.filter((r) => {
+      if (!matchesRequirementScopeFilter(r, scopeFilter)) return false
+      if (!q) return true
+      const scopeLabel = r.scopePackageId
+        ? `${scopePackageById.get(r.scopePackageId)?.code ?? ''} ${
+            scopePackageById.get(r.scopePackageId)?.name ?? ''
+          }`
+        : 'unscoped'
+      return `${r.code} ${r.title} ${scopeLabel}`.toLowerCase().includes(q)
+    })
+  }, [available, query, scopeFilter, scopePackageById])
 
   useEffect(() => {
     if (!open) return
     setQuery('')
+    setScopeFilter('all')
     setPicked(new Set())
     const preferred =
       (defaultGroupId && groups.some((g) => g.id === defaultGroupId)
@@ -123,13 +147,21 @@ export function SpecPackAddRequirementsModal({
           </select>
         </div>
 
+        <RequirementScopeFilterSelect
+          projectId={projectId}
+          value={scopeFilter}
+          onChange={setScopeFilter}
+          packages={scopePackages}
+          className="w-full"
+        />
+
         <div className="flex items-center gap-1.5 border border-neutral-200 bg-white px-2 py-1.5">
           <Search size={14} className="text-neutral-400" />
           <input
             className="w-full bg-transparent text-sm outline-none"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search requirements…"
+            placeholder="Search code, title, scope…"
           />
         </div>
 
@@ -153,14 +185,17 @@ export function SpecPackAddRequirementsModal({
                       size="sm"
                       checked={checked}
                       onChange={() => toggle(r.id)}
-                      className="mt-0.5"
+                      aria-label={`Select ${r.title}`}
                     />
-                    <span className="min-w-0">
+                    <span className="min-w-0 flex-1">
                       <span className="block text-sm font-medium text-neutral-900">
-                        {r.code}
-                      </span>
-                      <span className="line-clamp-2 text-xs text-neutral-500">
                         {r.title}
+                      </span>
+                      <span className="text-xs text-neutral-500">
+                        {r.code}
+                        {r.scopePackageId
+                          ? ` · ${scopePackageById.get(r.scopePackageId)?.code ?? 'Scoped'}`
+                          : ' · Unscoped'}
                       </span>
                     </span>
                   </label>
@@ -170,20 +205,12 @@ export function SpecPackAddRequirementsModal({
             {filtered.length === 0 ? (
               <li className="px-3 py-6 text-center">
                 <Typography variant="small" tone="muted">
-                  No matches.
+                  No requirements match this scope filter.
                 </Typography>
               </li>
             ) : null}
           </ul>
         )}
-
-        {picked.size > 0 ? (
-          <div className="flex justify-end">
-            <Button size="sm" variant="ghost" onClick={() => setPicked(new Set())}>
-              Clear selection
-            </Button>
-          </div>
-        ) : null}
       </div>
     </Modal>
   )

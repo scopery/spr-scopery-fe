@@ -26,6 +26,7 @@ import { exportSpecPackToExcel } from '../export/spec-pack-excel'
 import { useSpecPackPreview } from '../hooks/useSpecPackPreview'
 import { useSpecPacks } from '../hooks/useSpecPacks'
 import type { Requirement } from '../model/requirements'
+import type { ScopePackage } from '@/modules/projects/scope'
 import { applySpecPackGroupsToPreview } from '../model/reorder-spec-pack-chapters'
 import {
   SpecPackStatus,
@@ -48,6 +49,7 @@ interface SpecPacksViewProps {
   workspaceId: string
   projectId: string
   requirements: Requirement[]
+  scopePackages?: ScopePackage[]
   canCreate?: boolean
 }
 
@@ -77,6 +79,7 @@ export function SpecPacksView({
   workspaceId,
   projectId,
   requirements,
+  scopePackages = [],
   canCreate = true,
 }: SpecPacksViewProps) {
   const { packs, createPack, markExported, removePack, updateGroups, updateTitle } =
@@ -515,6 +518,7 @@ export function SpecPacksView({
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         requirements={requirements}
+        scopePackages={scopePackages}
         onCreate={(input) => {
           createPack(input)
           toast.success('Spec Pack created')
