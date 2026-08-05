@@ -31,6 +31,8 @@ import {
   getFunctionalItem,
   getNonFunctionalItem,
 } from '@/modules/projects/traceability/api/functional-catalog.api'
+import * as traceabilityApi from '@/modules/projects/traceability/api/traceability.api'
+import { TraceLinkType } from '@/modules/quality/domain/enums/quality.enum'
 import type {
   FunctionalItem,
   NonFunctionalItem,
@@ -158,6 +160,7 @@ export function ProjectRequirementsView() {
   const [scopePackages, setScopePackages] = useState<ScopePackage[]>([])
   const [mainTab, setMainTab] = useState<RequirementsMainTab>('catalog')
   const [resolvedFunctionalItem, setResolvedFunctionalItem] = useState<FunctionalItem | null>(null)
+  const [resolvedLinkedFunctions, setResolvedLinkedFunctions] = useState<FunctionalItem[]>([])
   const [resolvedNfr, setResolvedNfr] = useState<NonFunctionalItem | null>(null)
   const [resolvedScopeItem, setResolvedScopeItem] = useState<ScopeItem | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -328,15 +331,56 @@ export function ProjectRequirementsView() {
     setConfirmDelete(false)
     setEditOpen(false)
     setResolvedFunctionalItem(null)
+    setResolvedLinkedFunctions([])
     setResolvedNfr(null)
     setResolvedScopeItem(null)
     if (!selected) return
 
-    if (selected.functionalItemId) {
-      getFunctionalItem(projectId, selected.functionalItemId)
-        .then(setResolvedFunctionalItem)
-        .catch(() => setResolvedFunctionalItem(null))
-    }
+    // Fetch all COVERS trace links (Req → FunctionalItem) for this requirement.
+    let cancelled = false
+    void traceabilityApi
+      .listTraceLinks(projectId, {
+        linkType: TraceLinkType.Covers,
+        sourceType: 'REQUIREMENT',
+        sourceId: selected.id,
+        targetType: 'FUNCTIONAL_ITEM',
+        limit: 100,
+      })
+      .then(async (res) => {
+        if (cancelled) return
+        const links = res.items.filter(
+          (l) =>
+            l.sourceType.toUpperCase() === 'REQUIREMENT' &&
+            l.targetType.toUpperCase() === 'FUNCTIONAL_ITEM' &&
+            l.linkType.toUpperCase() === TraceLinkType.Covers
+        )
+        // Fetch details for each linked function.
+        const fetched = await Promise.all(
+          links.map((l) =>
+            getFunctionalItem(projectId, l.targetId).catch(() => null)
+          )
+        )
+        if (!cancelled) {
+          const valid = fetched.filter((f): f is FunctionalItem => f !== null)
+          setResolvedLinkedFunctions(valid)
+          // Keep primary resolvedFunctionalItem for backward compat with Archive button guard.
+          if (valid.length > 0) setResolvedFunctionalItem(valid[0])
+        }
+      })
+      .catch(() => {
+        // Fall back to single FK pointer if trace link API fails.
+        if (!cancelled && selected.functionalItemId) {
+          getFunctionalItem(projectId, selected.functionalItemId)
+            .then((fi) => {
+              if (!cancelled) {
+                setResolvedFunctionalItem(fi)
+                setResolvedLinkedFunctions([fi])
+              }
+            })
+            .catch(() => undefined)
+        }
+      })
+
     if (selected.nonFunctionalItemId) {
       getNonFunctionalItem(projectId, selected.nonFunctionalItemId)
         .then(setResolvedNfr)
@@ -346,6 +390,9 @@ export function ProjectRequirementsView() {
       getScopeItem(projectId, selected.scopeItemId)
         .then(setResolvedScopeItem)
         .catch(() => setResolvedScopeItem(null))
+    }
+    return () => {
+      cancelled = true
     }
   }, [
     projectId,
@@ -827,6 +874,7 @@ export function ProjectRequirementsView() {
                     <CatalogLinksSection
                       selected={selected}
                       functionalItem={resolvedFunctionalItem}
+                      linkedFunctions={resolvedLinkedFunctions}
                       nfr={resolvedNfr}
                       scopeItem={resolvedScopeItem}
                       catalogHref={catalogHref}
@@ -933,6 +981,7 @@ function MetaRow({ label, value }: { label: string; value: ReactNode }) {
 function CatalogLinksSection({
   selected,
   functionalItem,
+  linkedFunctions,
   nfr,
   scopeItem,
   catalogHref,
@@ -940,15 +989,25 @@ function CatalogLinksSection({
 }: {
   selected: Requirement
   functionalItem: FunctionalItem | null
+  linkedFunctions: FunctionalItem[]
   nfr: NonFunctionalItem | null
   scopeItem: ScopeItem | null
   catalogHref: string
   scopeHref: string
 }) {
-  const hasFR = !!selected.functionalItemId
+  // Show all COVERS-linked functions; fall back to single FK pointer if none resolved yet.
+  const functionsToShow =
+    linkedFunctions.length > 0
+      ? linkedFunctions
+      : functionalItem
+        ? [functionalItem]
+        : selected.functionalItemId
+          ? [{ id: selected.functionalItemId, code: '', title: 'Loading…' } as FunctionalItem]
+          : []
+
   const hasNFR = !!selected.nonFunctionalItemId
   const hasScope = !!selected.scopeItemId
-  if (!hasFR && !hasNFR && !hasScope) return null
+  if (functionsToShow.length === 0 && !hasNFR && !hasScope) return null
 
   return (
     <section className="border-t border-neutral-100 pt-4">
@@ -956,14 +1015,15 @@ function CatalogLinksSection({
         Catalog links
       </Typography>
       <ul className="space-y-2">
-        {hasFR ? (
+        {functionsToShow.map((fi) => (
           <CatalogLinkRow
+            key={fi.id}
             label="Functional item"
-            code={functionalItem?.code}
-            title={functionalItem ? functionalItem.title : 'Loading…'}
+            code={fi.code || undefined}
+            title={fi.title}
             href={catalogHref}
           />
-        ) : null}
+        ))}
         {hasNFR ? (
           <CatalogLinkRow
             label="Non-functional requirement"
