@@ -344,6 +344,7 @@ export function FunctionalItemDetailPanel({
         description: nextDescription,
         priority: editPriority,
         type: editType,
+        status: item.status,
         acceptanceCriteria: item.acceptanceCriteria ?? null,
       })
       clearDraft()
@@ -372,6 +373,7 @@ export function FunctionalItemDetailPanel({
         description: item.description ?? null,
         priority: item.priority,
         type: item.type,
+        status: item.status,
         acceptanceCriteria: next.length ? next : [],
       })
       setEditAcceptance(next)
