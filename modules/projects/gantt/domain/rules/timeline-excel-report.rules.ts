@@ -173,9 +173,10 @@ export function computeVarianceDays(args: {
 
 export function formatVarianceLabel(days: number | null): string {
   if (days == null) return '—'
-  if (days === 0) return 'On track'
-  if (days > 0) return `${days}d late`
-  return `${Math.abs(days)}d early`
+  if (days === 0) return 'On time'
+  if (days > 0) return `${days} day${days === 1 ? '' : 's'} late`
+  const early = Math.abs(days)
+  return `${early} day${early === 1 ? '' : 's'} ahead`
 }
 
 /** Assign WBS codes 1, 1.1, 1.2, 2… while flattening the tree. */

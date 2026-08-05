@@ -152,6 +152,6 @@ describe('buildTimelineExcelOverviewInsights', () => {
     const insights = buildTimelineExcelOverviewInsights(rows, '2026-08-05')
     expect(insights.overdueCount).toBe(1)
     expect(insights.narrative).toMatch(/behind plan|past plan end/i)
-    expect(formatVarianceLabel(1)).toBe('1d late')
+    expect(formatVarianceLabel(1)).toBe('1 day late')
   })
 })

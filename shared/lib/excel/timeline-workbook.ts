@@ -16,18 +16,22 @@ import {
   toExcelDateOnly,
 } from './timeline-chart'
 import {
-  EXCEL_COMPLETED_MARK,
   EXCEL_CREATOR,
   EXCEL_FONT,
+  EXCEL_FONT_NAME,
   EXCEL_HEADER_FONT,
   EXCEL_KPI_VALUE_FONT,
-  EXCEL_MILESTONE_FONT,
-  EXCEL_MILESTONE_MARK,
   EXCEL_MUTED_FONT,
   EXCEL_TITLE_FONT,
-  TIMELINE_EXCEL_STATUS_COLORS,
+  TIMELINE_EXCEL_LEVEL,
+  TIMELINE_EXCEL_LEVEL_LEGEND,
   TIMELINE_EXCEL_STATUS_LEGEND,
+  TIMELINE_EXCEL_STATUS_TEXT,
+  TIMELINE_EXCEL_UI,
+  excelFontColor,
   excelSolidFill,
+  scheduleExcelLevelFromItemType,
+  type ScheduleExcelLevel,
 } from './style'
 
 /** Row shape consumed by the shared schedule report workbook. */
@@ -36,13 +40,15 @@ export interface ScheduleReportExcelRow {
   workItem: string
   owner: string
   statusLabel: string
-  /** Machine status key used for bar colors */
+  /** Machine status key — text styling only */
   statusKey: string
   planStart: string | null
   planEnd: string | null
-  dueDate: string | null
+  dueDate?: string | null
   progressPercent: number | null
   varianceLabel: string
+  /** PROJECT | PHASE | WBS_NODE | TASK | MILESTONE */
+  itemType?: string
   isMilestone?: boolean
   isLeafWork?: boolean
   raw?: Record<string, string | number | null | undefined>
@@ -70,56 +76,76 @@ export interface ScheduleReportWorkbookOptions {
 }
 
 const INFO_HEADERS = [
-  '#',
+  'WBS',
   'Work item',
   'Owner',
   'Status',
   'Plan Start',
   'Plan End',
-  'Due date',
   'Progress',
   'Variance',
 ] as const
 
-const INFO_WIDTHS = [8, 36, 18, 16, 12, 12, 12, 10, 12]
+const INFO_WIDTHS = [10, 40, 18, 16, 12, 12, 10, 14]
 
-function statusBarColor(statusKey: string): string {
-  switch (statusKey) {
-    case 'completed':
-      return TIMELINE_EXCEL_STATUS_COLORS.completed
-    case 'overdue':
-    case 'delayed':
-      return TIMELINE_EXCEL_STATUS_COLORS.delayed
-    case 'at_risk':
-    case 'not_started_late':
-      return TIMELINE_EXCEL_STATUS_COLORS.atRisk
-    case 'in_progress':
-      return TIMELINE_EXCEL_STATUS_COLORS.inProgress
-    case 'unscheduled':
-      return TIMELINE_EXCEL_STATUS_COLORS.unscheduled
-    case 'structure':
-      return TIMELINE_EXCEL_STATUS_COLORS.structure
-    case 'not_started':
-    default:
-      return TIMELINE_EXCEL_STATUS_COLORS.notStarted
+const STATUS_COL = 4
+const VARIANCE_COL = 8
+const WORK_ITEM_COL = 2
+
+function thinBorder(color = TIMELINE_EXCEL_UI.gridLine): Partial<ExcelJS.Borders> {
+  const edge: Partial<ExcelJS.Border> = {
+    style: 'thin',
+    color: { argb: `FF${color}` },
   }
+  return { top: edge, bottom: edge, left: edge, right: edge }
+}
+
+function statusStyleKey(statusKey: string): keyof typeof TIMELINE_EXCEL_STATUS_TEXT {
+  if (statusKey in TIMELINE_EXCEL_STATUS_TEXT) {
+    return statusKey as keyof typeof TIMELINE_EXCEL_STATUS_TEXT
+  }
+  if (statusKey === 'structure') return 'structure'
+  return 'not_started'
 }
 
 function applyHeaderStyle(row: ExcelJS.Row) {
   row.font = { ...EXCEL_HEADER_FONT }
   row.alignment = { vertical: 'middle', wrapText: true }
+  row.eachCell((cell) => {
+    cell.fill = excelSolidFill(TIMELINE_EXCEL_UI.headerBg)
+    cell.border = {
+      bottom: {
+        style: 'medium',
+        color: { argb: `FF${TIMELINE_EXCEL_UI.phaseBorder}` },
+      },
+    }
+  })
 }
 
 function writeLegend(sheet: ExcelJS.Worksheet, startRow: number): number {
   let r = startRow
-  sheet.getRow(r).getCell(1).value = 'Legend'
+  sheet.getRow(r).getCell(1).value = 'Hierarchy (Gantt bars)'
+  sheet.getRow(r).font = { ...EXCEL_HEADER_FONT }
+  r += 1
+  for (const entry of TIMELINE_EXCEL_LEVEL_LEGEND) {
+    const row = sheet.getRow(r)
+    row.getCell(1).fill = excelSolidFill(entry.colorHex)
+    row.getCell(2).value = entry.label
+    row.getCell(2).font = { ...EXCEL_FONT }
+    r += 1
+  }
+  r += 1
+  sheet.getRow(r).getCell(1).value = 'Status (text color)'
   sheet.getRow(r).font = { ...EXCEL_HEADER_FONT }
   r += 1
   for (const entry of TIMELINE_EXCEL_STATUS_LEGEND) {
     const row = sheet.getRow(r)
     row.getCell(1).fill = excelSolidFill(entry.colorHex)
-    row.getCell(2).value = entry.label + (entry.note ? `  ${entry.note}` : '')
-    row.getCell(2).font = { ...EXCEL_FONT }
+    row.getCell(2).value = entry.label
+    row.getCell(2).font = {
+      ...EXCEL_FONT,
+      color: excelFontColor(entry.colorHex),
+    }
     r += 1
   }
   return r
@@ -191,6 +217,122 @@ function addOverviewSheet(wb: ExcelJS.Workbook, overview: ScheduleReportOverview
   sheet.getColumn(4).width = 16
 }
 
+function applyInfoRowStyle(
+  excelRow: ExcelJS.Row,
+  level: ScheduleExcelLevel,
+  statusKey: string,
+  infoCount: number
+) {
+  const cfg = TIMELINE_EXCEL_LEVEL[level]
+  excelRow.height = cfg.rowHeight
+
+  for (let c = 1; c <= infoCount; c++) {
+    const cell = excelRow.getCell(c)
+    cell.fill = excelSolidFill(cfg.rowBg)
+    cell.font = {
+      name: EXCEL_FONT_NAME,
+      size: cfg.fontSize,
+      bold: cfg.bold || (c === STATUS_COL && (statusKey === 'delayed' || statusKey === 'overdue')),
+      color: excelFontColor(cfg.text),
+    }
+    cell.alignment = {
+      vertical: 'middle',
+      indent: c === WORK_ITEM_COL ? cfg.indent : 0,
+    }
+
+    if (level === 'project') {
+      cell.border = {
+        top: {
+          style: 'medium',
+          color: { argb: `FF${TIMELINE_EXCEL_UI.projectBorder}` },
+        },
+        bottom: {
+          style: 'medium',
+          color: { argb: `FF${TIMELINE_EXCEL_UI.projectBorder}` },
+        },
+      }
+    } else if (level === 'phase') {
+      cell.border = {
+        top: {
+          style: 'thin',
+          color: { argb: `FF${TIMELINE_EXCEL_UI.phaseBorder}` },
+        },
+        bottom: {
+          style: 'hair',
+          color: { argb: `FF${TIMELINE_EXCEL_UI.gridLine}` },
+        },
+      }
+    } else {
+      cell.border = {
+        bottom: {
+          style: 'hair',
+          color: { argb: `FF${TIMELINE_EXCEL_UI.gridLine}` },
+        },
+      }
+    }
+  }
+
+  // Status + Variance: status text color (light tint on status only)
+  const st = TIMELINE_EXCEL_STATUS_TEXT[statusStyleKey(statusKey)]
+  if (level !== 'project') {
+    const statusCell = excelRow.getCell(STATUS_COL)
+    statusCell.font = {
+      name: EXCEL_FONT_NAME,
+      size: cfg.fontSize,
+      bold: statusKey === 'delayed' || statusKey === 'overdue',
+      color: excelFontColor(st.text),
+    }
+    if (st.bg !== 'FFFFFF') {
+      statusCell.fill = excelSolidFill(st.bg)
+    }
+
+    const varianceCell = excelRow.getCell(VARIANCE_COL)
+    varianceCell.font = {
+      name: EXCEL_FONT_NAME,
+      size: cfg.fontSize,
+      bold: statusKey === 'delayed' || statusKey === 'overdue',
+      color: excelFontColor(st.text),
+    }
+  }
+}
+
+function paintGanttCell(
+  cell: ExcelJS.Cell,
+  level: ScheduleExcelLevel,
+  opts: {
+    progressed: boolean
+    hasProgress: boolean
+    isMilestone: boolean
+    isToday: boolean
+  }
+) {
+  const cfg = TIMELINE_EXCEL_LEVEL[level]
+
+  if (opts.isToday && !opts.progressed && level === 'task') {
+    cell.fill = excelSolidFill(TIMELINE_EXCEL_UI.todayColumn)
+  }
+
+  if (opts.isMilestone) {
+    // Small solid block — no icon
+    cell.fill = excelSolidFill(TIMELINE_EXCEL_UI.milestoneMark)
+    return
+  }
+
+  if (level === 'project' || level === 'phase' || level === 'plan') {
+    cell.fill = excelSolidFill(cfg.bar)
+    return
+  }
+
+  // Task: progress darker, remainder light
+  if (opts.hasProgress) {
+    cell.fill = excelSolidFill(
+      opts.progressed ? cfg.barProgress : TIMELINE_EXCEL_LEVEL.task.barRemain
+    )
+  } else {
+    cell.fill = excelSolidFill(cfg.bar)
+  }
+}
+
 function addScheduleSheet(
   wb: ExcelJS.Workbook,
   rows: ScheduleReportExcelRow[],
@@ -204,12 +346,14 @@ function addScheduleSheet(
 
   const sheet = wb.addWorksheet('Schedule', {
     views: [{ state: 'frozen', xSplit: infoCount, ySplit: 2 }],
+    properties: { defaultRowHeight: 18 },
   })
 
-  // Row 1: title + month bands
-  sheet.getCell(1, 1).value = `Schedule · Scale: ${scale} · Today ${formatExcelDisplayDate(today)}`
+  sheet.getCell(1, 1).value =
+    `Schedule · Scale: ${scale} · Today ${formatExcelDisplayDate(today)}`
   sheet.getCell(1, 1).font = { ...EXCEL_HEADER_FONT }
   sheet.mergeCells(1, 1, 1, infoCount)
+  sheet.getRow(1).height = 22
 
   monthGroups.forEach((g) => {
     const startCol = infoCount + 1 + g.startIndex
@@ -217,13 +361,13 @@ function addScheduleSheet(
     const cell = sheet.getCell(1, startCol)
     cell.value = g.label
     cell.font = { ...EXCEL_HEADER_FONT }
-    cell.alignment = { horizontal: 'center' }
+    cell.alignment = { horizontal: 'center', vertical: 'middle' }
+    cell.fill = excelSolidFill(TIMELINE_EXCEL_UI.headerBg)
     if (endCol > startCol) {
       sheet.mergeCells(1, startCol, 1, endCol)
     }
   })
 
-  // Row 2: info headers + day/week labels
   const header = sheet.getRow(2)
   INFO_HEADERS.forEach((h, i) => {
     header.getCell(i + 1).value = h
@@ -232,13 +376,14 @@ function addScheduleSheet(
   columns.forEach((col, index) => {
     const cell = header.getCell(infoCount + 1 + index)
     cell.value = col.label
-    cell.alignment = { horizontal: 'center', wrapText: true }
-    sheet.getColumn(infoCount + 1 + index).width = scale === 'day' ? 3.5 : 5
+    cell.alignment = { horizontal: 'center', wrapText: true, vertical: 'middle' }
+    sheet.getColumn(infoCount + 1 + index).width = scale === 'day' ? 3.2 : 4.5
     if (index === todayCol) {
-      cell.fill = excelSolidFill(TIMELINE_EXCEL_STATUS_COLORS.todayColumn)
+      cell.fill = excelSolidFill(TIMELINE_EXCEL_UI.todayColumn)
     }
   })
   applyHeaderStyle(header)
+  header.height = 24
 
   if (columns.length === 0) {
     sheet.getCell(3, 1).value = 'No scheduled dates to plot'
@@ -247,6 +392,7 @@ function addScheduleSheet(
 
   rows.forEach((row, rowIndex) => {
     const excelRow = sheet.getRow(rowIndex + 3)
+    const level = scheduleExcelLevelFromItemType(row.itemType)
     const values = [
       row.wbs,
       row.workItem,
@@ -254,29 +400,26 @@ function addScheduleSheet(
       row.statusLabel || '—',
       formatExcelDisplayDate(row.planStart),
       formatExcelDisplayDate(row.planEnd),
-      formatExcelDisplayDate(row.dueDate),
       row.progressPercent != null ? `${row.progressPercent}%` : '—',
       row.varianceLabel || '—',
     ]
     values.forEach((v, i) => {
-      const cell = excelRow.getCell(i + 1)
-      cell.value = v
-      cell.font = { ...EXCEL_FONT }
-      if (i === 1) {
-        cell.alignment = { indent: 0 }
-      }
+      excelRow.getCell(i + 1).value = v
     })
+    applyInfoRowStyle(excelRow, level, row.statusKey, infoCount)
 
-    const barColor = statusBarColor(row.statusKey)
     const reach = progressReachDate(row.planStart, row.planEnd, row.progressPercent)
     const planStart = toExcelDateOnly(row.planStart)
     const planEnd = toExcelDateOnly(row.planEnd)
+    const hasProgress = row.progressPercent != null && row.progressPercent > 0
 
     columns.forEach((col, colIndex) => {
       const cell = excelRow.getCell(infoCount + 1 + colIndex)
       const isToday = colIndex === todayCol
+
+      // Soft today highlight under empty cells
       if (isToday) {
-        cell.fill = excelSolidFill(TIMELINE_EXCEL_STATUS_COLORS.todayColumn)
+        cell.fill = excelSolidFill(TIMELINE_EXCEL_UI.todayColumn)
       }
 
       const onPlan = spanOverlapsChartColumn(
@@ -284,7 +427,6 @@ function addScheduleSheet(
         col
       )
 
-      // Overdue tail: after plan end through today
       const overdueTail =
         (row.statusKey === 'overdue' || row.statusKey === 'delayed') &&
         planEnd &&
@@ -292,7 +434,7 @@ function addScheduleSheet(
         col.start <= today
 
       if (overdueTail) {
-        cell.fill = excelSolidFill(TIMELINE_EXCEL_STATUS_COLORS.overdueTail)
+        cell.fill = excelSolidFill(TIMELINE_EXCEL_UI.overdueTail)
         return
       }
 
@@ -304,35 +446,12 @@ function addScheduleSheet(
         col.start <= reach &&
         col.end >= planStart
 
-      if (row.progressPercent != null && row.progressPercent > 0 && progressed) {
-        cell.fill = excelSolidFill(barColor)
-      } else if (row.statusKey === 'structure') {
-        cell.fill = excelSolidFill(TIMELINE_EXCEL_STATUS_COLORS.structure)
-      } else if (row.progressPercent != null && row.progressPercent > 0) {
-        cell.fill = excelSolidFill(TIMELINE_EXCEL_STATUS_COLORS.planBaseline)
-      } else {
-        cell.fill = excelSolidFill(barColor)
-      }
-
-      if (row.isMilestone && onPlan) {
-        cell.value = EXCEL_MILESTONE_MARK
-        cell.alignment = { horizontal: 'center' }
-        cell.font = { ...EXCEL_MILESTONE_FONT }
-      } else if (row.statusKey === 'completed' && onPlan && colIndex === 0) {
-        /* mark first overlapping cell */
-      }
-
-      if (
-        row.statusKey === 'completed' &&
-        onPlan &&
-        planEnd &&
-        col.start <= planEnd &&
-        col.end >= planEnd
-      ) {
-        cell.value = EXCEL_COMPLETED_MARK
-        cell.alignment = { horizontal: 'center' }
-        cell.font = { ...EXCEL_MILESTONE_FONT, size: 9 }
-      }
+      paintGanttCell(cell, level, {
+        progressed,
+        hasProgress,
+        isMilestone: Boolean(row.isMilestone),
+        isToday,
+      })
     })
   })
 }
@@ -376,6 +495,7 @@ function addRawDataSheet(
     vals.forEach((v, i) => {
       r.getCell(i + 1).value = v == null ? '' : String(v)
       r.getCell(i + 1).font = { ...EXCEL_FONT }
+      r.getCell(i + 1).border = thinBorder()
     })
   })
 
@@ -390,7 +510,7 @@ function addRawDataSheet(
 
 /**
  * Decision-support workbook: Overview + Schedule (info + Gantt) + hidden Raw data.
- * Style: `shared/lib/excel/style.ts`.
+ * Style: `shared/lib/excel/style.ts` — corporate, flat, no icons.
  */
 export async function downloadScheduleReportWorkbook(
   rows: ScheduleReportExcelRow[],
@@ -415,7 +535,7 @@ export async function downloadScheduleReportWorkbook(
 }
 
 /* ------------------------------------------------------------------ */
-/* Legacy thin API — maps old list+chart exports onto the report shape */
+/* Legacy thin API                                                     */
 /* ------------------------------------------------------------------ */
 
 export interface TimelineExcelListColumn {
@@ -447,7 +567,7 @@ export interface TimelineExcelWorkbookOptions {
   summaryLines?: Array<[string, string | number]>
 }
 
-/** @deprecated Prefer downloadScheduleReportWorkbook for decision-support exports. */
+/** @deprecated Prefer downloadScheduleReportWorkbook. */
 export async function downloadTimelineExcelWorkbook(
   rows: TimelineExcelRow[],
   opts: TimelineExcelWorkbookOptions = {}
@@ -460,9 +580,9 @@ export async function downloadTimelineExcelWorkbook(
     statusKey: 'in_progress',
     planStart: r.startDate,
     planEnd: r.endDate,
-    dueDate: r.endDate,
     progressPercent: null,
     varianceLabel: '—',
+    itemType: 'TASK',
     isMilestone: r.isMilestone,
     isLeafWork: true,
     raw: {

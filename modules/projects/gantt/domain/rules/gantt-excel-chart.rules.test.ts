@@ -106,6 +106,6 @@ describe('ganttExcelBarFillHex', () => {
       ganttExcelBarFillHex(
         item({ id: '1', title: 'A', scheduleStatus: 'AT_RISK', startDate: '2026-07-01' })
       )
-    ).toBe('F59E0B')
+    ).toBe('C2410C')
   })
 })
