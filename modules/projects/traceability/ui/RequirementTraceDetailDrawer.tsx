@@ -353,6 +353,7 @@ export function RequirementTraceDetailDrawer({
   const [nfrLoading, setNfrLoading] = useState(false)
   const [nfrError, setNfrError] = useState<string | null>(null)
   const [nfrRefreshKey, setNfrRefreshKey] = useState(0)
+  const [unlinkingFunctionId, setUnlinkingFunctionId] = useState<string | null>(null)
 
   const title = data
     ? [data.requirement.code, data.requirement.title].filter(Boolean).join(' · ')
@@ -705,11 +706,25 @@ export function RequirementTraceDetailDrawer({
     )
   }
 
+  const unlinkFunction = async (functionId: string) => {
+    if (!requirementId || linksLocked) return
+    setUnlinkingFunctionId(functionId)
+    try {
+      await useCaseApi.unlinkRequirementFromFunction(projectId, functionId, requirementId)
+      await refetch()
+      invalidateSpecPackPreviewCache()
+      invalidateSpecPackEntityCache(projectId)
+      onChanged?.()
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    } finally {
+      setUnlinkingFunctionId(null)
+    }
+  }
+
   const manageFunctions = () => {
     if (!data?.functions.length) {
       enterMode('function')
-    } else if (data.functions.length === 1) {
-      openFunctionRelations(data.functions[0].id)
     } else {
       enterMode('manageFunction')
     }
@@ -1167,30 +1182,47 @@ export function RequirementTraceDetailDrawer({
 
       {data && mode === 'manageFunction' ? (
         <div className="space-y-4">
-          <Button
-            size="sm"
-            variant="ghost"
-            icon={<ArrowLeft size={14} />}
-            className="h-auto px-0 font-normal"
-            onClick={() => setMode('summary')}
-          >
-            Back to coverage
-          </Button>
-          <Typography variant="small" tone="muted">
-            Select the Function whose implementation relations you want to manage.
-          </Typography>
+          <div className="flex items-center justify-between gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<ArrowLeft size={14} />}
+              className="h-auto px-0 font-normal"
+              onClick={() => setMode('summary')}
+            >
+              Back to coverage
+            </Button>
+            {!linksLocked ? (
+              <Button size="sm" variant="ghost" onClick={() => enterMode('function')}>
+                + Link more
+              </Button>
+            ) : null}
+          </div>
           <ul className="border border-neutral-200">
             {data.functions.map((item) => (
               <li
                 key={item.id}
                 className="flex items-center justify-between gap-3 border-b border-neutral-100 px-3 py-2.5 last:border-b-0"
               >
-                <Typography variant="small">
+                <Typography variant="small" className="min-w-0 truncate">
                   {[item.code, item.name].filter(Boolean).join(' · ')}
                 </Typography>
-                <Button size="sm" variant="ghost" onClick={() => openFunctionRelations(item.id)}>
-                  Manage
-                </Button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => openFunctionRelations(item.id)}>
+                    Manage
+                  </Button>
+                  {!linksLocked ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={unlinkingFunctionId === item.id}
+                      loading={unlinkingFunctionId === item.id}
+                      onClick={() => void unlinkFunction(item.id)}
+                    >
+                      Unlink
+                    </Button>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>

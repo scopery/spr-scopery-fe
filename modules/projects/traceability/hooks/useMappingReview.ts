@@ -474,7 +474,13 @@ export function useMappingReview(
   const review = useCallback(
     async (decision: typeof ReviewDecision.Accept | typeof ReviewDecision.Reject, ids?: string[]) => {
       if (!projectId) return
-      const targetIds = ids ?? [...selectedIds]
+      const rawIds = ids ?? [...selectedIds]
+      // Only PENDING — re-review of ACCEPTED/REJECTED is a no-op client-side
+      // (BE may also skip silently; do not send already-reviewed ids).
+      const targetIds = rawIds.filter((id) => {
+        const s = effectiveAll.find((x) => x.id === id)
+        return s ? isPendingSuggestion(s) : false
+      })
       if (targetIds.length === 0) return
 
       // Block accepting stale
@@ -825,10 +831,11 @@ export function useMappingReview(
 
       syncIncludedFromSourceSelection(sourceId, selected)
 
-      // Persist accept/reject for this source's suggestions
+      // Persist accept/reject for this source's suggestions (PENDING only —
+      // re-approving READY / already-reviewed rows must not re-POST ACCEPT).
       if (projectId && group.candidates.length > 0) {
         const decisions = group.candidates
-          .filter((c) => c.targetId)
+          .filter((c) => c.targetId && isPendingSuggestion(c))
           .map((c) => ({
             suggestionId: c.id,
             decision:
@@ -908,15 +915,18 @@ export function useMappingReview(
           return next
         })
         if (projectId && group.candidates.length > 0) {
-          try {
-            await mappingApi.reviewMappingSuggestions(projectId, {
-              decisions: group.candidates.map((c) => ({
-                suggestionId: c.id,
-                decision: ReviewDecision.Reject,
-              })),
-            })
-          } catch {
-            // local exclude already applied
+          const pending = group.candidates.filter(isPendingSuggestion)
+          if (pending.length > 0) {
+            try {
+              await mappingApi.reviewMappingSuggestions(projectId, {
+                decisions: pending.map((c) => ({
+                  suggestionId: c.id,
+                  decision: ReviewDecision.Reject,
+                })),
+              })
+            } catch {
+              // local exclude already applied
+            }
           }
         }
       }
@@ -1262,7 +1272,11 @@ export function useMappingReview(
     setAutoMapping(true)
     setError(null)
     try {
-      const ids = autoMapEligible.map((s) => s.id)
+      const ids = autoMapEligible.filter(isPendingSuggestion).map((s) => s.id)
+      if (ids.length === 0) {
+        toast.message('No pending eligible suggestions to auto-map')
+        return null
+      }
       await mappingApi.reviewMappingSuggestions(projectId, {
         decisions: ids.map((suggestionId) => ({
           suggestionId,

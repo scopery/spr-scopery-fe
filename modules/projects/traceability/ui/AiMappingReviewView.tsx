@@ -127,6 +127,26 @@ export function AiMappingReviewView() {
   const readySources = sourceGroups.filter((g) => g.bucket === 'READY')
   const unmatchedSources = sourceGroups.filter((g) => g.bucket === 'UNMATCHED')
 
+  /** Flat rows for Apply confirm — what will actually be written. */
+  const applyPreviewRows = (() => {
+    const rows: { key: string; sourceLabel: string; targetLabel: string }[] = []
+    for (const g of sourceGroups) {
+      if (g.bucket === 'UNMATCHED') continue
+      const selected = sourceSelections.get(g.sourceId)
+      if (!selected || selected.size === 0) continue
+      const src = getLabel(g.sourceId)
+      for (const targetId of selected) {
+        const tgt = getLabel(targetId)
+        rows.push({
+          key: `${g.sourceId}:${targetId}`,
+          sourceLabel: `${src.code} · ${src.name}`,
+          targetLabel: `${tgt.code} · ${tgt.name}`,
+        })
+      }
+    }
+    return rows
+  })()
+
   const openReadyReview = () => {
     setReadyActiveSourceId(readySources[0]?.sourceId ?? null)
     setReadyModalOpen(true)
@@ -267,6 +287,16 @@ export function AiMappingReviewView() {
                 Undo
               </Button>
             ) : null}
+            {readySources.length > 0 ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={applying || generating}
+                onClick={openReadyReview}
+              >
+                Review ready
+              </Button>
+            ) : null}
             <Button
               size="sm"
               variant="secondary"
@@ -283,12 +313,18 @@ export function AiMappingReviewView() {
       {hasRun ? (
         <div className="space-y-2">
           {readySources.length > 0 ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 border border-neutral-100 px-3 py-2">
-              <Typography size="sm" className="text-neutral-700">
-                {readyIncludedCount} ready mapping{readyIncludedCount === 1 ? '' : 's'}
-                <span className="text-neutral-500"> · auto-included</span>
-              </Typography>
-              <Button size="sm" variant="ghost" onClick={openReadyReview}>
+            <div className="flex flex-wrap items-center justify-between gap-2 border border-neutral-200 bg-white px-3 py-2.5">
+              <div className="min-w-0">
+                <Typography size="sm" className="text-neutral-800">
+                  {readyIncludedCount} ready mapping{readyIncludedCount === 1 ? '' : 's'}
+                  <span className="text-neutral-500"> · auto-included</span>
+                </Typography>
+                <Typography variant="caption" tone="muted" className="mt-0.5 block">
+                  Review each source → target before applying. You can change targets or leave
+                  unmapped.
+                </Typography>
+              </div>
+              <Button size="sm" variant="secondary" onClick={openReadyReview}>
                 Review ready
               </Button>
             </div>
@@ -354,18 +390,33 @@ export function AiMappingReviewView() {
 
       {hasRun && reviewSourceQueue.length === 0 && includedApplyCount > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-2 border border-neutral-200 px-3 py-3">
-          <Typography size="sm">
-            {includedApplyCount} mapping{includedApplyCount === 1 ? '' : 's'} ready to apply
-          </Typography>
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={applying || generating}
-            loading={applying}
-            onClick={() => setApplyOpen(true)}
-          >
-            Apply {includedApplyCount} Mapping{includedApplyCount === 1 ? '' : 's'}
-          </Button>
+          <div className="min-w-0">
+            <Typography size="sm">
+              {includedApplyCount} mapping{includedApplyCount === 1 ? '' : 's'} ready to apply
+            </Typography>
+            <Typography variant="caption" tone="muted" className="mt-0.5 block">
+              Review the list before writing relations.
+            </Typography>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={applying || generating || readySources.length === 0}
+              onClick={openReadyReview}
+            >
+              Review again
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={applying || generating}
+              loading={applying}
+              onClick={() => setApplyOpen(true)}
+            >
+              Apply {includedApplyCount} Mapping{includedApplyCount === 1 ? '' : 's'}
+            </Button>
+          </div>
         </div>
       ) : null}
 
@@ -387,7 +438,8 @@ export function AiMappingReviewView() {
       >
         <div className="-mx-2 min-h-[70vh]">
           <Typography variant="small" tone="muted" className="mb-3 px-2">
-            These were auto-included. Change targets or leave unmapped before Apply.
+            These were auto-included by AI. Check each pair, change targets, or leave unmapped —
+            then Apply from the summary bar.
           </Typography>
           <AiMappingComparisonWorkspace
             projectId={projectId}
@@ -416,6 +468,15 @@ export function AiMappingReviewView() {
         title="Apply mappings"
         size="md"
         actions={[
+          {
+            label: 'Review again',
+            variant: 'ghost',
+            disabled: readySources.length === 0,
+            onClick: () => {
+              setApplyOpen(false)
+              openReadyReview()
+            },
+          },
           { label: 'Cancel', variant: 'ghost', onClick: () => setApplyOpen(false) },
           {
             label: `Apply ${includedApplyCount}`,
@@ -431,10 +492,25 @@ export function AiMappingReviewView() {
           },
         ]}
       >
-        <Typography variant="small">
-          {includedApplyCount} mapping{includedApplyCount === 1 ? '' : 's'} in the draft will be
-          written as real relations. Unmatched and left-unmapped items are skipped.
+        <Typography variant="small" className="mb-3">
+          {includedApplyCount} mapping{includedApplyCount === 1 ? '' : 's'} will be written as real
+          relations. Unmatched and left-unmapped items are skipped.
         </Typography>
+        {applyPreviewRows.length > 0 ? (
+          <ul className="max-h-72 space-y-1.5 overflow-y-auto border border-neutral-100 p-2 text-sm">
+            {applyPreviewRows.map((row) => (
+              <li
+                key={row.key}
+                className="border-b border-neutral-50 pb-1.5 last:border-b-0 last:pb-0"
+              >
+                <div className="text-neutral-900 [overflow-wrap:anywhere]">{row.sourceLabel}</div>
+                <div className="text-xs text-neutral-500 [overflow-wrap:anywhere]">
+                  → {row.targetLabel}
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </Modal>
     </div>
   )
