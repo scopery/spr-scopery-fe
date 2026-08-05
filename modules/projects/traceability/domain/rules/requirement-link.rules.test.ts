@@ -13,6 +13,12 @@ describe('isRequirementLinkConflict', () => {
     }
   })
 
+  it('returns true for 409 conflict even without a problem code', () => {
+    expect(isRequirementLinkConflict(new ApiError(409, { type: '', title: '', status: 409, detail: '' }))).toBe(
+      true
+    )
+  })
+
   it('returns false for other errors', () => {
     expect(
       isRequirementLinkConflict(

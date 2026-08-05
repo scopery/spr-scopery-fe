@@ -40,6 +40,10 @@ import * as useCaseApi from '../api/use-case.api'
 import { isRequirementLinkConflict } from '../domain/rules/requirement-link.rules'
 import { TraceLinkType } from '@/modules/quality/domain/enums/quality.enum'
 import {
+  invalidateSpecPackEntityCache,
+  invalidateSpecPackPreviewCache,
+} from '@/modules/projects/requirements/model/spec-pack-preview.cache'
+import {
   buildLayerSteps,
   buildNfrLayerSteps,
   coverageStatusLabel,
@@ -681,6 +685,9 @@ export function RequirementTraceDetailDrawer({
       }
       toast.success(MODE_COPY[linkMode].success(ids.length))
       await refetch()
+      // Spec Pack preview caches trace indices; invalidate to reflect the latest links immediately.
+      invalidateSpecPackPreviewCache()
+      invalidateSpecPackEntityCache(projectId)
       onChanged?.()
       setMode('summary')
       setSelected(new Set())

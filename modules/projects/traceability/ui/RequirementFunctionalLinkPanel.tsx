@@ -20,6 +20,10 @@ import * as traceApi from '../api/traceability.api'
 import type { TraceLink } from '../api/traceability.api'
 import { isRequirementLinkConflict } from '../domain/rules/requirement-link.rules'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
+import {
+  invalidateSpecPackEntityCache,
+  invalidateSpecPackPreviewCache,
+} from '@/modules/projects/requirements/model/spec-pack-preview.cache'
 
 /** Drag MIME — drag Functions onto a focused Requirement. */
 const FR_ASSIGN_MIME = 'application/x-scopery-fr-to-req-assign'
@@ -352,6 +356,9 @@ export function RequirementFunctionalLinkPanel({
           loadCoversLinks({ silent: true }),
           refetchRequirements(),
         ])
+        // Spec Pack preview caches trace indices; invalidate to reflect the latest links immediately.
+        invalidateSpecPackPreviewCache()
+        invalidateSpecPackEntityCache(projectId)
         setSelected(new Set())
         setBulkOpen(false)
       } catch (err: unknown) {
@@ -402,6 +409,9 @@ export function RequirementFunctionalLinkPanel({
           loadCoversLinks({ silent: true }),
           refetchRequirements(),
         ])
+        // Spec Pack preview caches trace indices; invalidate to reflect the latest links immediately.
+        invalidateSpecPackPreviewCache()
+        invalidateSpecPackEntityCache(projectId)
       } catch (err: unknown) {
         setFormError(err instanceof Error ? err.message : 'Failed to unlink')
       }
