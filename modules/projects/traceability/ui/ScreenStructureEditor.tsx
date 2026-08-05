@@ -67,16 +67,40 @@ function newDraftId(): string {
   return `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 }
 
+const PRIMARY_KEYS = new Set(['title', 'name', 'label'])
+const DESCRIPTION_KEYS = new Set(['description', 'note'])
+/** Codes stay quiet in the list — shown as meta, not the headline. */
+const META_KEYS = new Set([
+  'code',
+  'fieldKey',
+  'actionCode',
+  'severity',
+  'status',
+  'type',
+])
+
 function primaryLabel(item: StructureItem, columns: StructureColumn[]): string {
-  const nameCol = columns.find((c) => c.key === 'name' || c.key === 'label')
-  if (nameCol) return item.values[nameCol.key] || '—'
-  return item.values[columns[0]?.key ?? ''] || '—'
+  const nameCol = columns.find((c) => PRIMARY_KEYS.has(c.key))
+  if (nameCol) return item.values[nameCol.key]?.trim() || '—'
+  const fallback = columns.find((c) => !META_KEYS.has(c.key) && !DESCRIPTION_KEYS.has(c.key))
+  return item.values[fallback?.key ?? columns[0]?.key ?? '']?.trim() || '—'
 }
 
 function secondaryLabel(item: StructureItem, columns: StructureColumn[]): string {
+  const descCol = columns.find((c) => DESCRIPTION_KEYS.has(c.key))
+  const desc = descCol ? item.values[descCol.key]?.trim() : ''
+  if (desc) return desc
   return columns
-    .filter((c) => c.key !== 'name' && c.key !== 'label')
-    .map((c) => item.values[c.key])
+    .filter((c) => !PRIMARY_KEYS.has(c.key) && !META_KEYS.has(c.key) && !DESCRIPTION_KEYS.has(c.key))
+    .map((c) => item.values[c.key]?.trim())
+    .filter(Boolean)
+    .join(' · ')
+}
+
+function metaLabel(item: StructureItem, columns: StructureColumn[]): string {
+  return columns
+    .filter((c) => META_KEYS.has(c.key))
+    .map((c) => item.values[c.key]?.trim())
     .filter(Boolean)
     .join(' · ')
 }
@@ -445,18 +469,24 @@ export function ScreenStructureEditor({
         <ol className="divide-y divide-neutral-100">
           {items.map((item, index) => {
             const secondary = secondaryLabel(item, columns)
+            const meta = metaLabel(item, columns)
             return (
               <li key={item.id} className="flex gap-3 py-2.5">
                 <span className="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400">
                   {index + 1}
                 </span>
-                  <div className="min-w-0 flex-1">
-                  <div className="whitespace-pre-wrap break-words text-sm text-neutral-900">
+                <div className="min-w-0 flex-1">
+                  <div className="whitespace-pre-wrap break-words text-sm font-medium text-neutral-900">
                     {primaryLabel(item, columns)}
                   </div>
                   {secondary ? (
-                    <div className="mt-0.5 whitespace-pre-wrap break-words text-xs text-neutral-500">
+                    <div className="mt-0.5 whitespace-pre-wrap break-words text-xs text-neutral-600">
                       {secondary}
+                    </div>
+                  ) : null}
+                  {meta ? (
+                    <div className="mt-0.5 whitespace-pre-wrap break-words text-xs text-neutral-400">
+                      {meta}
                     </div>
                   ) : null}
                 </div>

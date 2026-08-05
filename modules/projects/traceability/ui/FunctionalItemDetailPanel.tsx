@@ -131,6 +131,11 @@ const RULE_COLS = [
   },
   { key: 'title', label: 'Title', required: true, placeholder: 'Must validate email' },
   {
+    key: 'description',
+    label: 'Description',
+    placeholder: 'Optional detail',
+  },
+  {
     key: 'severity',
     label: 'Severity',
     placeholder: 'MEDIUM',
@@ -391,6 +396,7 @@ export function FunctionalItemDetailPanel({
         values: {
           code: r.code,
           title: r.title,
+          description: r.description ?? '',
           severity: r.severity,
         },
       })),
@@ -747,11 +753,11 @@ export function FunctionalItemDetailPanel({
               addTitle="Add rules"
               editTitle="Edit rules"
               itemLabel="rule"
-              allowDelete={false}
               onCreate={async (values) => {
                 await addRule({
                   code: values.code.trim(),
                   title: values.title.trim(),
+                  description: values.description.trim() || null,
                   severity:
                     (values.severity.trim().toUpperCase() as typeof BusinessRuleSeverity.Medium) ||
                     BusinessRuleSeverity.Medium,
@@ -760,6 +766,7 @@ export function FunctionalItemDetailPanel({
               onUpdate={async (id, values) => {
                 await updateRule(id, {
                   title: values.title.trim(),
+                  description: values.description.trim() || null,
                   severity:
                     (values.severity.trim().toUpperCase() as typeof BusinessRuleSeverity.Medium) ||
                     BusinessRuleSeverity.Medium,
