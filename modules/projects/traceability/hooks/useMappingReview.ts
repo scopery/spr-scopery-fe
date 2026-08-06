@@ -6,6 +6,7 @@ import { ApiError, getErrorCode } from '@/shared/lib/api-types'
 import * as mappingApi from '../api/mapping-suggestions.api'
 import * as catalogApi from '../api/functional-catalog.api'
 import * as useCaseApi from '../api/use-case.api'
+import { linkRequirementToFunctionWithCovers } from '../api/requirement-function-link.api'
 import * as requirementsApi from '@/modules/projects/requirements/api/requirements.api'
 import * as qualityApi from '@/modules/quality/infrastructure/api/quality.api'
 import {
@@ -1131,9 +1132,7 @@ export function useMappingReview(
           if (!selected.has(label.id)) continue
           try {
             if (relationType === MappingRelationType.RequirementToFunction) {
-              await useCaseApi.linkRequirementToFunction(projectId, label.id, {
-                requirementId: sourceId,
-              })
+              await linkRequirementToFunctionWithCovers(projectId, label.id, sourceId)
               extraCreated += 1
             } else if (relationType === MappingRelationType.FunctionToUseCase) {
               const detail = await useCaseApi.getUseCaseDetail(projectId, sourceId)

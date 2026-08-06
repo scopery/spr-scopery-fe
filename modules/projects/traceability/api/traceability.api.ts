@@ -401,9 +401,10 @@ export async function createTraceLink(
     targetType: string
     targetId: string
     linkType: string
-  }
+  },
+  init?: { skipErrorToast?: boolean }
 ): Promise<TraceLink> {
-  return apiClient.post(TRACEABILITY_ENDPOINTS.traceLinks(projectId), body)
+  return apiClient.post(TRACEABILITY_ENDPOINTS.traceLinks(projectId), body, init)
 }
 
 export async function deleteTraceLink(projectId: string, linkId: string): Promise<void> {

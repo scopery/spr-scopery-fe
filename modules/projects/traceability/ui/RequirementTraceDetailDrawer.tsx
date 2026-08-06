@@ -37,8 +37,7 @@ import { useRequirementTraceDetail } from '../hooks/useRequirementTraceDetail'
 import * as requirementTraceabilityApi from '../api/requirement-traceability.api'
 import * as traceabilityApi from '../api/traceability.api'
 import * as useCaseApi from '../api/use-case.api'
-import { isRequirementLinkConflict } from '../domain/rules/requirement-link.rules'
-import { TraceLinkType } from '@/modules/quality/domain/enums/quality.enum'
+import { linkRequirementToFunctionWithCovers } from '../api/requirement-function-link.api'
 import {
   invalidateSpecPackEntityCache,
   invalidateSpecPackPreviewCache,
@@ -659,22 +658,7 @@ export function RequirementTraceDetailDrawer({
       if (linkMode === 'function') {
         await Promise.all(
           ids.map(async (id) => {
-            try {
-              await useCaseApi.linkRequirementToFunction(projectId, id, { requirementId })
-            } catch (err: unknown) {
-              if (!isRequirementLinkConflict(err)) throw err
-            }
-            try {
-              await traceabilityApi.createTraceLink(projectId, {
-                sourceType: 'REQUIREMENT',
-                sourceId: requirementId,
-                targetType: 'FUNCTIONAL_ITEM',
-                targetId: id,
-                linkType: TraceLinkType.Covers,
-              })
-            } catch (err: unknown) {
-              if (!isRequirementLinkConflict(err)) throw err
-            }
+            await linkRequirementToFunctionWithCovers(projectId, id, requirementId)
           })
         )
       } else if (linkMode === 'useCase') {

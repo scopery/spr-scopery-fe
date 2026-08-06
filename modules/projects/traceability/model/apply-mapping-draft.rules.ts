@@ -1,5 +1,9 @@
 import * as useCaseApi from '../api/use-case.api'
+import * as traceApi from '../api/traceability.api'
+import { linkRequirementToFunctionWithCovers } from '../api/requirement-function-link.api'
 import * as qualityApi from '@/modules/quality/infrastructure/api/quality.api'
+import { TraceLinkType } from '@/modules/quality/domain/enums/quality.enum'
+import { isRequirementLinkConflict } from '../domain/rules/requirement-link.rules'
 import {
   MappingRelationType,
   SuggestionReviewStatus,
@@ -85,9 +89,8 @@ async function applyOne(
   opts?: { forceReplace?: boolean }
 ): Promise<boolean> {
   if (relationType === MappingRelationType.RequirementToFunction) {
-    await useCaseApi.linkRequirementToFunction(projectId, targetId, {
-      requirementId: sourceId,
-    })
+    // Junction (idempotent) + COVERS — BE no longer creates COVERS in link action.
+    await linkRequirementToFunctionWithCovers(projectId, targetId, sourceId)
     return true
   }
 
@@ -137,13 +140,29 @@ export async function undoAppliedRelation(
   testCaseVersions?: Map<string, number>
 ): Promise<void> {
   if (relationType === MappingRelationType.RequirementToFunction) {
+    // Drop junction; best-effort remove COVERS for the applied target.
     await useCaseApi
       .unlinkRequirementFromFunction(projectId, entry.appliedTargetId, entry.sourceId)
       .catch(() => undefined)
-    if (entry.previousTargetId) {
-      await useCaseApi.linkRequirementToFunction(projectId, entry.previousTargetId, {
-        requirementId: entry.sourceId,
+    try {
+      const res = await traceApi.listTraceLinks(projectId, {
+        linkType: TraceLinkType.Covers,
+        sourceType: 'REQUIREMENT',
+        sourceId: entry.sourceId,
+        targetType: 'FUNCTIONAL_ITEM',
+        limit: 50,
       })
+      const cover = res.items.find((l) => l.targetId === entry.appliedTargetId)
+      if (cover) await traceApi.deleteTraceLink(projectId, cover.id)
+    } catch {
+      // best-effort
+    }
+    if (entry.previousTargetId) {
+      await linkRequirementToFunctionWithCovers(
+        projectId,
+        entry.previousTargetId,
+        entry.sourceId
+      )
     }
     return
   }

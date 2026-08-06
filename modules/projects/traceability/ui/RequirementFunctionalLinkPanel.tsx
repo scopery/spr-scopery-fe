@@ -17,6 +17,7 @@ import { TraceLinkType } from '@/modules/quality/domain/enums/quality.enum'
 import type { FunctionalItem } from '../model/functional-catalog'
 import * as useCaseApi from '../api/use-case.api'
 import * as traceApi from '../api/traceability.api'
+import { linkRequirementToFunctionWithCovers } from '../api/requirement-function-link.api'
 import type { TraceLink } from '../api/traceability.api'
 import { isRequirementLinkConflict } from '../domain/rules/requirement-link.rules'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
@@ -318,27 +319,13 @@ export function RequirementFunctionalLinkPanel({
         const toCreate = payloads.filter((p) => !linkedFrIdsForFocus.has(p.functionalItemId))
         if (toCreate.length === 0) return
 
-        // BE preferred: junction API first, then COVERS trace link (idempotent on conflict).
+        // Junction (idempotent 200) + COVERS trace link — see requirement-function-link.api.
         for (const p of toCreate) {
-          try {
-            await useCaseApi.linkRequirementToFunction(projectId, p.functionalItemId, {
-              requirementId: focusReqId,
-            })
-          } catch (err: unknown) {
-            if (!isRequirementLinkConflict(err)) throw err
-          }
-
-          try {
-            await traceApi.createTraceLink(projectId, {
-              sourceType: SOURCE_REQUIREMENT,
-              sourceId: focusReqId,
-              targetType: TARGET_FUNCTIONAL_ITEM,
-              targetId: p.functionalItemId,
-              linkType: TraceLinkType.Covers,
-            })
-          } catch (err: unknown) {
-            if (!isRequirementLinkConflict(err)) throw err
-          }
+          await linkRequirementToFunctionWithCovers(
+            projectId,
+            p.functionalItemId,
+            focusReqId
+          )
         }
 
         // Legacy FK pointer — only when still empty locally (junction may have set it on BE).

@@ -73,6 +73,8 @@ export const USE_CASE_ENDPOINTS = {
     apiPath(`/projects/${pId}/functional-items/${fId}/requirements`),
   fnRequirement: (pId: string, fId: string, rId: string) =>
     apiPath(`/projects/${pId}/functional-items/${fId}/requirements/${rId}`),
+  fnRequirementsBulkLink: (pId: string, fId: string) =>
+    apiPath(`/projects/${pId}/functional-items/${fId}/requirements/bulk-link`),
   flowScope: (pId: string, ucId: string) =>
     apiPath(`/projects/${pId}/use-cases/${ucId}/flow-scope`),
   mentionOptions: (pId: string, ucId: string) =>
@@ -359,9 +361,25 @@ export async function getFunctionRequirements(
 export async function linkRequirementToFunction(
   projectId: string,
   functionId: string,
-  body: LinkRequirementBody
+  body: LinkRequirementBody,
+  init?: { skipErrorToast?: boolean }
 ): Promise<void> {
-  await apiClient.post(USE_CASE_ENDPOINTS.fnRequirements(projectId, functionId), body)
+  // BE: idempotent 200 even when already linked (no 409).
+  await apiClient.post(USE_CASE_ENDPOINTS.fnRequirements(projectId, functionId), body, init)
+}
+
+/** Async bulk link requirements → one function (max 20). Poll GET /api/bulk-jobs/{jobId}. */
+export async function bulkLinkRequirementsToFunction(
+  projectId: string,
+  functionId: string,
+  requirementIds: string[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(requirementIds.length)
+  return apiClient.post<BulkJobResponse>(
+    USE_CASE_ENDPOINTS.fnRequirementsBulkLink(projectId, functionId),
+    { requirementIds },
+    { skipGlobalLoading: true }
+  )
 }
 
 export async function unlinkRequirementFromFunction(
