@@ -9,6 +9,7 @@ export function isRequirementLinkConflict(err: unknown): boolean {
   if (!code) return true
   return (
     code === 'TRACE_LINK_EXISTS' ||
+    code === 'TRACE_LINK_DUPLICATE' ||
     code === 'LINK_EXISTS' ||
     code === 'RESOURCE_CONFLICT' ||
     code === 'ALREADY_EXISTS' ||

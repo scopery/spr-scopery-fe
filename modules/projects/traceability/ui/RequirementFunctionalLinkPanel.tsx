@@ -119,6 +119,7 @@ export function RequirementFunctionalLinkPanel({
   const [approvedOnly, setApprovedOnly] = useState(false)
   const [query, setQuery] = useState('')
   const [hideLinked, setHideLinked] = useState(true)
+  const [orphansOnly, setOrphansOnly] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkOpen, setBulkOpen] = useState(false)
   const [assigning, setAssigning] = useState(false)
@@ -259,6 +260,17 @@ export function RequirementFunctionalLinkPanel({
     [edgesForFocus]
   )
 
+  /** Functions already linked to at least one requirement (COVERS ∪ legacy FK). */
+  const assignedFrIds = useMemo(
+    () => new Set(edges.map((e) => e.functionalItemId)),
+    [edges]
+  )
+
+  const orphanCount = useMemo(
+    () => functionalItems.filter((item) => !assignedFrIds.has(item.id)).length,
+    [functionalItems, assignedFrIds]
+  )
+
   const linkCountByReq = useMemo(() => {
     const map = new Map<string, number>()
     for (const e of edges) {
@@ -272,12 +284,20 @@ export function RequirementFunctionalLinkPanel({
     return functionalItems.filter((item) => {
       const linkedHere = linkedFrIdsForFocus.has(item.id)
       if (hideLinked && linkedHere) return false
+      if (orphansOnly && assignedFrIds.has(item.id)) return false
       if (!q) return true
       return [item.code, item.title, item.description]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q))
     })
-  }, [functionalItems, linkedFrIdsForFocus, hideLinked, query])
+  }, [
+    functionalItems,
+    linkedFrIdsForFocus,
+    hideLinked,
+    orphansOnly,
+    assignedFrIds,
+    query,
+  ])
 
   const linkedHereCount = edgesForFocus.length
 
@@ -544,6 +564,8 @@ export function RequirementFunctionalLinkPanel({
               allFunctions={functionalItems}
               loading={loading}
               hideLinked={hideLinked}
+              orphansOnly={orphansOnly}
+              orphanCount={orphanCount}
               linkedHereCount={linkedHereCount}
               linkedFrIds={linkedFrIdsForFocus}
               selected={selected}
@@ -551,6 +573,7 @@ export function RequirementFunctionalLinkPanel({
               previewId={previewId}
               query={query}
               onHideLinkedChange={setHideLinked}
+              onOrphansOnlyChange={setOrphansOnly}
               onQueryChange={setQuery}
               onPreview={setPreviewId}
               onToggleSelect={toggleSelect}
@@ -617,6 +640,8 @@ function FunctionCandidatePalette({
   allFunctions,
   loading,
   hideLinked,
+  orphansOnly,
+  orphanCount,
   linkedHereCount,
   linkedFrIds,
   selected,
@@ -624,6 +649,7 @@ function FunctionCandidatePalette({
   previewId,
   query,
   onHideLinkedChange,
+  onOrphansOnlyChange,
   onQueryChange,
   onPreview,
   onToggleSelect,
@@ -637,6 +663,8 @@ function FunctionCandidatePalette({
   allFunctions: FunctionalItem[]
   loading: boolean
   hideLinked: boolean
+  orphansOnly: boolean
+  orphanCount: number
   linkedHereCount: number
   linkedFrIds: Set<string>
   selected: Set<string>
@@ -644,6 +672,7 @@ function FunctionCandidatePalette({
   previewId: string | null
   query: string
   onHideLinkedChange: (v: boolean) => void
+  onOrphansOnlyChange: (v: boolean) => void
   onQueryChange: (v: string) => void
   onPreview: (id: string | null) => void
   onToggleSelect: (id: string, disabled?: boolean) => void
@@ -677,7 +706,7 @@ function FunctionCandidatePalette({
           prefix={<Search size={14} />}
           disabled={linksLocked}
         />
-        <div className="flex flex-wrap items-center justify-between gap-2 border border-neutral-200 bg-neutral-50 px-2.5 py-2">
+        <div className="space-y-1.5 border border-neutral-200 bg-neutral-50 px-2.5 py-2">
           <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-700">
             <Checkbox
               size="sm"
@@ -691,13 +720,26 @@ function FunctionCandidatePalette({
               <span className="text-neutral-400">({linkedHereCount})</span>
             ) : null}
           </label>
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-700">
+            <Checkbox
+              size="sm"
+              checked={orphansOnly}
+              onChange={(e) => onOrphansOnlyChange(e.target.checked)}
+              aria-label="Show orphan functions only"
+              disabled={linksLocked}
+            />
+            Orphan functions only
+            <span className="text-neutral-400" title="Not linked to any requirement">
+              ({orphanCount})
+            </span>
+          </label>
           {!hideLinked ? (
             <button
               type="button"
               className="text-xs text-neutral-500 underline hover:text-neutral-800"
               onClick={() => onHideLinkedChange(true)}
             >
-              Hide them
+              Hide assigned to this requirement
             </button>
           ) : linkedHereCount > 0 ? (
             <button
@@ -738,9 +780,11 @@ function FunctionCandidatePalette({
           </Typography>
         ) : candidates.length === 0 ? (
           <Typography variant="small" tone="muted" className="p-2">
-            {hideLinked
-              ? 'No unassigned functions. Click “Show assigned” to review linked items.'
-              : 'No functions match this search.'}
+            {orphansOnly
+              ? 'No orphan functions. Turn off “Orphan functions only” to see all candidates.'
+              : hideLinked
+                ? 'No unassigned functions. Click “Show assigned” to review linked items.'
+                : 'No functions match this search.'}
           </Typography>
         ) : (
           <ul className="space-y-0.5">
