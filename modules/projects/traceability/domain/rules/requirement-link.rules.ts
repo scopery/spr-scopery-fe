@@ -11,6 +11,7 @@ export function isRequirementLinkConflict(err: unknown): boolean {
     code === 'TRACE_LINK_EXISTS' ||
     code === 'LINK_EXISTS' ||
     code === 'RESOURCE_CONFLICT' ||
-    code === 'ALREADY_EXISTS'
+    code === 'ALREADY_EXISTS' ||
+    code === 'REQUIREMENT_FUNCTION_DUPLICATE'
   )
 }
