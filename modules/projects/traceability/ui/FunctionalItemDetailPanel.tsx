@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Pencil, Plus, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button, Input, PageSkeleton, Stack, Typography } from '@/shared/ui'
+import { Button, ConfirmDialog, Input, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { AiTextareaEditToolbar } from '@/modules/ai-assistant'
 import { ROUTES } from '@/constants/routes'
 import { ApiError } from '@/shared/lib/api-types'
@@ -36,6 +36,7 @@ interface FunctionalItemDetailPanelProps {
   defaultTab?: DetailTab
   onClose?: () => void
   onSave?: (payload: UpdateFunctionalItemBody) => Promise<void>
+  onDelete?: () => Promise<void>
 }
 
 function DashedField({
@@ -151,6 +152,7 @@ export function FunctionalItemDetailPanel({
   defaultTab = 'anchors',
   onClose,
   onSave,
+  onDelete,
 }: FunctionalItemDetailPanelProps) {
   const {
     rules,
@@ -170,6 +172,8 @@ export function FunctionalItemDetailPanel({
   const [editType, setEditType] = useState(item.type)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const descRef = useRef<HTMLTextAreaElement>(null)
 
   const draftKey = editing ? functionalItemDraftKey(projectId, item.id) : null
@@ -230,6 +234,7 @@ export function FunctionalItemDetailPanel({
     setTab(defaultTab)
     setEditing(false)
     setFormError(null)
+    setConfirmDelete(false)
     setEditTitle(item.title)
     setEditDescription(item.description ?? '')
     setEditPriority(item.priority)
@@ -362,6 +367,27 @@ export function FunctionalItemDetailPanel({
     }
   }, [clearDraft, editDescription, editPriority, editTitle, editType, item, onSave])
 
+  const handleConfirmDelete = useCallback(async () => {
+    if (!onDelete) return
+    setDeleting(true)
+    try {
+      await onDelete()
+      setConfirmDelete(false)
+      toast.success('Function deleted')
+      onClose?.()
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Failed to delete function'
+      )
+    } finally {
+      setDeleting(false)
+    }
+  }, [onClose, onDelete])
+
   const saveAcceptance = useCallback(async () => {
     if (!onSave) return
     const next = editAcceptance.map((line) => line.trim()).filter(Boolean)
@@ -423,6 +449,18 @@ export function FunctionalItemDetailPanel({
               title="Edit"
             >
               <Pencil size={16} strokeWidth={1.75} />
+            </button>
+          ) : null}
+          {onDelete && !editing ? (
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="inline-flex h-8 w-8 items-center justify-center text-neutral-500 hover:text-red-600"
+              aria-label="Delete function"
+              title="Delete function"
+              disabled={deleting}
+            >
+              <Trash2 size={16} strokeWidth={1.75} />
             </button>
           ) : null}
           {onClose ? (
@@ -848,6 +886,19 @@ export function FunctionalItemDetailPanel({
           ) : null}
         </Stack>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => {
+          if (!deleting) setConfirmDelete(false)
+        }}
+        title="Delete function"
+        message={`Delete "${item.code} — ${item.title}"? This cannot be undone. Linked requirements and use cases may be affected.`}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+        onConfirm={() => void handleConfirmDelete()}
+      />
     </div>
   )
 }

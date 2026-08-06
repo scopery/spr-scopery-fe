@@ -51,6 +51,7 @@ export function FunctionalCatalogView() {
     error,
     createFr,
     updateFr,
+    removeFr,
     createNfr,
     refetch,
     submitFunctionalItemsBulk,
@@ -389,6 +390,10 @@ export function FunctionalCatalogView() {
                     onClose={() => setSelectedFrId(null)}
                     onSave={async (payload) => {
                       await updateFr(selectedFr.id, payload)
+                    }}
+                    onDelete={async () => {
+                      await removeFr(selectedFr.id)
+                      setSelectedFrId(null)
                     }}
                   />
                 ) : (
