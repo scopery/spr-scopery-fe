@@ -19,7 +19,12 @@ describe('searchGuides', () => {
     expect(hits.some((h) => h.article.id === 'control-raid')).toBe(true)
   })
 
-  it('finds Spec Packs', () => {
+  it('finds Specification Packages', () => {
+    const hits = searchGuides(GUIDE_ARTICLES, 'Specification Packages')
+    expect(hits.some((h) => h.article.id === 'scope-requirements')).toBe(true)
+  })
+
+  it('still finds legacy Spec Packs wording via keywords', () => {
     const hits = searchGuides(GUIDE_ARTICLES, 'Spec Packs')
     expect(hits.some((h) => h.article.id === 'scope-requirements')).toBe(true)
   })

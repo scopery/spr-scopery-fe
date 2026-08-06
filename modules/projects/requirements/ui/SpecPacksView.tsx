@@ -29,6 +29,7 @@ import type { Requirement } from '../model/requirements'
 import type { ScopePackage } from '@/modules/projects/scope'
 import { applySpecPackGroupsToPreview } from '../model/reorder-spec-pack-chapters'
 import {
+  SpecPackProductName,
   SpecPackStatus,
   flattenSpecPackRequirements,
   formatSpecPackDate,
@@ -211,7 +212,7 @@ export function SpecPacksView({
         }
       }
 
-      toast.success('Spec Pack updated')
+      toast.success(SpecPackProductName.updatedToast)
     },
     [packs, updateTitle, updateGroups, selectedId, previewDoc]
   )
@@ -264,7 +265,7 @@ export function SpecPacksView({
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-neutral-200 bg-white px-4 py-3 lg:px-6">
         <div>
           <Typography as="h1" weight="medium">
-            Spec Packs
+            {SpecPackProductName.plural}
           </Typography>
           <Typography variant="small" tone="muted" className="mt-0.5">
             Click a card to preview · right-click to edit or delete.
@@ -277,7 +278,7 @@ export function SpecPacksView({
             onClick={() => setCreateOpen(true)}
             className="bg-neutral-800"
           >
-            New Spec Pack
+            {SpecPackProductName.newTitle}
           </Button>
         ) : null}
       </div>
@@ -286,14 +287,14 @@ export function SpecPacksView({
         {packs.length === 0 ? (
           <div className="flex h-full min-h-[280px] flex-col items-center justify-center border border-dashed border-neutral-300 bg-white px-6 py-16 text-center">
             <FileText className="mb-3 h-8 w-8 text-neutral-300" aria-hidden />
-            <Typography weight="medium">No packs yet</Typography>
+            <Typography weight="medium">No packages yet</Typography>
             <Typography variant="small" tone="muted" className="mt-1 max-w-sm">
               Bundle requirements into named groups, set reading order, then export DOCX or
               Excel.
             </Typography>
             {canCreate ? (
               <Button className="mt-4" size="sm" onClick={() => setCreateOpen(true)}>
-                Create Spec Pack
+                {SpecPackProductName.createAction}
               </Button>
             ) : null}
           </div>
@@ -521,7 +522,7 @@ export function SpecPacksView({
         scopePackages={scopePackages}
         onCreate={(input) => {
           createPack(input)
-          toast.success('Spec Pack created')
+          toast.success(SpecPackProductName.createdToast)
         }}
       />
 

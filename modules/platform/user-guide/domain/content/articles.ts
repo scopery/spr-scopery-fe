@@ -487,12 +487,22 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     id: 'scope-requirements',
     groupId: 'scope',
     title: 'Requirements',
-    subtitle: 'Capture structured requirements and Spec Packs.',
-    keywords: ['requirements', 'BO', 'BR', 'FR', 'NFR', 'spec packs', 'bulk', 'json import'],
+    subtitle: 'Capture structured requirements and Specification Packages.',
+    keywords: [
+      'requirements',
+      'BO',
+      'BR',
+      'FR',
+      'NFR',
+      'specification packages',
+      'spec packs',
+      'bulk',
+      'json import',
+    ],
     suggestedQuestions: [
       'How do I add a requirement?',
       'How do I bulk import requirements?',
-      'What are Spec Packs?',
+      'What are Specification Packages?',
     ],
     steps: [
       {
@@ -501,9 +511,9 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
         uiHints: ['Requirements'],
       },
       {
-        title: 'Use Catalog vs Spec Packs',
-        body: 'Catalog lists requirements. Spec Packs groups them for export/review.',
-        uiHints: ['Catalog', 'Spec Packs'],
+        title: 'Use Catalog vs Specification Packages',
+        body: 'Catalog lists requirements. Specification Packages groups them for export/review.',
+        uiHints: ['Catalog', 'Specification Packages'],
       },
       {
         title: 'Add one or many',
@@ -516,9 +526,16 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
         uiHints: ['All', 'With evidence', 'Missing'],
       },
       {
-        title: 'Create a Spec Pack',
-        body: 'On Spec Packs: New → Create Spec Pack / Create pack (N). Export with Export DOC when ready.',
-        uiHints: ['New', 'Create Spec Pack', 'Create pack (N)', 'Export DOC', 'Refresh', 'Delete'],
+        title: 'Create a Specification Package',
+        body: 'On Specification Packages: New → Create Specification Package / Create package (N). Export with Export DOCX when ready.',
+        uiHints: [
+          'New',
+          'Create Specification Package',
+          'Create package (N)',
+          'Export DOCX',
+          'Refresh',
+          'Delete',
+        ],
       },
     ],
     relatedIds: ['scope-functions', 'scope-use-cases', 'scope-traceability'],

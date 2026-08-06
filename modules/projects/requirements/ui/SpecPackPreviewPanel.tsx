@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from 'react'
 import { buildSpecPackDocHtml } from '../export/spec-pack-doc'
+import { SpecPackProductName } from '../model/spec-pack.labels'
 import type { SpecPackPreviewDocument } from '../model/spec-pack-preview'
 
 interface SpecPackPreviewPanelProps {
@@ -62,7 +63,7 @@ export function SpecPackPreviewPanel({
   return (
     <iframe
       ref={iframeRef}
-      title="Spec Pack document preview"
+      title={SpecPackProductName.previewTitle}
       srcDoc={srcDoc}
       sandbox="allow-same-origin"
       referrerPolicy="no-referrer-when-downgrade"

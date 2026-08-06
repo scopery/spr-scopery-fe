@@ -5,6 +5,7 @@ import {
   flattenSpecPackRequirements,
   normalizeSpecPack,
 } from '../model/spec-pack'
+import { SpecPackProductName } from '../model/spec-pack.labels'
 
 const STORAGE_PREFIX = 'scopery.spec-packs.v2'
 
@@ -89,7 +90,7 @@ export const specPackLocalStore = {
       id: newId(),
       workspaceId,
       projectId,
-      title: input.title.trim() || 'Untitled Spec Pack',
+      title: input.title.trim() || SpecPackProductName.untitled,
       note: input.note?.trim() || null,
       status: SpecPackStatus.Ready,
       groups,
@@ -130,7 +131,7 @@ export const specPackLocalStore = {
     const idx = packs.findIndex((p) => p.id === packId)
     if (idx < 0) return null
     const current = packs[idx]
-    const nextTitle = title.trim() || 'Untitled Spec Pack'
+    const nextTitle = title.trim() || SpecPackProductName.untitled
     const now = new Date().toISOString()
     const updated: SpecPack = {
       ...current,

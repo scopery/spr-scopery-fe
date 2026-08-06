@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Input, Modal, Typography } from '@/shared/ui'
 import type { SpecPackGroup } from '../model/spec-pack'
+import { SpecPackProductName } from '../model/spec-pack.labels'
 import { SpecPackGroupOutline } from './SpecPackGroupOutline'
 
 interface SpecPackGroupsEditModalProps {
@@ -43,7 +44,7 @@ export function SpecPackGroupsEditModal({
     }))
     if (cleaned.length === 0) return
     onSave({
-      title: draftTitle.trim() || 'Untitled Spec Pack',
+      title: draftTitle.trim() || SpecPackProductName.untitled,
       groups: cleaned,
     })
     onClose()
@@ -53,7 +54,7 @@ export function SpecPackGroupsEditModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Edit Spec Pack"
+      title={SpecPackProductName.editTitle}
       size="xl"
       actions={[
         { label: 'Cancel', onClick: onClose, variant: 'outline' },
@@ -69,8 +70,8 @@ export function SpecPackGroupsEditModal({
             value={draftTitle}
             onChange={(e) => setDraftTitle(e.target.value)}
             fullWidth
-            aria-label="Spec Pack title"
-            placeholder="Spec Pack title"
+            aria-label={SpecPackProductName.titleFieldAria}
+            placeholder={SpecPackProductName.titlePlaceholder}
           />
         </div>
         <div className="space-y-2">

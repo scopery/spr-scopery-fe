@@ -20,6 +20,7 @@ import {
   defaultSpecPackGroup,
   defaultSpecPackTitle,
   flattenSpecPackRequirements,
+  SpecPackProductName,
   type CreateSpecPackInput,
   type SpecPackGroup,
 } from '../model/spec-pack'
@@ -252,12 +253,12 @@ export function SpecPackCreateModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="New Spec Pack"
+      title={SpecPackProductName.newTitle}
       size="2xl"
       actions={[
         { label: 'Cancel', onClick: onClose, variant: 'outline' },
         {
-          label: `Create pack${selectedCount ? ` (${selectedCount})` : ''}`,
+          label: `Create package${selectedCount ? ` (${selectedCount})` : ''}`,
           onClick: handleCreate,
           disabled: selectedCount === 0,
         },

@@ -65,6 +65,7 @@ import { EditRequirementModal, type EditRequirementSubmit } from './EditRequirem
 import { RequirementAddBar } from './RequirementAddBar'
 import { RequirementScopeFilterSelect } from './RequirementScopeFilterSelect'
 import { SpecPacksView } from './SpecPacksView'
+import { SpecPackProductName } from '../model/spec-pack.labels'
 
 type ListFilter = 'all' | 'with' | 'missing' | 'archived'
 type RequirementsMainTab = 'catalog' | 'spec-packs'
@@ -541,7 +542,7 @@ export function ProjectRequirementsView() {
             {(
               [
                 { id: 'catalog', label: 'Catalog' },
-                { id: 'spec-packs', label: 'Spec Packs' },
+                { id: 'spec-packs', label: SpecPackProductName.plural },
               ] as const
             ).map((tab) => {
               const active = mainTab === tab.id

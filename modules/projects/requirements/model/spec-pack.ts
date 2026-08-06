@@ -1,4 +1,8 @@
-/** Spec Pack = phiếu yêu cầu / analysis handoff packet (Phase 1: client-persisted). */
+/** Spec Pack (internal) = Specification Package — analysis handoff / phiếu yêu cầu packet. */
+
+import { SpecPackProductName } from './spec-pack.labels'
+
+export { SpecPackProductName } from './spec-pack.labels'
 
 export const SpecPackStatus = {
   Draft: 'DRAFT',
@@ -108,5 +112,5 @@ export function defaultSpecPackTitle(requirementCount: number): string {
     day: 'numeric',
     year: 'numeric',
   })
-  return `Spec Pack · ${requirementCount} req · ${stamp}`
+  return `${SpecPackProductName.singular} · ${requirementCount} req · ${stamp}`
 }
