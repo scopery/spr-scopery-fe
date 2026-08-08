@@ -208,6 +208,48 @@ async function waitForCsrfToken(maxAttempts = 10): Promise<string | null> {
 
 let csrfPrimePromise: Promise<void> | null = null
 
+// Shared promise — prevents concurrent 401 responses from each starting their own
+// refresh call. The BE rotates the refresh token on use, so only one call can
+// succeed; any second simultaneous call would revoke the already-rotated token and
+// redirect the user to login. All in-flight 401 handlers wait for the same promise.
+let activeRefreshPromise: Promise<boolean> | null = null
+
+function performRefresh(originalMethod: string, originalUrl: string, skipAuthRedirect: boolean): Promise<boolean> {
+  if (!activeRefreshPromise) {
+    activeRefreshPromise = (async () => {
+      try {
+        const refreshRes = await fetch(getAuthRefreshUrl(), {
+          method: 'POST',
+          credentials: 'include',
+        })
+        persistApiDebugLog({
+          event: refreshRes.ok ? 'auth_refresh_ok' : 'auth_refresh_failed',
+          method: 'POST',
+          url: getAuthRefreshUrl(),
+          status: refreshRes.status,
+          originalMethod,
+          originalUrl,
+          skipAuthRedirect,
+        })
+        return refreshRes.ok
+      } catch {
+        persistApiDebugLog({
+          event: 'auth_refresh_network_error',
+          method: 'POST',
+          url: getAuthRefreshUrl(),
+          originalMethod,
+          originalUrl,
+          skipAuthRedirect,
+        })
+        return false
+      } finally {
+        activeRefreshPromise = null
+      }
+    })()
+  }
+  return activeRefreshPromise
+}
+
 /** Prime CSRF cookie via a safe GET before the first mutating request in a session. */
 export async function ensureCsrfToken(): Promise<void> {
   if (getCsrfToken()) return
@@ -328,34 +370,10 @@ async function request<T>(url: string, options: ApiRequestInit = {}, _isRetry = 
       }
 
       if (err.isAuthError && !_isRetry && !ctx.url.includes(AUTH_IAM_PREFIX)) {
-        try {
-          const refreshRes = await fetch(getAuthRefreshUrl(), {
-            method: 'POST',
-            credentials: 'include',
-          })
-          persistApiDebugLog({
-            event: refreshRes.ok ? 'auth_refresh_ok' : 'auth_refresh_failed',
-            method: 'POST',
-            url: getAuthRefreshUrl(),
-            status: refreshRes.status,
-            originalMethod: method,
-            originalUrl: ctx.url,
-            skipAuthRedirect: Boolean(skipAuthRedirect),
-          })
-          if (refreshRes.ok) {
-            await ensureCsrfToken()
-            return request<T>(url, options, true)
-          }
-        } catch {
-          persistApiDebugLog({
-            event: 'auth_refresh_network_error',
-            method: 'POST',
-            url: getAuthRefreshUrl(),
-            originalMethod: method,
-            originalUrl: ctx.url,
-            skipAuthRedirect: Boolean(skipAuthRedirect),
-          })
-          // refresh network failure — fall through to redirect
+        const refreshed = await performRefresh(method, ctx.url, Boolean(skipAuthRedirect))
+        if (refreshed) {
+          await ensureCsrfToken()
+          return request<T>(url, options, true)
         }
       }
 

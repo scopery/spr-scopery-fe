@@ -34,6 +34,7 @@ import {
   Headset,
   AppWindow,
   CalendarDays,
+  HelpCircle,
 } from 'lucide-react'
 import { Box, Button } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
@@ -454,6 +455,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
     const baselinesHref = ROUTES.workspace.projectBaselines(workspaceId, projectId)
     const changeRequestsHref = ROUTES.workspace.projectChangeRequests(workspaceId, projectId)
     const scopeHref = ROUTES.workspace.projectScope(workspaceId, projectId)
+    const elicitationHref = ROUTES.workspace.projectElicitation(workspaceId, projectId)
     const deliverablesHref = ROUTES.workspace.projectDeliverables(workspaceId, projectId)
     const raidHref = ROUTES.workspace.projectRaid(workspaceId, projectId)
     const decisionsHref = ROUTES.workspace.projectDecisions(workspaceId, projectId)
@@ -557,6 +559,12 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
             href: scopeHref,
             icon: <Target size={16} />,
             active: pathActive(pathname, scopeHref),
+          },
+          {
+            label: 'Elicitation',
+            href: elicitationHref,
+            icon: <HelpCircle size={16} />,
+            active: pathActive(pathname, elicitationHref),
           },
           {
             label: 'Deliverables',
@@ -824,6 +832,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
       [scheduleHref]: NavCapabilityKey.ProjectSchedule,
       [resourcesHref]: NavCapabilityKey.ProjectResources,
       [scopeHref]: NavCapabilityKey.ProjectScope,
+      [elicitationHref]: NavCapabilityKey.ProjectScope,
       [deliverablesHref]: NavCapabilityKey.ProjectDeliverables,
       [requirementsHref]: NavCapabilityKey.ProjectRequirements,
       [functionalCatalogHref]: NavCapabilityKey.ProjectFunctionalCatalog,

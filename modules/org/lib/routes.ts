@@ -90,6 +90,9 @@ export const WORKSPACE_ROUTES = {
     `/workspace/${workspaceId}/projects/${projectId}/settings`,
   projectQuestions: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/questions`,
+  /** Elicitation: AI-assisted requirements clarification sessions. */
+  projectElicitation: (workspaceId: string, projectId: string) =>
+    `/workspace/${workspaceId}/projects/${projectId}/elicitation`,
   /** Wave 2 P3: Scope register (packages + items). */
   projectScope: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/scope`,

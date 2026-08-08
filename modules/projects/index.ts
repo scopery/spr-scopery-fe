@@ -266,3 +266,23 @@ export { DeliverableReviewPanel } from './deliverable-review'
 export { useDeliverableReview } from './deliverable-review'
 export type { DeliverableReview } from './deliverable-review'
 export { ReviewStatus } from './deliverable-review'
+
+/* --- Elicitation --- */
+export { ElicitationView } from './elicitation'
+export { useElicitationSession } from './elicitation'
+export * as elicitationApi from './elicitation/infrastructure/api/elicitation.api'
+export type {
+  ElicitationSession,
+  ElicitationQuestion,
+  ElicitationRound,
+  ElicitationSuggestion,
+  ElicitationSuggestionItem,
+} from './elicitation/domain/model/elicitation'
+export {
+  SessionStatus,
+  QuestionStatus,
+  ClarityLevel,
+  RoundStatus,
+  SuggestionItemStatus,
+  SuggestionItemImpact,
+} from './elicitation/domain/enums/elicitation.enum'

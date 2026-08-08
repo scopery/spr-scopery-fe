@@ -1,0 +1,46 @@
+import { apiPath } from '@/shared/lib/api-paths'
+
+export const ELICITATION_ENDPOINTS = {
+  sessions: {
+    list: (projectId: string) =>
+      apiPath(`/v1/projects/${projectId}/elicitation-sessions`),
+    start: (projectId: string) =>
+      apiPath(`/v1/projects/${projectId}/elicitation-sessions`),
+    get: (projectId: string, sessionId: string) =>
+      apiPath(`/v1/projects/${projectId}/elicitation-sessions/${sessionId}`),
+    close: (projectId: string, sessionId: string) =>
+      apiPath(`/v1/projects/${projectId}/elicitation-sessions/${sessionId}/close`),
+    cancel: (projectId: string, sessionId: string) =>
+      apiPath(`/v1/projects/${projectId}/elicitation-sessions/${sessionId}/cancel`),
+  },
+  questions: {
+    list: (projectId: string, sessionId: string) =>
+      apiPath(`/v1/projects/${projectId}/elicitation-sessions/${sessionId}/questions`),
+    generate: (projectId: string, sessionId: string) =>
+      apiPath(`/v1/projects/${projectId}/elicitation-sessions/${sessionId}/generate-questions`),
+    evaluate: (projectId: string, sessionId: string) =>
+      apiPath(`/v1/projects/${projectId}/elicitation-sessions/${sessionId}/evaluate-answers`),
+    answer: (projectId: string, sessionId: string, questionId: string) =>
+      apiPath(
+        `/v1/projects/${projectId}/elicitation-sessions/${sessionId}/questions/${questionId}/answer`
+      ),
+    skip: (projectId: string, sessionId: string, questionId: string) =>
+      apiPath(
+        `/v1/projects/${projectId}/elicitation-sessions/${sessionId}/questions/${questionId}/skip`
+      ),
+  },
+  rounds: {
+    list: (projectId: string, sessionId: string) =>
+      apiPath(`/v1/projects/${projectId}/elicitation-sessions/${sessionId}/rounds`),
+    get: (roundId: string) => apiPath(`/v1/elicitation-rounds/${roundId}`),
+    submit: (roundId: string) => apiPath(`/v1/elicitation-rounds/${roundId}/submit`),
+    suggestions: (roundId: string) =>
+      apiPath(`/v1/elicitation-rounds/${roundId}/suggestions`),
+  },
+  suggestionItems: {
+    approve: (itemId: string) =>
+      apiPath(`/v1/elicitation-suggestion-items/${itemId}/approve`),
+    reject: (itemId: string) =>
+      apiPath(`/v1/elicitation-suggestion-items/${itemId}/reject`),
+  },
+} as const
