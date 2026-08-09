@@ -249,6 +249,7 @@ export function FinanceScenarioWorkbenchView() {
         <div className="mb-4">
           <FinancialKpiStrip items={primaryKpis} mode="expanded" className="mb-3" />
           <DataTable
+            className="border border-neutral-200"
             ariaLabel="Finance summary details"
             rows={[
               { metric: 'Estimate hours', value: formatHours(summary.totalEstimateHours) },
@@ -289,6 +290,7 @@ export function FinanceScenarioWorkbenchView() {
 
       {tab === 'phases' ? (
         <DataTable
+          className="border border-neutral-200"
           ariaLabel="Phase financials"
           rows={[...phases].sort((a, b) => a.phaseOrder - b.phaseOrder)}
           rowKey={(phase) => phase.id}
@@ -375,6 +377,7 @@ export function FinanceScenarioWorkbenchView() {
             </div>
           ) : null}
           <DataTable
+            className="border border-neutral-200"
             ariaLabel="Custom costs"
             rows={customCosts}
             rowKey={(cost) => cost.id}
@@ -424,6 +427,7 @@ export function FinanceScenarioWorkbenchView() {
             </div>
           ) : null}
           <DataTable
+            className="border border-neutral-200"
             ariaLabel="Vendor costs"
             rows={vendorCosts}
             rowKey={(cost) => cost.id}

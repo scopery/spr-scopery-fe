@@ -226,6 +226,8 @@ export function useElicitationSession(projectId: string | null) {
     [suggestion, rounds, loadSuggestion]
   )
 
+  const clearSuggestion = useCallback(() => setSuggestion(null), [])
+
   return {
     sessions,
     activeSession,
@@ -242,6 +244,7 @@ export function useElicitationSession(projectId: string | null) {
     loadQuestions,
     loadRounds,
     loadSuggestion,
+    clearSuggestion,
     startSession,
     generateNextRound,
     answerQuestion,

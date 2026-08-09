@@ -5,6 +5,7 @@ export interface ElicitationSession {
   scopePackageId: string
   title: string | null
   status: string
+  language: string
   createdBy: string | null
   createdAt: string
   updatedAt: string
@@ -110,6 +111,7 @@ export interface ScopeTreeResponse {
 export interface StartElicitationSessionPayload {
   scopePackageId: string
   title?: string | null
+  language?: string | null
 }
 
 export interface AnswerQuestionPayload {

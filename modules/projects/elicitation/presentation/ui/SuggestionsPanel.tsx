@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Button, Spinner, Typography } from '@/shared/ui'
+import { Button, Card, Spinner, Typography } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import type {
@@ -179,7 +179,7 @@ export function SuggestionsPanel({
   const itemCount = suggestion?.items?.length ?? 0
 
   return (
-    <section className="shrink-0 border border-neutral-200 bg-white">
+    <Card as="section" hasShadow={false} className="shrink-0">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-neutral-100 px-4 py-4">
         <div>
           <Typography variant="body" className="text-base font-semibold text-neutral-900">
@@ -279,6 +279,6 @@ export function SuggestionsPanel({
           ) : null}
         </div>
       ) : null}
-    </section>
+    </Card>
   )
 }

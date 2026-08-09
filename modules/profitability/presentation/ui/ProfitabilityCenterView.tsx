@@ -470,6 +470,7 @@ export function ProfitabilityCenterView() {
             </Button>
           </div>
           <DataTable
+            className="border border-neutral-200"
             ariaLabel="Profit plans"
             rows={h.plans}
             rowKey={(plan) => plan.id}
@@ -569,6 +570,7 @@ export function ProfitabilityCenterView() {
             </Button>
           </div>
           <DataTable
+            className="border border-neutral-200"
             ariaLabel="Profit adjustments"
             rows={h.adjustments}
             rowKey={(adjustment) => adjustment.id}
@@ -644,6 +646,7 @@ export function ProfitabilityCenterView() {
             </Button>
           </div>
           <DataTable
+            className="border border-neutral-200"
             ariaLabel="Profit variances"
             rows={h.variances}
             rowKey={(variance) => variance.id}
@@ -711,6 +714,7 @@ export function ProfitabilityCenterView() {
             </Button>
           </div>
           <DataTable
+            className="border border-neutral-200"
             ariaLabel="Profit risk flags"
             rows={h.riskFlags}
             rowKey={(risk) => risk.id}
@@ -854,6 +858,7 @@ function SourceTable({
 }) {
   return (
     <DataTable
+      className="border border-neutral-200"
       ariaLabel="Profitability costs"
       rows={rows}
       rowKey={(row) => row.id}
@@ -899,6 +904,7 @@ function ForecastTable({
 }) {
   return (
     <DataTable
+      className="border border-neutral-200"
       ariaLabel="Profitability forecasts"
       rows={rows}
       rowKey={(row) => row.id}

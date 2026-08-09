@@ -1,5 +1,6 @@
 import React from 'react'
 import { cn } from '@/utils/cn'
+import { uiControl } from '../../styles/ui-surface'
 import type { TextareaProps } from './Textarea.types'
 
 const textareaSizes = {
@@ -9,7 +10,7 @@ const textareaSizes = {
 }
 
 const textareaVariants = {
-  outline: 'border bg-white',
+  outline: uiControl,
   filled: 'border-0 bg-neutral-100',
 }
 
@@ -115,7 +116,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             // States
             error
               ? 'focus:ring-error/20 border-error focus:border-error focus:ring-1'
-              : 'border-neutral-300 focus:ring-1 focus:ring-neutral-100',
+              : '',
             className
           )}
           onInput={(event) => {

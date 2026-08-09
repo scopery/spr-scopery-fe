@@ -334,6 +334,7 @@ export function EstimationRunDetailView() {
             ))}
           </div>
           <DataTable<TaskEstimateSnapshot>
+            className="border border-neutral-200"
             ariaLabel="Task estimates"
             rows={tasks}
             rowKey={(task) => task.id}
@@ -416,6 +417,7 @@ export function EstimationRunDetailView() {
 
       {tab === 'wbs' ? (
         <DataTable
+          className="border border-neutral-200"
           ariaLabel="Planning element rollups"
           rows={wbsRollups}
           rowKey={(row) => row.id ?? row.wbsNodeId}
@@ -459,6 +461,7 @@ export function EstimationRunDetailView() {
 
       {tab === 'phase' ? (
         <DataTable
+          className="border border-neutral-200"
           ariaLabel="Phase rollups"
           rows={phaseRollups}
           rowKey={(row) => row.id ?? row.phaseId}
@@ -492,6 +495,7 @@ export function EstimationRunDetailView() {
 
       {tab === 'issues' ? (
         <DataTable<TaskEstimateSnapshot>
+          className="border border-neutral-200"
           ariaLabel="Estimation issues"
           rows={issueTasks}
           rowKey={(task) => task.id}

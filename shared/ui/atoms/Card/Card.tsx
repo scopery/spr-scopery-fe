@@ -19,8 +19,8 @@ export const Card = React.forwardRef(
       <Component
         ref={ref}
         className={cn(
-          'min-w-0 overflow-hidden border border-neutral-200 bg-white',
-          hasShadow && 'shadow-sm',
+          'min-w-0 overflow-hidden border border-neutral-200 bg-surface-card',
+          hasShadow && 'shadow-sm-comment',
           className,
           'rounded-none'
         )}

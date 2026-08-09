@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
-import { Badge, Button, Skeleton, Spinner, Typography } from '@/shared/ui'
+import { Badge, Button, Card, Skeleton, Spinner, Typography } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import type { ElicitationQuestion, ElicitationRound } from '../../domain/model/elicitation'
@@ -95,7 +95,7 @@ export function RoundCard({
   }
 
   return (
-    <div className="overflow-hidden border border-neutral-200">
+    <Card hasShadow={false}>
       <div
         className="flex cursor-pointer select-none items-start justify-between gap-3 px-4 py-3"
         onClick={() => setExpanded((v) => !v)}
@@ -247,6 +247,6 @@ export function RoundCard({
           await onAnswer(questionId, answerText)
         }}
       />
-    </div>
+    </Card>
   )
 }

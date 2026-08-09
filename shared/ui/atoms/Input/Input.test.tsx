@@ -68,7 +68,7 @@ describe('Input', () => {
     it('applies outline variant by default', () => {
       render(<Input placeholder="Outline" />)
       const input = screen.getByPlaceholderText('Outline')
-      expect(input).toHaveClass('border', 'bg-white')
+      expect(input).toHaveClass('border', 'bg-surface-input')
     })
 
     it('applies filled variant', () => {

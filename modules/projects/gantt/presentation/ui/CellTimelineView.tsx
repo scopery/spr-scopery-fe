@@ -473,7 +473,6 @@ export function CellTimelineView() {
 
       if (row.kind === 'phase') {
         tl.setSelectedRowId(rowId)
-        if (canEditContainer(row)) setContainerEditRowId(rowId)
         return
       }
 
@@ -1581,7 +1580,10 @@ export function CellTimelineView() {
                 highlighted={highlightPhaseId === row.id}
                 menuOpen={rowMenuId === row.id}
                 onHover={(h) => setHoverRowId(h ? row.id : null)}
-                onSelect={(e) => selectRow(row.id, e)}
+                onSelect={(e) => {
+                  selectRow(row.id, e)
+                  if (canEditContainer(row)) openContainerEdit(row)
+                }}
                 onToggleCheck={() => selectRow(row.id, { metaKey: true })}
                 onTogglePhase={() => tl.togglePhase(row.id)}
                 onEditDates={() => openContainerEdit(row)}
@@ -1793,19 +1795,6 @@ export function CellTimelineView() {
                   )}
                   data-timeline-row={row.id}
                   style={{ height: rowHeight(row.kind, row.itemType) }}
-                  onClick={() => {
-                    if (canEditContainer(row)) openContainerEdit(row)
-                  }}
-                  onDoubleClick={() => {
-                    if (
-                      (row.kind === 'task' || row.kind === 'milestone') &&
-                      row.sourceEntityId
-                    ) {
-                      void openTaskDetail(row.sourceEntityId)
-                    } else if (canEditContainer(row)) {
-                      openContainerEdit(row)
-                    }
-                  }}
                   title={
                     baseline
                       ? `Baseline: ${baseline.startDate ?? '—'} → ${baseline.endDate ?? '—'}`
@@ -1903,7 +1892,7 @@ export function CellTimelineView() {
                                     : null,
                                   row.status ? `Status: ${row.status}` : null,
                                   canEditContainer(row)
-                                    ? 'Click to edit details and dates'
+                                    ? 'Edit from the left panel'
                                     : null,
                                 ]
                                   .filter(Boolean)

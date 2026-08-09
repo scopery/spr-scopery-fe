@@ -18,7 +18,7 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react'
-import { Input, Typography } from '@/shared/ui'
+import { Input, Typography, uiDropdownPanel } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { FEATURES } from '@/config/features'
 import type { WorkspaceListItem } from '@/modules/auth/workspace-context/model/interfaces/workspace-context'
@@ -370,7 +370,10 @@ export function GlobalSearchPalette({
       <div
         role="dialog"
         aria-label="Search and command palette"
-        className="fixed left-1/2 top-[12vh] z-[111] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 border border-neutral-200 bg-white shadow-xl"
+        className={cn(
+          uiDropdownPanel,
+          'fixed left-1/2 top-[12vh] z-[111] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 shadow-xl'
+        )}
       >
         <div className="border-b border-neutral-100 p-3">
           <Input

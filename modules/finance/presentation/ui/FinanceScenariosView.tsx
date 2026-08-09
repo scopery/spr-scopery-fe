@@ -215,6 +215,7 @@ export function FinanceScenariosView() {
         Scenarios
       </Typography>
       <DataTable<FinanceScenario>
+        className="border border-neutral-200"
         ariaLabel="Finance scenarios"
         rows={scenarios}
         rowKey={(scenario) => scenario.id}

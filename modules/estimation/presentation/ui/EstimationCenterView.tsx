@@ -276,6 +276,7 @@ export function EstimationCenterView() {
         Estimation runs
       </Typography>
       <DataTable<EstimationRun>
+        className="border border-neutral-200"
         ariaLabel="Estimation runs"
         rows={runs}
         rowKey={(run) => run.id}

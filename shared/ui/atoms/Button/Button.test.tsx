@@ -31,7 +31,7 @@ describe('Button', () => {
     it('applies outline variant styles', () => {
       render(<Button variant="outline">Outline</Button>)
       const button = screen.getByRole('button')
-      expect(button).toHaveClass('border-primary')
+      expect(button).toHaveClass('border-neutral-300')
     })
 
     it('applies ghost variant styles', () => {

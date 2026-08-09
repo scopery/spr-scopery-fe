@@ -1212,7 +1212,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
           <Box
             as="aside"
             className={cn(
-              'sidebar motion-sidebar-width relative z-20 hidden h-full min-h-0 shrink-0 flex-col overflow-hidden border-r border-neutral-200 bg-white lg:flex',
+              'sidebar motion-sidebar-width relative z-10 hidden h-full min-h-0 shrink-0 flex-col overflow-hidden border-r border-neutral-200 bg-surface-sidebar lg:flex',
               effectiveCollapsed ? 'w-16' : 'w-64'
             )}
           >
@@ -1228,7 +1228,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
               />
               <Box
                 as="aside"
-                className="sidebar motion-sheet-in fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-neutral-200 bg-white lg:hidden"
+                className="sidebar motion-sheet-in fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-neutral-200 bg-surface-sidebar lg:hidden"
               >
                 {renderSidebarContent({
                   collapsed: false,
@@ -1243,7 +1243,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
       <Box
         as="main"
         className={cn(
-          'motion-main-resize relative flex min-h-0 min-w-0 flex-1 overflow-hidden',
+          'shell-main-elevated motion-main-resize relative z-20 flex min-h-0 min-w-0 flex-1 overflow-hidden bg-surface-main',
           // AI sidebar needs a row layout even on immersive pages
           showAiProjectSidebar || !immersiveMain ? 'flex-row' : 'flex-col',
           immersiveMain && 'p-0'

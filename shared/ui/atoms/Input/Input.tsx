@@ -1,5 +1,6 @@
 import React from 'react'
 import { cn } from '@/utils/cn'
+import { uiControl } from '../../styles/ui-surface'
 import type { InputProps } from './Input.types'
 
 /** Keep in sync with Button / Select: sm h-8, md h-9, lg h-12 */
@@ -46,12 +47,12 @@ const iconPositions = {
 }
 
 const inputVariants = {
-  outline: 'border bg-white',
+  outline: uiControl,
   filled: 'border-0 bg-neutral-100',
 }
 
 const inputStates = {
-  default: 'border-neutral-300 focus:border-primary focus:ring-1 focus:ring-primary/20',
+  default: '',
   error: 'border-error focus:border-error focus:ring-1 focus:ring-error/20',
   success: 'border-success focus:border-success focus:ring-1 focus:ring-success/20',
 }

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import NextLink from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Badge, Typography, Link as DesignLink, Skeleton } from '@/shared/ui'
+import { Badge, Typography, Link as DesignLink, Skeleton, uiDropdownPanel } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { useNotifications } from '@/modules/notifications'
 import { getTypeBadge } from '@/modules/notifications/lib/notificationBadge'
@@ -68,7 +68,7 @@ export function NotificationsQuickPanel({
   return createPortal(
     <div
       ref={panelRef}
-      className="fixed z-[100] w-80 border border-neutral-200 bg-white shadow-xl"
+      className={cn(uiDropdownPanel, 'fixed z-[100] w-80 shadow-xl')}
       style={{ top: position.top, left: position.left }}
     >
       <div className="flex items-center justify-between border-b border-neutral-100 px-3 py-2">

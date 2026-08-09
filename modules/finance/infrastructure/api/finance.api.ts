@@ -115,10 +115,15 @@ export async function duplicateFinanceScenario(
 export async function getFinanceSummary(
   projectId: string,
   scenarioId: string
-): Promise<FinanceSummary> {
-  return apiClient.get<FinanceSummary>(
-    FINANCE_ENDPOINTS.scenarios.summary(projectId, scenarioId)
-  )
+): Promise<FinanceSummary | null> {
+  try {
+    return await apiClient.get<FinanceSummary>(
+      FINANCE_ENDPOINTS.scenarios.summary(projectId, scenarioId),
+      { skipErrorToast: true }
+    )
+  } catch {
+    return null
+  }
 }
 
 export async function listPhaseFinances(
@@ -233,7 +238,9 @@ export async function archiveVendorCost(
 
 export async function getCurrentFinance(projectId: string): Promise<FinanceScenario | null> {
   try {
-    return await apiClient.get<FinanceScenario>(FINANCE_ENDPOINTS.current.get(projectId))
+    return await apiClient.get<FinanceScenario>(FINANCE_ENDPOINTS.current.get(projectId), {
+      skipErrorToast: true,
+    })
   } catch {
     return null
   }
@@ -243,7 +250,9 @@ export async function getCurrentFinanceSummary(
   projectId: string
 ): Promise<FinanceSummary | null> {
   try {
-    return await apiClient.get<FinanceSummary>(FINANCE_ENDPOINTS.current.summary(projectId))
+    return await apiClient.get<FinanceSummary>(FINANCE_ENDPOINTS.current.summary(projectId), {
+      skipErrorToast: true,
+    })
   } catch {
     return null
   }
@@ -254,7 +263,8 @@ export async function listCurrentFinancePhases(
 ): Promise<PhaseFinance[]> {
   try {
     const data = await apiClient.get<PhaseFinance[] | { items: PhaseFinance[] }>(
-      FINANCE_ENDPOINTS.current.phases(projectId)
+      FINANCE_ENDPOINTS.current.phases(projectId),
+      { skipErrorToast: true }
     )
     return asList(data)
   } catch {

@@ -7,6 +7,9 @@
  *   - Does NOT import from services/, types/, constants/, lib/, contexts/, or any business enum
  */
 
+// Shared surface class names (styles in app/globals.css)
+export { uiControl, uiDropdownPanel, uiBtnOutline } from './styles/ui-surface'
+
 // Atoms
 export { Button } from './atoms/Button'
 export type { ButtonProps, ButtonVariant, ButtonSize, ButtonTone } from './atoms/Button'

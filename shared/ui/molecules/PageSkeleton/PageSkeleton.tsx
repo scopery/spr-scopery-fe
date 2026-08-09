@@ -49,7 +49,7 @@ function SplitSkeleton() {
         <Skeleton variant="text" width={360} height={14} />
       </div>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
-        <div className="border border-neutral-200 bg-white">
+        <div className="border border-neutral-200 bg-surface-card">
           <div className="border-b border-neutral-100 px-4 py-3">
             <Skeleton variant="text" width={140} height={14} />
           </div>
@@ -62,7 +62,7 @@ function SplitSkeleton() {
             ))}
           </div>
         </div>
-        <div className="border border-neutral-200 bg-white p-4">
+        <div className="border border-neutral-200 bg-surface-card p-4">
           <Skeleton variant="text" width="45%" height={22} className="mb-4" />
           <div className="space-y-3">
             <Skeleton variant="rectangular" width="100%" height={40} />
@@ -100,7 +100,7 @@ function FormSkeleton() {
     <div className="mx-auto max-w-xl space-y-4">
       <Skeleton variant="text" width={200} height={28} />
       <Skeleton variant="text" width="80%" height={14} />
-      <div className="space-y-3 border border-neutral-200 bg-white p-6">
+      <div className="space-y-3 border border-neutral-200 bg-surface-card p-6">
         {Array.from({ length: 4 }).map((_, index) => (
           <div key={index} className="space-y-2">
             <Skeleton variant="text" width={100} height={12} />

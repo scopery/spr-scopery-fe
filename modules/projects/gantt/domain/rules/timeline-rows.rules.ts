@@ -29,6 +29,25 @@ export interface WbsEnrichment {
   plannedEndDate: string | null
 }
 
+function isLeafTaskItem(itemType: GanttTreeItem['itemType']): boolean {
+  return itemType === 'TASK' || itemType === 'MILESTONE'
+}
+
+/**
+ * BE `sortOrder` for tasks often lands inverted vs schedule intent.
+ * Reverse only TASK/MILESTONE siblings; keep phase/WBS/project order as BE.
+ */
+function orderTimelineSiblings(nodes: GanttTreeItem[]): GanttTreeItem[] {
+  return [...nodes].sort((a, b) => {
+    const aTask = isLeafTaskItem(a.itemType)
+    const bTask = isLeafTaskItem(b.itemType)
+    if (aTask && bTask) {
+      return (b.sortOrder ?? 0) - (a.sortOrder ?? 0)
+    }
+    return (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+  })
+}
+
 /** Collect gantt row ids for PROJECT items (and top-level PHASE when no PROJECT). */
 export function collectProjectCollapseIds(tree: GanttTreeItem[]): Set<string> {
   const ids = new Set<string>()
@@ -75,7 +94,7 @@ export function flattenTimelineRows(
     depth: number,
     parentPhaseSourceId: string | null
   ) => {
-    for (const node of nodes) {
+    for (const node of orderTimelineSiblings(nodes)) {
       const isPhase = node.itemType === 'PHASE'
       const isTask = node.itemType === 'TASK'
       const isMilestone = node.itemType === 'MILESTONE'

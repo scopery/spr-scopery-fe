@@ -108,7 +108,8 @@ export async function getProfitabilityProfile(
 ): Promise<ProfitabilityProfile | null> {
   try {
     return await apiClient.get<ProfitabilityProfile>(
-      PROFITABILITY_ENDPOINTS.profile.get(projectId)
+      PROFITABILITY_ENDPOINTS.profile.get(projectId),
+      { skipErrorToast: true }
     )
   } catch {
     return null
@@ -130,7 +131,8 @@ export async function getProfitabilitySummary(
 ): Promise<ProfitabilitySummary | null> {
   try {
     return await apiClient.get<ProfitabilitySummary>(
-      PROFITABILITY_ENDPOINTS.summary.get(projectId)
+      PROFITABILITY_ENDPOINTS.summary.get(projectId),
+      { skipErrorToast: true }
     )
   } catch {
     return null

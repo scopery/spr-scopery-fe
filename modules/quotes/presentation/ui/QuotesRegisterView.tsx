@@ -128,6 +128,7 @@ export function QuotesRegisterView() {
       </div>
 
       <DataTable
+        className="border border-neutral-200"
         ariaLabel="Quotes"
         rows={quotes}
         rowKey={(quote) => quote.id}

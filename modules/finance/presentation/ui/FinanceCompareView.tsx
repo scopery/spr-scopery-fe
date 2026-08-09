@@ -180,6 +180,7 @@ export function FinanceCompareView() {
             </Badge>
           </div>
           <DataTable
+            className="border border-neutral-200"
             ariaLabel="Finance scenario comparison"
             rows={rows}
             rowKey={(row) => row.id}

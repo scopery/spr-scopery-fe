@@ -10,6 +10,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '@/utils/cn'
+import { uiDropdownPanel } from '../../styles/ui-surface'
 
 export interface AnchoredMenuProps {
   open: boolean
@@ -117,10 +118,7 @@ export function AnchoredMenu({
         minWidth,
         visibility: pos ? 'visible' : 'hidden',
       }}
-      className={cn(
-        'fixed z-[200] border border-neutral-200 bg-white py-1 shadow-md',
-        className
-      )}
+      className={cn(uiDropdownPanel, 'fixed z-[200] py-1 shadow-md', className)}
     >
       {children}
     </div>,

@@ -88,3 +88,47 @@ describe('flattenTimelineRows hideTaskRows', () => {
     expect(rows[0]?.itemType).toBe('PROJECT')
   })
 })
+
+describe('flattenTimelineRows task sortOrder', () => {
+  it('reverses BE sortOrder for TASK/MILESTONE siblings only', () => {
+    const phaseTree: GanttTreeItem[] = [
+      node({
+        id: 'phase',
+        itemType: 'PHASE',
+        title: 'Phase',
+        sortOrder: 0,
+        children: [
+          node({
+            id: 't1',
+            itemType: 'TASK',
+            title: 'Early sortOrder',
+            sortOrder: 1,
+            startDate: '2026-08-01',
+          }),
+          node({
+            id: 't2',
+            itemType: 'TASK',
+            title: 'Late sortOrder',
+            sortOrder: 2,
+            startDate: '2026-08-10',
+          }),
+          node({
+            id: 'ms',
+            itemType: 'MILESTONE',
+            title: 'Milestone',
+            sortOrder: 3,
+          }),
+        ],
+      }),
+    ]
+
+    const rows = flattenTimelineRows(phaseTree, {
+      collapsedPhaseIds: new Set(),
+      hideUnscheduled: false,
+      taskById: new Map(),
+      includeAddRows: false,
+    })
+    const leafIds = rows.filter((r) => r.kind === 'task' || r.kind === 'milestone').map((r) => r.id)
+    expect(leafIds).toEqual(['ms', 't2', 't1'])
+  })
+})

@@ -7,7 +7,7 @@ describe('Card', () => {
     render(<Card className="rounded-lg">Content</Card>)
 
     const card = screen.getByText('Content')
-    expect(card).toHaveClass('border', 'border-neutral-200', 'bg-white')
+    expect(card).toHaveClass('border', 'border-neutral-200', 'bg-surface-card')
     expect(card).toHaveClass('shadow-sm')
     expect(card).toHaveClass('rounded-none')
     expect(card).not.toHaveClass('rounded-lg')

@@ -1,12 +1,12 @@
 import React from 'react'
 import { cn } from '@/utils/cn'
+import { uiBtnOutline } from '../../styles/ui-surface'
 import type { ButtonProps } from './Button.types'
 
 const buttonVariants = {
   primary: 'bg-primary-gradient text-white hover:bg-primary-gradient-hover active:opacity-95',
   secondary: 'bg-secondary text-white hover:bg-secondary-hover active:bg-secondary-active',
-  outline:
-    'border-[1px] border-primary text-primary bg-transparent hover:bg-primary hover:text-white',
+  outline: uiBtnOutline,
   ghost: 'text-primary bg-transparent hover:bg-neutral-100',
   glass:
     'bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 active:bg-white/30',

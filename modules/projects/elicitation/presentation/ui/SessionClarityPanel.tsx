@@ -1,7 +1,7 @@
 'use client'
 
 import { MoreHorizontal } from 'lucide-react'
-import { Button, Typography } from '@/shared/ui'
+import { Button, Card, Typography } from '@/shared/ui'
 import type { ElicitationQuestion, ElicitationRound } from '../../domain/model/elicitation'
 import { ClarityLevel, QuestionStatus, RoundStatus } from '../../domain/enums/elicitation.enum'
 
@@ -63,7 +63,7 @@ function ProgressRing({ percent }: { percent: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-calsans text-[2.25rem] font-semibold tabular-nums leading-none text-neutral-900">
+        <span className="font-calsans text-[1.75rem] font-semibold tabular-nums leading-none text-neutral-900">
           {Math.round(clamped)}%
         </span>
         <span className="mt-2 text-sm font-normal text-neutral-500">Complete</span>
@@ -172,7 +172,7 @@ export function SessionClarityPanel({
   const showGenerate = Boolean(canGenerateNextRound && onGenerateNextRound)
 
   return (
-    <div className="relative flex min-h-[640px] flex-col overflow-hidden border border-neutral-200 bg-white">
+    <Card hasShadow={false} className="relative flex min-h-[640px] flex-col">
       <div className="relative z-[1] flex flex-1 flex-col gap-8 px-5 pb-28 pt-5">
         <div className="flex items-center justify-between gap-2">
           <Typography variant="body" className="text-[15px] font-semibold text-neutral-900">
@@ -246,6 +246,6 @@ export function SessionClarityPanel({
         aria-hidden
         className="pointer-events-none absolute bottom-0 right-0 z-0 h-[148px] w-[148px] -scale-x-100 select-none"
       />
-    </div>
+    </Card>
   )
 }

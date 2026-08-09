@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, ChevronDown, Search } from 'lucide-react'
 import { cn } from '@/utils/cn'
+import { uiControl, uiDropdownPanel } from '../../styles/ui-surface'
 import type { SelectOption, SelectSize } from '../Select/Select.types'
 
 interface SearchableSelectProps {
@@ -87,12 +88,10 @@ export function SearchableSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         className={cn(
+          uiControl,
           'flex w-full min-w-0 items-center justify-between gap-2',
-          'overflow-hidden border border-neutral-300',
-          'bg-white text-neutral-900',
+          'overflow-hidden text-neutral-900',
           'transition-colors duration-200',
-          'focus:ring-primary/20 focus:border-primary focus:outline-none focus:ring-1',
-          'disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:opacity-50',
           triggerHeight[size]
         )}
       >
@@ -109,8 +108,9 @@ export function SearchableSelect({
         <div
           role="listbox"
           className={cn(
+            uiDropdownPanel,
             'absolute left-0 right-0 top-full z-[200] mt-1',
-            'border border-neutral-200 bg-white shadow-lg',
+            'shadow-lg',
             'max-h-64 overflow-hidden flex flex-col'
           )}
         >

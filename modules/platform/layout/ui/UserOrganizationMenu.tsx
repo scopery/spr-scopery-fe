@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { BookOpen, LogOut, Settings } from 'lucide-react'
-import { Avatar, Button, Typography } from '@/shared/ui'
+import { Avatar, Button, Typography, uiDropdownPanel } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { AdminAppModeSwitch } from './AdminAppModeSwitch'
 
@@ -129,7 +129,10 @@ export function UserOrganizationMenu({
             <div
               ref={panelRef}
               role="menu"
-              className="fixed z-[100] max-h-[min(24rem,calc(100vh-1rem))] w-60 overflow-y-auto border border-neutral-200 bg-white shadow-xl"
+              className={cn(
+                uiDropdownPanel,
+                'fixed z-[100] max-h-[min(24rem,calc(100vh-1rem))] w-60 overflow-y-auto shadow-xl'
+              )}
               style={{ bottom: position.bottom, left: position.left }}
             >
               <div className="border-b border-neutral-100 px-3 py-2">

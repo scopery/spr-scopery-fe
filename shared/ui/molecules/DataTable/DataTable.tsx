@@ -226,10 +226,10 @@ function DataTableInner<T>(
         tabIndex={keyboardEnabled ? 0 : undefined}
         onKeyDown={handleKeyDown}
       >
-        <thead className={cn(stickyHeader && 'sticky top-0 z-10 bg-white')}>
+        <thead className={cn(stickyHeader && 'sticky top-0 z-10 bg-surface-card')}>
           <tr className="border-b border-neutral-200 text-neutral-500">
             {selectable ? (
-              <th className="sticky left-0 z-30 w-10 bg-white px-3 py-2">
+              <th className="sticky left-0 z-30 w-10 bg-surface-card px-3 py-2">
                 <Checkbox
                   size="sm"
                   checked={allVisibleSelected}
@@ -250,7 +250,7 @@ function DataTableInner<T>(
                     left: stickyOffsets[columnIndex],
                   }}
                   className={cn(
-                    'font-calsans bg-white px-3 py-2 font-normal',
+                    'font-calsans bg-surface-card px-3 py-2 font-normal',
                     alignClass(column.align),
                     column.sticky && 'sticky z-20',
                     column.headerClassName

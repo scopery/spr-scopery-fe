@@ -91,7 +91,7 @@ describe('Box', () => {
   describe('Background', () => {
     it('applies white background', () => {
       render(<Box background="white">White BG</Box>)
-      expect(screen.getByText('White BG')).toHaveClass('bg-white')
+      expect(screen.getByText('White BG')).toHaveClass('bg-surface-card')
     })
 
     it('applies neutral background', () => {
@@ -165,7 +165,7 @@ describe('Box', () => {
         'p-lg',
         'rounded-md',
         'shadow-sm',
-        'bg-white',
+        'bg-surface-card',
         'border',
         'border-neutral-200'
       )

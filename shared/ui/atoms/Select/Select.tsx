@@ -2,6 +2,7 @@ import React from 'react'
 import * as SelectPrimitive from '@radix-ui/react-select'
 import { cn } from '@/utils/cn'
 import { ChevronDown, Check } from 'lucide-react'
+import { uiControl, uiDropdownPanel } from '../../styles/ui-surface'
 import type { SelectProps, SelectSize } from './Select.types'
 
 /** Radix Select rejects empty string item values; map them to a sentinel. */
@@ -86,12 +87,10 @@ export const Select = React.forwardRef(
         >
           <SelectPrimitive.Trigger
             className={cn(
+              uiControl,
               'flex w-full min-w-0 items-center justify-between gap-2',
-              'overflow-hidden border border-neutral-300',
-              'bg-white text-neutral-900',
+              'overflow-hidden text-neutral-900',
               'transition-colors duration-200',
-              'focus:ring-primary/20 focus:border-primary focus:outline-none focus:ring-1',
-              'disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:opacity-50',
               selectSizes[size].trigger
             )}
             aria-label="Select option"
@@ -108,7 +107,8 @@ export const Select = React.forwardRef(
           <SelectPrimitive.Portal>
             <SelectPrimitive.Content
               className={cn(
-                'relative z-[200] overflow-hidden border border-neutral-200 bg-white shadow-lg',
+                uiDropdownPanel,
+                'relative z-[200] overflow-hidden shadow-lg',
                 'w-[var(--radix-select-trigger-width)] max-h-[min(24rem,var(--radix-select-content-available-height))]',
                 'data-[state=open]:animate-in data-[state=closed]:animate-out',
                 'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',

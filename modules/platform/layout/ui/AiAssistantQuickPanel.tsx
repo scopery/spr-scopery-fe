@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import NextLink from 'next/link'
 import { FileText, FolderKanban, Sparkles } from 'lucide-react'
-import { Link as DesignLink, Typography } from '@/shared/ui'
+import { Link as DesignLink, Typography, uiDropdownPanel } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
+import { cn } from '@/utils/cn'
 
 export interface AiAssistantQuickPanelProps {
   open: boolean
@@ -68,7 +69,7 @@ export function AiAssistantQuickPanel({
   return createPortal(
     <div
       ref={panelRef}
-      className="fixed z-[100] w-70 border border-neutral-200 bg-white shadow-xl"
+      className={cn(uiDropdownPanel, 'fixed z-[100] w-70 shadow-xl')}
       style={{ top: position.top, left: position.left, width: 280 }}
     >
       <div className="border-b border-neutral-100 px-3 py-2">

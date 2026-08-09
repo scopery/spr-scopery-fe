@@ -37,14 +37,16 @@ export function useFinanceScenarioWorkbench(
     setError(null)
     setForbidden(false)
     try {
-      const [sc, sum, ph, custom, vendor] = await Promise.all([
-        financeApi.getFinanceScenario(projectId, scenarioId),
-        financeApi.getFinanceSummary(projectId, scenarioId),
-        financeApi.listPhaseFinances(projectId, scenarioId),
-        financeApi.listCustomCosts(projectId, scenarioId),
-        financeApi.listVendorCosts(projectId, scenarioId),
-      ])
+      // Scenario must exist for the workbench to render
+      const sc = await financeApi.getFinanceScenario(projectId, scenarioId)
       setScenario(sc)
+      // Secondary data: failures mean "not yet calculated" — render page without them
+      const [sum, ph, custom, vendor] = await Promise.all([
+        financeApi.getFinanceSummary(projectId, scenarioId),
+        financeApi.listPhaseFinances(projectId, scenarioId).catch((): PhaseFinance[] => []),
+        financeApi.listCustomCosts(projectId, scenarioId).catch((): CustomCost[] => []),
+        financeApi.listVendorCosts(projectId, scenarioId).catch((): VendorCost[] => []),
+      ])
       setSummary(sum)
       setPhases(ph)
       setCustomCosts(custom)

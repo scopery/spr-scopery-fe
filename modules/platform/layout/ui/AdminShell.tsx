@@ -5,7 +5,7 @@ import NextLink from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { BookOpen, ChevronsUpDown, LogOut, Settings } from 'lucide-react'
-import { Typography, Avatar, Button, Link as DesignLink, Box } from '@/shared/ui'
+import { Typography, Avatar, Button, Link as DesignLink, Box, uiDropdownPanel } from '@/shared/ui'
 import { useAuth } from '@/modules/auth/auth/context/AuthContext'
 import {
   ADMIN_DIRECTORY_GROUPS,
@@ -92,7 +92,10 @@ export function AdminShell({ children }: AdminShellProps) {
                 <Box
                   as="div"
                   role="menu"
-                  className="absolute left-2 top-full z-20 mt-1 max-h-[min(32rem,calc(100vh-5rem))] w-[28rem] max-w-[calc(100vw-2rem)] overflow-y-auto border border-neutral-200 bg-white shadow-md"
+                  className={cn(
+                    uiDropdownPanel,
+                    'absolute left-2 top-full z-20 mt-1 max-h-[min(32rem,calc(100vh-5rem))] w-[28rem] max-w-[calc(100vw-2rem)] overflow-y-auto shadow-md'
+                  )}
                 >
                   <Box as="div" className="py-1.5">
                     {ADMIN_DIRECTORY_GROUPS.map((group) => {
@@ -223,7 +226,10 @@ export function AdminShell({ children }: AdminShellProps) {
                 />
                 <Box
                   as="div"
-                  className="absolute right-0 top-full z-20 mt-1 flex w-52 flex-col border border-neutral-200 bg-white shadow-xl"
+                  className={cn(
+                    uiDropdownPanel,
+                    'absolute right-0 top-full z-20 mt-1 flex w-52 flex-col shadow-xl'
+                  )}
                 >
                   <DesignLink
                     as={NextLink}

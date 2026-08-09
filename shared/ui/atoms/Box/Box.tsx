@@ -63,7 +63,7 @@ const shadowStyles = {
 
 const backgroundStyles = {
   transparent: 'bg-transparent',
-  white: 'bg-white',
+  white: 'bg-surface-card',
   'neutral-50': 'bg-neutral-50',
   'neutral-100': 'bg-neutral-100',
   'neutral-900': 'bg-neutral-900',

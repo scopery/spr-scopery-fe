@@ -57,6 +57,9 @@ export function ElicitationView() {
     approveSuggestionItem,
     rejectSuggestionItem,
     loadSuggestion,
+    loadQuestions,
+    loadRounds,
+    clearSuggestion,
   } = useElicitationSession(projectId)
 
   const [startOpen, setStartOpen] = useState(false)
@@ -72,6 +75,13 @@ export function ElicitationView() {
     }
   }, [activeSession, sessions, selectedSessionId])
 
+  useEffect(() => {
+    if (!selectedSessionId) return
+    clearSuggestion()
+    void loadQuestions(selectedSessionId)
+    void loadRounds(selectedSessionId)
+  }, [selectedSessionId, loadQuestions, loadRounds, clearSuggestion])
+
   const displaySession =
     sessions.find((s) => s.id === selectedSessionId) ?? sessions[0] ?? null
 
@@ -83,7 +93,7 @@ export function ElicitationView() {
       ? 'Generate first round'
       : `Generate Round ${rounds.length + 1}`
 
-  const handleStartSession = async (payload: { scopePackageId: string; title?: string }) => {
+  const handleStartSession = async (payload: { scopePackageId: string; title?: string; language: string }) => {
     try {
       await startSession(payload)
       toast.success('Elicitation session started')

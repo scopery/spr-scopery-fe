@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { ChevronDown, Search } from 'lucide-react'
-import { AnchoredMenu, Button, Checkbox, Input, Typography } from '@/shared/ui'
+import { AnchoredMenu, Checkbox, Input, Typography, uiControl } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import {
   RESOURCE_TIMELINE_DEFAULT_PROJECTS,
@@ -66,22 +66,27 @@ export function ProjectMultiSelect({
 
   return (
     <div ref={anchorRef} className={cn('relative', className)}>
-      <Button
+      <button
         type="button"
-        variant="outline"
-        size="md"
-        className="h-9 w-full justify-between gap-2 px-3"
+        className={cn(
+          uiControl,
+          'flex h-9 w-full items-center justify-between gap-2 px-3 text-left text-sm text-neutral-900',
+          'transition-colors hover:bg-neutral-50'
+        )}
         disabled={disabled}
         aria-expanded={open}
         aria-haspopup="listbox"
         onClick={() => setOpen((v) => !v)}
       >
-        <span className="truncate text-sm">
+        <span className="truncate">
           Projects ({value.length}
           {max ? `/${max}` : ''})
         </span>
-        <ChevronDown size={14} className="shrink-0 text-neutral-500" />
-      </Button>
+        <ChevronDown
+          size={14}
+          className={cn('shrink-0 text-neutral-500 transition-transform', open && 'rotate-180')}
+        />
+      </button>
       <AnchoredMenu
         open={open}
         onClose={() => setOpen(false)}

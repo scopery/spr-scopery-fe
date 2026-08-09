@@ -46,7 +46,7 @@ describe('Textarea', () => {
     it('applies outline variant by default', () => {
       render(<Textarea placeholder="Outline" />)
       const textarea = screen.getByPlaceholderText('Outline')
-      expect(textarea).toHaveClass('border', 'bg-white')
+      expect(textarea).toHaveClass('border', 'bg-surface-input')
     })
 
     it('applies filled variant', () => {

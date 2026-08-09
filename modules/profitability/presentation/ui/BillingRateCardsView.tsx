@@ -72,6 +72,7 @@ export function BillingRateCardsView({
       ) : null}
 
       <DataTable
+        className="border border-neutral-200"
         ariaLabel="Billing rate cards"
         rows={cards}
         rowKey={(card) => card.id}

@@ -10,7 +10,7 @@ import {
   type RefObject,
 } from 'react'
 import { useRouter } from 'next/navigation'
-import { Input, Link as DesignLink, Typography } from '@/shared/ui'
+import { Input, Link as DesignLink, Typography, uiDropdownPanel } from '@/shared/ui'
 
 import { createPortal } from 'react-dom'
 import NextLink from 'next/link'
@@ -216,7 +216,8 @@ export function WorkspaceProjectSwitcher({
         role="menu"
         data-workspace-project-switcher
         className={cn(
-          'motion-switcher-pop fixed z-[100] w-[min(20rem,calc(100vw-2rem))] border border-neutral-200 bg-white shadow-xl',
+          uiDropdownPanel,
+          'motion-switcher-pop fixed z-[100] w-[min(20rem,calc(100vw-2rem))] shadow-xl',
           className
         )}
         style={{ top: position.top, left: position.left }}

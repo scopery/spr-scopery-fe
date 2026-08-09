@@ -563,6 +563,7 @@ export function QuoteBuilderView() {
             </div>
           ) : null}
           <DataTable
+            className="border border-neutral-200"
             ariaLabel="Quote lines"
             rows={b.lines}
             rowKey={(line) => line.id}
@@ -803,6 +804,7 @@ export function QuoteBuilderView() {
 
       {b.section === 'summary' && b.summary ? (
         <DataTable
+          className="border border-neutral-200"
           ariaLabel="Quote summary"
           rows={[
             ...(

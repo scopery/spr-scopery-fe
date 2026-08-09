@@ -103,10 +103,9 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
                 // Size
                 checkboxSizes[size],
                 // States: viền neutral-200, nền trắng; check màu đen
-                error ? 'border-error bg-white text-error' : 'border-neutral-200 bg-white',
-                // Checked: giữ nền trắng, check đen (trong checkboxStyles)
-                'checked:border-neutral-200 checked:bg-white',
-                'indeterminate:border-neutral-200 indeterminate:bg-white',
+                error ? 'border-error bg-surface-input text-error' : 'border-neutral-200 bg-surface-input',
+                'checked:border-neutral-200 checked:bg-surface-input',
+                'indeterminate:border-neutral-200 indeterminate:bg-surface-input',
                 // Disabled
                 'disabled:cursor-not-allowed disabled:opacity-50'
               )}

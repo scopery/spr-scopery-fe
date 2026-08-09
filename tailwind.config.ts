@@ -52,6 +52,12 @@ const config: Config = {
         error: 'var(--color-error)',
         info: 'var(--color-info)',
         progress: 'var(--color-progress)',
+        surface: {
+          main: 'var(--color-surface-main)',
+          sidebar: 'var(--color-surface-sidebar)',
+          card: 'var(--color-surface-card)',
+          input: 'var(--color-surface-input)',
+        },
       },
       spacing: {
         // Token-based spacing

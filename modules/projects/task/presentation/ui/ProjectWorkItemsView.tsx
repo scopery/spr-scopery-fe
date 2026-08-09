@@ -14,6 +14,8 @@ import {
   Badge,
   Checkbox,
   DataTable,
+  uiControl,
+  uiDropdownPanel,
 } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
@@ -245,10 +247,10 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
           <button
             type="button"
             className={cn(
+              uiControl,
               'flex h-9 w-full min-w-0 items-center justify-between gap-2 overflow-hidden px-3',
-              'border border-neutral-300 bg-white text-[13px] text-neutral-900',
-              'transition-colors duration-200',
-              'focus:ring-primary/20 focus:border-primary focus:outline-none focus:ring-1'
+              'text-[13px] text-neutral-900',
+              'transition-colors duration-200'
             )}
             onClick={() => setStatusMenuOpen((v) => !v)}
             aria-expanded={statusMenuOpen}
@@ -271,8 +273,9 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
               />
               <div
                 className={cn(
+                  uiDropdownPanel,
                   'absolute left-0 top-full z-[100] mt-1 w-full overflow-hidden',
-                  'border border-neutral-200 bg-white shadow-lg',
+                  'shadow-lg',
                   'animate-in fade-in-0 zoom-in-95 slide-in-from-top-2'
                 )}
                 role="listbox"
