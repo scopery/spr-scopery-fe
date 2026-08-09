@@ -28,10 +28,8 @@ export const ClarityLevel = {
 export type ClarityLevel = (typeof ClarityLevel)[keyof typeof ClarityLevel]
 
 export const RoundStatus = {
-  Draft: 'DRAFT',
-  Submitted: 'SUBMITTED',
-  Processing: 'PROCESSING',
-  Completed: 'COMPLETED',
+  Active: 'ACTIVE',
+  Evaluated: 'EVALUATED',
 } as const
 export type RoundStatus = (typeof RoundStatus)[keyof typeof RoundStatus]
 

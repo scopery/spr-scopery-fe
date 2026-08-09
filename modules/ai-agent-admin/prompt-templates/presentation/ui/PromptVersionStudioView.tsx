@@ -229,6 +229,43 @@ export function PromptVersionStudioView() {
         </Stack>
       </div>
 
+      {(version.systemPrompt || version.userPromptTemplate) ? (
+        <Stack direction="vertical" spacing="md">
+          <div>
+            <Typography variant="h3">Rendered prompts</Typography>
+            <Typography variant="caption" tone="muted">
+              Read-only — computed from the content template above
+            </Typography>
+          </div>
+          <div className="grid gap-lg lg:grid-cols-2">
+            {version.systemPrompt ? (
+              <Stack direction="vertical" spacing="sm">
+                <Typography variant="caption" tone="muted" className="block font-medium uppercase tracking-wide">
+                  System prompt
+                </Typography>
+                <textarea
+                  className="min-h-[240px] w-full border border-neutral-200 bg-neutral-50 p-sm font-mono text-sm"
+                  value={version.systemPrompt}
+                  readOnly
+                />
+              </Stack>
+            ) : null}
+            {version.userPromptTemplate ? (
+              <Stack direction="vertical" spacing="sm">
+                <Typography variant="caption" tone="muted" className="block font-medium uppercase tracking-wide">
+                  User prompt template
+                </Typography>
+                <textarea
+                  className="min-h-[240px] w-full border border-neutral-200 bg-neutral-50 p-sm font-mono text-sm"
+                  value={version.userPromptTemplate}
+                  readOnly
+                />
+              </Stack>
+            ) : null}
+          </div>
+        </Stack>
+      ) : null}
+
       <ConfirmDialog
         open={activateOpen}
         onClose={() => setActivateOpen(false)}

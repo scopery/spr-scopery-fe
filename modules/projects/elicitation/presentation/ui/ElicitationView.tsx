@@ -1,24 +1,33 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Plus } from 'lucide-react'
+import { Loader2, MoreHorizontal, Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, PageSkeleton, Select, Typography, type BadgeTone } from '@/shared/ui'
+import {
+  AnchoredMenu,
+  anchoredMenuItemClassName,
+  Badge,
+  Button,
+  PageSkeleton,
+  Select,
+  Typography,
+} from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { useScopeRegister } from '@/modules/projects/scope/presentation/hooks/useScopeRegister'
 import { useElicitationSession } from '../hooks/useElicitationSession'
 import { StartSessionModal } from './StartSessionModal'
-import { QuestionsPanel } from './QuestionsPanel'
+import { RoundCard } from './RoundCard'
+import { SessionClarityPanel } from './SessionClarityPanel'
 import { SuggestionsPanel } from './SuggestionsPanel'
+import { RoundStatus, SessionStatus } from '../../domain/enums/elicitation.enum'
 
-const SESSION_STATUS_TONE: Record<string, BadgeTone> = {
-  ACTIVE: 'success',
-  CLOSED: 'neutral',
-  CANCELLED: 'neutral',
+function sessionStatusLabel(status: string): string {
+  if (status === SessionStatus.Active) return 'Active'
+  if (status === SessionStatus.Closed) return 'Closed'
+  if (status === SessionStatus.Cancelled) return 'Cancelled'
+  return status
 }
-
-type ActiveTab = 'questions' | 'rounds'
 
 export function ElicitationView() {
   const params = useParams()
@@ -31,18 +40,19 @@ export function ElicitationView() {
     activeSession,
     questions,
     rounds,
+    activeRound,
+    shouldContinue,
     suggestion,
     loading,
-    generating,
-    evaluating,
+    isGenerating,
+    isSubmitting,
     error,
     startSession,
-    generateQuestions,
+    generateNextRound,
     answerQuestion,
     skipQuestion,
-    evaluateAnswers,
-    closeSession,
     submitRound,
+    closeSession,
     generateSuggestions,
     approveSuggestionItem,
     rejectSuggestionItem,
@@ -51,7 +61,8 @@ export function ElicitationView() {
 
   const [startOpen, setStartOpen] = useState(false)
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<ActiveTab>('questions')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuAnchorRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (activeSession) {
@@ -64,21 +75,39 @@ export function ElicitationView() {
   const displaySession =
     sessions.find((s) => s.id === selectedSessionId) ?? sessions[0] ?? null
 
+  const canGenerateNextRound =
+    !!activeSession && !activeRound && !isGenerating && shouldContinue !== false
+
+  const generateLabel =
+    rounds.length === 0
+      ? 'Generate first round'
+      : `Generate Round ${rounds.length + 1}`
+
   const handleStartSession = async (payload: { scopePackageId: string; title?: string }) => {
     try {
       await startSession(payload)
       toast.success('Elicitation session started')
-      setActiveTab('questions')
     } catch (err) {
       toast.error(getProblemToastMessage(err))
       throw err
     }
   }
 
+  const handleGenerateNextRound = async () => {
+    try {
+      await generateNextRound()
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    }
+  }
+
   const handleCloseSession = async () => {
-    const round = await closeSession()
-    if (round) {
-      setActiveTab('rounds')
+    setMenuOpen(false)
+    try {
+      await closeSession()
+      toast.success('Session closed')
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
     }
   }
 
@@ -87,41 +116,94 @@ export function ElicitationView() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <Typography variant="h4" className="font-semibold">
+    <div className="flex h-full min-h-0 flex-col gap-6 p-6">
+      {/* Title left · session controls right */}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-neutral-200 pb-2">
+        <div className="min-w-0">
+          <Typography as="h1" size="md" weight="medium">
             Elicitation
           </Typography>
-          <Typography variant="body" className="text-neutral-500">
-            AI-assisted requirements clarification sessions
+          <Typography variant="caption" tone="muted" className="mt-0.5">
+            AI-assisted requirements clarification
           </Typography>
         </div>
-        {!activeSession && (
-          <Button
-            size="sm"
-            variant="primary"
-            icon={<Plus size={14} />}
-            onClick={() => setStartOpen(true)}
-            disabled={loadingScopePackages || scopePackages.length === 0}
-          >
-            New session
-          </Button>
-        )}
+
+        <div className="flex flex-wrap items-center gap-2">
+          {sessions.length > 0 ? (
+            <>
+              <Select
+                value={selectedSessionId ?? ''}
+                onValueChange={setSelectedSessionId}
+                options={sessions.map((s) => ({
+                  value: s.id,
+                  label: s.title?.trim() || 'Untitled session',
+                }))}
+                size="sm"
+                className="w-52"
+              />
+              {displaySession ? (
+                <Badge
+                  variant="solid"
+                  tone={displaySession.status === SessionStatus.Active ? 'success' : 'neutral'}
+                  size="sm"
+                >
+                  {sessionStatusLabel(displaySession.status)}
+                </Badge>
+              ) : null}
+              {activeSession && displaySession?.id === activeSession.id ? (
+                <div className="relative inline-flex" ref={menuAnchorRef}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    iconOnly
+                    icon={<MoreHorizontal size={16} />}
+                    aria-label="Session actions"
+                    aria-expanded={menuOpen}
+                    onClick={() => setMenuOpen((v) => !v)}
+                    disabled={isGenerating || isSubmitting}
+                  />
+                  <AnchoredMenu
+                    open={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    anchorRef={menuAnchorRef}
+                    minWidth={180}
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={anchoredMenuItemClassName}
+                      onClick={() => void handleCloseSession()}
+                    >
+                      Close session
+                    </button>
+                  </AnchoredMenu>
+                </div>
+              ) : null}
+            </>
+          ) : null}
+          {!activeSession ? (
+            <Button
+              size="sm"
+              variant="primary"
+              icon={<Plus size={14} />}
+              onClick={() => setStartOpen(true)}
+              disabled={loadingScopePackages || scopePackages.length === 0}
+            >
+              New session
+            </Button>
+          ) : null}
+        </div>
       </div>
 
-      {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700px-4 py-2 text-sm">
+        <div className="shrink-0 border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      {/* Empty state */}
       {sessions.length === 0 && !loading && (
         <div className="py-16 text-center">
-          <Typography variant="body" className="text-neutral-400 mb-4">
+          <Typography variant="body" className="mb-4 text-neutral-400">
             No elicitation sessions yet for this project.
           </Typography>
           <Button
@@ -134,106 +216,73 @@ export function ElicitationView() {
             Start first session
           </Button>
           {scopePackages.length === 0 && !loadingScopePackages && (
-            <Typography variant="caption" className="block mt-2 text-neutral-400">
+            <Typography variant="caption" className="mt-2 block text-neutral-400">
               You need at least one scope package to start elicitation.
             </Typography>
           )}
         </div>
       )}
 
-      {/* Session selector + active session */}
       {sessions.length > 0 && (
-        <>
-          {/* Session selector */}
-          <div className="flex items-center gap-3">
-            <Select
-              value={selectedSessionId ?? ''}
-              onValueChange={setSelectedSessionId}
-              options={sessions.map((s) => ({
-                value: s.id,
-                label: `${s.title ?? 'Session'} — ${s.status}`,
-              }))}
-              className="w-72"
-            />
-            {displaySession && (
-              <Badge tone={SESSION_STATUS_TONE[displaySession.status] ?? 'neutral'} size="sm">
-                {displaySession.status}
-              </Badge>
-            )}
-            {!activeSession && (
-              <Button
-                size="sm"
-                variant="ghost"
-                icon={<Plus size={14} />}
-                onClick={() => setStartOpen(true)}
-                disabled={loadingScopePackages || scopePackages.length === 0}
-              >
-                New session
-              </Button>
-            )}
-          </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-6">
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="flex min-h-0 min-w-0 flex-col gap-4 overflow-y-auto">
+              {[...rounds].reverse().map((round) => (
+                <RoundCard
+                  key={round.id}
+                  round={round}
+                  questions={questions.filter((q) => q.roundId === round.id)}
+                  isStreaming={isGenerating && round.status === RoundStatus.Active}
+                  isSubmitting={isSubmitting}
+                  onAnswer={answerQuestion}
+                  onSkip={skipQuestion}
+                  onSubmit={submitRound}
+                />
+              ))}
 
-          {/* Active session notice */}
-          {activeSession && displaySession?.id === activeSession.id && (
-            <div className="bg-green-50 border border-green-200px-4 py-2 text-sm text-green-800">
-              Active session — answer the questions below, then close the session to generate AI suggestions.
+              {isGenerating && !activeRound && (
+                <div className="flex items-center gap-3 border border-neutral-200 bg-neutral-50 p-4 text-neutral-600">
+                  <Loader2 size={16} className="shrink-0 animate-spin" />
+                  <Typography variant="body">Generating round…</Typography>
+                </div>
+              )}
+
+              {rounds.length === 0 && !isGenerating && activeSession && (
+                <div className="border border-dashed border-neutral-200 py-12 text-center text-neutral-400">
+                  <Typography variant="body">
+                    No rounds yet. Generate the first round from Session Progress.
+                  </Typography>
+                </div>
+              )}
             </div>
-          )}
 
-          {/* Tabs */}
-          <div className="border-b border-neutral-200 flex gap-4">
-            <button
-              className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'questions'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-neutral-500 hover:text-neutral-700'
-              }`}
-              onClick={() => setActiveTab('questions')}
-            >
-              Questions ({questions.length})
-            </button>
-            <button
-              className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'rounds'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-neutral-500 hover:text-neutral-700'
-              }`}
-              onClick={() => setActiveTab('rounds')}
-            >
-              Rounds & Suggestions ({rounds.length})
-            </button>
+            <aside className="min-h-0 lg:sticky lg:top-0 lg:self-start">
+              <SessionClarityPanel
+                rounds={rounds}
+                questions={questions}
+                shouldContinue={shouldContinue}
+                canGenerateNextRound={canGenerateNextRound}
+                generateLabel={generateLabel}
+                isGenerating={isGenerating}
+                isSubmitting={isSubmitting}
+                onGenerateNextRound={() => void handleGenerateNextRound()}
+              />
+            </aside>
           </div>
 
-          {/* Tab content */}
-          {activeTab === 'questions' && displaySession && (
-            <QuestionsPanel
-              session={displaySession}
-              questions={questions}
-              generating={generating}
-              evaluating={evaluating}
-              onGenerate={generateQuestions}
-              onAnswer={answerQuestion}
-              onSkip={skipQuestion}
-              onEvaluate={evaluateAnswers}
-              onCloseSession={handleCloseSession}
-            />
-          )}
-
-          {activeTab === 'rounds' && (
-            <SuggestionsPanel
-              rounds={rounds}
-              suggestion={suggestion}
-              onSubmitRound={submitRound}
-              onGenerateSuggestions={generateSuggestions}
-              onApproveItem={approveSuggestionItem}
-              onRejectItem={rejectSuggestionItem}
-              onLoadSuggestion={loadSuggestion}
-            />
-          )}
-        </>
+          <SuggestionsPanel
+            projectId={projectId}
+            sessionId={activeSession?.id ?? displaySession?.id ?? null}
+            rounds={rounds}
+            suggestion={suggestion}
+            onGenerateSuggestions={generateSuggestions}
+            onApproveItem={approveSuggestionItem}
+            onRejectItem={rejectSuggestionItem}
+            onLoadSuggestion={loadSuggestion}
+          />
+        </div>
       )}
 
-      {/* Modals */}
       <StartSessionModal
         open={startOpen}
         onClose={() => setStartOpen(false)}

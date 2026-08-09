@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { X } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, Input, Select, Stack, Textarea, Typography } from '@/shared/ui'
+import { Badge, Button, ConfirmDialog, Input, Select, Stack, Textarea, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { UserSearchSelect, useResolveUsers, type PersonIdentity } from '@/modules/platform'
 import { useWorkspaceMembers } from '@/modules/org/workspace'
@@ -15,6 +15,7 @@ import type { ProjectTask, UpdateTaskPayload } from '../../domain/model/task'
 import {
   allowedTaskLifecycleActions,
   canAssignTask,
+  canDeleteTask,
   taskPriorityLabel,
   taskStatusLabel,
   type TaskLifecycleAction,
@@ -22,6 +23,7 @@ import {
 import { TaskPriority, TaskStatus } from '../../../project/domain/enums/project.enum'
 import { TaskDependenciesPanel } from '@/modules/projects/task-dependency'
 import { TaskResourcesPanel } from '@/modules/capacity'
+import { TaskRoleContributionsPanel } from './TaskRoleContributionsPanel'
 import { CommentThreadsPanel } from '@/modules/projects/comments'
 
 type DrawerTab = 'details' | 'dependencies' | 'resources' | 'comments'
@@ -80,6 +82,8 @@ interface TaskDetailDrawerProps {
    * Omit when embedded on Timeline / other pages so close stays on the current route.
    */
   closeHref?: string | null
+  /** When provided, a Delete button appears for TODO tasks. */
+  onDelete?: (taskId: string) => Promise<void>
 }
 
 export function TaskDetailDrawer({
@@ -93,6 +97,7 @@ export function TaskDetailDrawer({
   onLifecycle,
   onSave,
   closeHref = null,
+  onDelete,
 }: TaskDetailDrawerProps) {
   const router = useRouter()
 
@@ -107,6 +112,8 @@ export function TaskDetailDrawer({
   const [estimateHours, setEstimateHours] = useState('')
   const [saving, setSaving] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const { members } = useWorkspaceMembers(open ? workspaceId : null)
   const { tree: wbsTree } = useProjectWbs(open ? projectId : null)
@@ -345,7 +352,17 @@ export function TaskDetailDrawer({
               currentTaskTitle={task.title}
             />
           ) : tab === 'resources' ? (
-            <TaskResourcesPanel workspaceId={workspaceId} projectId={projectId} taskId={task.id} />
+            <div className="space-y-lg">
+              <TaskResourcesPanel workspaceId={workspaceId} projectId={projectId} taskId={task.id} />
+              <div className="border-t border-neutral-100 pt-md">
+                <TaskRoleContributionsPanel
+                  projectId={projectId}
+                  taskId={task.id}
+                  workspaceId={workspaceId}
+                  assigneePeople={assigneePeople}
+                />
+              </div>
+            </div>
           ) : (
             <CommentThreadsPanel projectId={projectId} targetType="TASK" targetId={task.id} />
           )}
@@ -365,6 +382,17 @@ export function TaskDetailDrawer({
                   {ACTION_LABEL[action]}
                 </Button>
               ))}
+              {onDelete && canDeleteTask(task.status) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  tone="error"
+                  disabled={acting}
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  Delete
+                </Button>
+              )}
             </Stack>
           )}
           {tab === 'details' ? (
@@ -374,6 +402,29 @@ export function TaskDetailDrawer({
           ) : null}
         </div>
       </aside>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        variant="danger"
+        title="Delete task"
+        message={`Delete "${task.title}"? This cannot be undone. Only tasks with no actual hours can be deleted.`}
+        confirmLabel="Delete"
+        loading={deleting}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={async () => {
+          if (!onDelete) return
+          setDeleting(true)
+          try {
+            await onDelete(task.id)
+            setConfirmDelete(false)
+            handleClose()
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to delete task')
+          } finally {
+            setDeleting(false)
+          }
+        }}
+      />
     </div>,
     document.body
   )

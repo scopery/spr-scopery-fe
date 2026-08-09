@@ -53,3 +53,7 @@ export async function moveWbsNode(
 export async function archiveWbsNode(projectId: string, id: string): Promise<WbsNode> {
   return apiClient.patch<WbsNode>(WBS_ENDPOINTS.archive(projectId, id))
 }
+
+export async function deleteWbsNode(projectId: string, id: string): Promise<void> {
+  return apiClient.delete(WBS_ENDPOINTS.delete(projectId, id))
+}

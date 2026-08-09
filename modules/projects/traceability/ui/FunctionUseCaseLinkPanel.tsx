@@ -57,6 +57,7 @@ interface FunctionUseCaseLinkPanelProps {
   useCases: UseCase[]
   initialFunctionId?: string | null
   onChanged: () => Promise<void>
+  isLocked?: boolean
 }
 
 export function FunctionUseCaseLinkPanel({
@@ -65,6 +66,7 @@ export function FunctionUseCaseLinkPanel({
   useCases,
   initialFunctionId,
   onChanged,
+  isLocked = false,
 }: FunctionUseCaseLinkPanelProps) {
   const [functionId, setFunctionId] = useState(initialFunctionId ?? functionalItems[0]?.id ?? '')
   const seededInitialRef = useRef(initialFunctionId ?? null)
@@ -152,7 +154,7 @@ export function FunctionUseCaseLinkPanel({
   }, [candidates, selectedIds, linkedIds])
 
   const toggleSelect = (id: string, disabled?: boolean) => {
-    if (disabled) return
+    if (disabled || isLocked) return
     setSelectedIds((current) => {
       const next = new Set(current)
       if (next.has(id)) next.delete(id)
@@ -312,7 +314,7 @@ export function FunctionUseCaseLinkPanel({
                   <Button
                     size="sm"
                     variant="secondary"
-                    disabled={saving}
+                    disabled={saving || isLocked}
                     onClick={() => void linkMany(selectedPayloads)}
                   >
                     Assign selected
@@ -355,11 +357,11 @@ export function FunctionUseCaseLinkPanel({
                     return (
                       <li key={item.id}>
                         <div
-                          draggable={!disabled}
+                          draggable={!disabled && !isLocked}
                           onMouseEnter={() => setPreviewId(item.id)}
                           onFocus={() => setPreviewId(item.id)}
                           onDragStart={(e) => {
-                            if (disabled) {
+                            if (disabled || isLocked) {
                               e.preventDefault()
                               return
                             }
@@ -413,7 +415,7 @@ export function FunctionUseCaseLinkPanel({
                                 : ''}
                             </div>
                           </div>
-                          {disabled ? null : (
+                          {disabled || isLocked ? null : (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -456,6 +458,7 @@ export function FunctionUseCaseLinkPanel({
             focusFunction={focusFunction}
             linked={linked}
             saving={saving}
+            isLocked={isLocked}
             onAssignMany={linkMany}
             onUnlink={unlink}
           />
@@ -469,12 +472,14 @@ function FunctionFocusInspector({
   focusFunction,
   linked,
   saving,
+  isLocked = false,
   onAssignMany,
   onUnlink,
 }: {
   focusFunction: FunctionalItem | null
   linked: UseCase[]
   saving: boolean
+  isLocked?: boolean
   onAssignMany: (payloads: UcDragPayload[]) => void
   onUnlink: (useCase: UseCase) => void
 }) {
@@ -601,7 +606,7 @@ function FunctionFocusInspector({
                       </div>
                       <div className="truncate text-xs text-neutral-500">{item.key}</div>
                     </div>
-                    {canUnlinkSupporting ? (
+                    {canUnlinkSupporting && !isLocked ? (
                       <Button
                         size="sm"
                         variant="ghost"

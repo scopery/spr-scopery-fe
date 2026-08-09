@@ -12,14 +12,14 @@ export const ELICITATION_ENDPOINTS = {
       apiPath(`/v1/projects/${projectId}/elicitation-sessions/${sessionId}/close`),
     cancel: (projectId: string, sessionId: string) =>
       apiPath(`/v1/projects/${projectId}/elicitation-sessions/${sessionId}/cancel`),
+    activeLock: (projectId: string, scopePackageId: string) =>
+      apiPath(
+        `/v1/projects/${projectId}/elicitation-sessions/active-lock?scopePackageId=${scopePackageId}`
+      ),
   },
   questions: {
     list: (projectId: string, sessionId: string) =>
       apiPath(`/v1/projects/${projectId}/elicitation-sessions/${sessionId}/questions`),
-    generate: (projectId: string, sessionId: string) =>
-      apiPath(`/v1/projects/${projectId}/elicitation-sessions/${sessionId}/generate-questions`),
-    evaluate: (projectId: string, sessionId: string) =>
-      apiPath(`/v1/projects/${projectId}/elicitation-sessions/${sessionId}/evaluate-answers`),
     answer: (projectId: string, sessionId: string, questionId: string) =>
       apiPath(
         `/v1/projects/${projectId}/elicitation-sessions/${sessionId}/questions/${questionId}/answer`
@@ -33,7 +33,14 @@ export const ELICITATION_ENDPOINTS = {
     list: (projectId: string, sessionId: string) =>
       apiPath(`/v1/projects/${projectId}/elicitation-sessions/${sessionId}/rounds`),
     get: (roundId: string) => apiPath(`/v1/elicitation-rounds/${roundId}`),
-    submit: (roundId: string) => apiPath(`/v1/elicitation-rounds/${roundId}/submit`),
+    generate: (projectId: string, sessionId: string) =>
+      apiPath(
+        `/v1/projects/${projectId}/elicitation-sessions/${sessionId}/rounds/generate`
+      ),
+    submit: (projectId: string, sessionId: string, roundId: string) =>
+      apiPath(
+        `/v1/projects/${projectId}/elicitation-sessions/${sessionId}/rounds/${roundId}/submit`
+      ),
     suggestions: (roundId: string) =>
       apiPath(`/v1/elicitation-rounds/${roundId}/suggestions`),
   },
@@ -42,5 +49,9 @@ export const ELICITATION_ENDPOINTS = {
       apiPath(`/v1/elicitation-suggestion-items/${itemId}/approve`),
     reject: (itemId: string) =>
       apiPath(`/v1/elicitation-suggestion-items/${itemId}/reject`),
+  },
+  scopeTree: {
+    get: (projectId: string, sessionId: string) =>
+      apiPath(`/v1/projects/${projectId}/elicitation-sessions/${sessionId}/scope-tree`),
   },
 } as const

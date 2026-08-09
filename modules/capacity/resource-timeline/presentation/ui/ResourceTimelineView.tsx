@@ -38,6 +38,12 @@ import {
 } from '@/modules/projects/gantt'
 import { useResourceTimeline } from '../hooks/useResourceTimeline'
 import { downloadTeamScheduleExcel } from '../exportTeamScheduleExcel'
+import { ProjectMultiSelect } from './ProjectMultiSelect'
+import {
+  RESOURCE_TIMELINE_DEFAULT_PROJECTS,
+  RESOURCE_TIMELINE_MAX_PROJECTS,
+  defaultSelectedProjectIds,
+} from '../../domain/rules/resource-timeline.rules'
 import {
   AssignTaskConfirmModal,
   type AssignTaskConfirmTarget,
@@ -122,6 +128,8 @@ export function ResourceTimelineView() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
   const [selectedUserId, setSelectedUserId] = useState('')
   const [includeUnassigned, setIncludeUnassigned] = useState(true)
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([])
+  const [projectsHydrated, setProjectsHydrated] = useState(false)
   const [metric, setMetric] = useState<TimelineMetricType>(TimelineMetric.Schedule)
   const [viewOpen, setViewOpen] = useState(false)
   const [exportingExcel, setExportingExcel] = useState(false)
@@ -141,7 +149,35 @@ export function ResourceTimelineView() {
   const tl = useResourceTimeline(workspaceId, {
     selectedUserId: selectedUserId || null,
     includeUnassigned,
+    selectedProjectIds,
   })
+
+  // Default: newest 10 watchable projects once the catalog loads.
+  useEffect(() => {
+    if (projectsHydrated) return
+    if (tl.projectsLoading) return
+    if (tl.watchableProjects.length === 0) {
+      setProjectsHydrated(true)
+      return
+    }
+    setSelectedProjectIds(
+      defaultSelectedProjectIds(tl.watchableProjects, RESOURCE_TIMELINE_DEFAULT_PROJECTS)
+    )
+    setProjectsHydrated(true)
+  }, [projectsHydrated, tl.projectsLoading, tl.watchableProjects])
+
+  // Drop stale ids if a project leaves the watchable set.
+  useEffect(() => {
+    if (!projectsHydrated) return
+    const watchableIds = new Set(tl.watchableProjects.map((p) => p.id))
+    setSelectedProjectIds((prev) => {
+      const next = prev.filter((id) => watchableIds.has(id))
+      if (next.length === prev.length && next.every((id, i) => id === prev[i])) {
+        return prev
+      }
+      return next
+    })
+  }, [projectsHydrated, tl.watchableProjects])
 
   const { assignTasks, submitting } = useQuickAssignTasks(tl.refetch)
 
@@ -487,6 +523,19 @@ export function ResourceTimelineView() {
           </Typography>
         </div>
         <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
+          <div className={cn('min-w-[200px] max-w-[280px] flex-1', CONTROL_H)}>
+            <ProjectMultiSelect
+              options={tl.watchableProjects.map((p) => ({
+                id: p.id,
+                name: p.name,
+                code: p.code,
+              }))}
+              value={selectedProjectIds}
+              onChange={setSelectedProjectIds}
+              max={RESOURCE_TIMELINE_MAX_PROJECTS}
+              disabled={tl.projectsLoading}
+            />
+          </div>
           <div className={cn('min-w-[260px] max-w-[320px] flex-1', CONTROL_H)}>
             <UserSearchSelect
               value={selectedUserId}
@@ -592,7 +641,8 @@ export function ResourceTimelineView() {
 
       {tl.projectCapReached ? (
         <Typography variant="small" tone="muted" className="mb-2 px-1">
-          Showing first {tl.maxProjects} active projects (fan-out cap until portfolio API).
+          Up to {tl.maxProjects} projects at once (fan-out cap). Showing {tl.projectCount}{' '}
+          selected.
         </Typography>
       ) : null}
 
@@ -604,6 +654,12 @@ export function ResourceTimelineView() {
             {tl.error}
           </Typography>
         </div>
+      ) : selectedProjectIds.length === 0 && projectsHydrated ? (
+        <div className="flex flex-1 items-center justify-center border border-dashed border-neutral-200 bg-neutral-50 px-6 py-16">
+          <Typography tone="muted">Select at least one project.</Typography>
+        </div>
+      ) : selectedProjectIds.length === 0 ? (
+        <PageSkeleton variant="cards" />
       ) : !tl.hasData ? (
         <div className="flex flex-1 items-center justify-center border border-dashed border-neutral-200 bg-neutral-50 px-6 py-16">
           <Typography tone="muted">
@@ -611,7 +667,7 @@ export function ResourceTimelineView() {
               ? `No matching tasks for this person${
                   includeUnassigned ? ' (including unassigned)' : ''
                 }.`
-              : `No scheduled tasks across projects${
+              : `No scheduled tasks across selected projects${
                   includeUnassigned ? '' : ' (unassigned hidden)'
                 }.`}
           </Typography>

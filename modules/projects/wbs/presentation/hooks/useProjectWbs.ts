@@ -81,6 +81,20 @@ export function useProjectWbs(projectId: string | null) {
     [projectId, load]
   )
 
+  const deleteNode = useCallback(
+    async (id: string) => {
+      if (!projectId) return
+      setActingId(id)
+      try {
+        await wbsApi.deleteWbsNode(projectId, id)
+        await load()
+      } finally {
+        setActingId(null)
+      }
+    },
+    [projectId, load]
+  )
+
   return {
     tree,
     loading,
@@ -92,6 +106,7 @@ export function useProjectWbs(projectId: string | null) {
     submitWbsNodesBulk,
     updateNode,
     archiveNode,
+    deleteNode,
   }
 }
 

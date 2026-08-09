@@ -1,5 +1,6 @@
 'use client'
 
+import { Lock } from 'lucide-react'
 import { Button, Typography } from '@/shared/ui'
 import type {
   OverallStructureResponse,
@@ -31,6 +32,7 @@ interface ContextualAssignmentDockProps {
   ) => void
   onUnlinkComponent: (screenId: string, componentId: string) => void
   onUnlinkEntity: (entityId: string, moduleId: string) => void
+  disabled?: boolean
 }
 
 export function ContextualAssignmentDock({
@@ -49,7 +51,20 @@ export function ContextualAssignmentDock({
   onUnlinkCommunication,
   onUnlinkComponent,
   onUnlinkEntity,
+  disabled = false,
 }: ContextualAssignmentDockProps) {
+  if (disabled) {
+    return (
+      <div className="flex h-full min-h-0 flex-col items-center justify-center border-l border-neutral-200 bg-white px-6 text-center">
+        <Lock size={20} className="mb-2 text-amber-500" />
+        <Typography weight="medium">Scope is locked</Typography>
+        <Typography variant="small" tone="muted" className="mt-1 max-w-sm">
+          An elicitation session is in progress. Assignments are disabled until the session is closed.
+        </Typography>
+      </div>
+    )
+  }
+
   if (!focus) {
     return (
       <div className="flex h-full min-h-0 flex-col items-center justify-center border-l border-neutral-200 bg-white px-6 text-center">

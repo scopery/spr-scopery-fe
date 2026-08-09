@@ -14,6 +14,7 @@ export interface ElicitationSession {
 export interface ElicitationQuestion {
   id: string
   sessionId: string
+  roundId: string | null
   sequence: number
   questionText: string
   answerText: string | null
@@ -23,21 +24,45 @@ export interface ElicitationQuestion {
   source: string
   parentQuestionId: string | null
   answeredAt: string | null
+  suggestedAnswers: string[] | null
   createdAt: string
   updatedAt: string
 }
 
-/** Matches BE ElicitationRoundResponse */
+/** Matches BE ElicitationRoundResponse — lifecycle: ACTIVE → EVALUATED */
 export interface ElicitationRound {
   id: string
   sessionId: string
   roundNumber: number
-  questionsJson: string
+  questionsJson: string | null
   overallClarity: string | null
-  status: string
-  submittedAt: string | null
+  status: 'ACTIVE' | 'EVALUATED'
+  shouldContinue: boolean | null
+  evaluatedAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+/** Matches BE RoundEvaluation inner record */
+export interface RoundEvaluation {
+  questionId: string
+  clarityLevel: string | null
+  feedback: string | null
+  conflictNote: string | null
+}
+
+/** Matches BE SubmitRoundResponse */
+export interface SubmitRoundResponse {
+  round: ElicitationRound
+  evaluations: RoundEvaluation[]
+  shouldContinue: boolean
+  evaluationSummary: string | null
+}
+
+/** Matches BE ScopeLockResponse */
+export interface ScopeLockResponse {
+  locked: boolean
+  sessionId: string | null
 }
 
 /** Matches BE ElicitationSuggestionItemResponse */
@@ -52,6 +77,7 @@ export interface ElicitationSuggestionItem {
   rationale: string
   estimatedImpact: string
   status: string
+  requirementId: string | null
   errorMessage: string | null
   executedAt: string | null
   createdAt: string
@@ -65,6 +91,20 @@ export interface ElicitationSuggestion {
   status: string
   createdAt: string
   items: ElicitationSuggestionItem[]
+}
+
+export interface ScopeTreeEntity {
+  id: string
+  title: string
+  type: 'REQUIREMENT' | 'FUNCTION' | 'USE_CASE' | 'SCREEN' | 'COMPONENT' | 'NOTIFICATION'
+  children?: ScopeTreeEntity[]
+  pendingAction?: string | null
+  changes?: Record<string, { before: unknown; after: unknown }> | null
+}
+
+export interface ScopeTreeResponse {
+  before: ScopeTreeEntity[]
+  after: ScopeTreeEntity[]
 }
 
 export interface StartElicitationSessionPayload {

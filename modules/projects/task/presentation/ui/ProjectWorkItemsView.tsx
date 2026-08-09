@@ -87,6 +87,7 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
     createTask,
     updateTask,
     getTask,
+    deleteTask,
     runLifecycle,
     refetch,
   } = useProjectTasks(projectId, {
@@ -499,6 +500,11 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
             toast.error(getProblemToastMessage(err))
             throw err
           }
+        }}
+        onDelete={async (taskId) => {
+          await deleteTask(taskId)
+          setSelectedTask(null)
+          toast.success('Task deleted')
         }}
       />
     </div>

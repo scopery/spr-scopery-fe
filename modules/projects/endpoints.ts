@@ -101,6 +101,16 @@ export const PROJECT_ENDPOINTS = {
       apiPath(`/projects/${projectId}/tasks/${taskId}/archive`),
     reopen: (projectId: string, taskId: string) =>
       apiPath(`/projects/${projectId}/tasks/${taskId}/reopen`),
+    delete: (projectId: string, taskId: string) =>
+      apiPath(`/projects/${projectId}/tasks/${taskId}`),
+    roleContributions: {
+      list: (projectId: string, taskId: string) =>
+        apiPath(`/projects/${projectId}/tasks/${taskId}/role-contributions`),
+      create: (projectId: string, taskId: string) =>
+        apiPath(`/projects/${projectId}/tasks/${taskId}/role-contributions`),
+      delete: (projectId: string, taskId: string, id: string) =>
+        apiPath(`/projects/${projectId}/tasks/${taskId}/role-contributions/${id}`),
+    },
   },
 
   /* --- Questions (legacy v2 paths — not yet migrated) --- */

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Badge, Button, Spinner, Typography } from '@/shared/ui'
+import { Badge, Button, Skeleton, Spinner, Typography } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import type { ElicitationQuestion, ElicitationSession } from '../../domain/model/elicitation'
@@ -142,13 +142,6 @@ export function QuestionsPanel({
         </div>
       )}
 
-      {generating && (
-        <div className="flex items-center gap-2 py-4 text-neutral-500">
-          <Spinner size="sm" />
-          <Typography variant="body">Generating questions…</Typography>
-        </div>
-      )}
-
       <div className="flex flex-col divide-y divide-neutral-100">
         {questions.map((q) => (
           <div key={q.id} className="py-3 flex flex-col gap-1.5">
@@ -175,10 +168,13 @@ export function QuestionsPanel({
               <div className="flex items-center gap-1.5 shrink-0">
                 <ClarityBadge clarityLevel={q.clarityLevel} />
                 {q.status === QuestionStatus.Answered && !q.clarityLevel && (
-                  <Badge tone="neutral" size="sm">Answered</Badge>
+                  <Badge variant="solid" tone="success" size="sm">Answered</Badge>
                 )}
                 {q.status === QuestionStatus.Skipped && (
-                  <Badge tone="neutral" size="sm">Skipped</Badge>
+                  <Badge variant="solid" tone="neutral" size="sm">Skipped</Badge>
+                )}
+                {q.status === QuestionStatus.Pending && (
+                  <Badge variant="solid" tone="warning" size="sm">Pending</Badge>
                 )}
               </div>
             </div>
@@ -217,7 +213,26 @@ export function QuestionsPanel({
             )}
           </div>
         ))}
+
+        {generating && (
+          <div className="py-3 flex flex-col gap-2 border-t border-neutral-100">
+            <div className="flex items-start gap-2">
+              <Skeleton variant="text" width={24} height={14} className="mt-0.5 shrink-0" />
+              <div className="flex-1 flex flex-col gap-1.5">
+                <Skeleton variant="text" width="75%" height={16} />
+                <Skeleton variant="text" width="50%" height={13} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {questions.length === 0 && generating && (
+        <div className="flex items-center gap-2 py-4 text-neutral-500">
+          <Spinner size="sm" />
+          <Typography variant="body">Generating questions…</Typography>
+        </div>
+      )}
 
       <AnswerQuestionModal
         question={answeringQuestion}

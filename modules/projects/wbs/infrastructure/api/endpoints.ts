@@ -25,4 +25,6 @@ export const WBS_ENDPOINTS = {
     apiPath(`/projects/${projectId}/wbs-nodes/${id}/move`),
   archive: (projectId: string, id: string) =>
     apiPath(`/projects/${projectId}/wbs-nodes/${id}/archive`),
+  delete: (projectId: string, id: string) =>
+    apiPath(`/projects/${projectId}/wbs-nodes/${id}`),
 } as const

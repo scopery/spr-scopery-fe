@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Select, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { useProjects } from '@/modules/projects/project'
+import { useElicitationScopeLock } from '@/modules/projects/elicitation/presentation/hooks/useElicitationScopeLock'
 import { useOverallStructure } from '../hooks/useOverallStructure'
 import {
   collapseAllExpandMap,
@@ -51,6 +52,7 @@ export function OverallStructurePanel({
   const [mode, setMode] = useState<StructureViewMode>(initialMode)
   const [expandMap, setExpandMap] = useState<StructureExpandMap>({})
   const [scrollToFocusId, setScrollToFocusId] = useState<string | null>(null)
+  const { isLocked: scopeLocked } = useElicitationScopeLock(projectId ?? '')
 
   useEffect(() => {
     if (lockedProjectId) setProjectId(lockedProjectId)
@@ -130,6 +132,7 @@ export function OverallStructurePanel({
       candidatesLoading={candidatesLoading}
       assigning={assigning}
       projectId={projectId}
+      disabled={scopeLocked}
       onClose={() => setFocus(null)}
       onAssign={(payload) => void assignFromDrag(payload)}
       onAssignMany={(payloads) => void assignMany(payloads)}

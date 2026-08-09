@@ -12,6 +12,7 @@ import { UseCaseStatusBadge } from './UseCaseStatusBadge'
 import { UseCaseDetailPanel } from './UseCaseDetailPanel'
 import { UseCaseAddBar } from './UseCaseAddBar'
 import { FunctionUseCaseLinkPanel } from './FunctionUseCaseLinkPanel'
+import { useElicitationScopeLock } from '@/modules/projects/elicitation/presentation/hooks/useElicitationScopeLock'
 
 export function UseCaseCatalogView() {
   const { workspaceId, projectId } = useParams<{ workspaceId: string; projectId: string }>()
@@ -19,6 +20,7 @@ export function UseCaseCatalogView() {
   const { useCases, loading, error, refetch, createUseCase, submitUseCasesBulk } =
     useUseCaseCatalog(projectId)
   const { functionalItems } = useFunctionalCatalog(projectId)
+  const { isLocked: scopeLocked } = useElicitationScopeLock(projectId)
   const useCaseFromQuery = searchParams.get('useCaseId')
   const seededUseCaseRef = useRef(useCaseFromQuery)
   const [selectedId, setSelectedId] = useState<string | null>(useCaseFromQuery)
@@ -74,6 +76,7 @@ export function UseCaseCatalogView() {
               useCases={useCases}
               initialFunctionId={searchParams.get('functionId')}
               onChanged={refetch}
+              isLocked={scopeLocked}
             />
           </div>
         </div>

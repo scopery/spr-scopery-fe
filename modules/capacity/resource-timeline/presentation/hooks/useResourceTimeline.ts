@@ -20,18 +20,15 @@ import {
   type TimelineGranularity as Granularity,
 } from '@/modules/projects/gantt'
 import { useProjects } from '@/modules/projects/project'
-import { ProjectStatus } from '@/modules/projects/project/domain/enums/project.enum'
 import { tasksApi } from '@/modules/projects/task'
 import {
   RESOURCE_TIMELINE_FANOUT_CONCURRENCY,
   RESOURCE_TIMELINE_MAX_PROJECTS,
   filterAndPruneGanttTree,
+  listWatchableProjects,
   mapWithConcurrency,
+  resolveTargetProjects,
 } from '../../domain/rules/resource-timeline.rules'
-
-function isWatchableProjectStatus(status: string) {
-  return status !== ProjectStatus.Archived && status !== ProjectStatus.Completed
-}
 
 function collectLeafProjectIds(
   nodes: GanttTreeItem[],
@@ -54,6 +51,7 @@ export function useResourceTimeline(
   options: {
     selectedUserId: string | null
     includeUnassigned: boolean
+    selectedProjectIds: string[]
   }
 ) {
   const { projects, loading: projectsLoading, error: projectsError } = useProjects(workspaceId)
@@ -77,13 +75,16 @@ export function useResourceTimeline(
 
   const selectedUserId = options.selectedUserId
   const includeUnassigned = options.includeUnassigned
+  const selectedProjectIds = options.selectedProjectIds
+
+  const watchableProjects = useMemo(() => listWatchableProjects(projects), [projects])
+
+  const selectedProjectIdsKey = selectedProjectIds.join(',')
 
   const targetProjects = useMemo(
-    () =>
-      projects
-        .filter((p) => isWatchableProjectStatus(p.status))
-        .slice(0, RESOURCE_TIMELINE_MAX_PROJECTS),
-    [projects]
+    () => resolveTargetProjects(watchableProjects, selectedProjectIds),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- key captures id list
+    [watchableProjects, selectedProjectIdsKey]
   )
 
   const load = useCallback(async () => {
@@ -298,8 +299,8 @@ export function useResourceTimeline(
   )
 
   const projectCapReached =
-    projects.filter((p) => isWatchableProjectStatus(p.status)).length >
-    RESOURCE_TIMELINE_MAX_PROJECTS
+    watchableProjects.length > RESOURCE_TIMELINE_MAX_PROJECTS ||
+    selectedProjectIds.length >= RESOURCE_TIMELINE_MAX_PROJECTS
 
   return {
     rows,
@@ -312,6 +313,7 @@ export function useResourceTimeline(
     togglePhase,
     collapsedPhaseIds,
     loading: projectsLoading || loading,
+    projectsLoading,
     error: projectsError ?? error,
     refetch: load,
     goToday,
@@ -319,6 +321,7 @@ export function useResourceTimeline(
     projectIdForTask,
     projectNameForTask,
     effectiveViewport,
+    watchableProjects,
     projectCount: targetProjects.length,
     projectCapReached,
     maxProjects: RESOURCE_TIMELINE_MAX_PROJECTS,

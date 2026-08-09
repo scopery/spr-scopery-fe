@@ -118,11 +118,11 @@ export function useEstimationRunDetail(
   const filteredTasks = tasks.filter((t) => {
     switch (taskFilter) {
       case 'unresolved_role':
-        return t.status === 'UNRESOLVED_ROLE'
+        return t.status === 'ROLE_UNRESOLVED'
       case 'unresolved_rate':
-        return t.status === 'UNRESOLVED_RATE'
+        return t.status === 'RATE_UNRESOLVED'
       case 'unestimated':
-        return t.estimateHours == null || t.estimateHours === 0
+        return t.status === 'TASK_UNESTIMATED'
       case 'excluded':
         return t.status === 'EXCLUDED'
       default:
@@ -132,8 +132,9 @@ export function useEstimationRunDetail(
 
   const issueTasks = tasks.filter(
     (t) =>
-      t.status === 'UNRESOLVED_ROLE' ||
-      t.status === 'UNRESOLVED_RATE' ||
+      t.status === 'ROLE_UNRESOLVED' ||
+      t.status === 'RATE_UNRESOLVED' ||
+      t.status === 'TASK_UNESTIMATED' ||
       t.issueCode != null
   )
 

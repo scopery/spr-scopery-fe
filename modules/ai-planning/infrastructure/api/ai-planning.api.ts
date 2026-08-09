@@ -10,22 +10,23 @@ export async function listPlanningRuns(
   return normalizeItemList(res)
 }
 
-export async function listSuggestions(
+export async function createAiPlanningRun(
   projectId: string,
-  runId: string
-): Promise<{ items: AiPlanningSuggestion[] }> {
-  const res = await apiClient.get<ListPayload<AiPlanningSuggestion>>(AI_PLANNING_ENDPOINTS.suggestions(projectId, runId))
-  return normalizeItemList(res)
+  body: { runType: string; input?: Record<string, unknown> }
+): Promise<AiPlanningRun> {
+  return apiClient.post(AI_PLANNING_ENDPOINTS.createRun(projectId), {
+    runType: body.runType,
+    input: body.input ?? {},
+    includeSections: [],
+    options: {},
+  })
 }
 
-export async function previewApplySuggestion(
-  projectId: string,
-  suggestionId: string
-): Promise<{
-  fields: Array<{ path: string; label: string; before: string | null; after: string | null }>
-  requiresChangeRequest?: boolean
-}> {
-  return apiClient.get(AI_PLANNING_ENDPOINTS.applyPreview(projectId, suggestionId))
+export async function listSuggestions(
+  projectId: string
+): Promise<{ items: AiPlanningSuggestion[] }> {
+  const res = await apiClient.get<ListPayload<AiPlanningSuggestion>>(AI_PLANNING_ENDPOINTS.suggestions(projectId))
+  return normalizeItemList(res)
 }
 
 export async function acceptSuggestion(

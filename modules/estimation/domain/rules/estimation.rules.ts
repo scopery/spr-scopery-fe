@@ -60,12 +60,12 @@ export function estimationStatusTone(
 
 export function calculationModeLabel(mode: string): string {
   switch (mode) {
-    case 'STANDARD':
-      return 'Standard'
-    case 'BLENDED':
-      return 'Blended'
-    case 'ROLE_BASED':
-      return 'Role-based'
+    case 'TASK_ESTIMATE_ONLY':
+      return 'Estimate only'
+    case 'TASK_ESTIMATE_WITH_RATE':
+      return 'Estimate + rate'
+    case 'SCHEDULED_WORK_WITH_RATE':
+      return 'Scheduled work + rate'
     default:
       return mode
   }
@@ -73,14 +73,20 @@ export function calculationModeLabel(mode: string): string {
 
 export function rateStrategyLabel(strategy: string): string {
   switch (strategy) {
-    case 'TASK_START_DATE':
-      return 'Task start'
-    case 'PROJECT_START_DATE':
-      return 'Project start'
+    case 'PROJECT_PLANNED_START':
+      return 'Project start date'
+    case 'TASK_DUE_DATE':
+      return 'Task due date'
+    case 'TASK_SCHEDULED_START':
+      return 'Task scheduled start'
+    case 'TASK_SCHEDULED_FINISH':
+      return 'Task scheduled finish'
     case 'RUN_DATE':
       return 'Run date'
-    case 'FIXED_DATE':
-      return 'Fixed date'
+    case 'CUSTOM_DATE':
+      return 'Custom date'
+    case 'TASK_DUE_DATE_OR_PROJECT_START':
+      return 'Due date or project start'
     default:
       return strategy
   }
@@ -88,12 +94,14 @@ export function rateStrategyLabel(strategy: string): string {
 
 export function taskEstimateStatusLabel(status: string): string {
   switch (status) {
-    case 'RESOLVED':
-      return 'Resolved'
-    case 'UNRESOLVED_ROLE':
+    case 'CALCULATED':
+      return 'Calculated'
+    case 'ROLE_UNRESOLVED':
       return 'Unresolved role'
-    case 'UNRESOLVED_RATE':
+    case 'RATE_UNRESOLVED':
       return 'Unresolved rate'
+    case 'TASK_UNESTIMATED':
+      return 'Not estimated'
     case 'EXCLUDED':
       return 'Excluded'
     default:
@@ -105,10 +113,11 @@ export function taskEstimateStatusTone(
   status: string
 ): 'success' | 'warning' | 'error' | 'neutral' | 'info' {
   switch (status) {
-    case 'RESOLVED':
+    case 'CALCULATED':
       return 'success'
-    case 'UNRESOLVED_ROLE':
-    case 'UNRESOLVED_RATE':
+    case 'ROLE_UNRESOLVED':
+    case 'RATE_UNRESOLVED':
+    case 'TASK_UNESTIMATED':
       return 'warning'
     case 'EXCLUDED':
       return 'neutral'

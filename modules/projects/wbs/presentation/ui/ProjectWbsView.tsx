@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, DataTable, PageSkeleton, Typography } from '@/shared/ui'
+import { Badge, Button, ConfirmDialog, DataTable, PageSkeleton, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { WorkspaceHierarchyBreadcrumb } from '@/modules/platform/layout'
 import { useProject } from '../../../project/hooks/useProject'
@@ -13,7 +13,7 @@ import { useProjectWbs } from '../hooks/useProjectWbs'
 import { CreateWbsNodeModal } from './CreateWbsNodeModal'
 import { WbsAddBar } from './WbsAddBar'
 import type { WbsTreeNode } from '../../domain/model/wbs'
-import { canArchiveWbsNode, wbsNodeStatusLabel } from '../../domain/rules/wbs.rules'
+import { canArchiveWbsNode, canDeleteWbsNode, wbsNodeStatusLabel } from '../../domain/rules/wbs.rules'
 import { WbsNodeTypeBadge } from './WbsNodeTypeBadge'
 
 function collectIds(nodes: WbsTreeNode[]): string[] {
@@ -43,12 +43,15 @@ export function ProjectWbsView() {
     createNode,
     submitWbsNodesBulk,
     archiveNode,
+    deleteNode,
     refetch,
   } = useProjectWbs(projectId)
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [createOpen, setCreateOpen] = useState(false)
   const [parentNode, setParentNode] = useState<WbsTreeNode | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<WbsTreeNode | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const phaseOptions = useMemo(
     () => phases.map((p) => ({ value: p.id, label: `${p.code} — ${p.name}` })),
@@ -228,12 +231,46 @@ export function ProjectWbsView() {
                       Archive
                     </Button>
                   ) : null}
+                  {canDeleteWbsNode(node) ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      tone="error"
+                      disabled={actingId === node.id}
+                      onClick={() => setDeleteTarget(node)}
+                    >
+                      Delete
+                    </Button>
+                  ) : null}
                 </div>
               ),
             },
           ]}
         />
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        variant="danger"
+        title="Delete planning element"
+        message={`Delete "${deleteTarget?.title}"? This cannot be undone. The element must have no child elements or linked tasks.`}
+        confirmLabel="Delete"
+        loading={deleting}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={async () => {
+          if (!deleteTarget) return
+          setDeleting(true)
+          try {
+            await deleteNode(deleteTarget.id)
+            toast.success('Planning element deleted')
+            setDeleteTarget(null)
+          } catch (err) {
+            toast.error(getProblemToastMessage(err))
+          } finally {
+            setDeleting(false)
+          }
+        }}
+      />
 
       {/* Child-row "Add child" still uses the single-create modal. */}
       <CreateWbsNodeModal

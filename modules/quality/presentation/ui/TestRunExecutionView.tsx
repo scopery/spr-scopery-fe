@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { CheckCircle2, Search } from 'lucide-react'
+import { CheckCircle2, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { UserIdentity, UserPickerModal, useResolveUsers } from '@/modules/platform'
 import { Badge, Button, DataTable, Input, PageSkeleton, Select, Typography } from '@/shared/ui'
+import { cn } from '@/utils/cn'
 import { useTestRuns } from '../hooks/useTestRuns'
 import { useQualityAssigneePeople } from '../hooks/useQualityAssigneePeople'
 import { testRunStatusLabel } from '../../domain/rules/quality.rules'
@@ -43,6 +44,7 @@ export function TestRunExecutionView() {
   } | null>(null)
   const [assignSaving, setAssignSaving] = useState(false)
   const [assigneeFilterOpen, setAssigneeFilterOpen] = useState(false)
+  const [runsSidebarOpen, setRunsSidebarOpen] = useState(true)
   const { personFor } = useResolveUsers([
     ...testRuns.results.map((result) => result.assigneeId),
     testRuns.assigneeId,
@@ -83,62 +85,105 @@ export function TestRunExecutionView() {
         </Typography>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[20rem_1fr]">
-        <aside className="overflow-y-auto border-r border-neutral-200">
-          {testRuns.runs.length === 0 ? (
-            <Typography tone="muted" className="p-lg">
-              No Test Runs yet.
-            </Typography>
-          ) : (
-            <ul className="divide-y divide-neutral-100">
-              {testRuns.runs.map((run) => (
-                <li key={run.id}>
-                  <button
-                    type="button"
-                    className={
-                      testRuns.selectedRunId === run.id
-                        ? 'w-full border-l-2 border-neutral-900 bg-neutral-50 p-md text-left'
-                        : 'w-full border-l-2 border-transparent p-md text-left hover:bg-neutral-50'
-                    }
-                    onClick={() => {
-                      testRuns.setSelectedRunId(run.id)
-                      setSelectedIds(new Set())
-                    }}
-                  >
-                    <div className="flex items-center justify-between gap-sm">
-                      <Typography variant="small" weight="medium">
-                        {run.name}
-                      </Typography>
-                      <Badge tone={run.status === 'IN_PROGRESS' ? 'success' : 'neutral'} size="sm">
-                        {testRunStatusLabel(run.status)}
-                      </Badge>
-                    </div>
-                    <Typography variant="caption" tone="muted">
-                      {[run.runType || 'Test Run', run.runScope || 'FUNCTIONAL']
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </Typography>
-                    {run.releasePackageName || run.deploymentEnvironmentName ? (
-                      <Typography variant="caption" tone="muted" className="block truncate">
-                        {[run.releasePackageName, run.deploymentEnvironmentName]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </Typography>
-                    ) : null}
-                    <div className="mt-sm h-1.5 overflow-hidden rounded-full bg-neutral-100">
-                      <div className="h-full bg-secondary" style={{ width: `${progress(run)}%` }} />
-                    </div>
-                    <div className="mt-xs flex justify-between text-xs text-neutral-500">
-                      <span>
-                        {run.executed ?? 0}/{run.total ?? 0} executed
-                      </span>
-                      <span>{progress(run)}%</span>
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+      <div
+        className={cn(
+          'grid min-h-0 flex-1 transition-[grid-template-columns] duration-200',
+          runsSidebarOpen ? 'grid-cols-[14rem_1fr]' : 'grid-cols-[2.5rem_1fr]'
+        )}
+      >
+        <aside className="flex min-h-0 flex-col border-r border-neutral-200">
+          <div
+            className={cn(
+              'flex shrink-0 items-center border-b border-neutral-200',
+              runsSidebarOpen ? 'justify-between gap-1 px-2 py-1.5' : 'justify-center py-1.5'
+            )}
+          >
+            {runsSidebarOpen ? (
+              <Typography variant="caption" className="truncate font-medium text-neutral-600">
+                Runs
+              </Typography>
+            ) : null}
+            <Button
+              size="sm"
+              variant="ghost"
+              iconOnly
+              icon={
+                runsSidebarOpen ? <PanelLeftClose size={15} /> : <PanelLeftOpen size={15} />
+              }
+              aria-label={runsSidebarOpen ? 'Collapse runs list' : 'Expand runs list'}
+              aria-expanded={runsSidebarOpen}
+              onClick={() => setRunsSidebarOpen((open) => !open)}
+            />
+          </div>
+          {runsSidebarOpen ? (
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {testRuns.runs.length === 0 ? (
+                <Typography tone="muted" className="p-3 text-xs">
+                  No Test Runs yet.
+                </Typography>
+              ) : (
+                <ul className="divide-y divide-neutral-100">
+                  {testRuns.runs.map((run) => (
+                    <li key={run.id}>
+                      <button
+                        type="button"
+                        className={
+                          testRuns.selectedRunId === run.id
+                            ? 'w-full border-l-2 border-neutral-900 bg-neutral-50 px-2.5 py-2 text-left'
+                            : 'w-full border-l-2 border-transparent px-2.5 py-2 text-left hover:bg-neutral-50'
+                        }
+                        onClick={() => {
+                          testRuns.setSelectedRunId(run.id)
+                          setSelectedIds(new Set())
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-1.5">
+                          <Typography
+                            variant="small"
+                            weight="medium"
+                            className="min-w-0 truncate leading-snug"
+                          >
+                            {run.name}
+                          </Typography>
+                          <Badge
+                            tone={run.status === 'IN_PROGRESS' ? 'success' : 'neutral'}
+                            size="sm"
+                            className="shrink-0"
+                          >
+                            {testRunStatusLabel(run.status)}
+                          </Badge>
+                        </div>
+                        <Typography variant="caption" tone="muted" className="mt-0.5 block truncate">
+                          {[run.runType || 'Test Run', run.runScope || 'FUNCTIONAL']
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </Typography>
+                        {run.releasePackageName || run.deploymentEnvironmentName ? (
+                          <Typography variant="caption" tone="muted" className="block truncate">
+                            {[run.releasePackageName, run.deploymentEnvironmentName]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </Typography>
+                        ) : null}
+                        <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-neutral-100">
+                          <div
+                            className="h-full bg-secondary"
+                            style={{ width: `${progress(run)}%` }}
+                          />
+                        </div>
+                        <div className="mt-xs flex justify-between text-xs text-neutral-500">
+                          <span>
+                            {run.executed ?? 0}/{run.total ?? 0} executed
+                          </span>
+                          <span>{progress(run)}%</span>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
         </aside>
 
         <main className="flex min-h-0 min-w-0 flex-col">

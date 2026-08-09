@@ -1,4 +1,4 @@
-import { apiClient } from '@/shared/lib/apiClient'
+import { apiClient, ensureCsrfToken } from '@/shared/lib/apiClient'
 import { ELICITATION_ENDPOINTS } from './endpoints'
 import type {
   AnswerQuestionPayload,
@@ -6,7 +6,10 @@ import type {
   ElicitationRound,
   ElicitationSession,
   ElicitationSuggestion,
+  ScopeLockResponse,
+  ScopeTreeResponse,
   StartElicitationSessionPayload,
+  SubmitRoundResponse,
 } from '../../domain/model/elicitation'
 
 export async function listSessions(projectId: string): Promise<ElicitationSession[]> {
@@ -33,8 +36,8 @@ export async function getSession(
 export async function closeSession(
   projectId: string,
   sessionId: string
-): Promise<ElicitationRound> {
-  return apiClient.post<ElicitationRound>(
+): Promise<ElicitationSession> {
+  return apiClient.post<ElicitationSession>(
     ELICITATION_ENDPOINTS.sessions.close(projectId, sessionId)
   )
 }
@@ -48,32 +51,21 @@ export async function cancelSession(
   )
 }
 
+export async function checkActiveLock(
+  projectId: string,
+  scopePackageId: string
+): Promise<ScopeLockResponse> {
+  return apiClient.get<ScopeLockResponse>(
+    ELICITATION_ENDPOINTS.sessions.activeLock(projectId, scopePackageId)
+  )
+}
+
 export async function listQuestions(
   projectId: string,
   sessionId: string
 ): Promise<ElicitationQuestion[]> {
   const res = await apiClient.get<ElicitationQuestion[] | { items?: ElicitationQuestion[] }>(
     ELICITATION_ENDPOINTS.questions.list(projectId, sessionId)
-  )
-  return Array.isArray(res) ? res : (res.items ?? [])
-}
-
-export async function generateQuestions(
-  projectId: string,
-  sessionId: string
-): Promise<ElicitationQuestion[]> {
-  const res = await apiClient.post<ElicitationQuestion[] | { items?: ElicitationQuestion[] }>(
-    ELICITATION_ENDPOINTS.questions.generate(projectId, sessionId)
-  )
-  return Array.isArray(res) ? res : (res.items ?? [])
-}
-
-export async function evaluateAnswers(
-  projectId: string,
-  sessionId: string
-): Promise<ElicitationQuestion[]> {
-  const res = await apiClient.post<ElicitationQuestion[] | { items?: ElicitationQuestion[] }>(
-    ELICITATION_ENDPOINTS.questions.evaluate(projectId, sessionId)
   )
   return Array.isArray(res) ? res : (res.items ?? [])
 }
@@ -110,8 +102,106 @@ export async function listRounds(
   return Array.isArray(res) ? res : (res.items ?? [])
 }
 
-export async function submitRound(roundId: string): Promise<ElicitationRound> {
-  return apiClient.post<ElicitationRound>(ELICITATION_ENDPOINTS.rounds.submit(roundId))
+/**
+ * SSE stream: generates next round of questions.
+ * Calls onQuestion for each streamed question, onRound once when the round is finalized.
+ */
+export function streamGenerateRound(
+  projectId: string,
+  sessionId: string,
+  onQuestion: (q: ElicitationQuestion) => void,
+  onRound: (r: ElicitationRound) => void,
+  onError: (err: Error) => void,
+  signal?: AbortSignal
+): void {
+  void (async () => {
+    await ensureCsrfToken()
+
+    const csrf =
+      typeof document !== 'undefined'
+        ? (document.cookie
+            .split('; ')
+            .find((c) => c.startsWith('XSRF-TOKEN='))
+            ?.split('=')[1] ?? null)
+        : null
+
+    const url = ELICITATION_ENDPOINTS.rounds.generate(projectId, sessionId)
+    let res: Response
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          Accept: 'text/event-stream',
+          ...(csrf ? { 'X-XSRF-TOKEN': decodeURIComponent(csrf) } : {}),
+        },
+        signal,
+      })
+    } catch (err) {
+      if ((err as Error)?.name !== 'AbortError') {
+        onError(err instanceof Error ? err : new Error('Network error'))
+      }
+      return
+    }
+
+    if (!res.ok) {
+      const text = await res.text()
+      onError(new Error(text || `HTTP ${res.status}`))
+      return
+    }
+
+    const reader = res.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        const chunks = buffer.split('\n\n')
+        buffer = chunks.pop() ?? ''
+
+        for (const chunk of chunks) {
+          let eventName = ''
+          let eventData = ''
+          for (const line of chunk.split('\n')) {
+            if (line.startsWith('event:')) eventName = line.slice(6).trim()
+            else if (line.startsWith('data:')) eventData = line.slice(5).trim()
+          }
+          if (eventName === 'error') {
+            onError(new Error(eventData || 'Generation failed'))
+            return
+          }
+          if (eventName === 'question' && eventData) {
+            try {
+              onQuestion(JSON.parse(eventData) as ElicitationQuestion)
+            } catch { /* skip malformed */ }
+          }
+          if (eventName === 'round' && eventData) {
+            try {
+              onRound(JSON.parse(eventData) as ElicitationRound)
+            } catch { /* skip malformed */ }
+          }
+        }
+      }
+    } catch (err) {
+      if ((err as Error)?.name !== 'AbortError') {
+        onError(err instanceof Error ? err : new Error('Stream error'))
+      }
+    }
+  })()
+}
+
+export async function submitRound(
+  projectId: string,
+  sessionId: string,
+  roundId: string
+): Promise<SubmitRoundResponse> {
+  return apiClient.post<SubmitRoundResponse>(
+    ELICITATION_ENDPOINTS.rounds.submit(projectId, sessionId, roundId)
+  )
 }
 
 export async function generateSuggestions(roundId: string): Promise<ElicitationSuggestion> {
@@ -128,4 +218,13 @@ export async function approveSuggestionItem(itemId: string): Promise<unknown> {
 
 export async function rejectSuggestionItem(itemId: string): Promise<unknown> {
   return apiClient.post(ELICITATION_ENDPOINTS.suggestionItems.reject(itemId))
+}
+
+export async function getScopeTree(
+  projectId: string,
+  sessionId: string
+): Promise<ScopeTreeResponse> {
+  return apiClient.get<ScopeTreeResponse>(
+    ELICITATION_ENDPOINTS.scopeTree.get(projectId, sessionId)
+  )
 }

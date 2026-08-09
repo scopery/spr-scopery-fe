@@ -4,6 +4,11 @@ import { useCallback, useEffect, useState } from 'react'
 import * as api from '../../infrastructure/api/ai-planning.api'
 import type { AiPlanningSuggestion } from '../../domain/model/planning'
 
+export interface SuggestionApplyPreview {
+  fields: Array<{ path: string; label: string; before: string | null; after: string | null }>
+  requiresChangeRequest?: boolean
+}
+
 export function usePlanningSuggestions(projectId: string | null, runId: string | null) {
   const [items, setItems] = useState<AiPlanningSuggestion[]>([])
   const [loading, setLoading] = useState(false)
@@ -15,8 +20,8 @@ export function usePlanningSuggestions(projectId: string | null, runId: string |
     setLoading(true)
     setError(null)
     try {
-      const res = await api.listSuggestions(projectId, runId)
-      setItems(res.items)
+      const res = await api.listSuggestions(projectId)
+      setItems(res.items.filter((s) => s.planningRunId === runId))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load suggestions')
     } finally {
@@ -28,18 +33,10 @@ export function usePlanningSuggestions(projectId: string | null, runId: string |
     void load()
   }, [load])
 
+  /** Preview endpoint not wired yet — UI falls back to a local status diff. */
   const previewApply = useCallback(
-    async (suggestionId: string) => {
-      if (!projectId) return null
-      setActionError(null)
-      try {
-        return await api.previewApplySuggestion(projectId, suggestionId)
-      } catch (err) {
-        setActionError(err instanceof Error ? err.message : 'Preview failed')
-        return null
-      }
-    },
-    [projectId]
+    async (_suggestionId: string): Promise<SuggestionApplyPreview | null> => null,
+    []
   )
 
   const apply = useCallback(

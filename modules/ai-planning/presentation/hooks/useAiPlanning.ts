@@ -7,6 +7,7 @@ import type { AiPlanningRun } from '../../domain/model/planning'
 export function useAiPlanning(projectId: string | null) {
   const [items, setItems] = useState<AiPlanningRun[]>([])
   const [loading, setLoading] = useState(false)
+  const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -23,9 +24,23 @@ export function useAiPlanning(projectId: string | null) {
     }
   }, [projectId])
 
+  const create = useCallback(async (runType: string) => {
+    if (!projectId) return
+    setCreating(true)
+    setError(null)
+    try {
+      await api.createAiPlanningRun(projectId, { runType })
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start planning run')
+    } finally {
+      setCreating(false)
+    }
+  }, [projectId, load])
+
   useEffect(() => {
     void load()
   }, [load])
 
-  return { items, loading, error, refetch: load }
+  return { items, loading, creating, error, refetch: load, create }
 }

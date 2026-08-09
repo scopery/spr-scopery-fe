@@ -1,7 +1,49 @@
 import type { GanttTreeItem } from '@/modules/projects/gantt'
 
 export const RESOURCE_TIMELINE_MAX_PROJECTS = 20
+export const RESOURCE_TIMELINE_DEFAULT_PROJECTS = 10
 export const RESOURCE_TIMELINE_FANOUT_CONCURRENCY = 4
+
+/** Minimal project shape for Team Schedule project picker / fan-out. */
+export type WatchableProjectLike = {
+  id: string
+  name: string
+  status: string
+  createdAt: string
+}
+
+export function isWatchableProjectStatus(status: string): boolean {
+  return status !== 'ARCHIVED' && status !== 'COMPLETED'
+}
+
+/** Active (non-archived/completed) projects, newest createdAt first. */
+export function listWatchableProjects<T extends WatchableProjectLike>(projects: T[]): T[] {
+  return [...projects]
+    .filter((p) => isWatchableProjectStatus(p.status))
+    .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+}
+
+/** Default selection: first N ids from a newest-first watchable list. */
+export function defaultSelectedProjectIds(
+  watchableNewestFirst: Array<{ id: string }>,
+  defaultCount: number = RESOURCE_TIMELINE_DEFAULT_PROJECTS
+): string[] {
+  return watchableNewestFirst.slice(0, Math.max(0, defaultCount)).map((p) => p.id)
+}
+
+/**
+ * Projects to fan-out for the schedule chart: selected ∩ watchable, capped at max.
+ * Preserves newest-first order from `watchableNewestFirst`.
+ */
+export function resolveTargetProjects<T extends { id: string }>(
+  watchableNewestFirst: T[],
+  selectedProjectIds: string[],
+  max: number = RESOURCE_TIMELINE_MAX_PROJECTS
+): T[] {
+  if (selectedProjectIds.length === 0) return []
+  const selected = new Set(selectedProjectIds)
+  return watchableNewestFirst.filter((p) => selected.has(p.id)).slice(0, Math.max(0, max))
+}
 
 function isLeaf(item: GanttTreeItem): boolean {
   return item.itemType === 'TASK' || item.itemType === 'MILESTONE'

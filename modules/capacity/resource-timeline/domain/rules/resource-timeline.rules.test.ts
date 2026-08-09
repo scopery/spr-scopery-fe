@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { GanttTreeItem } from '@/modules/projects/gantt'
 import {
+  RESOURCE_TIMELINE_DEFAULT_PROJECTS,
+  RESOURCE_TIMELINE_MAX_PROJECTS,
+  defaultSelectedProjectIds,
   filterAndPruneGanttTree,
+  listWatchableProjects,
   mapWithConcurrency,
+  resolveTargetProjects,
 } from './resource-timeline.rules'
 
 function node(
@@ -26,6 +31,58 @@ function node(
     ...partial,
   }
 }
+
+describe('listWatchableProjects / defaultSelectedProjectIds', () => {
+  const projects = [
+    {
+      id: 'old',
+      name: 'Old',
+      status: 'ACTIVE',
+      createdAt: '2026-01-01T00:00:00Z',
+    },
+    {
+      id: 'archived',
+      name: 'Archived',
+      status: 'ARCHIVED',
+      createdAt: '2026-08-01T00:00:00Z',
+    },
+    {
+      id: 'new',
+      name: 'New',
+      status: 'ACTIVE',
+      createdAt: '2026-08-01T00:00:00Z',
+    },
+    {
+      id: 'done',
+      name: 'Done',
+      status: 'COMPLETED',
+      createdAt: '2026-07-01T00:00:00Z',
+    },
+  ]
+
+  it('excludes archived/completed and sorts newest createdAt first', () => {
+    const watchable = listWatchableProjects(projects)
+    expect(watchable.map((p) => p.id)).toEqual(['new', 'old'])
+  })
+
+  it('defaults to first N newest ids', () => {
+    const watchable = listWatchableProjects(projects)
+    expect(defaultSelectedProjectIds(watchable, 1)).toEqual(['new'])
+    expect(defaultSelectedProjectIds(watchable).length).toBeLessThanOrEqual(
+      RESOURCE_TIMELINE_DEFAULT_PROJECTS
+    )
+  })
+
+  it('resolveTargetProjects keeps selected ∩ watchable capped', () => {
+    const watchable = listWatchableProjects(projects)
+    expect(resolveTargetProjects(watchable, ['old', 'new', 'archived'])).toEqual([
+      watchable[0],
+      watchable[1],
+    ])
+    expect(resolveTargetProjects(watchable, []).length).toBe(0)
+    expect(RESOURCE_TIMELINE_MAX_PROJECTS).toBe(20)
+  })
+})
 
 describe('filterAndPruneGanttTree', () => {
   const tree: GanttTreeItem[] = [

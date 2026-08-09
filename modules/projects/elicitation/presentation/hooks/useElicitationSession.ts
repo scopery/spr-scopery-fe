@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import * as api from '../../infrastructure/api/elicitation.api'
 import type {
   ElicitationQuestion,
@@ -8,7 +8,9 @@ import type {
   ElicitationSession,
   ElicitationSuggestion,
   StartElicitationSessionPayload,
+  SubmitRoundResponse,
 } from '../../domain/model/elicitation'
+import { RoundStatus } from '../../domain/enums/elicitation.enum'
 
 export function useElicitationSession(projectId: string | null) {
   const [sessions, setSessions] = useState<ElicitationSession[]>([])
@@ -17,9 +19,16 @@ export function useElicitationSession(projectId: string | null) {
   const [rounds, setRounds] = useState<ElicitationRound[]>([])
   const [suggestion, setSuggestion] = useState<ElicitationSuggestion | null>(null)
   const [loading, setLoading] = useState(false)
-  const [generating, setGenerating] = useState(false)
-  const [evaluating, setEvaluating] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const generateAbortRef = useRef<AbortController | null>(null)
+
+  const activeRound = rounds.find((r) => r.status === RoundStatus.Active) ?? null
+  const lastEvaluatedRound =
+    [...rounds].reverse().find((r) => r.status === RoundStatus.Evaluated) ?? null
+  const shouldContinue = lastEvaluatedRound?.shouldContinue ?? null
 
   const loadSessions = useCallback(async () => {
     if (!projectId) return
@@ -97,18 +106,37 @@ export function useElicitationSession(projectId: string | null) {
     [projectId, loadSessions]
   )
 
-  const generateQuestions = useCallback(async () => {
+  const generateNextRound = useCallback(async () => {
     if (!projectId || !activeSession) return
-    setGenerating(true)
-    try {
-      const res = await api.generateQuestions(projectId, activeSession.id)
-      setQuestions((prev) => {
-        const existingIds = new Set(prev.map((q) => q.id))
-        return [...prev, ...res.filter((q) => !existingIds.has(q.id))]
-      })
-    } finally {
-      setGenerating(false)
-    }
+
+    generateAbortRef.current?.abort()
+    const controller = new AbortController()
+    generateAbortRef.current = controller
+
+    setIsGenerating(true)
+    return new Promise<void>((resolve, reject) => {
+      api.streamGenerateRound(
+        projectId,
+        activeSession.id,
+        (q) => {
+          setQuestions((prev) =>
+            prev.some((existing) => existing.id === q.id) ? prev : [...prev, q]
+          )
+        },
+        (r) => {
+          setRounds((prev) =>
+            prev.some((existing) => existing.id === r.id) ? prev : [...prev, r]
+          )
+          setIsGenerating(false)
+          resolve()
+        },
+        (err) => {
+          setIsGenerating(false)
+          reject(err)
+        },
+        controller.signal
+      )
+    })
   }, [projectId, activeSession])
 
   const answerQuestion = useCallback(
@@ -131,27 +159,37 @@ export function useElicitationSession(projectId: string | null) {
     [projectId, activeSession]
   )
 
-  const evaluateAnswers = useCallback(async () => {
-    if (!projectId || !activeSession) return
-    setEvaluating(true)
-    try {
-      const updated = await api.evaluateAnswers(projectId, activeSession.id)
-      setQuestions((prev) =>
-        prev.map((q) => {
-          const found = updated.find((u) => u.id === q.id)
-          return found ?? q
-        })
-      )
-    } finally {
-      setEvaluating(false)
-    }
-  }, [projectId, activeSession])
+  const submitRound = useCallback(
+    async (roundId: string): Promise<SubmitRoundResponse> => {
+      if (!projectId || !activeSession) throw new Error('No active session')
+      setIsSubmitting(true)
+      try {
+        const result = await api.submitRound(projectId, activeSession.id, roundId)
+        setRounds((prev) => prev.map((r) => (r.id === roundId ? result.round : r)))
+        setQuestions((prev) =>
+          prev.map((q) => {
+            const evaluation = result.evaluations.find((e) => e.questionId === q.id)
+            if (!evaluation) return q
+            return {
+              ...q,
+              clarityLevel: evaluation.clarityLevel,
+              aiFeedback: evaluation.feedback,
+            }
+          })
+        )
+        return result
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    [projectId, activeSession]
+  )
 
   const closeSession = useCallback(async () => {
     if (!projectId || !activeSession) return null
-    const round = await api.closeSession(projectId, activeSession.id)
+    const session = await api.closeSession(projectId, activeSession.id)
     await loadSessions()
-    return round
+    return session
   }, [projectId, activeSession, loadSessions])
 
   const cancelSession = useCallback(async () => {
@@ -159,15 +197,6 @@ export function useElicitationSession(projectId: string | null) {
     await api.cancelSession(projectId, activeSession.id)
     await loadSessions()
   }, [projectId, activeSession, loadSessions])
-
-  const submitRound = useCallback(
-    async (roundId: string) => {
-      const round = await api.submitRound(roundId)
-      setRounds((prev) => prev.map((r) => (r.id === roundId ? round : r)))
-      return round
-    },
-    []
-  )
 
   const generateSuggestions = useCallback(async (roundId: string) => {
     const result = await api.generateSuggestions(roundId)
@@ -202,23 +231,24 @@ export function useElicitationSession(projectId: string | null) {
     activeSession,
     questions,
     rounds,
+    activeRound,
+    shouldContinue,
     suggestion,
     loading,
-    generating,
-    evaluating,
+    isGenerating,
+    isSubmitting,
     error,
     refetch: loadSessions,
     loadQuestions,
     loadRounds,
     loadSuggestion,
     startSession,
-    generateQuestions,
+    generateNextRound,
     answerQuestion,
     skipQuestion,
-    evaluateAnswers,
+    submitRound,
     closeSession,
     cancelSession,
-    submitRound,
     generateSuggestions,
     approveSuggestionItem,
     rejectSuggestionItem,

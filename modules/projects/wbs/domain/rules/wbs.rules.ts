@@ -93,3 +93,8 @@ export function wbsNodeTypeBadgeTone(
 export function canArchiveWbsNode(node: { status: string }): boolean {
   return node.status !== WbsNodeStatus.Archived
 }
+
+/** Frontend hint only — backend enforces the real guard (no children, no linked tasks). */
+export function canDeleteWbsNode(node: { status: string; children: unknown[] }): boolean {
+  return node.status !== WbsNodeStatus.Archived && node.children.length === 0
+}

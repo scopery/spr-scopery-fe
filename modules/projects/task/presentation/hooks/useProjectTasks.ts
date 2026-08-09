@@ -88,6 +88,20 @@ export function useProjectTasks(projectId: string | null, filters?: ListTasksPar
     [projectId]
   )
 
+  const deleteTask = useCallback(
+    async (taskId: string) => {
+      if (!projectId) return
+      setActingId(taskId)
+      try {
+        await tasksApi.deleteTask(projectId, taskId)
+        await load()
+      } finally {
+        setActingId(null)
+      }
+    },
+    [projectId, load]
+  )
+
   const runLifecycle = useCallback(
     async (taskId: string, action: TaskLifecycleAction) => {
       if (!projectId) return
@@ -119,6 +133,7 @@ export function useProjectTasks(projectId: string | null, filters?: ListTasksPar
     updateTask,
     assignTask,
     getTask,
+    deleteTask,
     runLifecycle,
   }
 }

@@ -24,6 +24,7 @@ import { RequirementNonFunctionalLinkPanel } from './RequirementNonFunctionalLin
 import { ImportFunctionalItemsModal } from './ImportFunctionalItemsModal'
 import { SimpleExcelImportPanel } from './SimpleExcelImportPanel'
 import { NON_FUNCTIONAL_ITEM_IMPORT_SPEC } from '../lib/excelImportSpecs'
+import { useElicitationScopeLock } from '@/modules/projects/elicitation/presentation/hooks/useElicitationScopeLock'
 
 type MainTab = 'fr' | 'nfr' | 'import'
 
@@ -58,6 +59,7 @@ export function FunctionalCatalogView() {
     submitNonFunctionalItemsBulk,
   } = useFunctionalCatalog(projectId)
   const { frWithoutAnchors, refetch: refetchCoverage } = useFunctionalAnchorCoverage(projectId)
+  const { isLocked: scopeLocked } = useElicitationScopeLock(projectId)
 
   const [tab, setTab] = useState<MainTab | 'map' | 'map-nfr'>(() => {
     if (tabFromQuery === 'map') return 'map'
@@ -387,6 +389,7 @@ export function FunctionalCatalogView() {
                     projectId={projectId}
                     workspaceId={workspaceId}
                     item={selectedFr}
+                    isLocked={scopeLocked}
                     onClose={() => setSelectedFrId(null)}
                     onSave={async (payload) => {
                       await updateFr(selectedFr.id, payload)
@@ -542,6 +545,7 @@ export function FunctionalCatalogView() {
                 workspaceId={workspaceId}
                 projectId={projectId}
                 functionalItems={functionalItems}
+                isLocked={scopeLocked}
               />
             </div>
           ) : null}

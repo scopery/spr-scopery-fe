@@ -65,6 +65,11 @@ export function canAssignTask(status: string | null | undefined): boolean {
   return !isTaskClosed(status)
 }
 
+/** Backend only allows deletion of TODO tasks with no actual hours. */
+export function canDeleteTask(status: string | null | undefined): boolean {
+  return (status ?? '').toUpperCase() === TaskStatus.Todo
+}
+
 export function isTaskOverdue(task: {
   status: string
   dueDate: string | null

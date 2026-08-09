@@ -95,12 +95,14 @@ interface RequirementFunctionalLinkPanelProps {
   workspaceId: string
   projectId: string
   functionalItems: FunctionalItem[]
+  isLocked?: boolean
 }
 
 export function RequirementFunctionalLinkPanel({
   workspaceId,
   projectId,
   functionalItems,
+  isLocked = false,
 }: RequirementFunctionalLinkPanelProps) {
   const {
     requirements,
@@ -185,7 +187,7 @@ export function RequirementFunctionalLinkPanel({
     () => requirements.find((r) => r.id === focusReqId) ?? null,
     [requirements, focusReqId]
   )
-  const focusLinksLocked = focusReq ? !canMutateRequirementLinks(focusReq.status) : false
+  const focusLinksLocked = isLocked || (focusReq ? !canMutateRequirementLinks(focusReq.status) : false)
 
   useEffect(() => {
     if (!focusReq) {

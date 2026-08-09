@@ -32,10 +32,10 @@ export function CreateEstimationRunModal({
   const [description, setDescription] = useState('')
   const [scheduleRunId, setScheduleRunId] = useState('')
   const [calculationMode, setCalculationMode] = useState<string>(
-    EstimationCalculationMode.Standard
+    EstimationCalculationMode.TaskEstimateWithRate
   )
   const [rateStrategy, setRateStrategy] = useState<string>(
-    RateTargetDateStrategy.TaskStartDate
+    RateTargetDateStrategy.TaskDueDateOrProjectStart
   )
   const [currencyPolicy, setCurrencyPolicy] = useState(defaultCurrency)
   const [includeCompletedTasks, setIncludeCompletedTasks] = useState(false)
@@ -50,8 +50,8 @@ export function CreateEstimationRunModal({
     setName('')
     setDescription('')
     setScheduleRunId(scheduleRuns[0]?.id ?? '')
-    setCalculationMode(EstimationCalculationMode.Standard)
-    setRateStrategy(RateTargetDateStrategy.TaskStartDate)
+    setCalculationMode(EstimationCalculationMode.TaskEstimateWithRate)
+    setRateStrategy(RateTargetDateStrategy.TaskDueDateOrProjectStart)
     setCurrencyPolicy(defaultCurrency)
     setIncludeCompletedTasks(false)
     setIncludeCancelledTasks(false)
@@ -147,9 +147,9 @@ export function CreateEstimationRunModal({
               value={calculationMode}
               onValueChange={setCalculationMode}
               options={[
-                { value: EstimationCalculationMode.Standard, label: 'Standard' },
-                { value: EstimationCalculationMode.Blended, label: 'Blended' },
-                { value: EstimationCalculationMode.RoleBased, label: 'Role-based' },
+                { value: EstimationCalculationMode.TaskEstimateOnly, label: 'Estimate only' },
+                { value: EstimationCalculationMode.TaskEstimateWithRate, label: 'Estimate + rate' },
+                { value: EstimationCalculationMode.ScheduledWorkWithRate, label: 'Scheduled work + rate' },
               ]}
             />
           </div>
@@ -161,13 +161,12 @@ export function CreateEstimationRunModal({
               value={rateStrategy}
               onValueChange={setRateStrategy}
               options={[
-                { value: RateTargetDateStrategy.TaskStartDate, label: 'Task start date' },
-                {
-                  value: RateTargetDateStrategy.ProjectStartDate,
-                  label: 'Project start date',
-                },
+                { value: RateTargetDateStrategy.TaskDueDateOrProjectStart, label: 'Due date or project start' },
+                { value: RateTargetDateStrategy.TaskDueDate, label: 'Task due date' },
+                { value: RateTargetDateStrategy.ProjectPlannedStart, label: 'Project start date' },
+                { value: RateTargetDateStrategy.TaskScheduledStart, label: 'Task scheduled start' },
+                { value: RateTargetDateStrategy.TaskScheduledFinish, label: 'Task scheduled finish' },
                 { value: RateTargetDateStrategy.RunDate, label: 'Run date' },
-                { value: RateTargetDateStrategy.FixedDate, label: 'Fixed date' },
               ]}
             />
           </div>

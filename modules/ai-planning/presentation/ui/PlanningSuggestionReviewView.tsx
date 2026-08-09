@@ -77,9 +77,15 @@ export function PlanningSuggestionReviewView() {
                 {s.title}
               </Typography>
               <Typography variant="caption" tone="muted">
-                {s.state}
+                {s.status}
+                {s.suggestionType ? ` · ${s.suggestionType.replace(/_/g, ' ')}` : ''}
                 {s.summary ? ` · ${s.summary}` : ''}
               </Typography>
+              {s.rationale ? (
+                <Typography variant="caption" tone="muted" className="mt-xs italic">
+                  {s.rationale}
+                </Typography>
+              ) : null}
             </div>
             <div className="flex gap-xs">
               <Button size="sm" variant="ghost" onClick={() => void accept(s.id)}>
@@ -99,7 +105,7 @@ export function PlanningSuggestionReviewView() {
                               {
                                 path: 'status',
                                 label: 'State',
-                                before: s.state,
+                                before: s.status,
                                 after: SuggestionDecision.Applied,
                               },
                             ],
@@ -114,7 +120,7 @@ export function PlanningSuggestionReviewView() {
                         {
                           path: 'status',
                           label: 'State',
-                          before: s.state,
+                          before: s.status,
                           after: SuggestionDecision.Applied,
                         },
                       ],

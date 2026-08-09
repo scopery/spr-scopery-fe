@@ -10,15 +10,22 @@ function node(
     Pick<GanttTreeItem, 'id' | 'itemType' | 'title'>
 ): GanttTreeItem {
   return {
+    id: partial.id,
+    itemType: partial.itemType,
+    title: partial.title,
     sourceEntityId: partial.sourceEntityId ?? partial.id,
-    parentItemId: null,
-    phaseId: null,
-    assigneeUserId: null,
-    scheduleStatus: 'SCHEDULED',
-    startDate: '2026-08-01',
-    endDate: '2026-08-10',
-    children: [],
-    ...partial,
+    sourceEntityType: partial.sourceEntityType ?? partial.itemType,
+    parentItemId: partial.parentItemId ?? null,
+    phaseId: partial.phaseId ?? null,
+    assigneeUserId: partial.assigneeUserId ?? null,
+    scheduleStatus: partial.scheduleStatus ?? 'SCHEDULED',
+    startDate: partial.startDate ?? '2026-08-01',
+    endDate: partial.endDate ?? '2026-08-10',
+    wbsNodeId: partial.wbsNodeId ?? null,
+    sortOrder: partial.sortOrder ?? 0,
+    zeroDuration: partial.zeroDuration ?? false,
+    metadata: partial.metadata ?? {},
+    children: partial.children ?? [],
   }
 }
 

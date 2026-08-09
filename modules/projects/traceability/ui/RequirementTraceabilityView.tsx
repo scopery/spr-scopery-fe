@@ -16,6 +16,8 @@ import { ImplementationCoverageTab } from './ImplementationCoverageTab'
 import { NfrVerificationTab } from './NfrVerificationTab'
 import { TraceExplorerTab } from './TraceExplorerTab'
 import { AiMappingReviewView } from './AiMappingReviewView'
+import { useElicitationScopeLock } from '@/modules/projects/elicitation/presentation/hooks/useElicitationScopeLock'
+import { ScopeLockBanner } from '@/modules/projects/elicitation/presentation/ui/ScopeLockBanner'
 
 const TABS: { id: TraceNavTab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -55,6 +57,7 @@ export function RequirementTraceabilityView() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { isLocked: scopeLocked, lockingSessionId } = useElicitationScopeLock(projectId)
 
   const [tab, setTab] = useState<TraceNavTab>(() => parseTab(searchParams.get('tab')))
   const [segment, setSegment] = useState<FunctionalSegment>(() =>
@@ -101,6 +104,11 @@ export function RequirementTraceabilityView() {
 
   return (
     <div className="px-3 py-3 lg:px-4 lg:py-3">
+      {scopeLocked && (
+        <div className="mb-3">
+          <ScopeLockBanner sessionId={lockingSessionId} />
+        </div>
+      )}
       <div className="mb-2 border-b border-neutral-200 pb-2">
         <div className="min-w-0">
           <Typography as="h1" size="md" weight="medium">

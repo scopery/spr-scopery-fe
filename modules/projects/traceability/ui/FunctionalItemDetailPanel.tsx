@@ -34,6 +34,7 @@ interface FunctionalItemDetailPanelProps {
   item: FunctionalItem
   preferredApplicationId?: string | null
   defaultTab?: DetailTab
+  isLocked?: boolean
   onClose?: () => void
   onSave?: (payload: UpdateFunctionalItemBody) => Promise<void>
   onDelete?: () => Promise<void>
@@ -150,6 +151,7 @@ export function FunctionalItemDetailPanel({
   item,
   preferredApplicationId = null,
   defaultTab = 'anchors',
+  isLocked = false,
   onClose,
   onSave,
   onDelete,
@@ -253,7 +255,7 @@ export function FunctionalItemDetailPanel({
     defaultTab,
   ])
 
-  const canEdit = Boolean(onSave)
+  const canEdit = Boolean(onSave) && !isLocked
 
   const linkedUseCaseIds = useMemo(
     () => new Set(functionUseCases.map((uc) => uc.id)),
@@ -451,7 +453,7 @@ export function FunctionalItemDetailPanel({
               <Pencil size={16} strokeWidth={1.75} />
             </button>
           ) : null}
-          {onDelete && !editing ? (
+          {onDelete && !editing && !isLocked ? (
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
