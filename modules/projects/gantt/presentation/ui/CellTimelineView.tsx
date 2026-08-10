@@ -432,9 +432,14 @@ export function CellTimelineView() {
     const onWheel = (e: WheelEvent) => {
       const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
       if (dx === 0) return
+      const maxLeft = canvas.scrollWidth - canvas.clientWidth
+      if (maxLeft <= 0) return
       e.preventDefault()
-      canvas.scrollLeft += dx
-      syncHeaderScroll(canvas.scrollLeft)
+      const next = Math.max(0, Math.min(maxLeft, canvas.scrollLeft + dx))
+      if (next !== canvas.scrollLeft) {
+        canvas.scrollLeft = next
+        syncHeaderScroll(next)
+      }
     }
     canvas.addEventListener('wheel', onWheel, { passive: false })
     return () => canvas.removeEventListener('wheel', onWheel)
@@ -1522,10 +1527,10 @@ export function CellTimelineView() {
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 overflow-hidden border border-neutral-200 bg-white">
+      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden border border-neutral-200 bg-white">
         <div
           className="flex shrink-0 flex-col border-r border-neutral-200"
-          style={{ width: leftWidth }}
+          style={{ width: leftWidth, maxWidth: leftWidth }}
         >
           <div
             className="flex shrink-0 items-center border-b border-neutral-200 bg-neutral-50 px-sm text-xs font-medium text-neutral-600"
@@ -1677,15 +1682,22 @@ export function CellTimelineView() {
           onDoubleClick={autoFitLeft}
         />
 
-        <div className="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden">
+        {/*
+          Right pane: width:0 + flex-basis 0 keeps Day canvasWidth from expanding
+          the column (which would kill horizontal overflow / wheel pan).
+        */}
+        <div
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+          style={{ minWidth: 0, width: 0, flex: '1 1 0%' }}
+        >
           {/* Date header stays pinned while rows scroll vertically (like left column headers). */}
           <div
             ref={canvasHeaderScrollRef}
-            className="shrink-0 overflow-x-hidden overflow-y-hidden border-b border-neutral-200 bg-neutral-50"
+            className="min-w-0 shrink-0 overflow-x-hidden overflow-y-hidden border-b border-neutral-200 bg-neutral-50"
             style={{ height: HEADER_H }}
             aria-hidden
           >
-            <div className="flex" style={{ width: canvasWidth, minWidth: '100%' }}>
+            <div className="flex" style={{ width: canvasWidth, minWidth: canvasWidth }}>
               {tl.columns.map((col) => (
                 <div
                   key={col.key}
@@ -1730,11 +1742,15 @@ export function CellTimelineView() {
           <div
             ref={canvasScrollRef}
             className="min-h-0 min-w-0 flex-1 overflow-auto"
+            style={{ minWidth: 0 }}
             title="Scroll wheel pans horizontally · Alt+drag or middle-click drag to pan"
             onScroll={() => syncScroll('canvas')}
             onMouseDown={onCanvasPanMouseDown}
           >
-            <div className="relative" style={{ width: canvasWidth, minWidth: '100%' }}>
+            <div
+              className="relative"
+              style={{ width: canvasWidth, minWidth: canvasWidth }}
+            >
             <TimelineDependencyLinks
               dependencies={tl.ganttDependencies ?? []}
               rows={previewRows}

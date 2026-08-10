@@ -62,6 +62,7 @@ export {
   buildBucketsForRow,
   buildTimelineColumns,
   cellWidthPx,
+  sumPlannedMinutesByColumn,
 } from './domain/rules/timeline-buckets.rules'
 export { buildBucketSegment } from './domain/rules/bucket-segment.rules'
 export { computeBarPixelRange } from './domain/rules/timeline-dependency-links.rules'

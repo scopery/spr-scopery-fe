@@ -4,6 +4,7 @@ import {
   autoDailyAllocationMinutes,
   buildBucketsForRow,
   buildTimelineColumns,
+  sumPlannedMinutesByColumn,
 } from './timeline-buckets.rules'
 
 describe('autoDailyAllocationMinutes', () => {
@@ -31,6 +32,28 @@ describe('buildBucketsForRow', () => {
     const buckets = buildBucketsForRow(cols, '2026-08-03', '2026-08-07', null)
     expect(buckets[0].scheduled).toBe(true)
     expect(buckets[0].plannedContributionPercent).toBeNull()
+  })
+})
+
+describe('sumPlannedMinutesByColumn', () => {
+  it('sums day-load minutes across assigned tasks without bucket objects', () => {
+    const cols = buildTimelineColumns('2026-08-03', '2026-08-07', TimelineGranularity.Day)
+    const minutes = sumPlannedMinutesByColumn(cols, [
+      {
+        startDate: '2026-08-03',
+        endDate: '2026-08-07',
+        estimateHours: 40,
+      },
+      {
+        startDate: '2026-08-03',
+        endDate: '2026-08-03',
+        estimateHours: 8,
+      },
+    ])
+    expect(minutes).toHaveLength(5)
+    expect(minutes[0]).toBe(480 + 480)
+    expect(minutes[1]).toBe(480)
+    expect(minutes.reduce((a, b) => a + b, 0)).toBe(40 * 60 + 8 * 60)
   })
 })
 

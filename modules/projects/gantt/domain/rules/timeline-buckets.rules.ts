@@ -229,6 +229,55 @@ export function rangesOverlap(
   return aStart <= bEnd && bStart <= aEnd
 }
 
+/**
+ * Sum planned minutes into each column without allocating per-cell bucket objects.
+ * Used for Team Schedule day-load strip (Day + one assignee) — O(tasks × span), not O(tasks × columns × fields).
+ */
+export function sumPlannedMinutesByColumn(
+  columns: TimelineColumn[],
+  items: Array<{
+    startDate: string | null
+    endDate: string | null
+    estimateHours: number | null
+  }>
+): number[] {
+  const minutes = columns.map(() => 0)
+  if (columns.length === 0 || items.length === 0) return minutes
+
+  const indexByDay = new Map<string, number>()
+  const isDayZoom = columns.every((c) => c.periodStart === c.periodEnd)
+  if (isDayZoom) {
+    columns.forEach((col, i) => indexByDay.set(col.periodStart, i))
+  }
+
+  for (const item of items) {
+    if (!item.startDate || !item.endDate) continue
+    const daily = resolveDailyAllocationMinutes(
+      item.startDate,
+      item.endDate,
+      item.estimateHours,
+      null
+    )
+    if (isDayZoom) {
+      for (const [day, dayMinutes] of daily) {
+        const idx = indexByDay.get(day)
+        if (idx != null) minutes[idx] = (minutes[idx] ?? 0) + dayMinutes
+      }
+      continue
+    }
+    for (let i = 0; i < columns.length; i++) {
+      const col = columns[i]
+      if (!col) continue
+      let planned = 0
+      for (const [day, dayMinutes] of daily) {
+        if (day >= col.periodStart && day <= col.periodEnd) planned += dayMinutes
+      }
+      if (planned > 0) minutes[i] = (minutes[i] ?? 0) + planned
+    }
+  }
+  return minutes
+}
+
 export function buildBucketsForRow(
   columns: TimelineColumn[],
   startDate: string | null,

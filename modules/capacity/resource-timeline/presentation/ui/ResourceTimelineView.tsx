@@ -31,6 +31,7 @@ import {
   formatEstimateHours,
   formatTimelineCompactRange,
   formatTimelineMetricLabel,
+  sumPlannedMinutesByColumn,
   timelineRowHeight,
   type ScheduleFillKind,
   type TimelineFlatRow,
@@ -450,11 +451,12 @@ export function ResourceTimelineView() {
   const showDayLoad =
     Boolean(selectedUserId) && tl.granularity === TimelineGranularity.Day
   const headerH = showDayLoad ? HEADER_H_DAY_LOAD : HEADER_H
-  const needBuckets = metric !== TimelineMetric.Schedule || showDayLoad
+  // Buckets are O(rows × columns) — only for metric overlays, never for day-load alone.
+  const needBuckets = metric !== TimelineMetric.Schedule
 
   /**
    * Buckets are O(rows × columns) — lethal in Day zoom.
-   * Skip when Schedule bars alone are enough (no day-load strip / metric overlays).
+   * Skip when Schedule bars alone are enough.
    */
   const bucketsByRowId = useMemo(() => {
     const map = new Map<string, ReturnType<typeof buildBucketsForRow>>()
@@ -505,29 +507,42 @@ export function ResourceTimelineView() {
     [tl.columns]
   )
 
-  const weekendColIndexes = useMemo(() => {
-    const idxs: number[] = []
+  /** Merge consecutive weekend columns into ranges — fewer absolute overlays in Day zoom. */
+  const weekendRanges = useMemo(() => {
+    const ranges: { start: number; count: number }[] = []
+    let start = -1
+    let count = 0
     tl.columns.forEach((col, i) => {
-      if (col.isWeekend && !col.isToday) idxs.push(i)
+      const isWe = col.isWeekend && !col.isToday
+      if (isWe) {
+        if (start < 0) start = i
+        count += 1
+      } else if (start >= 0) {
+        ranges.push({ start, count })
+        start = -1
+        count = 0
+      }
     })
-    return idxs
+    if (start >= 0) ranges.push({ start, count })
+    return ranges
   }, [tl.columns])
 
   /** Day totals for the selected person only — never include unassigned leaves. */
   const dayLoadHours = useMemo(() => {
     if (!showDayLoad || tl.columns.length === 0) return null
-    const minutes = tl.columns.map(() => 0)
-    for (const row of tl.rows) {
-      if (row.kind !== 'task' && row.kind !== 'milestone') continue
-      if (!row.assigneeUserId) continue
-      const buckets = bucketsByRowId.get(row.id)
-      if (!buckets) continue
-      for (let i = 0; i < buckets.length; i++) {
-        minutes[i] = (minutes[i] ?? 0) + (buckets[i]?.plannedMinutes ?? 0)
-      }
-    }
-    return minutes.map((m) => m / 60)
-  }, [showDayLoad, tl.columns.length, tl.rows, bucketsByRowId])
+    const items = tl.rows
+      .filter(
+        (row) =>
+          (row.kind === 'task' || row.kind === 'milestone') &&
+          Boolean(row.assigneeUserId)
+      )
+      .map((row) => ({
+        startDate: row.startDate,
+        endDate: row.endDate,
+        estimateHours: row.estimateHours,
+      }))
+    return sumPlannedMinutesByColumn(tl.columns, items).map((m) => m / 60)
+  }, [showDayLoad, tl.columns, tl.rows])
 
   const canvasGridStyle = useMemo(() => {
     const line = 'rgb(229 229 229)' // neutral-200
@@ -973,11 +988,14 @@ export function ResourceTimelineView() {
                   className="pointer-events-none block"
                   style={{ width: canvasWidth, height: 0 }}
                 />
-                {weekendColIndexes.map((i) => (
+                {weekendRanges.map((range) => (
                   <div
-                    key={`we-${i}`}
+                    key={`we-${range.start}`}
                     className="pointer-events-none absolute inset-y-0 bg-neutral-50"
-                    style={{ left: i * tl.colWidth, width: tl.colWidth }}
+                    style={{
+                      left: range.start * tl.colWidth,
+                      width: range.count * tl.colWidth,
+                    }}
                     aria-hidden
                   />
                 ))}
