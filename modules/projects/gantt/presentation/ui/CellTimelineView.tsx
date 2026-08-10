@@ -68,6 +68,14 @@ import { phaseHealthLabel } from '../../domain/rules/phase-row-summary.rules'
 import type { TimelineFlatRow } from '../../domain/model/timeline'
 import { useCellTimeline } from '../hooks/useCellTimeline'
 import { useTimelineLeftWidth } from '../hooks/useTimelineLeftWidth'
+import { useTimelineBoardScroll } from '../hooks/useTimelineBoardScroll'
+import {
+  TIMELINE_BOARD_LAYOUT,
+  timelineBoardCanvasStyle,
+  timelineBoardContentStyle,
+  timelineBoardLeftPaneStyle,
+  timelineBoardRightPaneStyle,
+} from './timeline-board-layout'
 import { TimelineScheduleHealthBar } from './TimelineScheduleHealthBar'
 import { TimelineBulkToolbar } from './TimelineBulkToolbar'
 import { UnscheduledWorkDrawer } from './UnscheduledWorkDrawer'
@@ -173,10 +181,6 @@ export function CellTimelineView() {
 
   const tl = useCellTimeline(projectId)
   const { leftWidth, setLeftWidth, autoFitToLabels } = useTimelineLeftWidth(projectId)
-  const leftScrollRef = useRef<HTMLDivElement>(null)
-  const canvasScrollRef = useRef<HTMLDivElement>(null)
-  const canvasHeaderScrollRef = useRef<HTMLDivElement>(null)
-  const syncingRef = useRef(false)
   const resizingRef = useRef(false)
   const [drag, setDrag] = useState<DragState | null>(null)
   const [fillDrag, setFillDrag] = useState<FillDragState | null>(null)
@@ -222,6 +226,23 @@ export function CellTimelineView() {
     tl.granularity === TimelineGranularity.Week
   const canEditSchedule = dayPrecision
   const initialFitDone = useRef(false)
+  const canvasWidth = Math.max(tl.columns.length * tl.colWidth, 1)
+  const boardLayoutKey = `${tl.granularity}:${canvasWidth}:${tl.columns.length}`
+
+  const {
+    leftScrollRef,
+    canvasScrollRef,
+    canvasHeaderScrollRef,
+    syncScroll,
+    scrollCanvasToColumnIndex: scrollToColumn,
+    panCanvas: panCanvasByDir,
+    getScrollSnapshot,
+    restoreScroll,
+    onCanvasPanMouseDown,
+  } = useTimelineBoardScroll({
+    enabled: tl.rows.length > 0 || !tl.loading,
+    layoutKey: boardLayoutKey,
+  })
 
   const taskRows = useMemo(
     () => tl.rows.filter((r) => r.kind === 'task'),
@@ -303,31 +324,17 @@ export function CellTimelineView() {
     tl.setSelectedRowId(phaseRowId)
   }, [tl])
 
-  const syncHeaderScroll = useCallback((scrollLeft: number) => {
-    const header = canvasHeaderScrollRef.current
-    if (header && header.scrollLeft !== scrollLeft) header.scrollLeft = scrollLeft
-  }, [])
-
   const pendingScrollToDateRef = useRef<string | null>(null)
 
   const scrollCanvasToDateColumn = useCallback(
     (date: string) => {
-      const canvas = canvasScrollRef.current
-      if (!canvas) return false
       const day = date.slice(0, 10)
       const columnIndex = tl.columns.findIndex(
         (c) => day >= c.periodStart && day <= c.periodEnd
       )
-      if (columnIndex < 0) return false
-      const targetLeft = Math.max(
-        0,
-        columnIndex * tl.colWidth - canvas.clientWidth / 2 + tl.colWidth / 2
-      )
-      canvas.scrollTo({ left: targetLeft, behavior: 'smooth' })
-      syncHeaderScroll(targetLeft)
-      return true
+      return scrollToColumn(columnIndex, tl.colWidth)
     },
-    [tl.columns, tl.colWidth, syncHeaderScroll]
+    [tl.columns, tl.colWidth, scrollToColumn]
   )
 
   useEffect(() => {
@@ -362,52 +369,17 @@ export function CellTimelineView() {
     [tl, scrollCanvasToDateColumn]
   )
 
-  const syncScroll = useCallback(
-    (source: 'left' | 'canvas') => {
-      if (syncingRef.current) return
-      syncingRef.current = true
-      const left = leftScrollRef.current
-      const canvas = canvasScrollRef.current
-      if (left && canvas) {
-        if (source === 'left') canvas.scrollTop = left.scrollTop
-        else left.scrollTop = canvas.scrollTop
-      }
-      if (source === 'canvas' && canvas) syncHeaderScroll(canvas.scrollLeft)
-      requestAnimationFrame(() => {
-        syncingRef.current = false
-      })
-    },
-    [syncHeaderScroll]
-  )
-
-  /** Desktop without trackpad: jump timeline left/right by ~¾ of the visible canvas. */
   const panCanvas = useCallback(
-    (direction: -1 | 1) => {
-      const canvas = canvasScrollRef.current
-      if (!canvas) return
-      const step = Math.max(tl.colWidth * 3, Math.round(canvas.clientWidth * 0.75))
-      canvas.scrollBy({ left: direction * step, behavior: 'smooth' })
-      // Header follows via onScroll sync; also nudge immediately for snappy feel.
-      requestAnimationFrame(() => syncHeaderScroll(canvas.scrollLeft))
-    },
-    [tl.colWidth, syncHeaderScroll]
+    (direction: -1 | 1) => panCanvasByDir(direction, tl.colWidth),
+    [panCanvasByDir, tl.colWidth]
   )
 
   const pendingScrollToTodayRef = useRef(false)
 
   const scrollCanvasToTodayColumn = useCallback(() => {
-    const canvas = canvasScrollRef.current
-    if (!canvas) return false
     const todayIndex = tl.columns.findIndex((c) => c.isToday)
-    if (todayIndex < 0) return false
-    const targetLeft = Math.max(
-      0,
-      todayIndex * tl.colWidth - canvas.clientWidth / 2 + tl.colWidth / 2
-    )
-    canvas.scrollTo({ left: targetLeft, behavior: 'smooth' })
-    syncHeaderScroll(targetLeft)
-    return true
-  }, [tl.columns, tl.colWidth, syncHeaderScroll])
+    return scrollToColumn(todayIndex, tl.colWidth)
+  }, [tl.columns, tl.colWidth, scrollToColumn])
 
   /** Scroll to today — keeps full plan; only expands if today was outside the window. */
   const scrollToToday = useCallback(() => {
@@ -422,54 +394,6 @@ export function CellTimelineView() {
     if (!pendingScrollToTodayRef.current) return
     if (scrollCanvasToTodayColumn()) pendingScrollToTodayRef.current = false
   }, [tl.columns, scrollCanvasToTodayColumn])
-
-  const panDragRef = useRef<{ startX: number; startScroll: number } | null>(null)
-
-  // Non-passive wheel so we can map mouse-wheel → horizontal pan on desktop.
-  useEffect(() => {
-    const canvas = canvasScrollRef.current
-    if (!canvas) return
-    const onWheel = (e: WheelEvent) => {
-      const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
-      if (dx === 0) return
-      const maxLeft = canvas.scrollWidth - canvas.clientWidth
-      if (maxLeft <= 0) return
-      e.preventDefault()
-      const next = Math.max(0, Math.min(maxLeft, canvas.scrollLeft + dx))
-      if (next !== canvas.scrollLeft) {
-        canvas.scrollLeft = next
-        syncHeaderScroll(next)
-      }
-    }
-    canvas.addEventListener('wheel', onWheel, { passive: false })
-    return () => canvas.removeEventListener('wheel', onWheel)
-  }, [tl.columns.length, tl.colWidth, syncHeaderScroll])
-
-  const onCanvasPanMouseDown = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      // Middle mouse, or Alt+left drag — pan without trackpad.
-      if (e.button !== 1 && !(e.button === 0 && e.altKey)) return
-      e.preventDefault()
-      const canvas = canvasScrollRef.current
-      if (!canvas) return
-      panDragRef.current = { startX: e.clientX, startScroll: canvas.scrollLeft }
-      const onMove = (ev: MouseEvent) => {
-        const drag = panDragRef.current
-        if (!drag || !canvasScrollRef.current) return
-        canvasScrollRef.current.scrollLeft =
-          drag.startScroll - (ev.clientX - drag.startX)
-        syncHeaderScroll(canvasScrollRef.current.scrollLeft)
-      }
-      const onUp = () => {
-        panDragRef.current = null
-        window.removeEventListener('mousemove', onMove)
-        window.removeEventListener('mouseup', onUp)
-      }
-      window.addEventListener('mousemove', onMove)
-      window.addEventListener('mouseup', onUp)
-    },
-    [syncHeaderScroll]
-  )
 
   const selectRow = useCallback(
     (rowId: string, e?: { shiftKey?: boolean; metaKey?: boolean; ctrlKey?: boolean }) => {
@@ -838,12 +762,7 @@ export function CellTimelineView() {
   }
 
   const handleApply = async () => {
-    const canvas = canvasScrollRef.current
-    const left = leftScrollRef.current
-    const savedScroll = {
-      left: canvas?.scrollLeft ?? 0,
-      top: canvas?.scrollTop ?? left?.scrollTop ?? 0,
-    }
+    const savedScroll = getScrollSnapshot()
     setApplying(true)
     try {
       const result = await tl.applyChanges()
@@ -859,14 +778,7 @@ export function CellTimelineView() {
     } finally {
       setApplying(false)
       requestAnimationFrame(() => {
-        const c = canvasScrollRef.current
-        const l = leftScrollRef.current
-        if (c) {
-          c.scrollLeft = savedScroll.left
-          c.scrollTop = savedScroll.top
-          syncHeaderScroll(savedScroll.left)
-        }
-        if (l) l.scrollTop = savedScroll.top
+        restoreScroll(savedScroll)
       })
     }
   }
@@ -1173,8 +1085,6 @@ export function CellTimelineView() {
   if (tl.error && tl.rows.length === 0) {
     return <Typography tone="muted">{tl.error}</Typography>
   }
-
-  const canvasWidth = tl.columns.length * tl.colWidth
 
   return (
     <Stack
@@ -1527,10 +1437,10 @@ export function CellTimelineView() {
         </div>
       )}
 
-      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden border border-neutral-200 bg-white">
+      <div className={TIMELINE_BOARD_LAYOUT.board}>
         <div
-          className="flex shrink-0 flex-col border-r border-neutral-200"
-          style={{ width: leftWidth, maxWidth: leftWidth }}
+          className={TIMELINE_BOARD_LAYOUT.leftPane}
+          style={timelineBoardLeftPaneStyle(leftWidth)}
         >
           <div
             className="flex shrink-0 items-center border-b border-neutral-200 bg-neutral-50 px-sm text-xs font-medium text-neutral-600"
@@ -1572,7 +1482,7 @@ export function CellTimelineView() {
           </div>
           <div
             ref={leftScrollRef}
-            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+            className={TIMELINE_BOARD_LAYOUT.leftBody}
             onScroll={() => syncScroll('left')}
           >
             {previewRows.map((row, rowIndex) => (
@@ -1682,22 +1592,18 @@ export function CellTimelineView() {
           onDoubleClick={autoFitLeft}
         />
 
-        {/*
-          Right pane: width:0 + flex-basis 0 keeps Day canvasWidth from expanding
-          the column (which would kill horizontal overflow / wheel pan).
-        */}
         <div
-          className="flex min-h-0 flex-1 flex-col overflow-hidden"
-          style={{ minWidth: 0, width: 0, flex: '1 1 0%' }}
+          className={TIMELINE_BOARD_LAYOUT.rightPane}
+          style={timelineBoardRightPaneStyle}
         >
           {/* Date header stays pinned while rows scroll vertically (like left column headers). */}
           <div
             ref={canvasHeaderScrollRef}
-            className="min-w-0 shrink-0 overflow-x-hidden overflow-y-hidden border-b border-neutral-200 bg-neutral-50"
+            className={TIMELINE_BOARD_LAYOUT.header}
             style={{ height: HEADER_H }}
             aria-hidden
           >
-            <div className="flex" style={{ width: canvasWidth, minWidth: canvasWidth }}>
+            <div className="flex" style={timelineBoardContentStyle(canvasWidth)}>
               {tl.columns.map((col) => (
                 <div
                   key={col.key}
@@ -1741,15 +1647,15 @@ export function CellTimelineView() {
 
           <div
             ref={canvasScrollRef}
-            className="min-h-0 min-w-0 flex-1 overflow-auto"
-            style={{ minWidth: 0 }}
-            title="Scroll wheel pans horizontally · Alt+drag or middle-click drag to pan"
+            className={TIMELINE_BOARD_LAYOUT.canvas}
+            style={timelineBoardCanvasStyle}
+            title={TIMELINE_BOARD_LAYOUT.canvasTitle}
             onScroll={() => syncScroll('canvas')}
             onMouseDown={onCanvasPanMouseDown}
           >
             <div
               className="relative"
-              style={{ width: canvasWidth, minWidth: canvasWidth }}
+              style={timelineBoardContentStyle(canvasWidth)}
             >
             <TimelineDependencyLinks
               dependencies={tl.ganttDependencies ?? []}

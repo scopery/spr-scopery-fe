@@ -5,6 +5,14 @@ export type { ScheduleFillKind } from './presentation/ui/ScheduleBucketSegment'
 export { TimelineCollapseModeButton } from './presentation/ui/TimelineCollapseModeButton'
 export { useProjectGantt } from './presentation/hooks/useProjectGantt'
 export { useCellTimeline } from './presentation/hooks/useCellTimeline'
+export { useTimelineBoardScroll } from './presentation/hooks/useTimelineBoardScroll'
+export {
+  TIMELINE_BOARD_LAYOUT,
+  timelineBoardCanvasStyle,
+  timelineBoardContentStyle,
+  timelineBoardLeftPaneStyle,
+  timelineBoardRightPaneStyle,
+} from './presentation/ui/timeline-board-layout'
 export * as ganttApi from './infrastructure/api/gantt.api'
 export type {
   GanttItem,
