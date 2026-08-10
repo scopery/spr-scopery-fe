@@ -7,6 +7,7 @@ import type {
   ElicitationRound,
   ElicitationSession,
   ElicitationSuggestion,
+  ElicitationSuggestionItem,
   StartElicitationSessionPayload,
   SubmitRoundResponse,
 } from '../../domain/model/elicitation'
@@ -226,6 +227,13 @@ export function useElicitationSession(projectId: string | null) {
     [suggestion, rounds, loadSuggestion]
   )
 
+  const updateSuggestionItem = useCallback((updated: ElicitationSuggestionItem) => {
+    setSuggestion((prev) => {
+      if (!prev) return prev
+      return { ...prev, items: prev.items.map((it) => (it.id === updated.id ? updated : it)) }
+    })
+  }, [])
+
   const clearSuggestion = useCallback(() => setSuggestion(null), [])
 
   return {
@@ -255,5 +263,6 @@ export function useElicitationSession(projectId: string | null) {
     generateSuggestions,
     approveSuggestionItem,
     rejectSuggestionItem,
+    updateSuggestionItem,
   }
 }

@@ -49,6 +49,8 @@ export const ELICITATION_ENDPOINTS = {
       apiPath(`/v1/elicitation-suggestion-items/${itemId}/approve`),
     reject: (itemId: string) =>
       apiPath(`/v1/elicitation-suggestion-items/${itemId}/reject`),
+    changes: (itemId: string) =>
+      apiPath(`/v1/elicitation-suggestion-items/${itemId}/changes`),
   },
   scopeTree: {
     get: (projectId: string, sessionId: string) =>

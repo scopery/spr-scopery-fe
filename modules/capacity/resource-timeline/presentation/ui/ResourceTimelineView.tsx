@@ -347,24 +347,30 @@ export function ResourceTimelineView() {
   const panDragRef = useRef<{ startX: number; startScroll: number } | null>(null)
 
   /**
-   * Match project timeline on the date canvas:
-   * wheel → horizontal pan (mouse wheel / trackpad).
-   * Vertical scroll: use the left list (synced) or the canvas vertical scrollbar.
+   * Canvas wheel → horizontal pan (dates).
+   * Vertical row scroll belongs to the left list (synced onto the canvas).
    */
   useEffect(() => {
     const canvas = canvasScrollRef.current
     if (!canvas || !tl.hasData) return
     const onWheel = (e: WheelEvent) => {
-      const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
+      const dx =
+        Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
       if (dx === 0) return
+      const maxLeft = canvas.scrollWidth - canvas.clientWidth
+      // No H overflow yet (layout not ready / flex grew) — don't steal the gesture.
+      if (maxLeft <= 0) return
       e.preventDefault()
-      canvas.scrollLeft += dx
-      syncHeaderScroll(canvas.scrollLeft)
-      markScrolling()
+      const next = Math.max(0, Math.min(maxLeft, canvas.scrollLeft + dx))
+      if (next !== canvas.scrollLeft) {
+        canvas.scrollLeft = next
+        syncHeaderScroll(next)
+        markScrolling()
+      }
     }
     canvas.addEventListener('wheel', onWheel, { passive: false })
     return () => canvas.removeEventListener('wheel', onWheel)
-  }, [tl.hasData, tl.columns.length, tl.colWidth, syncHeaderScroll, markScrolling])
+  }, [tl.hasData, tl.columns.length, tl.colWidth, canvasWidth, syncHeaderScroll, markScrolling])
 
   // Left list: wheel scrolls vertically natively; keep canvas rows in sync.
   useEffect(() => {
@@ -444,10 +450,15 @@ export function ResourceTimelineView() {
   const showDayLoad =
     Boolean(selectedUserId) && tl.granularity === TimelineGranularity.Day
   const headerH = showDayLoad ? HEADER_H_DAY_LOAD : HEADER_H
+  const needBuckets = metric !== TimelineMetric.Schedule || showDayLoad
 
-  /** Precompute leaf buckets once — avoid rebuildBuckets on every hover/scroll re-render. */
+  /**
+   * Buckets are O(rows × columns) — lethal in Day zoom.
+   * Skip when Schedule bars alone are enough (no day-load strip / metric overlays).
+   */
   const bucketsByRowId = useMemo(() => {
     const map = new Map<string, ReturnType<typeof buildBucketsForRow>>()
+    if (!needBuckets) return map
     for (const row of tl.rows) {
       if (row.kind !== 'task' && row.kind !== 'milestone') continue
       map.set(
@@ -462,7 +473,7 @@ export function ResourceTimelineView() {
       )
     }
     return map
-  }, [tl.rows, tl.columns])
+  }, [needBuckets, tl.rows, tl.columns])
 
   /** One pixel bar per scheduled row — avoids O(rows × columns) Day cells (breaks H-scroll). */
   const barRangeByRowId = useMemo(() => {
@@ -489,6 +500,19 @@ export function ResourceTimelineView() {
     [tl.rows]
   )
 
+  const todayColIndex = useMemo(
+    () => tl.columns.findIndex((c) => c.isToday),
+    [tl.columns]
+  )
+
+  const weekendColIndexes = useMemo(() => {
+    const idxs: number[] = []
+    tl.columns.forEach((col, i) => {
+      if (col.isWeekend && !col.isToday) idxs.push(i)
+    })
+    return idxs
+  }, [tl.columns])
+
   /** Day totals for the selected person only — never include unassigned leaves. */
   const dayLoadHours = useMemo(() => {
     if (!showDayLoad || tl.columns.length === 0) return null
@@ -504,6 +528,17 @@ export function ResourceTimelineView() {
     }
     return minutes.map((m) => m / 60)
   }, [showDayLoad, tl.columns.length, tl.rows, bucketsByRowId])
+
+  const canvasGridStyle = useMemo(() => {
+    const line = 'rgb(229 229 229)' // neutral-200
+    const w = tl.colWidth
+    return {
+      width: canvasWidth,
+      minWidth: canvasWidth,
+      height: Math.max(canvasBodyHeight, 1),
+      backgroundImage: `repeating-linear-gradient(to right, transparent 0, transparent ${w - 1}px, ${line} ${w - 1}px, ${line} ${w}px)`,
+    } as const
+  }, [canvasWidth, canvasBodyHeight, tl.colWidth])
 
   if (membersLoading && people.length === 0) {
     return <PageSkeleton variant="cards" />
@@ -677,7 +712,7 @@ export function ResourceTimelineView() {
           {/* Left: pinned column header + vertical scroll body */}
           <div
             className="flex shrink-0 flex-col border-r border-neutral-200"
-            style={{ width: leftWidth }}
+            style={{ width: leftWidth, maxWidth: leftWidth }}
           >
             <div
               className="flex shrink-0 items-center border-b border-neutral-200 bg-neutral-50 px-1"
@@ -846,15 +881,24 @@ export function ResourceTimelineView() {
             </div>
           </div>
 
-          {/* Right: pinned date header + canvas (H + V scroll) */}
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          {/*
+            Right pane: width:0 + flex-basis 0 forces the column to take leftover
+            space instead of growing to Day canvasWidth (which kills H-scroll).
+          */}
+          <div
+            className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            style={{ minWidth: 0, width: 0, flex: '1 1 0%' }}
+          >
             <div
               ref={canvasHeaderScrollRef}
-              className="shrink-0 overflow-x-hidden overflow-y-hidden border-b border-neutral-200 bg-neutral-50"
+              className="min-w-0 shrink-0 overflow-x-hidden overflow-y-hidden border-b border-neutral-200 bg-neutral-50"
               style={{ height: headerH }}
               aria-hidden
             >
-              <div className="flex" style={{ width: canvasWidth, minWidth: '100%' }}>
+              <div
+                className="flex"
+                style={{ width: canvasWidth, minWidth: canvasWidth }}
+              >
                 {tl.columns.map((col, colIndex) => {
                   const loadH = dayLoadHours?.[colIndex] ?? null
                   const overloaded =
@@ -912,42 +956,43 @@ export function ResourceTimelineView() {
 
             <div
               ref={canvasScrollRef}
-              className="min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain"
+              className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto overscroll-contain"
+              style={{ minWidth: 0 }}
               title="Scroll wheel pans dates · scroll the left list for rows · Alt+drag or middle-click to pan"
               onScroll={() => syncScroll('canvas')}
               onMouseDown={onCanvasPanMouseDown}
             >
               {/*
-                Day zoom used to mount O(rows × days) cells and freeze horizontal scroll.
-                One column chrome layer + absolute bars keeps scrollWidth correct and light.
+                Day zoom: never mount O(columns) body cells — CSS grid + absolute bars
+                so scrollWidth stays correct and the main thread stays responsive.
               */}
-              <div
-                className="relative"
-                style={{
-                  width: canvasWidth,
-                  minWidth: '100%',
-                  height: Math.max(canvasBodyHeight, 1),
-                }}
-              >
+              <div className="relative box-border" style={canvasGridStyle}>
+                {/* Guarantees scrollWidth even if absolute overlays dominate layout. */}
                 <div
-                  className="pointer-events-none absolute inset-0 flex"
                   aria-hidden
-                >
-                  {tl.columns.map((col) => (
-                    <div
-                      key={col.key}
-                      className={cn(
-                        'shrink-0 border-r border-r-neutral-200',
-                        col.isWeekend && !col.isToday && 'bg-neutral-50',
-                        col.isToday && TODAY_COL,
-                        col.isMonthBoundary && !col.isToday && MONTH_BOUNDARY
-                      )}
-                      style={{ width: tl.colWidth }}
-                    />
-                  ))}
-                </div>
+                  className="pointer-events-none block"
+                  style={{ width: canvasWidth, height: 0 }}
+                />
+                {weekendColIndexes.map((i) => (
+                  <div
+                    key={`we-${i}`}
+                    className="pointer-events-none absolute inset-y-0 bg-neutral-50"
+                    style={{ left: i * tl.colWidth, width: tl.colWidth }}
+                    aria-hidden
+                  />
+                ))}
+                {todayColIndex >= 0 ? (
+                  <div
+                    className="pointer-events-none absolute inset-y-0 border-l border-r border-sky-300 bg-sky-50"
+                    style={{
+                      left: todayColIndex * tl.colWidth,
+                      width: tl.colWidth,
+                    }}
+                    aria-hidden
+                  />
+                ) : null}
 
-                <div className="relative">
+                <div className="relative" style={{ width: canvasWidth }}>
                   {tl.rows.map((row) => {
                     const rh = rowHeight(row)
                     const isLeaf = row.kind === 'task' || row.kind === 'milestone'
@@ -994,7 +1039,10 @@ export function ResourceTimelineView() {
                               const overlay = formatTimelineMetricLabel(
                                 metric,
                                 bucket,
-                                { include: isLeaf }
+                                {
+                                  // Hierarchy bars stay bar-only; metrics are for leaf tasks.
+                                  include: isLeaf,
+                                }
                               )
                               if (!overlay) return null
                               const col = tl.columns[colIndex]

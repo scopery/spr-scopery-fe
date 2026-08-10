@@ -6,10 +6,12 @@ import type {
   ElicitationRound,
   ElicitationSession,
   ElicitationSuggestion,
+  ElicitationSuggestionItem,
   ScopeLockResponse,
   ScopeTreeResponse,
   StartElicitationSessionPayload,
   SubmitRoundResponse,
+  UpdateSuggestionItemChangesPayload,
 } from '../../domain/model/elicitation'
 
 export async function listSessions(projectId: string): Promise<ElicitationSession[]> {
@@ -218,6 +220,16 @@ export async function approveSuggestionItem(itemId: string): Promise<unknown> {
 
 export async function rejectSuggestionItem(itemId: string): Promise<unknown> {
   return apiClient.post(ELICITATION_ENDPOINTS.suggestionItems.reject(itemId))
+}
+
+export async function updateSuggestionItemChanges(
+  itemId: string,
+  payload: UpdateSuggestionItemChangesPayload
+): Promise<ElicitationSuggestionItem> {
+  return apiClient.patch<ElicitationSuggestionItem>(
+    ELICITATION_ENDPOINTS.suggestionItems.changes(itemId),
+    payload
+  )
 }
 
 export async function getScopeTree(

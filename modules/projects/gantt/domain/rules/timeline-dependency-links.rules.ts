@@ -21,6 +21,9 @@ export function computeBarPixelRange(
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i]
     if (!col) continue
+    // Columns are chronological — skip / stop early for Day zoom with long ranges.
+    if (col.periodEnd < startDate) continue
+    if (col.periodStart > endDate) break
     const seg = buildBucketSegment(startDate, endDate, col.periodStart, col.periodEnd)
     if (!seg) continue
     const x0 = i * colWidth + seg.startRatio * colWidth

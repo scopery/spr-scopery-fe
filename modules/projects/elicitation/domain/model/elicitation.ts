@@ -78,10 +78,15 @@ export interface ElicitationSuggestionItem {
   rationale: string
   estimatedImpact: string
   status: string
+  changesJson: string | null
   requirementId: string | null
   errorMessage: string | null
   executedAt: string | null
   createdAt: string
+}
+
+export interface UpdateSuggestionItemChangesPayload {
+  changesJson: string
 }
 
 /** Matches BE ElicitationSuggestionResponse */

@@ -56,6 +56,7 @@ export function ElicitationView() {
     generateSuggestions,
     approveSuggestionItem,
     rejectSuggestionItem,
+    updateSuggestionItem,
     loadSuggestion,
     loadQuestions,
     loadRounds,
@@ -289,6 +290,7 @@ export function ElicitationView() {
             onApproveItem={approveSuggestionItem}
             onRejectItem={rejectSuggestionItem}
             onLoadSuggestion={loadSuggestion}
+            onItemUpdated={updateSuggestionItem}
           />
         </div>
       )}

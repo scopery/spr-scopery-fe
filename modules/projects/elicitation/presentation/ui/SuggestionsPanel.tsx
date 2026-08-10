@@ -11,7 +11,7 @@ import type {
   ScopeTreeResponse,
 } from '../../domain/model/elicitation'
 import { RoundStatus, SuggestionItemStatus } from '../../domain/enums/elicitation.enum'
-import { getScopeTree } from '../../infrastructure/api/elicitation.api'
+import { getScopeTree, updateSuggestionItemChanges } from '../../infrastructure/api/elicitation.api'
 import { ScopeTreeView } from './ScopeTreeView'
 
 interface SuggestionsPanelProps {
@@ -23,18 +23,36 @@ interface SuggestionsPanelProps {
   onApproveItem: (itemId: string) => Promise<unknown>
   onRejectItem: (itemId: string) => Promise<unknown>
   onLoadSuggestion: (roundId: string) => Promise<unknown>
+  onItemUpdated?: (item: ElicitationSuggestionItem) => void
+}
+
+function prettyJson(raw: string | null): string {
+  if (!raw) return '{}'
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2)
+  } catch {
+    return raw
+  }
 }
 
 function SuggestionItemRow({
   item,
   onApprove,
   onReject,
+  onItemUpdated,
 }: {
   item: ElicitationSuggestionItem
   onApprove: () => Promise<unknown>
   onReject: () => Promise<unknown>
+  onItemUpdated?: (updated: ElicitationSuggestionItem) => void
 }) {
-  const [acting, setActing] = useState<'approve' | 'reject' | null>(null)
+  const [acting, setActing] = useState<'approve' | 'reject' | 'save' | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [editValue, setEditValue] = useState('')
+
+  const isPending = item.status === SuggestionItemStatus.Pending
+  const isFailed = item.status === SuggestionItemStatus.Failed
+  const canEdit = isPending || isFailed
 
   const handleApprove = async () => {
     setActing('approve')
@@ -60,7 +78,31 @@ function SuggestionItemRow({
     }
   }
 
-  const isPending = item.status === SuggestionItemStatus.Pending
+  const openEdit = () => {
+    setEditValue(prettyJson(item.changesJson))
+    setEditing(true)
+  }
+
+  const handleSave = async () => {
+    let parsed: string
+    try {
+      parsed = JSON.stringify(JSON.parse(editValue))
+    } catch {
+      toast.error('Invalid JSON — fix the syntax before saving')
+      return
+    }
+    setActing('save')
+    try {
+      const updated = await updateSuggestionItemChanges(item.id, { changesJson: parsed })
+      toast.success(isFailed ? 'Changes saved — item reset to pending' : 'Changes saved')
+      setEditing(false)
+      onItemUpdated?.(updated)
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    } finally {
+      setActing(null)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-2 border-b border-neutral-100 py-3 last:border-b-0">
@@ -88,26 +130,71 @@ function SuggestionItemRow({
         </div>
       </div>
 
-      {isPending ? (
-        <div className="ml-8 flex gap-2">
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={() => void handleApprove()}
-            loading={acting === 'approve'}
-            disabled={!!acting}
-          >
-            Approve
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => void handleReject()}
-            loading={acting === 'reject'}
-            disabled={!!acting}
-          >
-            Reject
-          </Button>
+      {(isPending || isFailed) ? (
+        <div className="ml-8 flex flex-wrap gap-2">
+          {isPending ? (
+            <>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => void handleApprove()}
+                loading={acting === 'approve'}
+                disabled={!!acting || editing}
+              >
+                Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => void handleReject()}
+                loading={acting === 'reject'}
+                disabled={!!acting || editing}
+              >
+                Reject
+              </Button>
+            </>
+          ) : null}
+          {canEdit && !editing ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={openEdit}
+              disabled={!!acting}
+            >
+              {isFailed ? 'Edit & retry' : 'Edit'}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {editing ? (
+        <div className="ml-8 flex flex-col gap-2">
+          <textarea
+            className="w-full border border-neutral-200 bg-neutral-50 p-2 font-mono text-xs text-neutral-800 focus:border-primary focus:outline-none"
+            rows={10}
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            spellCheck={false}
+          />
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => void handleSave()}
+              loading={acting === 'save'}
+              disabled={!!acting}
+            >
+              Save
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setEditing(false)}
+              disabled={!!acting}
+            >
+              Cancel
+            </Button>
+          </div>
         </div>
       ) : null}
     </div>
@@ -123,6 +210,7 @@ export function SuggestionsPanel({
   onApproveItem,
   onRejectItem,
   onLoadSuggestion,
+  onItemUpdated,
 }: SuggestionsPanelProps) {
   const [showPreview, setShowPreview] = useState(false)
   const [generatingForId, setGeneratingForId] = useState<string | null>(null)
@@ -240,6 +328,7 @@ export function SuggestionsPanel({
               item={item}
               onApprove={() => onApproveItem(item.id)}
               onReject={() => onRejectItem(item.id)}
+              onItemUpdated={onItemUpdated}
             />
           ))}
           {(suggestion.items ?? []).length === 0 ? (
