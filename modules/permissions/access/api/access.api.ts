@@ -3,13 +3,15 @@ import { ACCESS_ENDPOINTS } from '../../endpoints'
 import type { EffectivePermissions } from '../model/permissions-types'
 
 export async function getEffectivePermissions(
-  orgId: string,
+  orgId?: string,
   projectId?: string
-): Promise<EffectivePermissions> {
-  // Legacy org-scoped path — not on current BE. Callers use role fallbacks.
+): Promise<EffectivePermissions | null> {
   const url = ACCESS_ENDPOINTS.effectivePermissions(orgId, projectId)
-  const res = await apiClient.get<{ ok: boolean; data: EffectivePermissions }>(url, {
-    skipErrorToast: true,
-  })
-  return res.data
+  try {
+    const res = await apiClient.get<EffectivePermissions>(url, { skipErrorToast: true })
+    if (!res?.permissions) return null
+    return res
+  } catch {
+    return null
+  }
 }

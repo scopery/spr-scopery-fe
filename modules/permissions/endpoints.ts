@@ -2,14 +2,10 @@ import { apiPath } from '@/shared/lib/api-paths'
 
 /**
  * Permissions
- * Description: Resolve the current user's effective permissions for an org,
- *              optionally scoped to a specific project.
+ * Description: Resolve the current user's effective permissions.
  */
 export const ACCESS_ENDPOINTS = {
-  effectivePermissions: (orgId: string, projectId?: string) => {
-    const params = new URLSearchParams()
-    if (projectId) params.set('projectId', projectId)
-    const q = params.toString()
-    return apiPath(`/workspaces/${orgId}/access`) + (q ? `?${q}` : '')
+  effectivePermissions: (_orgId?: string, _projectId?: string) => {
+    return apiPath('/iam/me/effective-permissions')
   },
 } as const
