@@ -39,6 +39,8 @@ export interface UpdateAiPromptVersionPayload {
   contentFormat: PromptContentFormat
   variableSchema?: string | null
   changeNote?: string | null
+  systemPrompt?: string | null
+  userPromptTemplate?: string | null
 }
 
 export interface SearchAiPromptVersionsParams {

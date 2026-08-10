@@ -57,6 +57,8 @@ export function PromptVersionStudioView() {
   const [contentFormat, setContentFormat] = useState<PromptContentFormat>(PromptContentFormat.Text)
   const [variableSchema, setVariableSchema] = useState('')
   const [changeNote, setChangeNote] = useState('')
+  const [systemPrompt, setSystemPrompt] = useState('')
+  const [userPromptTemplate, setUserPromptTemplate] = useState('')
   const [fieldError, setFieldError] = useState<string | null>(null)
   const [activateOpen, setActivateOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
@@ -71,6 +73,8 @@ export function PromptVersionStudioView() {
     setContentFormat(version.contentFormat)
     setVariableSchema(version.variableSchema ?? '')
     setChangeNote(version.changeNote ?? '')
+    setSystemPrompt(version.systemPrompt ?? '')
+    setUserPromptTemplate(version.userPromptTemplate ?? '')
     setFieldError(null)
   }, [version])
 
@@ -116,6 +120,8 @@ export function PromptVersionStudioView() {
         contentFormat,
         variableSchema: variableSchema.trim() || null,
         changeNote: changeNote.trim() || null,
+        systemPrompt: systemPrompt.trim() || null,
+        userPromptTemplate: userPromptTemplate.trim() || null,
       })
     } catch (err) {
       if (err instanceof ApiError && (err.status === 400 || err.status === 422)) {
@@ -259,42 +265,40 @@ export function PromptVersionStudioView() {
         </Stack>
       </div>
 
-      {(version.systemPrompt || version.userPromptTemplate) ? (
-        <Stack direction="vertical" spacing="md">
-          <div>
-            <Typography variant="h3">Rendered prompts</Typography>
-            <Typography variant="caption" tone="muted">
-              Read-only — computed from the content template above
+      <Stack direction="vertical" spacing="md">
+        <div>
+          <Typography variant="h3">Rendered prompts</Typography>
+          <Typography variant="caption" tone="muted">
+            System prompt and user prompt template — editable on DRAFT versions
+          </Typography>
+        </div>
+        <div className="grid gap-lg lg:grid-cols-2">
+          <Stack direction="vertical" spacing="sm">
+            <Typography variant="caption" tone="muted" className="block font-medium uppercase tracking-wide">
+              System prompt
             </Typography>
-          </div>
-          <div className="grid gap-lg lg:grid-cols-2">
-            {version.systemPrompt ? (
-              <Stack direction="vertical" spacing="sm">
-                <Typography variant="caption" tone="muted" className="block font-medium uppercase tracking-wide">
-                  System prompt
-                </Typography>
-                <textarea
-                  className="min-h-[240px] w-full border border-neutral-200 bg-neutral-50 p-sm font-mono text-sm"
-                  value={version.systemPrompt}
-                  readOnly
-                />
-              </Stack>
-            ) : null}
-            {version.userPromptTemplate ? (
-              <Stack direction="vertical" spacing="sm">
-                <Typography variant="caption" tone="muted" className="block font-medium uppercase tracking-wide">
-                  User prompt template
-                </Typography>
-                <textarea
-                  className="min-h-[240px] w-full border border-neutral-200 bg-neutral-50 p-sm font-mono text-sm"
-                  value={version.userPromptTemplate}
-                  readOnly
-                />
-              </Stack>
-            ) : null}
-          </div>
-        </Stack>
-      ) : null}
+            <textarea
+              className="min-h-[240px] w-full border border-neutral-200 p-sm font-mono text-sm disabled:bg-neutral-50"
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              disabled={!editable || !canManage}
+              placeholder="System-level instructions for the AI model…"
+            />
+          </Stack>
+          <Stack direction="vertical" spacing="sm">
+            <Typography variant="caption" tone="muted" className="block font-medium uppercase tracking-wide">
+              User prompt template
+            </Typography>
+            <textarea
+              className="min-h-[240px] w-full border border-neutral-200 p-sm font-mono text-sm disabled:bg-neutral-50"
+              value={userPromptTemplate}
+              onChange={(e) => setUserPromptTemplate(e.target.value)}
+              disabled={!editable || !canManage}
+              placeholder="User message template with {{variable}} placeholders…"
+            />
+          </Stack>
+        </div>
+      </Stack>
 
       <ConfirmDialog
         open={activateOpen}
