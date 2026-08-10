@@ -26,6 +26,7 @@ import {
 } from '../../domain/enums/prompt.enum'
 import { validatePromptContent, validateVariableSchema } from '../../domain/rules/prompt.rules'
 import { usePromptTemplateDetail, usePromptVersions } from '../hooks/usePrompts'
+import * as promptsApi from '../../infrastructure/api/prompts.api'
 import { usePromptTemplateMutations, usePromptVersionMutations } from '../hooks/usePromptMutations'
 import { PromptTemplateFormModal } from './PromptTemplateFormModal'
 
@@ -209,7 +210,7 @@ export function PromptTemplateDetailView() {
                 id: 'actions',
                 header: 'Actions',
                 cell: (v) => (
-                  <>
+                  <div className="flex items-center gap-sm">
                     <Button
                       as={NextLink}
                       href={ADMIN_ROUTES.aiControlPromptVersion(templateId, v.id)}
@@ -218,7 +219,30 @@ export function PromptTemplateDetailView() {
                     >
                       Open studio
                     </Button>
-                  </>
+                    {canManage ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={saving}
+                        onClick={() =>
+                          void promptsApi.getPromptVersion(v.id).then((detail) =>
+                            createVersion({
+                              templateId,
+                              title: `${detail.title} (copy)`,
+                              content: detail.content,
+                              contentFormat: detail.contentFormat,
+                              variableSchema: detail.variableSchema ?? null,
+                              changeNote: `Duplicated from version ${detail.versionNumber ?? detail.id}`,
+                            }).then((copy) => {
+                              router.push(ADMIN_ROUTES.aiControlPromptVersion(templateId, copy.id))
+                            })
+                          )
+                        }
+                      >
+                        Duplicate
+                      </Button>
+                    ) : null}
+                  </div>
                 ),
               },
             ]}

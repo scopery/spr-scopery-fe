@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import NextLink from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { ADMIN_ROUTES } from '@/modules/admin/lib/routes'
 import {
   Button,
@@ -46,10 +46,11 @@ export function PromptVersionStudioView() {
     page: 0,
     size: 50,
   })
-  const { saving, update, activate, archive } = usePromptVersionMutations(() => {
+  const { saving, update, activate, archive, create } = usePromptVersionMutations(() => {
     void refetch()
     void refetchVersions()
   })
+  const router = useRouter()
 
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -59,6 +60,7 @@ export function PromptVersionStudioView() {
   const [fieldError, setFieldError] = useState<string | null>(null)
   const [activateOpen, setActivateOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
+  const [duplicating, setDuplicating] = useState(false)
 
   const editable = version ? isPromptVersionEditable(version.status) : false
 
@@ -71,6 +73,24 @@ export function PromptVersionStudioView() {
     setChangeNote(version.changeNote ?? '')
     setFieldError(null)
   }, [version])
+
+  const handleDuplicate = async () => {
+    if (!version) return
+    setDuplicating(true)
+    try {
+      const copy = await create({
+        templateId: version.templateId,
+        title: `${version.title} (copy)`,
+        content: version.content,
+        contentFormat: version.contentFormat,
+        variableSchema: version.variableSchema ?? null,
+        changeNote: `Duplicated from version ${version.versionNumber ?? version.id}`,
+      })
+      router.push(ADMIN_ROUTES.aiControlPromptVersion(templateId, copy.id))
+    } finally {
+      setDuplicating(false)
+    }
+  }
 
   const handleSave = async () => {
     if (!version || !editable) return
@@ -149,6 +169,16 @@ export function PromptVersionStudioView() {
           {canManage && editable ? (
             <Button size="sm" disabled={saving} onClick={() => void handleSave()}>
               Save draft
+            </Button>
+          ) : null}
+          {canManage ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={duplicating}
+              onClick={() => void handleDuplicate()}
+            >
+              Duplicate as draft
             </Button>
           ) : null}
           {canManage && version.status === PromptVersionStatus.Draft ? (
