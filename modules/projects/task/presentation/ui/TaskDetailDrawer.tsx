@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { X } from 'lucide-react'
+import { Check, Copy, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge, Button, ConfirmDialog, Input, Select, Stack, Textarea, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
@@ -114,6 +114,7 @@ export function TaskDetailDrawer({
   const [mounted, setMounted] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [copiedId, setCopiedId] = useState(false)
 
   const { members } = useWorkspaceMembers(open ? workspaceId : null)
   const { tree: wbsTree } = useProjectWbs(open ? projectId : null)
@@ -217,6 +218,18 @@ export function TaskDetailDrawer({
     }
   }
 
+  const handleCopyId = async () => {
+    if (!task) return
+    try {
+      await navigator.clipboard.writeText(task.id)
+      setCopiedId(true)
+      toast.success('Work item id copied')
+      window.setTimeout(() => setCopiedId(false), 1500)
+    } catch {
+      toast.error('Could not copy work item id')
+    }
+  }
+
   if (!open || !task || !mounted) return null
 
   return createPortal(
@@ -249,6 +262,26 @@ export function TaskDetailDrawer({
               </Badge>
               <Badge tone="neutral">{taskPriorityLabel(priority)}</Badge>
             </Stack>
+            <div className="mt-2 flex items-center gap-2">
+              <Typography
+                variant="caption"
+                className="min-w-0 truncate font-mono text-neutral-500"
+                title={task.id}
+              >
+                {task.id}
+              </Typography>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="shrink-0"
+                icon={copiedId ? <Check size={14} /> : <Copy size={14} />}
+                onClick={() => void handleCopyId()}
+                aria-label="Copy work item id"
+              >
+                {copiedId ? 'Copied' : 'Copy id'}
+              </Button>
+            </div>
           </div>
           <Button
             variant="ghost"

@@ -1,6 +1,7 @@
 export { TaskSearchSelect } from './presentation/ui/TaskSearchSelect'
 export { CreateTaskModal } from './presentation/ui/CreateTaskModal'
 export { TaskDetailDrawer } from './presentation/ui/TaskDetailDrawer'
+export { TaskJsonImportModal } from './presentation/ui/TaskJsonImportModal'
 export { useProjectTasks } from './presentation/hooks/useProjectTasks'
 export type { ProjectTask, CreateTaskPayload, UpdateTaskPayload } from './domain/model/task'
 export { canAssignTask, isTaskClosed } from './domain/rules/task.rules'

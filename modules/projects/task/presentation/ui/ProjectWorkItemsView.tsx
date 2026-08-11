@@ -32,6 +32,8 @@ import { useProjectPhases } from '../../../phase/presentation/hooks/useProjectPh
 import { useProjectTasks } from '../hooks/useProjectTasks'
 import { TaskDetailDrawer } from './TaskDetailDrawer'
 import { CreateTaskModal } from './CreateTaskModal'
+import { TaskJsonImportModal } from './TaskJsonImportModal'
+import * as tasksApi from '../../infrastructure/api/tasks.api'
 import type { ProjectTask } from '../../domain/model/task'
 import {
   BOARD_COLUMNS,
@@ -75,6 +77,7 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
   const [phaseFilter, setPhaseFilter] = useState('')
   const [assigneeFilter, setAssigneeFilter] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
+  const [importExcelOpen, setImportExcelOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<ProjectTask | null>(null)
   const [dragTaskId, setDragTaskId] = useState<string | null>(null)
 
@@ -211,9 +214,14 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
             </Typography>
           ) : null}
         </div>
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>
-          New task
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setImportExcelOpen(true)}>
+            Import JSON
+          </Button>
+          <Button variant="primary" icon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>
+            New task
+          </Button>
+        </div>
       </div>
 
       <Stack direction="horizontal" spacing="sm" className="mb-4 w-full flex-wrap items-center">
@@ -458,6 +466,13 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
           })}
         </div>
       )}
+
+      <TaskJsonImportModal
+        open={importExcelOpen}
+        onClose={() => setImportExcelOpen(false)}
+        onSubmitBulk={(items) => tasksApi.submitTasksBulk(projectId, items)}
+        onBatchComplete={() => refetch()}
+      />
 
       <CreateTaskModal
         open={createOpen}

@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Check, Copy } from 'lucide-react'
 import { Button, Input, Modal, Select, Stack, Textarea, Typography } from '@/shared/ui'
 import { WBS_NODE_TYPE_OPTIONS, WbsNodeType } from '@/modules/projects/wbs'
+import { toast } from 'sonner'
 import type {
   TimelineContainerEditValues,
   TimelineFlatRow,
@@ -42,6 +44,7 @@ export function TimelineContainerEditModal({
   const [endDate, setEndDate] = useState('')
   const [nodeType, setNodeType] = useState<string>(WbsNodeType.WorkPackage)
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!open || !row) return
@@ -63,6 +66,18 @@ export function TimelineContainerEditModal({
   const canEditTitle = isPhase || isWbs || isProject
   const canEditDates = isPhase || isProject || isWbs
   const datesShiftChildren = isPhase || isWbs
+
+  const handleCopyId = async () => {
+    if (!row?.sourceEntityId) return
+    try {
+      await navigator.clipboard.writeText(row.sourceEntityId)
+      setCopied(true)
+      toast.success(`${isWbs ? 'Planning element' : 'Item'} id copied`)
+      window.setTimeout(() => setCopied(false), 1500)
+    } catch {
+      toast.error('Could not copy id')
+    }
+  }
 
   const handleSave = async () => {
     const trimmed = title.trim()
@@ -97,6 +112,34 @@ export function TimelineContainerEditModal({
           <Typography variant="small" tone="muted">
             Code: {row.phaseCode}
           </Typography>
+        ) : null}
+
+        {row?.sourceEntityId ? (
+          <div className="flex items-start justify-between gap-3 rounded border border-neutral-200 bg-neutral-50 px-3 py-2">
+            <div className="min-w-0">
+              <Typography variant="small" tone="muted">
+                {isWbs ? 'Planning element id' : 'Item id'}
+              </Typography>
+              <Typography
+                variant="caption"
+                className="block truncate font-mono text-neutral-700"
+                title={row.sourceEntityId}
+              >
+                {row.sourceEntityId}
+              </Typography>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              icon={copied ? <Check size={14} /> : <Copy size={14} />}
+              onClick={() => void handleCopyId()}
+              aria-label="Copy item id"
+            >
+              {copied ? 'Copied' : 'Copy id'}
+            </Button>
+          </div>
         ) : null}
 
         {canEditTitle ? (
