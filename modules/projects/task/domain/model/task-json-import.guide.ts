@@ -9,6 +9,7 @@ export const TASK_BULK_IMPORT_GUIDE: BulkImportFormatGuide = {
     'priority: LOW | MEDIUM (default) | HIGH | CRITICAL.',
     'plannedStartDate / dueDate use ISO date strings (YYYY-MM-DD).',
     'Copy projectPhaseId from the Phase list or from "Copy id" in the phase editor.',
+    'wbsNodeId is optional — use "Copy id" on a WBS node to get its UUID.',
   ],
   fields: [
     {
@@ -59,6 +60,12 @@ export const TASK_BULK_IMPORT_GUIDE: BulkImportFormatGuide = {
       type: 'date',
       description: 'Due date (YYYY-MM-DD).',
     },
+    {
+      name: 'wbsNodeId',
+      required: false,
+      type: 'string',
+      description: 'UUID of the WBS node to associate this task with (optional).',
+    },
   ],
   sample: {
     items: [
@@ -76,6 +83,7 @@ export const TASK_BULK_IMPORT_GUIDE: BulkImportFormatGuide = {
         code: 'TASK-002',
         title: 'Design system architecture',
         projectPhaseId: '<phase-uuid>',
+        wbsNodeId: '<wbs-node-uuid>',
         estimateHours: 16,
       },
     ],

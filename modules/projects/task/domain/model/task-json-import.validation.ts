@@ -6,6 +6,7 @@ import {
   optionalIsoDateField,
   optionalNumberField,
   optionalString,
+  optionalUuid,
   rejectUnknownKeys,
   requireNonEmptyString,
   requireUuid,
@@ -24,6 +25,7 @@ const ALLOWED_KEYS = new Set([
   'priority',
   'plannedStartDate',
   'dueDate',
+  'wbsNodeId',
 ])
 
 const PRIORITY_VALUES = [
@@ -81,6 +83,7 @@ export function validateTaskJsonImport(
         issues
       )
       const dueDate = optionalIsoDateField(row, 'dueDate', itemPath(index, 'dueDate'), issues)
+      const wbsNodeId = optionalUuid(row, 'wbsNodeId', itemPath(index, 'wbsNodeId'), issues, 'wbsNodeId')
 
       if (plannedStartDate && dueDate && dueDate < plannedStartDate) {
         issues.push({
@@ -102,6 +105,7 @@ export function validateTaskJsonImport(
         priority: priority ?? TaskPriority.Medium,
         plannedStartDate,
         dueDate,
+        wbsNodeId,
       }
     },
     afterAll: (mapped, issues) => {

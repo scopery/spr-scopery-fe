@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { ChevronDown, Plus } from 'lucide-react'
 import {
@@ -16,6 +16,8 @@ import {
   DataTable,
   uiControl,
   uiDropdownPanel,
+  AnchoredMenu,
+  anchoredMenuItemClassName,
 } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
@@ -78,6 +80,8 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
   const [assigneeFilter, setAssigneeFilter] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
   const [importExcelOpen, setImportExcelOpen] = useState(false)
+  const [addMenuOpen, setAddMenuOpen] = useState(false)
+  const addMenuAnchorRef = useRef<HTMLDivElement>(null)
   const [selectedTask, setSelectedTask] = useState<ProjectTask | null>(null)
   const [dragTaskId, setDragTaskId] = useState<string | null>(null)
 
@@ -214,13 +218,47 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
             </Typography>
           ) : null}
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setImportExcelOpen(true)}>
-            Import JSON
+        <div ref={addMenuAnchorRef} className="relative">
+          <Button
+            variant="primary"
+            icon={<Plus size={16} />}
+            onClick={() => setAddMenuOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={addMenuOpen}
+          >
+            Add task
+            <ChevronDown
+              size={14}
+              className={cn('ml-1 shrink-0 transition-transform', addMenuOpen && 'rotate-180')}
+            />
           </Button>
-          <Button variant="primary" icon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>
-            New task
-          </Button>
+          <AnchoredMenu
+            open={addMenuOpen}
+            onClose={() => setAddMenuOpen(false)}
+            anchorRef={addMenuAnchorRef}
+            minWidth={160}
+          >
+            <button
+              type="button"
+              className={anchoredMenuItemClassName}
+              onClick={() => {
+                setAddMenuOpen(false)
+                setCreateOpen(true)
+              }}
+            >
+              Single task
+            </button>
+            <button
+              type="button"
+              className={anchoredMenuItemClassName}
+              onClick={() => {
+                setAddMenuOpen(false)
+                setImportExcelOpen(true)
+              }}
+            >
+              JSON import
+            </button>
+          </AnchoredMenu>
         </div>
       </div>
 
