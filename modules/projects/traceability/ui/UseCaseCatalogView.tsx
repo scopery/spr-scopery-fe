@@ -110,7 +110,7 @@ export function UseCaseCatalogView() {
               Back to catalog
             </Button>
           </header>
-          <div className="min-h-0 flex-1">
+          <div className="min-h-0 flex-1 overflow-hidden border border-neutral-300 bg-white">
             <FunctionUseCaseLinkPanel
               projectId={projectId}
               functionalItems={functionalItems}

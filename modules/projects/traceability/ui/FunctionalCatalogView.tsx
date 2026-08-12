@@ -634,7 +634,7 @@ export function FunctionalCatalogView() {
           ) : null}
 
           {tab === 'map' ? (
-            <div className="h-full min-h-0 overflow-hidden bg-white">
+            <div className="h-full min-h-0 overflow-hidden border border-neutral-300 bg-white">
               <RequirementFunctionalLinkPanel
                 workspaceId={workspaceId}
                 projectId={projectId}
@@ -645,7 +645,7 @@ export function FunctionalCatalogView() {
           ) : null}
 
           {tab === 'map-nfr' ? (
-            <div className="h-full min-h-0 overflow-hidden bg-white">
+            <div className="h-full min-h-0 overflow-hidden border border-neutral-300 bg-white">
               <RequirementNonFunctionalLinkPanel
                 workspaceId={workspaceId}
                 projectId={projectId}
