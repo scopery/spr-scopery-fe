@@ -11,6 +11,7 @@ import {
   ConfirmDialog,
   DataTable,
   PageSkeleton,
+  useVisibleRowSelection,
 } from '@/shared/ui'
 import { toast } from 'sonner'
 import { ApiError } from '@/shared/lib/api-types'
@@ -311,6 +312,11 @@ export function ProjectRequirementsView() {
     search,
   ])
 
+  const visibleReqKeys = useMemo(() => filtered.map((r) => r.id), [filtered])
+  const [selectedKeys, setSelectedKeys] = useVisibleRowSelection(visibleReqKeys)
+  const [confirmBulkArchive, setConfirmBulkArchive] = useState(false)
+  const [bulkArchiving, setBulkArchiving] = useState(false)
+
   useEffect(() => {
     const fromQuery = searchParams.get('requirementId')
     if (fromQuery) setSelectedId(fromQuery)
@@ -509,8 +515,39 @@ export function ProjectRequirementsView() {
     }
   }
 
+  const handleBulkArchive = async () => {
+    if (!canManageRequirements || selectedKeys.size === 0) return
+    const targets = filtered.filter(
+      (r) => selectedKeys.has(r.id) && canArchiveRequirement(r) && !isArchivedRequirement(r)
+    )
+    if (targets.length === 0) {
+      toast.error('No selected requirements can be archived')
+      setConfirmBulkArchive(false)
+      return
+    }
+    setBulkArchiving(true)
+    let ok = 0
+    let failed = 0
+    try {
+      for (const req of targets) {
+        try {
+          await archiveRequirement(req.id)
+          ok += 1
+        } catch {
+          failed += 1
+        }
+      }
+      if (ok > 0) toast.success(`Archived ${ok} requirement${ok === 1 ? '' : 's'}`)
+      if (failed > 0) toast.error(`${failed} could not be archived`)
+      if (selectedId && targets.some((r) => r.id === selectedId)) setSelectedId(null)
+      setConfirmBulkArchive(false)
+    } finally {
+      setBulkArchiving(false)
+    }
+  }
+
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white px-3 py-3 lg:px-4 lg:py-3">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-3 py-3 lg:px-4 lg:py-3">
       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1400px] flex-1 flex-col overflow-hidden">
         <header className="shrink-0">
           <Link
@@ -635,6 +672,23 @@ export function ProjectRequirementsView() {
                 ) : null}
               </div>
 
+              {canManageRequirements &&
+              filter !== 'archived' &&
+              selectedKeys.size > 0 &&
+              filtered.length > 0 ? (
+                <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-neutral-100 bg-neutral-50 px-3 py-2">
+                  <Typography variant="small" weight="medium">
+                    {selectedKeys.size} selected
+                  </Typography>
+                  <Button size="sm" variant="secondary" onClick={() => setConfirmBulkArchive(true)}>
+                    Archive selected
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setSelectedKeys(new Set())}>
+                    Clear
+                  </Button>
+                </div>
+              ) : null}
+
               <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
                 {filter === 'archived' && archivedRequirements.length === 0 ? (
                   <div className="flex h-full flex-col items-center justify-center px-4 py-10 text-center">
@@ -663,6 +717,8 @@ export function ProjectRequirementsView() {
                     rowKey={(row) => row.id}
                     selectedRowKey={selectedId}
                     onRowClick={(row) => setSelectedId(row.id)}
+                    selectedKeys={selectedKeys}
+                    onSelectedKeysChange={setSelectedKeys}
                     columns={[
                       {
                         id: 'code',
@@ -965,6 +1021,19 @@ export function ProjectRequirementsView() {
         variant="danger"
         loading={deleting}
         onConfirm={() => void handleConfirmDelete()}
+      />
+
+      <ConfirmDialog
+        open={confirmBulkArchive}
+        onClose={() => {
+          if (!bulkArchiving) setConfirmBulkArchive(false)
+        }}
+        title="Archive selected requirements"
+        message={`Archive ${selectedKeys.size} selected requirement${selectedKeys.size === 1 ? '' : 's'}? Only items that can be archived will be processed.`}
+        confirmLabel="Archive selected"
+        variant="danger"
+        loading={bulkArchiving}
+        onConfirm={() => void handleBulkArchive()}
       />
     </div>
   )

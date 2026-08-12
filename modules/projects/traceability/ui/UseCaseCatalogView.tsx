@@ -4,7 +4,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, SquareArrowOutUpRight } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
-import { Button, DataTable, PageSkeleton, Typography } from '@/shared/ui'
+import {
+  Button,
+  ConfirmDialog,
+  DataTable,
+  PageSkeleton,
+  Typography,
+  useVisibleRowSelection,
+} from '@/shared/ui'
+import { toast } from 'sonner'
+import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { ROUTES } from '@/constants/routes'
 import { useFunctionalCatalog } from '../hooks/useFunctionalCatalog'
 import { useUseCaseCatalog } from '../hooks/useUseCaseCatalog'
@@ -17,7 +26,7 @@ import { useElicitationScopeLock } from '@/modules/projects/elicitation/presenta
 export function UseCaseCatalogView() {
   const { workspaceId, projectId } = useParams<{ workspaceId: string; projectId: string }>()
   const searchParams = useSearchParams()
-  const { useCases, loading, error, refetch, createUseCase, submitUseCasesBulk } =
+  const { useCases, loading, error, refetch, createUseCase, submitUseCasesBulk, deleteUseCase } =
     useUseCaseCatalog(projectId)
   const { functionalItems } = useFunctionalCatalog(projectId)
   const { isLocked: scopeLocked } = useElicitationScopeLock(projectId)
@@ -28,6 +37,8 @@ export function UseCaseCatalogView() {
   const [view, setView] = useState<'catalog' | 'links'>(
     searchParams.get('tab') === 'links' ? 'links' : 'catalog'
   )
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
 
   useEffect(() => {
     if (useCaseFromQuery && seededUseCaseRef.current !== useCaseFromQuery) {
@@ -47,6 +58,36 @@ export function UseCaseCatalogView() {
         uc.primaryFunctionName?.toLowerCase().includes(q)
     )
   }, [useCases, search])
+
+  const visibleKeys = useMemo(() => filtered.map((uc) => uc.id), [filtered])
+  const [selectedKeys, setSelectedKeys] = useVisibleRowSelection(visibleKeys)
+
+  const handleBulkDelete = async () => {
+    if (scopeLocked || selectedKeys.size === 0) return
+    const ids = filtered.filter((uc) => selectedKeys.has(uc.id)).map((uc) => uc.id)
+    setBulkDeleting(true)
+    let ok = 0
+    let failed = 0
+    try {
+      for (const id of ids) {
+        try {
+          await deleteUseCase(id)
+          ok += 1
+        } catch {
+          failed += 1
+        }
+      }
+      if (ok > 0) toast.success(`Deleted ${ok} use case${ok === 1 ? '' : 's'}`)
+      if (failed > 0) toast.error(`${failed} could not be deleted`)
+      if (selectedId && ids.includes(selectedId)) setSelectedId(null)
+      setConfirmBulkDelete(false)
+      await refetch()
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
 
   if (loading && useCases.length === 0) {
     return <PageSkeleton variant="list" className="h-full p-4" />
@@ -147,6 +188,20 @@ export function UseCaseCatalogView() {
                 />
               </div>
 
+              {!scopeLocked && selectedKeys.size > 0 && filtered.length > 0 ? (
+                <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-neutral-100 bg-neutral-50 px-3 py-2">
+                  <Typography variant="small" weight="medium">
+                    {selectedKeys.size} selected
+                  </Typography>
+                  <Button size="sm" variant="secondary" onClick={() => setConfirmBulkDelete(true)}>
+                    Delete selected
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setSelectedKeys(new Set())}>
+                    Clear
+                  </Button>
+                </div>
+              ) : null}
+
               <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
                 {useCases.length === 0 ? (
                   <Typography tone="muted" className="py-8 text-center" variant="small">
@@ -161,6 +216,8 @@ export function UseCaseCatalogView() {
                     onRowClick={(useCase) =>
                       setSelectedId(useCase.id === selectedId ? null : useCase.id)
                     }
+                    selectedKeys={selectedKeys}
+                    onSelectedKeysChange={setSelectedKeys}
                     columns={[
                       { id: 'key', header: 'Key', accessor: 'key', kind: 'code', width: '18%' },
                       { id: 'name', header: 'Name', accessor: 'name', width: '40%' },
@@ -205,6 +262,19 @@ export function UseCaseCatalogView() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmBulkDelete}
+        onClose={() => {
+          if (!bulkDeleting) setConfirmBulkDelete(false)
+        }}
+        title="Delete selected use cases"
+        message={`Delete ${selectedKeys.size} selected use case${selectedKeys.size === 1 ? '' : 's'}? This cannot be undone.`}
+        confirmLabel="Delete selected"
+        variant="danger"
+        loading={bulkDeleting}
+        onConfirm={() => void handleBulkDelete()}
+      />
     </div>
   )
 }

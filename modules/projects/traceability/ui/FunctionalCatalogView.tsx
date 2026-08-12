@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Search, SquareArrowOutUpRight } from 'lucide-react'
 import { useParams, useSearchParams } from 'next/navigation'
-import { Button, DataTable, PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
+import { Button, DataTable, PageSkeleton, Select, Stack, Typography, ConfirmDialog, useVisibleRowSelection } from '@/shared/ui'
+import { toast } from 'sonner'
+import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
 import { useProject } from '@/modules/projects/project'
@@ -57,6 +59,7 @@ export function FunctionalCatalogView() {
     refetch,
     submitFunctionalItemsBulk,
     submitNonFunctionalItemsBulk,
+    removeNfr,
   } = useFunctionalCatalog(projectId)
   const { frWithoutAnchors, refetch: refetchCoverage } = useFunctionalAnchorCoverage(projectId)
   const { isLocked: scopeLocked } = useElicitationScopeLock(projectId)
@@ -92,6 +95,14 @@ export function FunctionalCatalogView() {
   const [selectedNfrId, setSelectedNfrId] = useState<string | null>(null)
   const [importKind, setImportKind] = useState<'fr' | 'nfr'>('fr')
   const [frImportOpen, setFrImportOpen] = useState(false)
+  const [confirmBulkFr, setConfirmBulkFr] = useState(false)
+  const [confirmBulkNfr, setConfirmBulkNfr] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+
+  const visibleFrKeys = useMemo(() => filteredFr.map((i) => i.id), [filteredFr])
+  const visibleNfrKeys = useMemo(() => filteredNfr.map((i) => i.id), [filteredNfr])
+  const [selectedFrKeys, setSelectedFrKeys] = useVisibleRowSelection(visibleFrKeys)
+  const [selectedNfrKeys, setSelectedNfrKeys] = useVisibleRowSelection(visibleNfrKeys)
 
   const selectedFr = functionalItems.find((i) => i.id === selectedFrId) ?? null
   const selectedNfr = nonFunctionalItems.find((i) => i.id === selectedNfrId) ?? null
@@ -209,6 +220,59 @@ export function FunctionalCatalogView() {
     },
     [submitFunctionalItemsBulk, submitNonFunctionalItemsBulk, workspaceId]
   )
+
+  const handleBulkDeleteFr = async () => {
+    if (scopeLocked || selectedFrKeys.size === 0) return
+    const ids = filteredFr.filter((i) => selectedFrKeys.has(i.id)).map((i) => i.id)
+    setBulkDeleting(true)
+    let ok = 0
+    let failed = 0
+    try {
+      for (const id of ids) {
+        try {
+          await removeFr(id)
+          ok += 1
+        } catch {
+          failed += 1
+        }
+      }
+      if (ok > 0) toast.success(`Deleted ${ok} function${ok === 1 ? '' : 's'}`)
+      if (failed > 0) toast.error(`${failed} could not be deleted`)
+      if (selectedFrId && ids.includes(selectedFrId)) setSelectedFrId(null)
+      void refetchCoverage()
+      setConfirmBulkFr(false)
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
+  const handleBulkDeleteNfr = async () => {
+    if (scopeLocked || selectedNfrKeys.size === 0) return
+    const ids = filteredNfr.filter((i) => selectedNfrKeys.has(i.id)).map((i) => i.id)
+    setBulkDeleting(true)
+    let ok = 0
+    let failed = 0
+    try {
+      for (const id of ids) {
+        try {
+          await removeNfr(id)
+          ok += 1
+        } catch {
+          failed += 1
+        }
+      }
+      if (ok > 0) toast.success(`Deleted ${ok} NFR${ok === 1 ? '' : 's'}`)
+      if (failed > 0) toast.error(`${failed} could not be deleted`)
+      if (selectedNfrId && ids.includes(selectedNfrId)) setSelectedNfrId(null)
+      setConfirmBulkNfr(false)
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
 
   if (
     (loading || projectLoading) &&
@@ -350,6 +414,19 @@ export function FunctionalCatalogView() {
                     />
                   </div>
                 </div>
+                {!scopeLocked && selectedFrKeys.size > 0 && filteredFr.length > 0 ? (
+                  <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-neutral-100 bg-neutral-50 px-3 py-2">
+                    <Typography variant="small" weight="medium">
+                      {selectedFrKeys.size} selected
+                    </Typography>
+                    <Button size="sm" variant="secondary" onClick={() => setConfirmBulkFr(true)}>
+                      Delete selected
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setSelectedFrKeys(new Set())}>
+                      Clear
+                    </Button>
+                  </div>
+                ) : null}
                 <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
                   {functionalItems.length === 0 ? (
                     <Typography tone="muted" className="py-8 text-center" variant="small">
@@ -362,6 +439,8 @@ export function FunctionalCatalogView() {
                       rowKey={(item) => item.id}
                       selectedRowKey={selectedFrId}
                       onRowClick={(item) => setSelectedFrId(item.id)}
+                      selectedKeys={selectedFrKeys}
+                      onSelectedKeysChange={setSelectedFrKeys}
                       columns={[
                         {
                           id: 'code',
@@ -432,6 +511,19 @@ export function FunctionalCatalogView() {
                     onBatchComplete={handleBatchComplete}
                   />
                 </div>
+                {!scopeLocked && selectedNfrKeys.size > 0 && filteredNfr.length > 0 ? (
+                  <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-neutral-100 bg-neutral-50 px-3 py-2">
+                    <Typography variant="small" weight="medium">
+                      {selectedNfrKeys.size} selected
+                    </Typography>
+                    <Button size="sm" variant="secondary" onClick={() => setConfirmBulkNfr(true)}>
+                      Delete selected
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setSelectedNfrKeys(new Set())}>
+                      Clear
+                    </Button>
+                  </div>
+                ) : null}
                 <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
                   {nonFunctionalItems.length === 0 ? (
                     <Typography tone="muted" className="py-8 text-center" variant="small">
@@ -444,6 +536,8 @@ export function FunctionalCatalogView() {
                       rowKey={(item) => item.id}
                       selectedRowKey={selectedNfrId}
                       onRowClick={(item) => setSelectedNfrId(item.id)}
+                      selectedKeys={selectedNfrKeys}
+                      onSelectedKeysChange={setSelectedNfrKeys}
                       columns={[
                         {
                           id: 'code',
@@ -629,6 +723,32 @@ export function FunctionalCatalogView() {
           void refetchCoverage()
           setTab('fr')
         }}
+      />
+
+      <ConfirmDialog
+        open={confirmBulkFr}
+        onClose={() => {
+          if (!bulkDeleting) setConfirmBulkFr(false)
+        }}
+        title="Delete selected functions"
+        message={`Delete ${selectedFrKeys.size} selected function${selectedFrKeys.size === 1 ? '' : 's'}? This cannot be undone.`}
+        confirmLabel="Delete selected"
+        variant="danger"
+        loading={bulkDeleting}
+        onConfirm={() => void handleBulkDeleteFr()}
+      />
+
+      <ConfirmDialog
+        open={confirmBulkNfr}
+        onClose={() => {
+          if (!bulkDeleting) setConfirmBulkNfr(false)
+        }}
+        title="Delete selected NFRs"
+        message={`Delete ${selectedNfrKeys.size} selected NFR${selectedNfrKeys.size === 1 ? '' : 's'}? This cannot be undone.`}
+        confirmLabel="Delete selected"
+        variant="danger"
+        loading={bulkDeleting}
+        onConfirm={() => void handleBulkDeleteNfr()}
       />
     </div>
   )

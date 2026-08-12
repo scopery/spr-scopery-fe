@@ -179,6 +179,38 @@ export function StructureCandidatePalette({
     return out
   }, [filtered, selected, projectId, focus])
 
+  const selectableFilteredKeys = useMemo(() => {
+    const keys: string[] = []
+    for (const g of visibleGroups) {
+      for (const item of g.items) {
+        const isSelf = Boolean(focus && item.id === focus.id)
+        const isTaken =
+          Boolean(item.alreadyLinked) || Boolean(item.hasExistingLink) || isSelf
+        if (isTaken) continue
+        const kind = (item.kind as StructureDragKind) || g.kind
+        keys.push(`${kind}:${item.id}`)
+      }
+    }
+    return keys
+  }, [visibleGroups, focus])
+
+  const allFilteredSelected =
+    selectableFilteredKeys.length > 0 &&
+    selectableFilteredKeys.every((key) => selected.has(key))
+
+  const toggleSelectAllFiltered = () => {
+    if (selectableFilteredKeys.length === 0) return
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (allFilteredSelected) {
+        for (const key of selectableFilteredKeys) next.delete(key)
+      } else {
+        for (const key of selectableFilteredKeys) next.add(key)
+      }
+      return next
+    })
+  }
+
   const toggleSelect = (key: string, alreadyLinked?: boolean) => {
     if (alreadyLinked) return
     setSelected((prev) => {
@@ -285,11 +317,24 @@ export function StructureCandidatePalette({
             Pick a project to link Screens / APIs / NFRs.
           </Typography>
         ) : null}
+        {selectableFilteredKeys.length > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Typography variant="small" tone="muted">
+              {selectableFilteredKeys.length} available
+              {selectedPayloads.length > 0 ? ` · ${selectedPayloads.length} selected` : ''}
+            </Typography>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-auto px-0 font-normal"
+              onClick={toggleSelectAllFiltered}
+            >
+              {allFilteredSelected ? 'Clear all' : 'Select all'}
+            </Button>
+          </div>
+        ) : null}
         {selectedPayloads.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Typography variant="small" tone="muted">
-              {selectedPayloads.length} selected
-            </Typography>
             <Button size="sm" variant="secondary" onClick={() => setBulkOpen(true)}>
               Assign selected
             </Button>

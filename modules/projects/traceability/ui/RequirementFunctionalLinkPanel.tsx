@@ -118,10 +118,11 @@ export function RequirementFunctionalLinkPanel({
 
   const [focusReqId, setFocusReqId] = useState<string | null>(null)
   const [reqQuery, setReqQuery] = useState('')
-  const [approvedOnly, setApprovedOnly] = useState(false)
+  const [approvedOnly, setApprovedOnly] = useState(true)
+  const [notLinkedOnly, setNotLinkedOnly] = useState(true)
   const [query, setQuery] = useState('')
   const [hideLinked, setHideLinked] = useState(true)
-  const [orphansOnly, setOrphansOnly] = useState(false)
+  const [orphansOnly, setOrphansOnly] = useState(true)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkOpen, setBulkOpen] = useState(false)
   const [assigning, setAssigning] = useState(false)
@@ -151,30 +152,6 @@ export function RequirementFunctionalLinkPanel({
   useEffect(() => {
     void loadCoversLinks()
   }, [loadCoversLinks])
-
-  const filteredRequirements = useMemo(() => {
-    const q = reqQuery.trim().toLowerCase()
-    return requirements.filter((r) => {
-      if (
-        approvedOnly &&
-        normalizeRequirementStatus(r.status) !== RequirementStatus.Approved
-      ) {
-        return false
-      }
-      if (!q) return true
-      return [r.code, r.title, r.description]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
-    })
-  }, [requirements, reqQuery, approvedOnly])
-
-  useEffect(() => {
-    if (focusReqId && !filteredRequirements.some((r) => r.id === focusReqId)) {
-      setFocusReqId(filteredRequirements[0]?.id ?? null)
-    } else if (!focusReqId && filteredRequirements[0]?.id) {
-      setFocusReqId(filteredRequirements[0].id)
-    }
-  }, [filteredRequirements, focusReqId])
 
   useEffect(() => {
     setSelected(new Set())
@@ -252,6 +229,41 @@ export function RequirementFunctionalLinkPanel({
     return list
   }, [coversLinks, requirements, frById])
 
+  const linkCountByReq = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const e of edges) {
+      map.set(e.requirementId, (map.get(e.requirementId) ?? 0) + 1)
+    }
+    return map
+  }, [edges])
+
+  const filteredRequirements = useMemo(() => {
+    const q = reqQuery.trim().toLowerCase()
+    return requirements.filter((r) => {
+      if (
+        approvedOnly &&
+        normalizeRequirementStatus(r.status) !== RequirementStatus.Approved
+      ) {
+        return false
+      }
+      if (notLinkedOnly && (linkCountByReq.get(r.id) ?? 0) > 0) {
+        return false
+      }
+      if (!q) return true
+      return [r.code, r.title, r.description]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q))
+    })
+  }, [requirements, reqQuery, approvedOnly, notLinkedOnly, linkCountByReq])
+
+  useEffect(() => {
+    if (focusReqId && !filteredRequirements.some((r) => r.id === focusReqId)) {
+      setFocusReqId(filteredRequirements[0]?.id ?? null)
+    } else if (!focusReqId && filteredRequirements[0]?.id) {
+      setFocusReqId(filteredRequirements[0].id)
+    }
+  }, [filteredRequirements, focusReqId])
+
   const edgesForFocus = useMemo(
     () => edges.filter((e) => e.requirementId === focusReqId),
     [edges, focusReqId]
@@ -272,14 +284,6 @@ export function RequirementFunctionalLinkPanel({
     () => functionalItems.filter((item) => !assignedFrIds.has(item.id)).length,
     [functionalItems, assignedFrIds]
   )
-
-  const linkCountByReq = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const e of edges) {
-      map.set(e.requirementId, (map.get(e.requirementId) ?? 0) + 1)
-    }
-    return map
-  }, [edges])
 
   const candidates = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -316,6 +320,28 @@ export function RequirementFunctionalLinkPanel({
     }
     return out
   }, [candidates, selected, linkedFrIdsForFocus])
+
+  const selectableFilteredIds = useMemo(
+    () => candidates.filter((item) => !linkedFrIdsForFocus.has(item.id)).map((item) => item.id),
+    [candidates, linkedFrIdsForFocus]
+  )
+
+  const allFilteredSelected =
+    selectableFilteredIds.length > 0 &&
+    selectableFilteredIds.every((id) => selected.has(id))
+
+  const toggleSelectAllFiltered = () => {
+    if (selectableFilteredIds.length === 0) return
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (allFilteredSelected) {
+        for (const id of selectableFilteredIds) next.delete(id)
+      } else {
+        for (const id of selectableFilteredIds) next.add(id)
+      }
+      return next
+    })
+  }
 
   const toggleSelect = (id: string, disabled?: boolean) => {
     if (disabled) return
@@ -493,6 +519,12 @@ export function RequirementFunctionalLinkPanel({
               onChange={(e) => setApprovedOnly(e.target.checked)}
               label="Approved only"
             />
+            <Checkbox
+              size="sm"
+              checked={notLinkedOnly}
+              onChange={(e) => setNotLinkedOnly(e.target.checked)}
+              label="Not linked"
+            />
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {requirements.length === 0 ? (
@@ -501,7 +533,7 @@ export function RequirementFunctionalLinkPanel({
               </Typography>
             ) : filteredRequirements.length === 0 ? (
               <Typography variant="small" tone="muted" className="px-3 py-2">
-                No requirements match this search.
+                No requirements match these filters.
               </Typography>
             ) : (
               <ul className="space-y-0.5 px-1 pb-2">
@@ -579,6 +611,9 @@ export function RequirementFunctionalLinkPanel({
               onQueryChange={setQuery}
               onPreview={setPreviewId}
               onToggleSelect={toggleSelect}
+              onSelectAllFiltered={toggleSelectAllFiltered}
+              selectableFilteredCount={selectableFilteredIds.length}
+              allFilteredSelected={allFilteredSelected}
               onAssign={assignOne}
               onOpenBulk={() => setBulkOpen(true)}
               onClearSelected={() => setSelected(new Set())}
@@ -655,6 +690,9 @@ function FunctionCandidatePalette({
   onQueryChange,
   onPreview,
   onToggleSelect,
+  onSelectAllFiltered,
+  selectableFilteredCount,
+  allFilteredSelected,
   onAssign,
   onOpenBulk,
   onClearSelected,
@@ -678,6 +716,9 @@ function FunctionCandidatePalette({
   onQueryChange: (v: string) => void
   onPreview: (id: string | null) => void
   onToggleSelect: (id: string, disabled?: boolean) => void
+  onSelectAllFiltered: () => void
+  selectableFilteredCount: number
+  allFilteredSelected: boolean
   onAssign: (payload: FrDragPayload) => void
   onOpenBulk: () => void
   onClearSelected: () => void
@@ -753,11 +794,24 @@ function FunctionCandidatePalette({
             </button>
           ) : null}
         </div>
+        {!linksLocked && selectableFilteredCount > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Typography variant="small" tone="muted">
+              {selectableFilteredCount} available
+              {selectedPayloads.length > 0 ? ` · ${selectedPayloads.length} selected` : ''}
+            </Typography>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-auto px-0 font-normal"
+              onClick={onSelectAllFiltered}
+            >
+              {allFilteredSelected ? 'Clear all' : 'Select all'}
+            </Button>
+          </div>
+        ) : null}
         {!linksLocked && selectedPayloads.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Typography variant="small" tone="muted">
-              {selectedPayloads.length} selected
-            </Typography>
             <Button size="sm" variant="secondary" onClick={onOpenBulk}>
               Assign selected
             </Button>

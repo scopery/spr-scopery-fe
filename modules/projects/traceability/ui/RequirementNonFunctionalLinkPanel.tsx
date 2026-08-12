@@ -258,6 +258,28 @@ export function RequirementNonFunctionalLinkPanel({
     return out
   }, [candidates, selected, linkedNfrIdsForFocus])
 
+  const selectableFilteredIds = useMemo(
+    () => candidates.filter((item) => !linkedNfrIdsForFocus.has(item.id)).map((item) => item.id),
+    [candidates, linkedNfrIdsForFocus]
+  )
+
+  const allFilteredSelected =
+    selectableFilteredIds.length > 0 &&
+    selectableFilteredIds.every((id) => selected.has(id))
+
+  const toggleSelectAllFiltered = () => {
+    if (selectableFilteredIds.length === 0) return
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (allFilteredSelected) {
+        for (const id of selectableFilteredIds) next.delete(id)
+      } else {
+        for (const id of selectableFilteredIds) next.add(id)
+      }
+      return next
+    })
+  }
+
   const toggleSelect = (id: string, disabled?: boolean) => {
     if (disabled) return
     setSelected((prev) => {
@@ -514,6 +536,9 @@ export function RequirementNonFunctionalLinkPanel({
               onQueryChange={setQuery}
               onPreview={setPreviewId}
               onToggleSelect={toggleSelect}
+              onSelectAllFiltered={toggleSelectAllFiltered}
+              selectableFilteredCount={selectableFilteredIds.length}
+              allFilteredSelected={allFilteredSelected}
               onAssign={assignOne}
               onOpenBulk={() => setBulkOpen(true)}
               onClearSelected={() => setSelected(new Set())}
@@ -579,6 +604,9 @@ function NfrCandidatePalette({
   onQueryChange,
   onPreview,
   onToggleSelect,
+  onSelectAllFiltered,
+  selectableFilteredCount,
+  allFilteredSelected,
   onAssign,
   onOpenBulk,
   onClearSelected,
@@ -598,6 +626,9 @@ function NfrCandidatePalette({
   onQueryChange: (v: string) => void
   onPreview: (id: string | null) => void
   onToggleSelect: (id: string, disabled?: boolean) => void
+  onSelectAllFiltered: () => void
+  selectableFilteredCount: number
+  allFilteredSelected: boolean
   onAssign: (payload: NfrDragPayload) => void
   onOpenBulk: () => void
   onClearSelected: () => void
@@ -652,11 +683,24 @@ function NfrCandidatePalette({
             </button>
           ) : null}
         </div>
+        {selectableFilteredCount > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Typography variant="small" tone="muted">
+              {selectableFilteredCount} available
+              {selectedPayloads.length > 0 ? ` · ${selectedPayloads.length} selected` : ''}
+            </Typography>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-auto px-0 font-normal"
+              onClick={onSelectAllFiltered}
+            >
+              {allFilteredSelected ? 'Clear all' : 'Select all'}
+            </Button>
+          </div>
+        ) : null}
         {selectedPayloads.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Typography variant="small" tone="muted">
-              {selectedPayloads.length} selected
-            </Typography>
             <Button size="sm" variant="secondary" onClick={onOpenBulk}>
               Assign selected
             </Button>

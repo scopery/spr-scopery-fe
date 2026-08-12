@@ -62,19 +62,22 @@ export function useStructureRelations(
   const [isRemoving, setIsRemoving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (): Promise<StructureRelation[]> => {
     if (!workspaceId || !applicationId) {
       setItems([])
-      return
+      return []
     }
     setLoading(true)
     setError(null)
     try {
       const res = await api.listStructureRelations(workspaceId, applicationId)
-      setItems(res.items ?? [])
+      const next = res.items ?? []
+      setItems(next)
+      return next
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load structure relations')
       setItems([])
+      return []
     } finally {
       setLoading(false)
     }

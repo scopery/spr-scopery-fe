@@ -1,8 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Pencil, X } from 'lucide-react'
-import { Button, Stack, Typography } from '@/shared/ui'
+import { Pencil, Trash2, X } from 'lucide-react'
+import { toast } from 'sonner'
+import { Button, ConfirmDialog, Stack, Typography } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
 import { cn } from '@/utils/cn'
 import {
@@ -25,6 +26,9 @@ interface NodeDetailInspectorProps {
   relatedFunctions?: BrowseCatalogNode[]
   onClose: () => void
   onSave?: (node: BrowseCatalogNode, payload: NodeEditPayload) => Promise<void>
+  onDelete?: (node: BrowseCatalogNode) => Promise<void>
+  /** When set (and onDelete omitted), show why delete is blocked. */
+  deleteBlockedReason?: string | null
   onSelectFunction?: (fn: BrowseCatalogNode) => void
 }
 
@@ -131,6 +135,8 @@ export function NodeDetailInspector({
   relatedFunctions = [],
   onClose,
   onSave,
+  onDelete,
+  deleteBlockedReason = null,
   onSelectFunction,
 }: NodeDetailInspectorProps) {
   const [editing, setEditing] = useState(false)
@@ -138,16 +144,21 @@ export function NodeDetailInspector({
   const [editSecondary, setEditSecondary] = useState(node.secondary ?? '')
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     setEditing(false)
     setFormError(null)
+    setConfirmDelete(false)
     setEditName(node.name)
     setEditSecondary(node.secondary ?? '')
   }, [node.id, node.name, node.secondary])
 
   const extraLabel = secondaryLabel(node.type)
   const canEdit = Boolean(onSave) && node.type !== 'FUNCTION'
+  const canDelete = Boolean(onDelete) && node.type !== 'FUNCTION'
+  const isArchive = node.type === 'COMMUNICATION'
 
   const moduleFunctionsByProject = (() => {
     if (node.type !== 'MODULE') return []
@@ -221,6 +232,33 @@ export function NodeDetailInspector({
     }
   }, [editName, editSecondary, node, onSave])
 
+  const handleConfirmDelete = useCallback(async () => {
+    if (!onDelete) return
+    setDeleting(true)
+    try {
+      await onDelete(node)
+      setConfirmDelete(false)
+      toast.success(
+        isArchive
+          ? `${ARCHITECTURE_NODE_TYPE_LABEL[node.type]} archived`
+          : `${ARCHITECTURE_NODE_TYPE_LABEL[node.type]} deleted`
+      )
+      onClose()
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : isArchive
+              ? 'Failed to archive'
+              : 'Failed to delete'
+      )
+    } finally {
+      setDeleting(false)
+    }
+  }, [isArchive, node, onClose, onDelete])
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between gap-3 border-b border-neutral-200 px-5 py-4">
@@ -239,6 +277,29 @@ export function NodeDetailInspector({
               title="Edit"
             >
               <Pencil size={16} strokeWidth={1.75} />
+            </button>
+          ) : null}
+          {canDelete && !editing ? (
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="inline-flex h-8 w-8 items-center justify-center text-neutral-500 hover:text-red-600"
+              aria-label={isArchive ? 'Archive' : 'Delete'}
+              title={isArchive ? 'Archive' : 'Delete'}
+              disabled={deleting}
+            >
+              <Trash2 size={16} strokeWidth={1.75} />
+            </button>
+          ) : null}
+          {!canDelete && deleteBlockedReason && !editing ? (
+            <button
+              type="button"
+              disabled
+              className="inline-flex h-8 w-8 items-center justify-center text-neutral-300"
+              aria-label={deleteBlockedReason}
+              title={deleteBlockedReason}
+            >
+              <Trash2 size={16} strokeWidth={1.75} />
             </button>
           ) : null}
           <button
@@ -322,6 +383,11 @@ export function NodeDetailInspector({
                   Structure tab.
                 </Typography>
               ) : null}
+              {deleteBlockedReason && node.type !== 'FUNCTION' ? (
+                <Typography variant="small" tone="muted">
+                  {deleteBlockedReason}
+                </Typography>
+              ) : null}
             </>
           )}
 
@@ -377,6 +443,23 @@ export function NodeDetailInspector({
           ) : null}
         </Stack>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => {
+          if (!deleting) setConfirmDelete(false)
+        }}
+        title={isArchive ? 'Archive communication' : `Delete ${ARCHITECTURE_NODE_TYPE_LABEL[node.type].toLowerCase()}`}
+        message={
+          isArchive
+            ? `Archive "${node.code} — ${node.name}"? It will be hidden from the active catalog.`
+            : `Delete "${node.code} — ${node.name}"? This cannot be undone.`
+        }
+        confirmLabel={isArchive ? 'Archive' : 'Delete'}
+        variant="danger"
+        loading={deleting}
+        onConfirm={() => void handleConfirmDelete()}
+      />
     </div>
   )
 }

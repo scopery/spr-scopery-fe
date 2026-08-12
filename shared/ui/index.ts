@@ -118,6 +118,7 @@ export { DetailDrawer } from './molecules/DetailDrawer'
 export type { DetailDrawerProps } from './molecules/DetailDrawer'
 
 export { DataTable } from './molecules/DataTable'
+export { useVisibleRowSelection } from './molecules/DataTable'
 export type {
   DataTableAlign,
   DataTableCellKind,

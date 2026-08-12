@@ -153,6 +153,28 @@ export function FunctionUseCaseLinkPanel({
     return out
   }, [candidates, selectedIds, linkedIds])
 
+  const selectableFilteredIds = useMemo(
+    () => candidates.filter((item) => !linkedIds.has(item.id)).map((item) => item.id),
+    [candidates, linkedIds]
+  )
+
+  const allFilteredSelected =
+    selectableFilteredIds.length > 0 &&
+    selectableFilteredIds.every((id) => selectedIds.has(id))
+
+  const toggleSelectAllFiltered = () => {
+    if (isLocked || selectableFilteredIds.length === 0) return
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (allFilteredSelected) {
+        for (const id of selectableFilteredIds) next.delete(id)
+      } else {
+        for (const id of selectableFilteredIds) next.add(id)
+      }
+      return next
+    })
+  }
+
   const toggleSelect = (id: string, disabled?: boolean) => {
     if (disabled || isLocked) return
     setSelectedIds((current) => {
@@ -306,11 +328,27 @@ export function FunctionUseCaseLinkPanel({
                   </button>
                 ) : null}
               </div>
+              {selectableFilteredIds.length > 0 && !isLocked ? (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Typography variant="small" tone="muted">
+                    {selectableFilteredIds.length} available
+                    {selectedPayloads.length > 0
+                      ? ` · ${selectedPayloads.length} selected`
+                      : ''}
+                  </Typography>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-auto px-0 font-normal"
+                    disabled={saving}
+                    onClick={toggleSelectAllFiltered}
+                  >
+                    {allFilteredSelected ? 'Clear all' : 'Select all'}
+                  </Button>
+                </div>
+              ) : null}
               {selectedPayloads.length > 0 ? (
                 <div className="flex flex-wrap items-center gap-2">
-                  <Typography variant="small" tone="muted">
-                    {selectedPayloads.length} selected
-                  </Typography>
                   <Button
                     size="sm"
                     variant="secondary"

@@ -4,10 +4,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
+import { toast } from 'sonner'
+import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/utils/cn'
 import { useApplicationWorkbench } from '../hooks/useApplicationWorkbench'
 import { useApplicationRelatedFunctions } from '../hooks/useApplicationRelatedFunctions'
+import { useStructureRelations } from '../hooks/useStructureRelations'
+import {
+  getArchitectureDeleteBlockReason,
+  isArchitectureNodeDeletable,
+} from '../model/architecture-delete.rules'
 import type {
   ArchitectureCatalogNode,
   BrowseCatalogNode,
@@ -62,16 +69,22 @@ export function ApplicationWorkbenchView() {
     refetch,
     createModule,
     updateModule,
+    removeModule,
     createScreen,
     updateScreen,
+    removeScreen,
     createEndpoint,
     updateEndpoint,
+    removeEndpoint,
     createComponent,
     updateComponent,
+    removeComponent,
     createEntity,
     updateEntity,
+    removeEntity,
     createCommunication,
     updateCommunication,
+    removeCommunication,
   } = useApplicationWorkbench(workspaceId, applicationId)
 
   const [tab, setTab] = useState<MainTab>('browse')
@@ -82,6 +95,14 @@ export function ApplicationWorkbenchView() {
     applicationId,
     tab === 'browse'
   )
+  const {
+    items: structureRelations,
+    refetch: refetchStructureRelations,
+  } = useStructureRelations(workspaceId, applicationId)
+
+  useEffect(() => {
+    if (tab === 'browse') void refetchStructureRelations()
+  }, [tab, refetchStructureRelations])
 
   const handleSubmitBulk = useCallback(
     async (kind: CatalogAddKind, items: CatalogBulkCreateInput[]) => {
@@ -286,6 +307,77 @@ export function ApplicationWorkbenchView() {
     }
   }
 
+  const deleteNode = async (
+    node: BrowseCatalogNode,
+    relations: typeof structureRelations = structureRelations
+  ) => {
+    const blockReason = getArchitectureDeleteBlockReason(node, relations)
+    if (blockReason) throw new Error(blockReason)
+
+    switch (node.type) {
+      case 'MODULE':
+        await removeModule(node.id)
+        break
+      case 'SCREEN':
+        await removeScreen(node.id)
+        break
+      case 'API_ENDPOINT':
+        await removeEndpoint(node.id)
+        break
+      case 'COMPONENT':
+        await removeComponent(node.id)
+        break
+      case 'DATA_ENTITY':
+        await removeEntity(node.id)
+        break
+      case 'COMMUNICATION':
+        await removeCommunication(node.id)
+        break
+      default:
+        throw new Error('This node type cannot be deleted here')
+    }
+  }
+
+  const handleBulkDeleteNodes = async (nodes: BrowseCatalogNode[]) => {
+    const relations = await refetchStructureRelations()
+    let ok = 0
+    let failed = 0
+    let blocked = 0
+    for (const node of nodes) {
+      const blockReason = getArchitectureDeleteBlockReason(node, relations)
+      if (blockReason) {
+        blocked += 1
+        continue
+      }
+      try {
+        await deleteNode(node, relations)
+        ok += 1
+        if (selectedKey === `${node.type}:${node.id}`) setSelectedKey(null)
+      } catch {
+        failed += 1
+      }
+    }
+    if (ok > 0) toast.success(`Deleted ${ok} node${ok === 1 ? '' : 's'}`)
+    if (blocked > 0) {
+      toast.error(
+        `${blocked} skipped — unlink structure relations on the Structure tab first`
+      )
+    }
+    if (failed > 0) toast.error(`${failed} could not be deleted`)
+    await refetch({ silent: true })
+  }
+
+  const handleDeleteNode = async (node: BrowseCatalogNode) => {
+    const relations = await refetchStructureRelations()
+    await deleteNode(node, relations)
+    setSelectedKey(null)
+    await refetch({ silent: true })
+  }
+
+  const selectedDeleteBlockReason = selectedNode
+    ? getArchitectureDeleteBlockReason(selectedNode, structureRelations)
+    : null
+
   return (
     <div className="flex h-full min-h-0 flex-col px-3 py-3 lg:px-4 lg:py-3">
       <div className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col">
@@ -438,6 +530,10 @@ export function ApplicationWorkbenchView() {
                     selectedId={selectedNode?.id ?? null}
                     selectedKey={selectedKey}
                     onSelect={(node) => setSelectedKey(`${node.type}:${node.id}`)}
+                    onBulkDelete={handleBulkDeleteNodes}
+                    isNodeDeletable={(node) =>
+                      isArchitectureNodeDeletable(node, structureRelations)
+                    }
                   />
                 </div>
               </div>
@@ -456,6 +552,16 @@ export function ApplicationWorkbenchView() {
                     relatedFunctions={relatedFunctionNodes}
                     onClose={closeInspector}
                     onSave={selectedNode.type === 'FUNCTION' ? undefined : saveNode}
+                    onDelete={
+                      selectedNode.type === 'FUNCTION' || selectedDeleteBlockReason
+                        ? undefined
+                        : handleDeleteNode
+                    }
+                    deleteBlockedReason={
+                      selectedNode.type === 'FUNCTION'
+                        ? null
+                        : selectedDeleteBlockReason
+                    }
                     onSelectFunction={(fn) => setSelectedKey(`${fn.type}:${fn.id}`)}
                   />
                 ) : (
