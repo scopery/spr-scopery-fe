@@ -680,7 +680,7 @@ export function ProjectRequirementsView() {
                   <Typography variant="small" weight="medium">
                     {selectedKeys.size} selected
                   </Typography>
-                  <Button size="sm" variant="secondary" onClick={() => setConfirmBulkArchive(true)}>
+                  <Button size="sm" tone="error" onClick={() => setConfirmBulkArchive(true)}>
                     Archive selected
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setSelectedKeys(new Set())}>

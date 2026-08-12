@@ -419,7 +419,7 @@ export function FunctionalCatalogView() {
                     <Typography variant="small" weight="medium">
                       {selectedFrKeys.size} selected
                     </Typography>
-                    <Button size="sm" variant="secondary" onClick={() => setConfirmBulkFr(true)}>
+                    <Button size="sm" tone="error" onClick={() => setConfirmBulkFr(true)}>
                       Delete selected
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setSelectedFrKeys(new Set())}>
@@ -516,7 +516,7 @@ export function FunctionalCatalogView() {
                     <Typography variant="small" weight="medium">
                       {selectedNfrKeys.size} selected
                     </Typography>
-                    <Button size="sm" variant="secondary" onClick={() => setConfirmBulkNfr(true)}>
+                    <Button size="sm" tone="error" onClick={() => setConfirmBulkNfr(true)}>
                       Delete selected
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setSelectedNfrKeys(new Set())}>

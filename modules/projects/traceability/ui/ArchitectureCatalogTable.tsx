@@ -165,7 +165,7 @@ export function ArchitectureCatalogTable({
           </Typography>
           <Button
             size="sm"
-            variant="secondary"
+            tone="error"
             disabled={bulkDeleteDisabled || selectedDeletable.length === 0}
             onClick={() => setConfirmBulk(true)}
           >
