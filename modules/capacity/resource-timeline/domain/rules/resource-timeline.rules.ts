@@ -67,7 +67,9 @@ function leafMatchesFilter(
 
 /**
  * Keep tasks for one assignee, or all assignees when `assigneeUserId` is null
- * (optionally including unassigned leaves). Prune empty Phase/WBS branches.
+ * (optionally including unassigned leaves).
+ * Project / Phase / WBS structure is always kept — even with no matching tasks —
+ * so Team Schedule can show empty planning containers.
  */
 export function filterAndPruneGanttTree(
   tree: GanttTreeItem[],
@@ -85,7 +87,6 @@ export function filterAndPruneGanttTree(
       }
 
       const children = visit(node.children)
-      if (children.length === 0) continue
       kept.push({ ...node, children })
     }
     return kept

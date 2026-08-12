@@ -287,7 +287,7 @@ export function ApplicationWorkbenchView() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white px-3 py-3 lg:px-4 lg:py-3">
+    <div className="flex h-full min-h-0 flex-col px-3 py-3 lg:px-4 lg:py-3">
       <div className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col">
         <header className="shrink-0">
           <Link
@@ -471,7 +471,7 @@ export function ApplicationWorkbenchView() {
           ) : null}
 
           {tab === 'structure' ? (
-            <div className="h-full min-h-0 overflow-hidden">
+            <div className="h-full min-h-0 overflow-hidden border border-neutral-300 bg-white">
               <OverallStructurePanel
                 workspaceId={workspaceId}
                 applicationId={applicationId}
@@ -481,7 +481,7 @@ export function ApplicationWorkbenchView() {
           ) : null}
 
           {tab === 'import' ? (
-            <div className="h-full min-h-0 overflow-y-auto">
+            <div className="h-full min-h-0 overflow-y-auto border border-neutral-200 bg-white p-3">
               <Stack direction="vertical" spacing="md">
                 <div className="max-w-xs">
                   <Select

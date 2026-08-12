@@ -226,7 +226,7 @@ export function FunctionalCatalogView() {
   ].filter(Boolean)
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white px-3 py-3 lg:px-4 lg:py-3">
+    <div className="flex h-full min-h-0 flex-col px-3 py-3 lg:px-4 lg:py-3">
       <div className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col">
         <header className="shrink-0">
           {tab === 'map' || tab === 'map-nfr' ? (

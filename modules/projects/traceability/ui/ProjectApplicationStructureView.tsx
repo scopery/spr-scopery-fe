@@ -70,7 +70,7 @@ export function ProjectApplicationStructureView() {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-hidden border border-neutral-300 bg-white">
         {applicationId ? (
           <OverallStructurePanel
             workspaceId={workspaceId}

@@ -66,7 +66,7 @@ export function ApplicationRegistryView() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white px-3 py-3 lg:px-4 lg:py-3">
+    <div className="flex h-full min-h-0 flex-col px-3 py-3 lg:px-4 lg:py-3">
       <div className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col">
         <div className="shrink-0 border-b border-neutral-200 pb-2">
           <Typography as="h1" size="md" weight="medium">
@@ -97,7 +97,7 @@ export function ApplicationRegistryView() {
           </Button>
         </div>
 
-        <div className="mt-2 min-h-0 flex-1 overflow-y-auto border border-neutral-200">
+        <div className="mt-2 min-h-0 flex-1 overflow-y-auto border border-neutral-200 bg-white">
           {filtered.length === 0 ? (
             <div className="py-10 text-center">
               <Typography weight="medium">

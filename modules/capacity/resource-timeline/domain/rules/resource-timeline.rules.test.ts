@@ -140,9 +140,43 @@ describe('filterAndPruneGanttTree', () => {
     expect(leaves.map((l) => l.id).sort()).toEqual(['t1', 't3'])
   })
 
-  it('drops empty projects', () => {
+  it('keeps empty project / phase / WBS when no matching tasks', () => {
     const pruned = filterAndPruneGanttTree(tree, 'nobody', false)
-    expect(pruned).toHaveLength(0)
+    expect(pruned).toHaveLength(1)
+    expect(pruned[0]!.id).toBe('proj')
+    expect(pruned[0]!.children).toHaveLength(1)
+    expect(pruned[0]!.children[0]!.id).toBe('phase')
+    expect(pruned[0]!.children[0]!.children).toHaveLength(1)
+    expect(pruned[0]!.children[0]!.children[0]!.id).toBe('wbs')
+    expect(pruned[0]!.children[0]!.children[0]!.children).toHaveLength(0)
+  })
+
+  it('keeps structure-only tree with no leaf tasks', () => {
+    const emptyTree: GanttTreeItem[] = [
+      node({
+        id: 'proj',
+        itemType: 'PROJECT',
+        title: 'P',
+        children: [
+          node({
+            id: 'phase',
+            itemType: 'PHASE',
+            title: 'Ph',
+            children: [
+              node({
+                id: 'wbs',
+                itemType: 'WBS_NODE',
+                title: 'W',
+                children: [],
+              }),
+            ],
+          }),
+        ],
+      }),
+    ]
+    const pruned = filterAndPruneGanttTree(emptyTree, null, false)
+    expect(pruned).toHaveLength(1)
+    expect(pruned[0]!.children[0]!.children[0]!.children).toHaveLength(0)
   })
 
   it('keeps all assigned leaves when assignee is null', () => {
