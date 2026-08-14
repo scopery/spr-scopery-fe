@@ -1,7 +1,7 @@
 import { WbsNodeStatus, WbsNodeType } from '../enums/wbs.enum'
 import type { WbsNode, WbsTreeNode } from '../model/wbs'
 
-export type WbsNodeTypeBadgeTone = 'info' | 'secondary' | 'warning' | 'neutral'
+export type WbsNodeTypeBadgeTone = 'info' | 'secondary' | 'warning' | 'neutral' | 'success'
 
 /** Flatten a possibly-nested node list (tree endpoint may nest `children`). */
 function flattenWbsNodes(nodes: WbsNode[]): WbsNode[] {
@@ -84,7 +84,7 @@ export function wbsNodeTypeBadgeTone(
     case WbsNodeType.TaskGroup:
       return 'secondary'
     case WbsNodeType.WorkPackage:
-      return 'info'
+      return 'success'
     default:
       return 'neutral'
   }
@@ -97,4 +97,46 @@ export function canArchiveWbsNode(node: { status: string }): boolean {
 /** Frontend hint only — backend enforces the real guard (no children, no linked tasks). */
 export function canDeleteWbsNode(node: { status: string; children: unknown[] }): boolean {
   return node.status !== WbsNodeStatus.Archived && node.children.length === 0
+}
+
+export function findWbsNodeInTree(nodes: WbsTreeNode[], id: string): WbsTreeNode | null {
+  for (const node of nodes) {
+    if (node.id === id) return node
+    const hit = findWbsNodeInTree(node.children, id)
+    if (hit) return hit
+  }
+  return null
+}
+
+export interface WbsPhaseGroup {
+  phaseId: string | null
+  roots: WbsTreeNode[]
+}
+
+/** Group tree roots by phase. Unassigned first, then phases in display order. */
+export function groupWbsTreeByPhase(
+  tree: WbsTreeNode[],
+  phaseOrder: ReadonlyArray<{ id: string }>
+): WbsPhaseGroup[] {
+  const byPhase = new Map<string | null, WbsTreeNode[]>()
+  for (const root of tree) {
+    const key = root.projectPhaseId
+    const list = byPhase.get(key) ?? []
+    list.push(root)
+    byPhase.set(key, list)
+  }
+
+  const groups: WbsPhaseGroup[] = [
+    { phaseId: null, roots: byPhase.get(null) ?? [] },
+  ]
+  const seen = new Set<string>()
+  for (const phase of phaseOrder) {
+    seen.add(phase.id)
+    groups.push({ phaseId: phase.id, roots: byPhase.get(phase.id) ?? [] })
+  }
+  for (const [phaseId, roots] of byPhase) {
+    if (!phaseId || seen.has(phaseId)) continue
+    groups.push({ phaseId, roots })
+  }
+  return groups
 }

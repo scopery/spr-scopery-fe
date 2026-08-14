@@ -5,8 +5,10 @@ export const TIMELINE_BAR_COLORS = {
   /** Phase base is white; stripes use this accent. */
   phase: '#ffffff',
   phaseStripe: 'oklch(72% 0.03 122)',
-  /** Design-system secondary token. */
-  wbs: 'var(--color-secondary)',
+  /** Work package — success/teal, distinct from task-group secondary. */
+  wbs: 'var(--color-success)',
+  /** Task group under a phase. */
+  wbsTaskGroup: 'var(--color-secondary)',
   milestone: 'oklch(64.6% 0.222 41.116)',
   task: 'oklch(90.1% 0.058 230.902)',
   /** Matches design token `neutral-300`. */

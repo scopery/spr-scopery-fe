@@ -99,7 +99,9 @@ function scheduleFillKindForRow(row: TimelineFlatRow): ScheduleFillKind {
   if (row.itemType === 'PROJECT') return 'project'
   if (row.itemType === 'PHASE') return 'phase'
   if (row.itemType === 'WBS_NODE') {
-    return row.wbsNodeType === 'MILESTONE' ? 'wbsMilestone' : 'wbs'
+    if (row.wbsNodeType === 'MILESTONE') return 'wbsMilestone'
+    if (row.wbsNodeType === 'TASK_GROUP') return 'wbsTaskGroup'
+    return 'wbs'
   }
   if (row.kind === 'milestone') return 'milestone'
   return 'task'

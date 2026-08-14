@@ -21,8 +21,13 @@ const LEGEND_ITEMS = [
   },
   {
     background: TIMELINE_BAR_COLORS.wbs,
-    title: 'Planning Element',
-    note: 'Structure bar under a phase.',
+    title: 'Work package',
+    note: 'Package bar under a phase.',
+  },
+  {
+    background: TIMELINE_BAR_COLORS.wbsTaskGroup,
+    title: 'Task group',
+    note: 'Group of tasks under a phase.',
   },
   {
     background: TIMELINE_BAR_COLORS.milestone,

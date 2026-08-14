@@ -23,4 +23,6 @@ export {
   wbsNodeTypeLabel,
   wbsNodeTypeBadgeTone,
   canArchiveWbsNode,
+  groupWbsTreeByPhase,
+  findWbsNodeInTree,
 } from './domain/rules/wbs.rules'

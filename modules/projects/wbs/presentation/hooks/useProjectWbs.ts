@@ -20,9 +20,9 @@ export function useProjectWbs(projectId: string | null) {
 
   const tree = useMemo(() => buildWbsTree(raw), [raw])
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!projectId) return
-    setLoading(true)
+    if (!opts?.silent) setLoading(true)
     setError(null)
     setForbidden(false)
     try {
@@ -32,7 +32,7 @@ export function useProjectWbs(projectId: string | null) {
       setError(err instanceof Error ? err.message : 'Failed to load Plan Structure')
       setRaw([])
     } finally {
-      setLoading(false)
+      if (!opts?.silent) setLoading(false)
     }
   }, [projectId])
 
@@ -44,7 +44,7 @@ export function useProjectWbs(projectId: string | null) {
     async (body: CreateWbsNodePayload) => {
       if (!projectId) return
       await wbsApi.createWbsNode(projectId, body)
-      await load()
+      await load({ silent: true })
     },
     [projectId, load]
   )
@@ -61,7 +61,7 @@ export function useProjectWbs(projectId: string | null) {
     async (id: string, body: UpdateWbsNodePayload) => {
       if (!projectId) return null
       const updated = await wbsApi.updateWbsNode(projectId, id, body)
-      await load()
+      await load({ silent: true })
       return updated
     },
     [projectId, load]
@@ -73,7 +73,7 @@ export function useProjectWbs(projectId: string | null) {
       setActingId(id)
       try {
         await wbsApi.archiveWbsNode(projectId, id)
-        await load()
+        await load({ silent: true })
       } finally {
         setActingId(null)
       }
@@ -87,7 +87,7 @@ export function useProjectWbs(projectId: string | null) {
       setActingId(id)
       try {
         await wbsApi.deleteWbsNode(projectId, id)
-        await load()
+        await load({ silent: true })
       } finally {
         setActingId(null)
       }

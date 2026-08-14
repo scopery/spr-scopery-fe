@@ -120,6 +120,57 @@ export function taskPriorityLabel(priority: string): string {
   }
 }
 
+function priorityRank(priority: string | null | undefined): number {
+  switch ((priority ?? '').toUpperCase()) {
+    case 'CRITICAL':
+      return 0
+    case 'HIGH':
+      return 1
+    case 'MEDIUM':
+      return 2
+    case 'LOW':
+      return 3
+    default:
+      return 4
+  }
+}
+
+function statusAttentionRank(status: string): number {
+  switch (status) {
+    case TaskStatus.Blocked:
+      return 0
+    case TaskStatus.InProgress:
+      return 1
+    case TaskStatus.Todo:
+      return 2
+    default:
+      return 3
+  }
+}
+
+function dueSortValue(dueDate: string | null | undefined): number {
+  if (!dueDate) return Number.POSITIVE_INFINITY
+  const due = new Date(dueDate).getTime()
+  return Number.isNaN(due) ? Number.POSITIVE_INFINITY : due
+}
+
+/** Overdue / blocked first, then due date, then priority. */
+export function compareTasksForWorkQueue<
+  T extends { status: string; dueDate: string | null; priority: string },
+>(a: T, b: T): number {
+  const aOverdue = isTaskOverdue(a) ? 0 : 1
+  const bOverdue = isTaskOverdue(b) ? 0 : 1
+  if (aOverdue !== bOverdue) return aOverdue - bOverdue
+
+  const statusDiff = statusAttentionRank(a.status) - statusAttentionRank(b.status)
+  if (statusDiff !== 0) return statusDiff
+
+  const dueDiff = dueSortValue(a.dueDate) - dueSortValue(b.dueDate)
+  if (dueDiff !== 0) return dueDiff
+
+  return priorityRank(a.priority) - priorityRank(b.priority)
+}
+
 export const BOARD_COLUMNS: { status: TaskBoardStatus; label: string }[] = [
   { status: TaskStatus.Todo, label: 'To do' },
   { status: TaskStatus.InProgress, label: 'In progress' },

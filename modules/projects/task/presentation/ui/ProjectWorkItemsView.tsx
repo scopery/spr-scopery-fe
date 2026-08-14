@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { ChevronDown, Plus } from 'lucide-react'
 import {
   Typography,
@@ -21,7 +21,6 @@ import {
 } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
-import { ROUTES } from '@/constants/routes'
 import {
   UserIdentity,
   UserSearchSelect,
@@ -39,6 +38,8 @@ import * as tasksApi from '../../infrastructure/api/tasks.api'
 import type { ProjectTask } from '../../domain/model/task'
 import {
   BOARD_COLUMNS,
+  compareTasksForWorkQueue,
+  isTaskOverdue,
   taskLifecycleActionForBoardMove,
   taskPriorityLabel,
   taskStatusLabel,
@@ -47,6 +48,7 @@ import { TaskStatus } from '../../../project/domain/enums/project.enum'
 import { cn } from '@/utils/cn'
 
 const DEFAULT_STATUS_FILTERS = [TaskStatus.Todo, TaskStatus.InProgress] as const
+const WORK_FILTERS_STORAGE_PREFIX = 'scopery.work-items.filters.'
 
 const STATUS_CHECKBOX_OPTIONS: { value: string; label: string }[] = [
   { value: TaskStatus.Todo, label: 'To do' },
@@ -64,20 +66,45 @@ function formatDate(iso: string | null | undefined) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
+function readStoredFilters(projectId: string) {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = sessionStorage.getItem(`${WORK_FILTERS_STORAGE_PREFIX}${projectId}`)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as {
+      keyword?: string
+      selectedStatuses?: string[]
+      phaseFilter?: string
+      assigneeFilter?: string
+    }
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function WorkItemsContent() {
   const params = useParams()
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const workspaceId = params.workspaceId as string
   const projectId = params.projectId as string
   const { people: assigneePeople } = useWorkspaceMemberPeople(workspaceId)
+  const listScrollRef = useRef<HTMLDivElement>(null)
 
   const view = searchParams.get('view') === 'board' ? 'board' : 'list'
-  const [keyword, setKeyword] = useState('')
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([...DEFAULT_STATUS_FILTERS])
+  const queryTaskId = searchParams.get('task')
+  const storedFilters = useMemo(() => readStoredFilters(projectId), [projectId])
+  const [keyword, setKeyword] = useState(storedFilters?.keyword ?? '')
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(
+    storedFilters?.selectedStatuses?.length
+      ? storedFilters.selectedStatuses
+      : [...DEFAULT_STATUS_FILTERS]
+  )
   const [statusMenuOpen, setStatusMenuOpen] = useState(false)
-  const [phaseFilter, setPhaseFilter] = useState('')
-  const [assigneeFilter, setAssigneeFilter] = useState('')
+  const [phaseFilter, setPhaseFilter] = useState(storedFilters?.phaseFilter ?? '')
+  const [assigneeFilter, setAssigneeFilter] = useState(storedFilters?.assigneeFilter ?? '')
   const [createOpen, setCreateOpen] = useState(false)
   const [importExcelOpen, setImportExcelOpen] = useState(false)
   const [addMenuOpen, setAddMenuOpen] = useState(false)
@@ -137,38 +164,93 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
   }, [phases])
 
   const filteredTasks = useMemo(() => {
-    if (!assigneeFilter.trim()) return tasks
     const q = assigneeFilter.trim().toLowerCase()
-    return tasks.filter((t) => {
-      const id = (t.inChargeUserId ?? '').toLowerCase()
-      const person = t.inChargeUserId ? peopleById[t.inChargeUserId] : null
-      const name = (person?.fullName ?? person?.email ?? '').toLowerCase()
-      return id.includes(q) || name.includes(q)
-    })
+    const next = q
+      ? tasks.filter((t) => {
+          const id = (t.inChargeUserId ?? '').toLowerCase()
+          const person = t.inChargeUserId ? peopleById[t.inChargeUserId] : null
+          const name = (person?.fullName ?? person?.email ?? '').toLowerCase()
+          return id.includes(q) || name.includes(q)
+        })
+      : [...tasks]
+    next.sort(compareTasksForWorkQueue)
+    return next
   }, [tasks, assigneeFilter, peopleById])
 
-  const openTask = useCallback(
-    async (taskId: string) => {
-      const fromList = tasks.find((t) => t.id === taskId)
-      if (fromList) {
-        setSelectedTask(fromList)
-      } else {
-        const loaded = await getTask(taskId)
-        if (loaded) setSelectedTask(loaded)
-      }
-      router.replace(ROUTES.workspace.projectWorkTask(workspaceId, projectId, taskId))
+  const workHref = useCallback(
+    (opts?: { view?: 'list' | 'board'; taskId?: string | null }) => {
+      const nextView = opts?.view ?? view
+      const next = new URLSearchParams()
+      if (nextView === 'board') next.set('view', 'board')
+      const taskId =
+        opts && 'taskId' in opts ? opts.taskId : (queryTaskId || null)
+      if (taskId) next.set('task', taskId)
+      const qs = next.toString()
+      return qs ? `${pathname}?${qs}` : pathname
     },
-    [tasks, getTask, router, workspaceId, projectId]
+    [pathname, queryTaskId, view]
   )
 
+  const openTask = useCallback(
+    (taskId: string) => {
+      const fromList = tasks.find((t) => t.id === taskId)
+      if (fromList) setSelectedTask(fromList)
+      router.replace(workHref({ taskId }), { scroll: false })
+    },
+    [tasks, router, workHref]
+  )
+
+  const closeTask = useCallback(() => {
+    setSelectedTask(null)
+    router.replace(workHref({ taskId: null }), { scroll: false })
+  }, [router, workHref])
+
   useEffect(() => {
-    if (!deepLinkTaskId) return
-    void openTask(deepLinkTaskId)
-  }, [deepLinkTaskId, openTask])
+    try {
+      sessionStorage.setItem(
+        `${WORK_FILTERS_STORAGE_PREFIX}${projectId}`,
+        JSON.stringify({ keyword, selectedStatuses, phaseFilter, assigneeFilter })
+      )
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }, [projectId, keyword, selectedStatuses, phaseFilter, assigneeFilter])
+
+  useEffect(() => {
+    const el = listScrollRef.current
+    if (!el) return
+    const key = `scopery.work-items.scroll.${projectId}`
+    const saved = sessionStorage.getItem(key)
+    if (saved) el.scrollTop = Number(saved) || 0
+    const onScroll = () => {
+      sessionStorage.setItem(key, String(el.scrollTop))
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [projectId, view])
+
+  useEffect(() => {
+    const taskId = queryTaskId
+    if (!taskId) {
+      setSelectedTask(null)
+      return
+    }
+    const fromList = tasks.find((t) => t.id === taskId)
+    if (fromList) {
+      setSelectedTask(fromList)
+      return
+    }
+    let cancelled = false
+    void getTask(taskId).then((loaded) => {
+      if (!cancelled && loaded) setSelectedTask(loaded)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [queryTaskId, tasks, getTask])
 
   const setView = (next: 'list' | 'board') => {
-    const href = ROUTES.workspace.projectWork(workspaceId, projectId, next)
-    router.replace(href)
+    router.replace(workHref({ view: next }), { scroll: false })
   }
 
   const handleBoardDrop = async (toStatus: string) => {
@@ -385,7 +467,7 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
       ) : null}
 
       {view === 'list' ? (
-        <div className="border border-neutral-200 bg-white">
+        <div ref={listScrollRef} className="border border-neutral-200 bg-white">
           <DataTable
             ariaLabel="Project work items"
             rows={filteredTasks}
@@ -400,7 +482,7 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
                   <button
                     type="button"
                     className="text-left font-medium hover:underline"
-                    onClick={() => void openTask(task.id)}
+                    onClick={() => openTask(task.id)}
                   >
                     {task.title}
                   </button>
@@ -448,7 +530,7 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
                   <button
                     type="button"
                     className="text-sm text-primary hover:underline"
-                    onClick={() => void openTask(task.id)}
+                    onClick={() => openTask(task.id)}
                   >
                     Open
                   </button>
@@ -475,29 +557,67 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
                   </Typography>
                 </Typography>
                 <ul className="space-y-2">
-                  {columnTasks.map((t) => (
-                    <li
-                      key={t.id}
-                      draggable
-                      onDragStart={() => setDragTaskId(t.id)}
-                      onDragEnd={() => setDragTaskId(null)}
-                      className="cursor-grab border border-neutral-200 bg-white p-3 active:cursor-grabbing"
-                    >
-                      <button
-                        type="button"
-                        className="w-full text-left"
-                        onClick={() => void openTask(t.id)}
+                  {columnTasks.map((t) => {
+                    const overdue = isTaskOverdue(t)
+                    const person = t.inChargeUserId ? peopleById[t.inChargeUserId] : null
+                    const phaseName = t.projectPhaseId
+                      ? phaseNameById.get(t.projectPhaseId)
+                      : null
+                    return (
+                      <li
+                        key={t.id}
+                        draggable
+                        onDragStart={() => setDragTaskId(t.id)}
+                        onDragEnd={() => setDragTaskId(null)}
+                        className="cursor-grab border border-neutral-200 bg-white p-3 active:cursor-grabbing"
                       >
-                        <Typography variant="small" className="font-mono text-neutral-500">
-                          {t.code}
-                        </Typography>
-                        <Typography weight="medium">{t.title}</Typography>
-                        <Typography variant="small" tone="muted" className="mt-1">
-                          {taskPriorityLabel(t.priority)} · Due {formatDate(t.dueDate)}
-                        </Typography>
-                      </button>
-                    </li>
-                  ))}
+                        <button
+                          type="button"
+                          className="w-full text-left"
+                          onClick={() => openTask(t.id)}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <Typography variant="small" className="font-mono text-neutral-500">
+                              {t.code}
+                            </Typography>
+                            {overdue ? (
+                              <Badge tone="error">Overdue</Badge>
+                            ) : t.status === TaskStatus.Blocked ? (
+                              <Badge tone="warning">Blocked</Badge>
+                            ) : null}
+                          </div>
+                          <Typography weight="medium" className="mt-1">
+                            {t.title}
+                          </Typography>
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            <Badge tone="neutral">{taskPriorityLabel(t.priority)}</Badge>
+                            {phaseName ? (
+                              <Typography variant="caption" tone="muted">
+                                {phaseName}
+                              </Typography>
+                            ) : null}
+                          </div>
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            <Typography variant="small" tone={overdue ? 'error' : 'muted'}>
+                              Due {formatDate(t.dueDate)}
+                            </Typography>
+                            {t.inChargeUserId && person ? (
+                              <UserIdentity
+                                userId={t.inChargeUserId}
+                                person={person}
+                                size="xs"
+                                compact
+                              />
+                            ) : (
+                              <Typography variant="caption" tone="muted">
+                                Unassigned
+                              </Typography>
+                            )}
+                          </div>
+                        </button>
+                      </li>
+                    )
+                  })}
                 </ul>
               </div>
             )
@@ -535,8 +655,7 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
         task={selectedTask}
         open={!!selectedTask}
         acting={actingId === selectedTask?.id}
-        closeHref={ROUTES.workspace.projectWork(workspaceId, projectId)}
-        onClose={() => setSelectedTask(null)}
+        onClose={closeTask}
         onLifecycle={async (taskId, action) => {
           try {
             await runLifecycle(taskId, action)
@@ -559,7 +678,7 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
         }}
         onDelete={async (taskId) => {
           await deleteTask(taskId)
-          setSelectedTask(null)
+          closeTask()
           toast.success('Task deleted')
         }}
       />
@@ -567,10 +686,10 @@ function WorkItemsContent({ deepLinkTaskId }: { deepLinkTaskId?: string }) {
   )
 }
 
-export function ProjectWorkItemsView({ taskId }: { taskId?: string }) {
+export function ProjectWorkItemsView() {
   return (
     <Suspense fallback={<PageSkeleton variant="list" />}>
-      <WorkItemsContent deepLinkTaskId={taskId} />
+      <WorkItemsContent />
     </Suspense>
   )
 }

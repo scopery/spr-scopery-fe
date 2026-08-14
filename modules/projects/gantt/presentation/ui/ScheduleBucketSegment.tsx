@@ -13,6 +13,7 @@ export type ScheduleFillKind =
   | 'project'
   | 'phase'
   | 'wbs'
+  | 'wbsTaskGroup'
   | 'wbsMilestone'
   | 'task'
   | 'milestone'
@@ -52,6 +53,8 @@ function fillStyle(
       return { backgroundImage: TIMELINE_BAR_COLORS.project }
     case 'wbs':
       return { backgroundColor: TIMELINE_BAR_COLORS.wbs }
+    case 'wbsTaskGroup':
+      return { backgroundColor: TIMELINE_BAR_COLORS.wbsTaskGroup }
     case 'wbsMilestone':
     case 'milestone':
       return { backgroundColor: TIMELINE_BAR_COLORS.milestone }
@@ -151,8 +154,9 @@ export function scheduleFillKindForRow(row: {
   if (row.itemType === 'PHASE') return 'phase'
   if (row.itemType === 'WBS_NODE') {
     const t = (row.wbsNodeType || '').toUpperCase()
-    // Legacy DELIVERABLE rows map to the same milestone visual.
-    return t === 'MILESTONE' || t === 'DELIVERABLE' ? 'wbsMilestone' : 'wbs'
+    if (t === 'MILESTONE' || t === 'DELIVERABLE') return 'wbsMilestone'
+    if (t === 'TASK_GROUP') return 'wbsTaskGroup'
+    return 'wbs'
   }
   if (row.kind === 'milestone') return 'milestone'
   return 'task'

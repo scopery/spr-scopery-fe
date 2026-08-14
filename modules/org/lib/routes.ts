@@ -36,8 +36,17 @@ export const WORKSPACE_ROUTES = {
     const base = `/workspace/${workspaceId}/projects/${projectId}/work`
     return view && view !== 'list' ? `${base}?view=${view}` : base
   },
-  projectWorkTask: (workspaceId: string, projectId: string, taskId: string) =>
-    `/workspace/${workspaceId}/projects/${projectId}/work/${taskId}`,
+  projectWorkTask: (
+    workspaceId: string,
+    projectId: string,
+    taskId: string,
+    view?: 'list' | 'board'
+  ) => {
+    const params = new URLSearchParams()
+    if (view === 'board') params.set('view', 'board')
+    params.set('task', taskId)
+    return `/workspace/${workspaceId}/projects/${projectId}/work?${params.toString()}`
+  },
   /** Wave 2 P2: Plan Structure (planning elements tree). URL keeps /wbs for BE compatibility. */
   projectWbs: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/wbs`,
