@@ -7,12 +7,12 @@ import {
   AnchoredMenu,
   Badge,
   Button,
+  Checkbox,
   ConfirmDialog,
   Divider,
   Input,
   Modal,
   PageSkeleton,
-  SearchableSelect,
   Select,
   Stack,
   Textarea,
@@ -330,7 +330,9 @@ function ScreenSpecDocEditor({
   const [headerOpen, setHeaderOpen] = useState(false)
   const [headerDraft, setHeaderDraft] = useState<UpdateScreenSpecDocBody | null>(null)
   const [savingHeader, setSavingHeader] = useState(false)
-  const [screenId, setScreenId] = useState('')
+  const [screensOpen, setScreensOpen] = useState(false)
+  const [screenQuery, setScreenQuery] = useState('')
+  const [selectedScreenIds, setSelectedScreenIds] = useState<string[]>([])
   const [revisionOpen, setRevisionOpen] = useState(false)
   const [addingRevision, setAddingRevision] = useState(false)
   const [addingScreen, setAddingScreen] = useState(false)
@@ -342,7 +344,9 @@ function ScreenSpecDocEditor({
   useEffect(() => {
     setHeaderOpen(false)
     setHeaderDraft(null)
-    setScreenId('')
+    setScreensOpen(false)
+    setScreenQuery('')
+    setSelectedScreenIds([])
     setRevisionOpen(false)
     setRev(EMPTY_REVISION)
   }, [docId])
@@ -353,6 +357,13 @@ function ScreenSpecDocEditor({
     () => screens.filter((s) => !linkedIds.has(s.id)),
     [screens, linked]
   )
+  const filteredAvailable = useMemo(() => {
+    const q = screenQuery.trim().toLowerCase()
+    if (!q) return available
+    return available.filter(
+      (s) => s.code.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)
+    )
+  }, [available, screenQuery])
 
   if (loading && !doc) return <PageSkeleton variant="list" />
   if (error) return <Typography tone="error">{error}</Typography>
@@ -399,12 +410,20 @@ function ScreenSpecDocEditor({
     }
   }
 
-  const handleAddScreen = async () => {
-    if (!screenId) return
+  const handleAddScreens = async () => {
+    if (selectedScreenIds.length === 0) return
     setAddingScreen(true)
     try {
-      await addScreen({ screenId, displayOrder: linked.length + 1 })
-      setScreenId('')
+      let order = linked.length
+      for (const id of selectedScreenIds) {
+        order += 1
+        await addScreen({ screenId: id, displayOrder: order })
+      }
+      const count = selectedScreenIds.length
+      setSelectedScreenIds([])
+      setScreenQuery('')
+      setScreensOpen(false)
+      toast.success(count === 1 ? 'Screen added' : `${count} screens added`)
     } catch (err) {
       toast.error(getProblemToastMessage(err))
     } finally {
@@ -546,15 +565,29 @@ function ScreenSpecDocEditor({
       <Divider variant="dashed" />
 
       <section>
-        <Typography weight="medium" variant="small">
-          Screens{linked.length > 0 ? ` · ${linked.length}` : ''}
-        </Typography>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <Typography weight="medium" variant="small">
+            Screens{linked.length > 0 ? ` · ${linked.length}` : ''}
+          </Typography>
+          <Button
+            size="sm"
+            variant="ghost"
+            iconOnly
+            icon={<Plus size={16} strokeWidth={1.75} />}
+            aria-label="Add screens"
+            onClick={() => {
+              setSelectedScreenIds([])
+              setScreenQuery('')
+              setScreensOpen(true)
+            }}
+          />
+        </div>
         {linked.length === 0 ? (
-          <Typography tone="muted" variant="small" className="mt-3 block">
-            Add screens to include in the workbook.
+          <Typography tone="muted" variant="small" className="block">
+            No screens in this document yet. Use + to add screens from this app.
           </Typography>
         ) : (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {linked.map((item) => (
               <div
                 key={item.screenId}
@@ -576,22 +609,6 @@ function ScreenSpecDocEditor({
             ))}
           </div>
         )}
-        <div className="mt-3 grid grid-cols-1 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-          <FieldControl label="Add screen">
-            <SearchableSelect
-              size="sm"
-              value={screenId}
-              onValueChange={setScreenId}
-              placeholder={available.length === 0 ? 'All screens added' : 'Search screens'}
-              searchPlaceholder="Search code or name"
-              disabled={available.length === 0}
-              options={available.map((s) => ({ value: s.id, label: `${s.code} · ${s.name}` }))}
-            />
-          </FieldControl>
-          <Button size="sm" disabled={!screenId || addingScreen} onClick={() => void handleAddScreen()}>
-            Add
-          </Button>
-        </div>
       </section>
 
       <Divider variant="dashed" />
@@ -657,6 +674,90 @@ function ScreenSpecDocEditor({
           </div>
         )}
       </section>
+
+      <Modal
+        open={screensOpen}
+        onClose={() => setScreensOpen(false)}
+        title="Add screens"
+        size="md"
+        actions={[
+          { label: 'Cancel', onClick: () => setScreensOpen(false), variant: 'ghost' },
+          {
+            label: selectedScreenIds.length > 1 ? `Add ${selectedScreenIds.length}` : 'Add',
+            onClick: () => void handleAddScreens(),
+            disabled: addingScreen || selectedScreenIds.length === 0,
+            loading: addingScreen,
+          },
+        ]}
+      >
+        <Stack direction="vertical" spacing="sm">
+          <Input
+            size="sm"
+            fullWidth
+            type="search"
+            value={screenQuery}
+            onChange={(e) => setScreenQuery(e.target.value)}
+            placeholder="Search code or name"
+            aria-label="Search screens"
+          />
+          {available.length === 0 ? (
+            <Typography tone="muted" variant="small">
+              All screens in this app are already in this document.
+            </Typography>
+          ) : filteredAvailable.length === 0 ? (
+            <Typography tone="muted" variant="small">
+              No screens match this search.
+            </Typography>
+          ) : (
+            <div className="max-h-72 overflow-y-auto border border-neutral-200">
+              <div className="border-b border-neutral-100 px-3 py-2">
+                <Checkbox
+                  size="sm"
+                  label="Select all"
+                  checked={
+                    filteredAvailable.length > 0 &&
+                    filteredAvailable.every((s) => selectedScreenIds.includes(s.id))
+                  }
+                  indeterminate={
+                    filteredAvailable.some((s) => selectedScreenIds.includes(s.id)) &&
+                    !filteredAvailable.every((s) => selectedScreenIds.includes(s.id))
+                  }
+                  onChange={(e) => {
+                    const visibleIds = filteredAvailable.map((s) => s.id)
+                    if (e.target.checked) {
+                      setSelectedScreenIds((prev) => [...new Set([...prev, ...visibleIds])])
+                    } else {
+                      const drop = new Set(visibleIds)
+                      setSelectedScreenIds((prev) => prev.filter((id) => !drop.has(id)))
+                    }
+                  }}
+                />
+              </div>
+              <ul>
+                {filteredAvailable.map((screen) => {
+                  const checked = selectedScreenIds.includes(screen.id)
+                  return (
+                    <li key={screen.id} className="border-b border-neutral-100 px-3 py-2 last:border-b-0">
+                      <Checkbox
+                        size="sm"
+                        label={`${screen.code} · ${screen.name}`}
+                        checked={checked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedScreenIds((prev) => [...prev, screen.id])
+                          } else {
+                            setSelectedScreenIds((prev) => prev.filter((id) => id !== screen.id))
+                          }
+                        }}
+                      />
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )}
+        </Stack>
+      </Modal>
 
       <Modal
         open={revisionOpen}

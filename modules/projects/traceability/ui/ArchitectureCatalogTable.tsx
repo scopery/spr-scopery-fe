@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Search } from 'lucide-react'
 import {
   Button,
@@ -40,6 +40,7 @@ interface ArchitectureCatalogTableProps {
   /** When set, only these nodes count as deletable in bulk selection. */
   isNodeDeletable?: (node: BrowseCatalogNode) => boolean
   bulkDeleteDisabled?: boolean
+  toolbarAction?: ReactNode
 }
 
 const FILTERS: { id: TypeFilter; label: string }[] = [
@@ -65,6 +66,7 @@ export function ArchitectureCatalogTable({
   onBulkDelete,
   isNodeDeletable,
   bulkDeleteDisabled = false,
+  toolbarAction,
 }: ArchitectureCatalogTableProps) {
   const [query, setQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL')
@@ -119,8 +121,8 @@ export function ArchitectureCatalogTable({
 
   return (
     <Stack direction="vertical" spacing="md">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="w-full min-w-0 sm:max-w-xs">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 w-full max-w-xs">
           <Input
             fullWidth
             value={query}
@@ -130,7 +132,9 @@ export function ArchitectureCatalogTable({
             prefix={<Search size={14} />}
           />
         </div>
-        <div className="flex flex-wrap gap-1" role="tablist" aria-label="Node type">
+        {toolbarAction ? <div className="shrink-0">{toolbarAction}</div> : null}
+      </div>
+      <div className="flex flex-wrap gap-1" role="tablist" aria-label="Node type">
           {FILTERS.map((f) => {
             const active = typeFilter === f.id
             return (
@@ -152,7 +156,6 @@ export function ArchitectureCatalogTable({
             )
           })}
         </div>
-      </div>
 
       {onBulkDelete && selectedKeys.size > 0 && filtered.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 border border-neutral-200 bg-neutral-50 px-3 py-2">

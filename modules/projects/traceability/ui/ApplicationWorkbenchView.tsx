@@ -453,90 +453,21 @@ export function ApplicationWorkbenchView() {
             >
               {/* Left: catalog — independent scroll */}
               <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-neutral-200">
-                <div className="flex shrink-0 items-center justify-between gap-3 border-b border-neutral-100 px-3 py-2">
-                  <div className="min-w-0 flex-1">
+                {relatedFunctionNodes.length > 0 || modules.length > 0 ? (
+                  <div className="shrink-0 border-b border-neutral-100 px-3 py-2">
                     {relatedFunctionNodes.length > 0 ? (
                       <Typography variant="caption" tone="muted">
                         {relatedFunctionNodes.length} function
                         {relatedFunctionNodes.length === 1 ? '' : 's'} linked to this app’s
                         modules (all projects).
                       </Typography>
-                    ) : modules.length > 0 ? (
+                    ) : (
                       <Typography variant="caption" tone="muted">
                         No functions assigned to this app’s modules yet. Map them on Structure.
                       </Typography>
-                    ) : null}
+                    )}
                   </div>
-                  <CatalogAddBar
-                    onCreate={async ({ kind, code, name, extra }) => {
-                      const opts = { refresh: false as const }
-                      switch (kind) {
-                        case 'MODULE':
-                          await createModule(
-                            {
-                              code,
-                              name,
-                              description: extra ?? null,
-                            },
-                            opts
-                          )
-                          break
-                        case 'SCREEN':
-                          await createScreen(
-                            {
-                              code,
-                              name,
-                              routePath: extra ?? null,
-                            },
-                            opts
-                          )
-                          break
-                        case 'API_ENDPOINT':
-                          await createEndpoint(
-                            {
-                              method: code.toUpperCase(),
-                              pathPattern: name,
-                              name: extra ?? null,
-                            },
-                            opts
-                          )
-                          break
-                        case 'COMPONENT':
-                          await createComponent(
-                            {
-                              code,
-                              name,
-                              componentType: extra ?? null,
-                            },
-                            opts
-                          )
-                          break
-                        case 'DATA_ENTITY':
-                          await createEntity(
-                            {
-                              code,
-                              name,
-                              tableName: extra ?? null,
-                            },
-                            opts
-                          )
-                          break
-                        case 'COMMUNICATION':
-                          await createCommunication(
-                            {
-                              code,
-                              name,
-                              triggerKey: extra ?? null,
-                            },
-                            opts
-                          )
-                          break
-                      }
-                    }}
-                    onSubmitBulk={handleSubmitBulk}
-                    onBatchComplete={() => refetch({ silent: true })}
-                  />
-                </div>
+                ) : null}
                 <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
                   <ArchitectureCatalogTable
                     nodes={catalogNodes}
@@ -546,6 +477,77 @@ export function ApplicationWorkbenchView() {
                     onBulkDelete={handleBulkDeleteNodes}
                     isNodeDeletable={(node) =>
                       isArchitectureNodeDeletable(node, structureRelations)
+                    }
+                    toolbarAction={
+                      <CatalogAddBar
+                        onCreate={async ({ kind, code, name, extra }) => {
+                          const opts = { refresh: false as const }
+                          switch (kind) {
+                            case 'MODULE':
+                              await createModule(
+                                {
+                                  code,
+                                  name,
+                                  description: extra ?? null,
+                                },
+                                opts
+                              )
+                              break
+                            case 'SCREEN':
+                              await createScreen(
+                                {
+                                  code,
+                                  name,
+                                  routePath: extra ?? null,
+                                },
+                                opts
+                              )
+                              break
+                            case 'API_ENDPOINT':
+                              await createEndpoint(
+                                {
+                                  method: code.toUpperCase(),
+                                  pathPattern: name,
+                                  name: extra ?? null,
+                                },
+                                opts
+                              )
+                              break
+                            case 'COMPONENT':
+                              await createComponent(
+                                {
+                                  code,
+                                  name,
+                                  componentType: extra ?? null,
+                                },
+                                opts
+                              )
+                              break
+                            case 'DATA_ENTITY':
+                              await createEntity(
+                                {
+                                  code,
+                                  name,
+                                  tableName: extra ?? null,
+                                },
+                                opts
+                              )
+                              break
+                            case 'COMMUNICATION':
+                              await createCommunication(
+                                {
+                                  code,
+                                  name,
+                                  triggerKey: extra ?? null,
+                                },
+                                opts
+                              )
+                              break
+                          }
+                        }}
+                        onSubmitBulk={handleSubmitBulk}
+                        onBatchComplete={() => refetch({ silent: true })}
+                      />
                     }
                   />
                 </div>
