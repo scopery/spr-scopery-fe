@@ -32,7 +32,7 @@ export const WORKSPACE_ROUTES = {
     `/workspace/${workspaceId}/projects/${projectId}/overview`,
   projectOverview: (workspaceId: string, projectId: string) =>
     `/workspace/${workspaceId}/projects/${projectId}/overview`,
-  projectWork: (workspaceId: string, projectId: string, view?: 'list' | 'board') => {
+  projectWork: (workspaceId: string, projectId: string, view?: 'list' | 'board' | 'chart') => {
     const base = `/workspace/${workspaceId}/projects/${projectId}/work`
     return view && view !== 'list' ? `${base}?view=${view}` : base
   },
@@ -40,10 +40,10 @@ export const WORKSPACE_ROUTES = {
     workspaceId: string,
     projectId: string,
     taskId: string,
-    view?: 'list' | 'board'
+    view?: 'list' | 'board' | 'chart'
   ) => {
     const params = new URLSearchParams()
-    if (view === 'board') params.set('view', 'board')
+    if (view && view !== 'list') params.set('view', view)
     params.set('task', taskId)
     return `/workspace/${workspaceId}/projects/${projectId}/work?${params.toString()}`
   },

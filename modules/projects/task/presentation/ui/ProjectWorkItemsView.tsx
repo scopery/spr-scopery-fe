@@ -34,6 +34,7 @@ import { useProjectTasks } from '../hooks/useProjectTasks'
 import { TaskDetailDrawer } from './TaskDetailDrawer'
 import { CreateTaskModal } from './CreateTaskModal'
 import { TaskJsonImportModal } from './TaskJsonImportModal'
+import { WorkItemsChartView } from './WorkItemsChartView'
 import * as tasksApi from '../../infrastructure/api/tasks.api'
 import type { ProjectTask } from '../../domain/model/task'
 import {
@@ -46,8 +47,18 @@ import {
 } from '../../domain/rules/task.rules'
 import { TaskStatus } from '../../../project/domain/enums/project.enum'
 import { cn } from '@/utils/cn'
+import { buildWorkItemsInsights } from '../../domain/rules/work-items-insights.rules'
+
+type WorkView = 'list' | 'board' | 'chart'
 
 const DEFAULT_STATUS_FILTERS = [TaskStatus.Todo, TaskStatus.InProgress] as const
+const CHART_STATUSES = [
+  TaskStatus.Todo,
+  TaskStatus.InProgress,
+  TaskStatus.Blocked,
+  TaskStatus.Completed,
+  TaskStatus.Cancelled,
+] as const
 const WORK_FILTERS_STORAGE_PREFIX = 'scopery.work-items.filters.'
 
 const STATUS_CHECKBOX_OPTIONS: { value: string; label: string }[] = [
@@ -93,7 +104,9 @@ function WorkItemsContent() {
   const { people: assigneePeople } = useWorkspaceMemberPeople(workspaceId)
   const listScrollRef = useRef<HTMLDivElement>(null)
 
-  const view = searchParams.get('view') === 'board' ? 'board' : 'list'
+  const rawView = searchParams.get('view')
+  const view: WorkView =
+    rawView === 'board' || rawView === 'chart' ? rawView : 'list'
   const queryTaskId = searchParams.get('task')
   const storedFilters = useMemo(() => readStoredFilters(projectId), [projectId])
   const [keyword, setKeyword] = useState(storedFilters?.keyword ?? '')
@@ -128,7 +141,12 @@ function WorkItemsContent() {
     refetch,
   } = useProjectTasks(projectId, {
     keyword: keyword.trim() || undefined,
-    status: selectedStatuses.length > 0 ? selectedStatuses : undefined,
+    status:
+      view === 'chart'
+        ? [...CHART_STATUSES]
+        : selectedStatuses.length > 0
+          ? selectedStatuses
+          : undefined,
     projectPhaseId: phaseFilter || undefined,
   })
 
@@ -177,14 +195,19 @@ function WorkItemsContent() {
     return next
   }, [tasks, assigneeFilter, peopleById])
 
+  const insights = useMemo(
+    () => buildWorkItemsInsights(filteredTasks, phaseNameById),
+    [filteredTasks, phaseNameById]
+  )
+
   const workHref = useCallback(
-    (opts?: { view?: 'list' | 'board'; taskId?: string | null }) => {
+    (opts?: { view?: WorkView; taskId?: string | null }) => {
       const nextView = opts?.view ?? view
       const next = new URLSearchParams()
-      if (nextView === 'board') next.set('view', 'board')
+      if (nextView !== 'list') next.set('view', nextView)
       const taskId =
         opts && 'taskId' in opts ? opts.taskId : (queryTaskId || null)
-      if (taskId) next.set('task', taskId)
+      if (taskId && nextView !== 'chart') next.set('task', taskId)
       const qs = next.toString()
       return qs ? `${pathname}?${qs}` : pathname
     },
@@ -249,7 +272,7 @@ function WorkItemsContent() {
     }
   }, [queryTaskId, tasks, getTask])
 
-  const setView = (next: 'list' | 'board') => {
+  const setView = (next: WorkView) => {
     router.replace(workHref({ view: next }), { scroll: false })
   }
 
@@ -362,6 +385,14 @@ function WorkItemsContent() {
           >
             Board
           </Button>
+          <Button
+            size="sm"
+            variant={view === 'chart' ? 'secondary' : 'ghost'}
+            className="rounded-none"
+            onClick={() => setView('chart')}
+          >
+            Chart
+          </Button>
         </div>
         <div className="min-w-[12rem] flex-1 basis-[12rem]">
           <Input
@@ -371,7 +402,8 @@ function WorkItemsContent() {
             onChange={(e) => setKeyword(e.target.value)}
           />
         </div>
-        <div className="relative min-w-[10rem] flex-1 basis-[10rem]">
+        {view !== 'chart' ? (
+          <div className="relative min-w-[10rem] flex-1 basis-[10rem]">
           <button
             type="button"
             className={cn(
@@ -438,6 +470,7 @@ function WorkItemsContent() {
             </>
           ) : null}
         </div>
+        ) : null}
         <Select
           value={phaseFilter}
           onValueChange={setPhaseFilter}
@@ -447,6 +480,7 @@ function WorkItemsContent() {
           ]}
           className="min-w-[11rem] flex-1 basis-[11rem]"
         />
+        {view !== 'chart' ? (
         <div className="min-w-[10rem] flex-1 basis-[10rem]">
           <UserSearchSelect
             value={assigneeFilter}
@@ -456,6 +490,7 @@ function WorkItemsContent() {
             allowRemoteSearch={false}
           />
         </div>
+        ) : null}
       </Stack>
 
       {error ? (
@@ -539,7 +574,9 @@ function WorkItemsContent() {
             ]}
           />
         </div>
-      ) : (
+      ) : null}
+
+      {view === 'board' ? (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {BOARD_COLUMNS.map((col) => {
             const columnTasks = filteredTasks.filter((t) => t.status === col.status)
@@ -623,7 +660,9 @@ function WorkItemsContent() {
             )
           })}
         </div>
-      )}
+      ) : null}
+
+      {view === 'chart' ? <WorkItemsChartView insights={insights} /> : null}
 
       <TaskJsonImportModal
         open={importExcelOpen}
