@@ -27,6 +27,7 @@ import { NodeDetailInspector, type NodeEditPayload } from './NodeDetailInspector
 import { SimpleExcelImportPanel } from './SimpleExcelImportPanel'
 import { OverallStructurePanel } from './OverallStructurePanel'
 import { ScreenSpecDocsPanel } from '../screen-spec/presentation/ui/ScreenSpecDocsPanel'
+import { ScreenFullSpecJsonImportPanel } from '../screen-spec/presentation/ui/ScreenFullSpecJsonImportPanel'
 import {
   API_ENDPOINT_IMPORT_SPEC,
   COMPONENT_IMPORT_SPEC,
@@ -657,22 +658,29 @@ export function ApplicationWorkbenchView() {
                   />
                 ) : null}
                 {importKind === 'screens' ? (
-                  <SimpleExcelImportPanel
-                    title="Import screens"
-                    spec={SCREEN_IMPORT_SPEC}
-                    onSubmitBulk={(rows) =>
-                      traceabilityApi.submitScreensBulk(
-                        workspaceId,
-                        applicationId,
-                        rows.map((row) => ({
-                          code: row.code,
-                          name: row.name,
-                          routePath: row.routePath || null,
-                        }))
-                      )
-                    }
-                    onComplete={() => void refetch({ silent: true })}
-                  />
+                  <>
+                    <SimpleExcelImportPanel
+                      title="Import screens"
+                      spec={SCREEN_IMPORT_SPEC}
+                      onSubmitBulk={(rows) =>
+                        traceabilityApi.submitScreensBulk(
+                          workspaceId,
+                          applicationId,
+                          rows.map((row) => ({
+                            code: row.code,
+                            name: row.name,
+                            routePath: row.routePath || null,
+                          }))
+                        )
+                      }
+                      onComplete={() => void refetch({ silent: true })}
+                    />
+                    <ScreenFullSpecJsonImportPanel
+                      workspaceId={workspaceId}
+                      applicationId={applicationId}
+                      onComplete={() => void refetch({ silent: true })}
+                    />
+                  </>
                 ) : null}
                 {importKind === 'apis' ? (
                   <SimpleExcelImportPanel

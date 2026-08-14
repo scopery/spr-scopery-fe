@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Typography } from '@/shared/ui'
 
 export function ScreenSpecHowTo({
@@ -13,9 +14,11 @@ export function ScreenSpecHowTo({
   note?: string
   defaultOpen?: boolean
 }) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
     <details
-      defaultOpen={defaultOpen}
+      open={open}
+      onToggle={(event) => setOpen((event.currentTarget as HTMLDetailsElement).open)}
       className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2"
     >
       <summary className="cursor-pointer text-sm font-medium text-neutral-800">{title}</summary>
@@ -54,7 +57,7 @@ export const SCREEN_SPEC_WORKFLOW_STEPS = [
   'On Browse, spec catalog first: entity Columns, then component option source (NONE / STATIC / DYNAMIC).',
   'Select a screen. Add Modes, then Sections and Fields. Configure each field (component, column, validations).',
   'Fill Mode matrix, then Processes and Events.',
-  'Export one screen from the inspector, or group several screens on the Spec docs tab.',
+  'Export one screen from the inspector, or group several screens on the Spec docs tab. Bulk full-spec JSON import is on Import → Screens.',
 ]
 
 export const SPEC_DOC_WORKFLOW_STEPS = [

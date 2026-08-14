@@ -1,4 +1,5 @@
 import { apiClient } from '@/shared/lib/apiClient'
+import { type BulkJobResponse } from '@/shared/lib/bulkJobs'
 import { normalizeItemList, type ListPayload } from '@/shared/lib/normalizeListResponse'
 import { SCREEN_SPEC_ENDPOINTS as EP } from './endpoints'
 import {
@@ -23,6 +24,10 @@ import type {
   UpsertScreenSpecDocBody,
   UpsertScreenSpecDocRevisionBody,
 } from '../../domain/model/screen-spec-doc'
+import {
+  SCREEN_IMPORT_FULL_MAX_ITEMS,
+  type ScreenImportItem,
+} from '../../domain/model/screen-spec-import'
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
@@ -263,4 +268,20 @@ export async function getScreenSpecDocFullSpec(
 export async function getScreenFullSpec(workspaceId: string, screenId: string): Promise<ScreenFullSpec> {
   const res = await apiClient.get<unknown>(EP.screenFullSpec(workspaceId, screenId))
   return mapScreenFullSpec(res)
+}
+
+export async function importFullScreens(
+  workspaceId: string,
+  applicationId: string,
+  items: ScreenImportItem[]
+): Promise<BulkJobResponse> {
+  if (items.length < 1) throw new Error('At least one item is required')
+  if (items.length > SCREEN_IMPORT_FULL_MAX_ITEMS) {
+    throw new Error(`Maximum ${SCREEN_IMPORT_FULL_MAX_ITEMS} screens per import-full request`)
+  }
+  return apiClient.post<BulkJobResponse>(
+    EP.screensImportFull(workspaceId, applicationId),
+    { items },
+    { skipGlobalLoading: true }
+  )
 }

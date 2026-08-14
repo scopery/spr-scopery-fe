@@ -57,4 +57,7 @@ export const SCREEN_SPEC_ENDPOINTS = {
     apiPath(`/workspaces/${workspaceId}/screen-spec-docs/${docId}/revisions/${revisionId}`),
   screenSpecDocFullSpec: (workspaceId: string, docId: string) =>
     apiPath(`/workspaces/${workspaceId}/screen-spec-docs/${docId}/full-spec`),
+
+  screensImportFull: (workspaceId: string, applicationId: string) =>
+    apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/screens/import-full`),
 } as const
