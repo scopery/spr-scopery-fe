@@ -383,7 +383,7 @@ export function ApplicationWorkbenchView() {
 
   return (
     <div className="flex h-full min-h-0 flex-col px-3 py-3 lg:px-4 lg:py-3">
-      <div className="flex min-h-0 w-full flex-1 flex-col">
+      <div className="mx-auto flex min-h-0 w-full max-w-[1680px] flex-1 flex-col">
         <header className="shrink-0">
           <Link
             href={ROUTES.workspace.applications(workspaceId)}
