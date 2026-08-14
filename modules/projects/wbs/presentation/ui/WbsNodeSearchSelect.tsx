@@ -10,6 +10,10 @@ interface WbsNodeSearchSelectProps {
   value: string
   onChange: (wbsNodeId: string) => void
   optional?: boolean
+  /** First option with empty value, e.g. "All planning elements" for filters. */
+  emptyLabel?: string
+  placeholder?: string
+  className?: string
 }
 
 function flatten(nodes: WbsTreeNode[], depth = 0): { value: string; label: string }[] {
@@ -27,21 +31,29 @@ export function WbsNodeSearchSelect({
   value,
   onChange,
   optional = false,
+  emptyLabel,
+  placeholder,
+  className,
 }: WbsNodeSearchSelectProps) {
   const { tree, loading } = useProjectWbs(projectId || null)
-  const options = useMemo(
-    () => [...(optional ? [{ value: '', label: 'No planning element' }] : []), ...flatten(tree)],
-    [optional, tree]
-  )
+  const options = useMemo(() => {
+    const head: { value: string; label: string }[] = []
+    if (emptyLabel) head.push({ value: '', label: emptyLabel })
+    else if (optional) head.push({ value: '', label: 'No planning element' })
+    return [...head, ...flatten(tree)]
+  }, [emptyLabel, optional, tree])
 
   return (
     <SearchableSelect
       value={value}
       options={options}
       disabled={!projectId}
-      placeholder={loading ? 'Loading planning elements…' : 'Select planning element'}
+      placeholder={
+        placeholder ?? (loading ? 'Loading planning elements…' : 'Select planning element')
+      }
       searchPlaceholder="Search planning elements…"
       onValueChange={onChange}
+      className={className}
     />
   )
 }

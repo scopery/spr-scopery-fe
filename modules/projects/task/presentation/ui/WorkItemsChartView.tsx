@@ -1,17 +1,9 @@
 'use client'
 
 import { Typography } from '@/shared/ui'
-import { cn } from '@/utils/cn'
-import type { WorkInsightBar, WorkItemsInsights } from '../../domain/rules/work-items-insights.rules'
-
-const TONE_BAR: Record<WorkInsightBar['tone'], string> = {
-  neutral: 'bg-neutral-400',
-  info: 'bg-info',
-  warning: 'bg-warning',
-  error: 'bg-error',
-  success: 'bg-success',
-  progress: 'bg-progress',
-}
+import type { WorkItemsInsights } from '../../domain/rules/work-items-insights.rules'
+import { WorkItemsStackedStatusChart } from './work-items-charts/WorkItemsStackedStatusChart'
+import { WorkItemsStatusDonut } from './work-items-charts/WorkItemsStatusDonut'
 
 function StatCard({ label, value, warn }: { label: string; value: number; warn?: boolean }) {
   return (
@@ -26,41 +18,6 @@ function StatCard({ label, value, warn }: { label: string; value: number; warn?:
   )
 }
 
-function BarChart({ title, rows }: { title: string; rows: WorkInsightBar[] }) {
-  const max = Math.max(1, ...rows.map((r) => r.count))
-  return (
-    <section className="border border-neutral-300 bg-white p-4">
-      <Typography weight="medium" size="sm" className="mb-3">
-        {title}
-      </Typography>
-      {rows.length === 0 ? (
-        <Typography variant="small" tone="muted">
-          No data yet
-        </Typography>
-      ) : (
-        <ul className="space-y-2.5">
-          {rows.map((row) => (
-            <li key={row.key}>
-              <div className="mb-1 flex items-baseline justify-between gap-2">
-                <Typography variant="small">{row.label}</Typography>
-                <Typography variant="small" tone="muted">
-                  {row.count}
-                </Typography>
-              </div>
-              <div className="h-2 w-full bg-neutral-100">
-                <div
-                  className={cn('h-2', TONE_BAR[row.tone])}
-                  style={{ width: `${Math.round((row.count / max) * 100)}%` }}
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  )
-}
-
 export function WorkItemsChartView({ insights }: { insights: WorkItemsInsights }) {
   return (
     <div className="space-y-4">
@@ -72,10 +29,21 @@ export function WorkItemsChartView({ insights }: { insights: WorkItemsInsights }
         <StatCard label="Closed" value={insights.done} />
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <BarChart title="By status" rows={insights.byStatus} />
-        <BarChart title="By priority" rows={insights.byPriority} />
+        <WorkItemsStatusDonut total={insights.total} slices={insights.byStatus} />
+        <WorkItemsStackedStatusChart
+          title="Tasks by member and status"
+          rows={insights.byMember}
+        />
       </div>
-      <BarChart title="By phase" rows={insights.byPhase} />
+      <WorkItemsStackedStatusChart
+        title="Tasks by phase and status"
+        rows={insights.byPhase}
+      />
+      <WorkItemsStackedStatusChart
+        title="Tasks by priority and status"
+        rows={insights.byPriority}
+        layout="horizontal"
+      />
     </div>
   )
 }

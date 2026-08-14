@@ -43,12 +43,16 @@ describe('buildWorkItemsInsights', () => {
         task({ id: '2', status: TaskStatus.Todo, inChargeUserId: 'u1' }),
         task({ id: '3', status: TaskStatus.Completed, dueDate: '2020-01-01' }),
       ],
-      new Map()
+      { phaseNameById: new Map(), assigneeNameById: new Map([['u1', 'Alex']]) }
     )
     expect(insights.total).toBe(3)
     expect(insights.blocked).toBe(1)
     expect(insights.overdue).toBe(1)
     expect(insights.unassigned).toBe(2)
     expect(insights.done).toBe(1)
+    expect(insights.byMember.map((r) => r.label).sort()).toEqual(['Alex', 'Unassigned'])
+    expect(insights.byPhase).toEqual([
+      expect.objectContaining({ label: 'No phase', total: 3 }),
+    ])
   })
 })

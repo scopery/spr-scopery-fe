@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { ChevronDown, Plus } from 'lucide-react'
 import {
   Typography,
@@ -28,13 +29,13 @@ import {
   WorkspaceHierarchyBreadcrumb,
 } from '@/modules/platform'
 import { useWorkspaceMemberPeople } from '@/modules/org/workspace'
+import { WbsNodeSearchSelect } from '@/modules/projects/wbs'
 import { useProject } from '../../../project/hooks/useProject'
 import { useProjectPhases } from '../../../phase/presentation/hooks/useProjectPhases'
 import { useProjectTasks } from '../hooks/useProjectTasks'
 import { TaskDetailDrawer } from './TaskDetailDrawer'
 import { CreateTaskModal } from './CreateTaskModal'
 import { TaskJsonImportModal } from './TaskJsonImportModal'
-import { WorkItemsChartView } from './WorkItemsChartView'
 import * as tasksApi from '../../infrastructure/api/tasks.api'
 import type { ProjectTask } from '../../domain/model/task'
 import {
@@ -50,6 +51,11 @@ import { cn } from '@/utils/cn'
 import { buildWorkItemsInsights } from '../../domain/rules/work-items-insights.rules'
 
 type WorkView = 'list' | 'board' | 'chart'
+
+const WorkItemsChartView = dynamic(
+  () => import('./WorkItemsChartView').then((m) => m.WorkItemsChartView),
+  { ssr: false }
+)
 
 const DEFAULT_STATUS_FILTERS = [TaskStatus.Todo, TaskStatus.InProgress] as const
 const CHART_STATUSES = [
@@ -86,6 +92,7 @@ function readStoredFilters(projectId: string) {
       keyword?: string
       selectedStatuses?: string[]
       phaseFilter?: string
+      wbsFilter?: string
       assigneeFilter?: string
     }
     return parsed
@@ -117,6 +124,7 @@ function WorkItemsContent() {
   )
   const [statusMenuOpen, setStatusMenuOpen] = useState(false)
   const [phaseFilter, setPhaseFilter] = useState(storedFilters?.phaseFilter ?? '')
+  const [wbsFilter, setWbsFilter] = useState(storedFilters?.wbsFilter ?? '')
   const [assigneeFilter, setAssigneeFilter] = useState(storedFilters?.assigneeFilter ?? '')
   const [createOpen, setCreateOpen] = useState(false)
   const [importExcelOpen, setImportExcelOpen] = useState(false)
@@ -148,6 +156,7 @@ function WorkItemsContent() {
           ? selectedStatuses
           : undefined,
     projectPhaseId: phaseFilter || undefined,
+    wbsNodeId: wbsFilter || undefined,
   })
 
   const toggleStatus = (value: string) => {
@@ -195,10 +204,16 @@ function WorkItemsContent() {
     return next
   }, [tasks, assigneeFilter, peopleById])
 
-  const insights = useMemo(
-    () => buildWorkItemsInsights(filteredTasks, phaseNameById),
-    [filteredTasks, phaseNameById]
-  )
+  const insights = useMemo(() => {
+    const assigneeNameById = new Map<string, string>()
+    for (const t of filteredTasks) {
+      const id = t.inChargeUserId
+      if (!id) continue
+      const person = peopleById[id]
+      assigneeNameById.set(id, person?.fullName?.trim() || person?.email || 'Unknown')
+    }
+    return buildWorkItemsInsights(filteredTasks, { phaseNameById, assigneeNameById })
+  }, [filteredTasks, phaseNameById, peopleById])
 
   const workHref = useCallback(
     (opts?: { view?: WorkView; taskId?: string | null }) => {
@@ -232,12 +247,12 @@ function WorkItemsContent() {
     try {
       sessionStorage.setItem(
         `${WORK_FILTERS_STORAGE_PREFIX}${projectId}`,
-        JSON.stringify({ keyword, selectedStatuses, phaseFilter, assigneeFilter })
+        JSON.stringify({ keyword, selectedStatuses, phaseFilter, wbsFilter, assigneeFilter })
       )
     } catch {
       /* ignore quota / private mode */
     }
-  }, [projectId, keyword, selectedStatuses, phaseFilter, assigneeFilter])
+  }, [projectId, keyword, selectedStatuses, phaseFilter, wbsFilter, assigneeFilter])
 
   useEffect(() => {
     const el = listScrollRef.current
@@ -480,6 +495,16 @@ function WorkItemsContent() {
           ]}
           className="min-w-[11rem] flex-1 basis-[11rem]"
         />
+        {view !== 'chart' ? (
+          <WbsNodeSearchSelect
+            projectId={projectId}
+            value={wbsFilter}
+            onChange={setWbsFilter}
+            emptyLabel="All planning elements"
+            placeholder="Planning element"
+            className="min-w-[14rem] flex-1 basis-[14rem]"
+          />
+        ) : null}
         {view !== 'chart' ? (
         <div className="min-w-[10rem] flex-1 basis-[10rem]">
           <UserSearchSelect
