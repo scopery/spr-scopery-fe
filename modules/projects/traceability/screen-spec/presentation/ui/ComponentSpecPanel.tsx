@@ -96,6 +96,9 @@ export function ComponentSpecPanel({
       <Typography weight="medium" variant="small">
         Option source
       </Typography>
+      <Typography variant="caption" tone="muted">
+        NONE = no list. STATIC = type the options below. DYNAMIC = load from an entity column (create Columns on the entity first).
+      </Typography>
       {loading && !component ? <PageSkeleton variant="list" /> : null}
       {error ? <Typography tone="error" variant="small">{error}</Typography> : null}
       <Select

@@ -9,6 +9,11 @@ import type { UpsertScreenSpecDocBody } from '../../domain/model/screen-spec-doc
 import { useScreenSpecDocs } from '../hooks/useScreenSpecDocs'
 import { useScreenSpecDocDetail } from '../hooks/useScreenSpecDocDetail'
 import { useScreenSpecExcelExport } from '../hooks/useScreenSpecExcelExport'
+import {
+  SPEC_DOC_WORKFLOW_NOTE,
+  SPEC_DOC_WORKFLOW_STEPS,
+  ScreenSpecHowTo,
+} from './ScreenSpecHowTo'
 
 const SHEET_OPTIONS = Object.values(SCREEN_SPEC_EXCEL_SHEETS).map((name) => ({
   value: name,
@@ -39,6 +44,9 @@ export function ScreenSpecDocsPanel({
         <div className="space-y-2 border-b border-neutral-100 p-3">
           <Typography weight="medium" variant="small">
             Spec documents
+          </Typography>
+          <Typography variant="caption" tone="muted">
+            Group screens into one Excel file. Spec field data on Browse first.
           </Typography>
           <Input
             size="sm"
@@ -126,7 +134,17 @@ export function ScreenSpecDocsPanel({
             }}
           />
         ) : (
-          <Typography tone="muted">Select a document to add screens, revisions, and export Excel.</Typography>
+          <Stack direction="vertical" spacing="md">
+            <ScreenSpecHowTo
+              title="How to export a screen spec"
+              steps={SPEC_DOC_WORKFLOW_STEPS}
+              note={SPEC_DOC_WORKFLOW_NOTE}
+              defaultOpen
+            />
+            <Typography tone="muted" variant="small">
+              Select a document on the left, or create one to get started.
+            </Typography>
+          </Stack>
         )}
       </div>
     </div>
@@ -196,6 +214,11 @@ function ScreenSpecDocEditor({
 
   return (
     <Stack direction="vertical" spacing="lg">
+      <ScreenSpecHowTo
+        title="How this file is exported"
+        steps={SPEC_DOC_WORKFLOW_STEPS}
+        note={SPEC_DOC_WORKFLOW_NOTE}
+      />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Typography weight="medium">{doc.documentName}</Typography>
         <div className="flex gap-2">

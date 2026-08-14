@@ -48,6 +48,9 @@ export function DataEntityFieldsPanel({
       <Typography weight="medium" variant="small">
         Columns
       </Typography>
+      <Typography variant="caption" tone="muted">
+        Physical columns for this table. Link them on a screen field (Configure) so Defines can show Table and type.
+      </Typography>
       {loading && items.length === 0 ? <PageSkeleton variant="list" /> : null}
       {error ? <Typography tone="error" variant="small">{error}</Typography> : null}
       <ScreenStructureEditor

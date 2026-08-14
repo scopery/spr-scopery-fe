@@ -14,6 +14,11 @@ import { FieldSpecDrawer } from '../screen-spec/presentation/ui/FieldSpecDrawer'
 import { ScreenModeMatrixPanel } from '../screen-spec/presentation/ui/ScreenModeMatrixPanel'
 import { useScreenSpecExcelExport } from '../screen-spec/presentation/hooks/useScreenSpecExcelExport'
 import {
+  SCREEN_SPEC_WORKFLOW_STEPS,
+  SCREEN_STRUCTURE_TAB_HINTS,
+  ScreenSpecHowTo,
+} from '../screen-spec/presentation/ui/ScreenSpecHowTo'
+import {
   ScreenEventItemsPanel,
   ScreenProcessItemsPanel,
 } from '../screen-spec/presentation/ui/ScreenNarrativeItemsPanel'
@@ -222,6 +227,13 @@ export function ScreenDetailPanel({
         </div>
       ) : null}
 
+      <ScreenSpecHowTo
+        title="How to spec this screen"
+        steps={SCREEN_SPEC_WORKFLOW_STEPS}
+        note="Export Excel here for this screen only. Use Spec docs to group several screens in one workbook."
+        defaultOpen
+      />
+
       <div
         className="flex flex-wrap gap-1 border-b border-neutral-200"
         role="tablist"
@@ -254,6 +266,10 @@ export function ScreenDetailPanel({
       ) : null}
       {error ? <Typography tone="error">{error}</Typography> : null}
       {modesError ? <Typography tone="error">{modesError}</Typography> : null}
+
+      <Typography variant="caption" tone="muted">
+        {SCREEN_STRUCTURE_TAB_HINTS[tab]}
+      </Typography>
 
       {tab === 'sections' ? (
         <ScreenStructureEditor
