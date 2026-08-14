@@ -1,14 +1,14 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ChevronDown, CircleHelp, MoreHorizontal, Plus, X } from 'lucide-react'
+import { CircleHelp, MoreHorizontal, Pencil, Plus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AnchoredMenu,
   Badge,
   Button,
-  Card,
   ConfirmDialog,
+  Divider,
   Input,
   Modal,
   PageSkeleton,
@@ -56,6 +56,18 @@ function FieldControl({ label, children }: { label: string; children: ReactNode 
     <div className="flex w-full min-w-0 flex-col gap-2">
       <span className="text-sm font-normal text-neutral-700">{label}</span>
       {children}
+    </div>
+  )
+}
+
+function HeaderField({ label, value }: { label: string; value: string | null | undefined }) {
+  const text = value?.trim()
+  return (
+    <div className="min-w-0">
+      <div className="text-sm text-neutral-500">{label}</div>
+      <div className={text ? 'truncate text-sm text-neutral-900' : 'text-sm text-neutral-400'}>
+        {text || '—'}
+      </div>
     </div>
   )
 }
@@ -315,9 +327,10 @@ function ScreenSpecDocEditor({
     removeRevision,
   } = useScreenSpecDocDetail(workspaceId, docId)
   const { exporting, exportDocument } = useScreenSpecExcelExport(workspaceId)
-  const [meta, setMeta] = useState<UpdateScreenSpecDocBody | null>(null)
+  const [headerOpen, setHeaderOpen] = useState(false)
+  const [headerDraft, setHeaderDraft] = useState<UpdateScreenSpecDocBody | null>(null)
+  const [savingHeader, setSavingHeader] = useState(false)
   const [screenId, setScreenId] = useState('')
-  const [overviewOpen, setOverviewOpen] = useState(false)
   const [revisionOpen, setRevisionOpen] = useState(false)
   const [addingRevision, setAddingRevision] = useState(false)
   const [addingScreen, setAddingScreen] = useState(false)
@@ -327,24 +340,12 @@ function ScreenSpecDocEditor({
   const [rev, setRev] = useState(EMPTY_REVISION)
 
   useEffect(() => {
-    setMeta(null)
+    setHeaderOpen(false)
+    setHeaderDraft(null)
     setScreenId('')
-    setOverviewOpen(false)
     setRevisionOpen(false)
     setRev(EMPTY_REVISION)
   }, [docId])
-
-  const form = meta ?? (doc
-    ? {
-        documentName: doc.documentName,
-        projectName: doc.projectName,
-        systemName: doc.systemName,
-        phaseName: doc.phaseName,
-        language: doc.language ?? 'EN',
-        overview: doc.overview,
-        figmaUrl: doc.figmaUrl,
-      }
-    : null)
 
   const linked = doc?.screens ?? []
   const linkedIds = new Set(linked.map((s) => s.screenId))
@@ -355,30 +356,46 @@ function ScreenSpecDocEditor({
 
   if (loading && !doc) return <PageSkeleton variant="list" />
   if (error) return <Typography tone="error">{error}</Typography>
-  if (!doc || !form) return null
+  if (!doc) return null
 
-  const dirty = meta !== null
-  const langOptions = languageOptions(form.language)
-
-  const patchMeta = (patch: Partial<UpdateScreenSpecDocBody>) => {
-    setMeta({ ...form, ...patch })
+  const openHeaderEditor = () => {
+    setHeaderDraft({
+      documentName: doc.documentName,
+      projectName: doc.projectName,
+      systemName: doc.systemName,
+      phaseName: doc.phaseName,
+      language: doc.language ?? 'EN',
+      overview: doc.overview,
+      figmaUrl: doc.figmaUrl,
+    })
+    setHeaderOpen(true)
   }
 
-  const handleSave = async () => {
+  const patchHeader = (patch: Partial<UpdateScreenSpecDocBody>) => {
+    if (!headerDraft) return
+    setHeaderDraft({ ...headerDraft, ...patch })
+  }
+
+  const handleSaveHeader = async () => {
+    if (!headerDraft) return
+    setSavingHeader(true)
     try {
       await saveMeta({
-        documentName: form.documentName.trim(),
-        projectName: form.projectName?.trim() || null,
-        systemName: form.systemName?.trim() || null,
-        phaseName: form.phaseName?.trim() || null,
-        language: form.language?.trim() || 'EN',
-        overview: form.overview?.trim() || null,
-        figmaUrl: form.figmaUrl?.trim() || null,
+        documentName: headerDraft.documentName.trim(),
+        projectName: headerDraft.projectName?.trim() || null,
+        systemName: headerDraft.systemName?.trim() || null,
+        phaseName: headerDraft.phaseName?.trim() || null,
+        language: headerDraft.language?.trim() || 'EN',
+        overview: headerDraft.overview?.trim() || null,
+        figmaUrl: headerDraft.figmaUrl?.trim() || null,
       })
-      setMeta(null)
+      setHeaderOpen(false)
+      setHeaderDraft(null)
       toast.success('Document saved')
     } catch (err) {
       toast.error(getProblemToastMessage(err))
+    } finally {
+      setSavingHeader(false)
     }
   }
 
@@ -478,89 +495,57 @@ function ScreenSpecDocEditor({
         </div>
       </div>
 
-      <Card hasShadow={false} className="p-4">
+      <Divider variant="dashed" />
+
+      <section>
         <div className="mb-3 flex items-center justify-between gap-2">
           <Typography weight="medium" variant="small">
             Document header
           </Typography>
-          <Button size="sm" disabled={!dirty || !form.documentName.trim()} onClick={() => void handleSave()}>
-            Save
-          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            iconOnly
+            icon={<Pencil size={16} strokeWidth={1.75} />}
+            aria-label="Edit document header"
+            onClick={openHeaderEditor}
+          />
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Input
-            size="sm"
-            fullWidth
-            label="Name"
-            value={form.documentName}
-            onChange={(e) => patchMeta({ documentName: e.target.value })}
-          />
-          <Input
-            size="sm"
-            fullWidth
-            label="Project name"
-            value={form.projectName ?? ''}
-            onChange={(e) => patchMeta({ projectName: e.target.value })}
-          />
-          <Input
-            size="sm"
-            fullWidth
-            label="System"
-            value={form.systemName ?? ''}
-            onChange={(e) => patchMeta({ systemName: e.target.value })}
-          />
-          <Input
-            size="sm"
-            fullWidth
-            label="Phase"
-            value={form.phaseName ?? ''}
-            onChange={(e) => patchMeta({ phaseName: e.target.value })}
-          />
-          <FieldControl label="Language">
-            <Select
-              size="sm"
-              value={form.language ?? 'EN'}
-              onValueChange={(language: string) => patchMeta({ language })}
-              options={langOptions}
-              aria-label="Language"
-            />
-          </FieldControl>
-          <div className="sm:col-span-2 xl:col-span-3">
-            <Input
-              size="sm"
-              fullWidth
-              label="Mockup URL"
-              value={form.figmaUrl ?? ''}
-              onChange={(e) => patchMeta({ figmaUrl: e.target.value })}
-            />
+        <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
+          <HeaderField label="Name" value={doc.documentName} />
+          <HeaderField label="Project name" value={doc.projectName} />
+          <HeaderField label="System" value={doc.systemName} />
+          <HeaderField label="Phase" value={doc.phaseName} />
+          <HeaderField label="Language" value={doc.language} />
+          <div className="min-w-0 sm:col-span-2 xl:col-span-3">
+            <div className="text-sm text-neutral-500">Mockup URL</div>
+            {doc.figmaUrl?.trim() ? (
+              <a
+                href={doc.figmaUrl.trim()}
+                target="_blank"
+                rel="noreferrer"
+                className="block truncate text-sm text-primary hover:underline"
+              >
+                {doc.figmaUrl.trim()}
+              </a>
+            ) : (
+              <div className="text-sm text-neutral-400">—</div>
+            )}
           </div>
         </div>
-        <button
-          type="button"
-          className="mt-3 flex items-center gap-1 text-sm text-neutral-600 hover:text-neutral-900"
-          onClick={() => setOverviewOpen((open) => !open)}
-        >
-          <ChevronDown
-            size={16}
-            strokeWidth={1.75}
-            className={overviewOpen ? 'rotate-180' : undefined}
-          />
-          Overview
-        </button>
-        {overviewOpen ? (
-          <div className="mt-2">
-            <Textarea
-              size="sm"
-              fullWidth
-              value={form.overview ?? ''}
-              onChange={(e) => patchMeta({ overview: e.target.value })}
-              placeholder="Shown on the Excel cover"
-            />
+        {doc.overview?.trim() ? (
+          <div className="mt-4">
+            <div className="text-sm text-neutral-500">Overview</div>
+            <Typography variant="small" className="mt-1 whitespace-pre-wrap text-neutral-800">
+              {doc.overview}
+            </Typography>
           </div>
         ) : null}
-      </Card>
+      </section>
 
-      <Card hasShadow={false} className="p-4">
+      <Divider variant="dashed" />
+
+      <section>
         <Typography weight="medium" variant="small">
           Screens{linked.length > 0 ? ` · ${linked.length}` : ''}
         </Typography>
@@ -607,9 +592,11 @@ function ScreenSpecDocEditor({
             Add
           </Button>
         </div>
-      </Card>
+      </section>
 
-      <Card hasShadow={false} className="p-4">
+      <Divider variant="dashed" />
+
+      <section>
         <div className="mb-3 flex items-center justify-between gap-2">
           <Typography weight="medium" variant="small">
             Change history
@@ -669,7 +656,7 @@ function ScreenSpecDocEditor({
             </table>
           </div>
         )}
-      </Card>
+      </section>
 
       <Modal
         open={revisionOpen}
@@ -729,6 +716,91 @@ function ScreenSpecDocEditor({
             />
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={headerOpen && headerDraft !== null}
+        onClose={() => {
+          setHeaderOpen(false)
+          setHeaderDraft(null)
+        }}
+        title="Edit document header"
+        size="md"
+        actions={[
+          {
+            label: 'Cancel',
+            onClick: () => {
+              setHeaderOpen(false)
+              setHeaderDraft(null)
+            },
+            variant: 'ghost',
+          },
+          {
+            label: 'Save',
+            onClick: () => void handleSaveHeader(),
+            disabled: savingHeader || !headerDraft?.documentName.trim(),
+            loading: savingHeader,
+          },
+        ]}
+      >
+        {headerDraft ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Input
+              size="sm"
+              fullWidth
+              label="Name"
+              value={headerDraft.documentName}
+              onChange={(e) => patchHeader({ documentName: e.target.value })}
+            />
+            <Input
+              size="sm"
+              fullWidth
+              label="Project name"
+              value={headerDraft.projectName ?? ''}
+              onChange={(e) => patchHeader({ projectName: e.target.value })}
+            />
+            <Input
+              size="sm"
+              fullWidth
+              label="System"
+              value={headerDraft.systemName ?? ''}
+              onChange={(e) => patchHeader({ systemName: e.target.value })}
+            />
+            <Input
+              size="sm"
+              fullWidth
+              label="Phase"
+              value={headerDraft.phaseName ?? ''}
+              onChange={(e) => patchHeader({ phaseName: e.target.value })}
+            />
+            <FieldControl label="Language">
+              <Select
+                size="sm"
+                value={headerDraft.language ?? 'EN'}
+                onValueChange={(language: string) => patchHeader({ language })}
+                options={languageOptions(headerDraft.language)}
+                aria-label="Language"
+              />
+            </FieldControl>
+            <Input
+              size="sm"
+              fullWidth
+              label="Mockup URL"
+              value={headerDraft.figmaUrl ?? ''}
+              onChange={(e) => patchHeader({ figmaUrl: e.target.value })}
+            />
+            <div className="sm:col-span-2">
+              <Textarea
+                size="sm"
+                fullWidth
+                label="Overview"
+                value={headerDraft.overview ?? ''}
+                onChange={(e) => patchHeader({ overview: e.target.value })}
+                placeholder="Shown on the Excel cover"
+              />
+            </div>
+          </div>
+        ) : null}
       </Modal>
 
       <ConfirmDialog
