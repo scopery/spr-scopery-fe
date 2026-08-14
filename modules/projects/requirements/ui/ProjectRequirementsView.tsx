@@ -548,7 +548,7 @@ export function ProjectRequirementsView() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-3 py-3 lg:px-4 lg:py-3">
-      <div className="mx-auto flex h-full min-h-0 w-full max-w-[1680px] flex-1 flex-col overflow-hidden">
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-[1480px] flex-1 flex-col overflow-hidden">
         <header className="shrink-0">
           <Link
             href={ROUTES.workspace.project(orgId, projectId)}
