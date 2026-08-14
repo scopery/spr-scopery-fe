@@ -1,19 +1,35 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { PageSkeleton, Stack, Typography } from '@/shared/ui'
+import { Button, PageSkeleton, Stack, Typography } from '@/shared/ui'
+import { toast } from 'sonner'
+import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { cn } from '@/utils/cn'
 import type { RegistryScreen } from '../model/application-registry'
 import { useScreenDetail } from '../hooks/useScreenDetail'
 import { ScreenStructureEditor } from './ScreenStructureEditor'
+import { SCREEN_MODE_CODE_OPTIONS } from '../screen-spec/domain/enums/screen-spec.enum'
+import { useScreenModes } from '../screen-spec/presentation/hooks/useScreenModes'
+import { FieldSpecDrawer } from '../screen-spec/presentation/ui/FieldSpecDrawer'
+import { ScreenModeMatrixPanel } from '../screen-spec/presentation/ui/ScreenModeMatrixPanel'
+import { useScreenSpecExcelExport } from '../screen-spec/presentation/hooks/useScreenSpecExcelExport'
+import {
+  ScreenEventItemsPanel,
+  ScreenProcessItemsPanel,
+} from '../screen-spec/presentation/ui/ScreenNarrativeItemsPanel'
+import type { SpecCatalogComponent } from '../screen-spec/presentation/ui/FieldSpecDrawer'
+import type { SpecCatalogEntity } from '../screen-spec/presentation/ui/ComponentSpecPanel'
 
-type ScreenDetailTab = 'sections' | 'fields' | 'actions'
+type ScreenDetailTab = 'sections' | 'fields' | 'modes' | 'matrix' | 'processes' | 'events' | 'actions'
 
 interface ScreenDetailPanelProps {
   workspaceId: string
   screen: RegistryScreen
   onClose: () => void
   embedded?: boolean
+  components?: SpecCatalogComponent[]
+  entities?: SpecCatalogEntity[]
+  screens?: Array<{ id: string; code: string; name: string }>
 }
 
 const SCREEN_FIELD_TYPE_OPTIONS = [
@@ -22,6 +38,7 @@ const SCREEN_FIELD_TYPE_OPTIONS = [
   'DATE',
   'BOOLEAN',
   'URL',
+  'INPUT',
 ] as const
 const SCREEN_ACTION_TYPE_OPTIONS = ['PRIMARY', 'SECONDARY', 'DEFAULT'] as const
 
@@ -46,6 +63,20 @@ const FIELD_COLS = [
     placeholder: 'TEXT',
     options: SCREEN_FIELD_TYPE_OPTIONS,
   },
+  { key: 'required', label: 'Required', options: ['false', 'true'] as const },
+  { key: 'maxLength', label: 'Max length', placeholder: '255' },
+  { key: 'remark', label: 'Remark', placeholder: 'Optional' },
+]
+
+const MODE_COLS = [
+  {
+    key: 'modeCode',
+    label: 'Code',
+    required: true,
+    options: SCREEN_MODE_CODE_OPTIONS,
+    lockedOnExisting: true,
+  },
+  { key: 'name', label: 'Name', required: true, placeholder: 'Create' },
 ]
 
 const ACTION_COLS = [
@@ -70,6 +101,9 @@ export function ScreenDetailPanel({
   screen,
   onClose: _onClose,
   embedded = false,
+  components = [],
+  entities = [],
+  screens = [],
 }: ScreenDetailPanelProps) {
   const {
     sections,
@@ -77,6 +111,7 @@ export function ScreenDetailPanel({
     actions,
     loading,
     error,
+    refetch,
     createSection,
     updateSection,
     removeSection,
@@ -87,7 +122,17 @@ export function ScreenDetailPanel({
     updateAction,
     removeAction,
   } = useScreenDetail(workspaceId, screen.id)
+  const {
+    items: modes,
+    activeModes,
+    error: modesError,
+    createMode,
+    updateMode,
+    removeMode,
+  } = useScreenModes(workspaceId, screen.id)
+  const { exporting, exportScreen } = useScreenSpecExcelExport(workspaceId)
   const [tab, setTab] = useState<ScreenDetailTab>('sections')
+  const [specFieldId, setSpecFieldId] = useState<string | null>(null)
 
   const sectionItems = useMemo(
     () =>
@@ -109,9 +154,24 @@ export function ScreenDetailPanel({
           fieldKey: f.fieldKey,
           label: f.label,
           fieldType: f.fieldType,
+          required: f.required ? 'true' : 'false',
+          maxLength: '',
+          remark: '',
         },
       })),
     [fields]
+  )
+
+  const modeItems = useMemo(
+    () =>
+      modes.map((m) => ({
+        id: m.id,
+        values: {
+          modeCode: String(m.modeCode),
+          name: m.name,
+        },
+      })),
+    [modes]
   )
 
   const actionItems = useMemo(
@@ -127,26 +187,47 @@ export function ScreenDetailPanel({
     [actions]
   )
 
+  const tabs = [
+    { id: 'sections' as const, label: `Sections (${sections.length})` },
+    { id: 'fields' as const, label: `Fields (${fields.length})` },
+    { id: 'modes' as const, label: `Modes (${modes.length})` },
+    { id: 'matrix' as const, label: 'Mode matrix' },
+    { id: 'processes' as const, label: 'Processes' },
+    { id: 'events' as const, label: 'Events' },
+    { id: 'actions' as const, label: `Actions (${actions.length})` },
+  ]
+
   return (
     <Stack direction="vertical" spacing="md">
       {embedded ? (
-        <Typography weight="medium" variant="small">
-          Screen structure
-        </Typography>
+        <div className="flex items-center justify-between gap-2">
+          <Typography weight="medium" variant="small">
+            Screen structure
+          </Typography>
+          <Button
+            size="sm"
+            variant="outline"
+            loading={exporting}
+            onClick={async () => {
+              try {
+                const result = await exportScreen(screen.id)
+                if (result) toast.success(`Exported ${result.filename}`)
+              } catch (err) {
+                toast.error(getProblemToastMessage(err))
+              }
+            }}
+          >
+            Export Excel
+          </Button>
+        </div>
       ) : null}
 
       <div
-        className="flex gap-1 border-b border-neutral-200"
+        className="flex flex-wrap gap-1 border-b border-neutral-200"
         role="tablist"
         aria-label="Screen structure"
       >
-        {(
-          [
-            { id: 'sections', label: `Sections (${sections.length})` },
-            { id: 'fields', label: `Fields (${fields.length})` },
-            { id: 'actions', label: `Actions (${actions.length})` },
-          ] as const
-        ).map((item) => {
+        {tabs.map((item) => {
           const active = tab === item.id
           return (
             <button
@@ -172,6 +253,7 @@ export function ScreenDetailPanel({
         <PageSkeleton variant="list" />
       ) : null}
       {error ? <Typography tone="error">{error}</Typography> : null}
+      {modesError ? <Typography tone="error">{modesError}</Typography> : null}
 
       {tab === 'sections' ? (
         <ScreenStructureEditor
@@ -198,27 +280,102 @@ export function ScreenDetailPanel({
       ) : null}
 
       {tab === 'fields' ? (
+        <Stack direction="vertical" spacing="sm">
+          <ScreenStructureEditor
+            columns={FIELD_COLS}
+            items={fieldItems}
+            emptyLabel="No fields yet."
+            addTitle="Add fields"
+            editTitle="Edit fields"
+            itemLabel="field"
+            onCreate={async (values) => {
+              const max = values.maxLength.trim()
+              await createField({
+                fieldKey: values.fieldKey.trim(),
+                label: values.label.trim(),
+                fieldType: values.fieldType.trim() || 'TEXT',
+                required: values.required === 'true',
+                maxLength: max ? Number(max) : null,
+                remark: values.remark.trim() || null,
+              })
+            }}
+            onUpdate={async (id, values) => {
+              const max = values.maxLength.trim()
+              await updateField(id, {
+                label: values.label.trim(),
+                fieldType: values.fieldType.trim() || 'TEXT',
+                required: values.required === 'true',
+                maxLength: max ? Number(max) : null,
+                remark: values.remark.trim() || null,
+              })
+            }}
+            onDelete={removeField}
+          />
+          {fields.length > 0 ? (
+            <div className="space-y-1">
+              <Typography variant="caption" tone="muted">
+                Bind component, data column, and validations
+              </Typography>
+              <ul className="space-y-1">
+                {fields.map((f) => (
+                  <li key={f.id}>
+                    <Button size="sm" variant="ghost" onClick={() => setSpecFieldId(f.id)}>
+                      Configure {f.fieldKey}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </Stack>
+      ) : null}
+
+      {tab === 'modes' ? (
         <ScreenStructureEditor
-          columns={FIELD_COLS}
-          items={fieldItems}
-          emptyLabel="No fields yet."
-          addTitle="Add fields"
-          editTitle="Edit fields"
-          itemLabel="field"
+          columns={MODE_COLS}
+          items={modeItems}
+          emptyLabel="No modes yet."
+          addTitle="Add modes"
+          editTitle="Edit modes"
+          itemLabel="mode"
           onCreate={async (values) => {
-            await createField({
-              fieldKey: values.fieldKey.trim(),
-              label: values.label.trim(),
-              fieldType: values.fieldType.trim() || 'TEXT',
+            await createMode({
+              modeCode: values.modeCode.trim() || 'CREATE',
+              name: values.name.trim() || values.modeCode.trim(),
             })
           }}
           onUpdate={async (id, values) => {
-            await updateField(id, {
-              label: values.label.trim(),
-              fieldType: values.fieldType.trim() || 'TEXT',
-            })
+            await updateMode(id, { name: values.name.trim() })
           }}
-          onDelete={removeField}
+          onDelete={removeMode}
+        />
+      ) : null}
+
+      {tab === 'matrix' ? (
+        <ScreenModeMatrixPanel
+          workspaceId={workspaceId}
+          screenId={screen.id}
+          fields={fields}
+          modes={activeModes}
+        />
+      ) : null}
+
+      {tab === 'processes' ? (
+        <ScreenProcessItemsPanel
+          workspaceId={workspaceId}
+          screenId={screen.id}
+          modes={activeModes}
+          fields={fields}
+        />
+      ) : null}
+
+      {tab === 'events' ? (
+        <ScreenEventItemsPanel
+          workspaceId={workspaceId}
+          screenId={screen.id}
+          modes={activeModes}
+          fields={fields}
+          screens={screens}
         />
       ) : null}
 
@@ -246,6 +403,18 @@ export function ScreenDetailPanel({
           onDelete={removeAction}
         />
       ) : null}
+
+      <FieldSpecDrawer
+        open={Boolean(specFieldId)}
+        onClose={() => setSpecFieldId(null)}
+        workspaceId={workspaceId}
+        screenId={screen.id}
+        fieldId={specFieldId}
+        modes={activeModes}
+        components={components}
+        entities={entities}
+        onSaved={() => void refetch()}
+      />
     </Stack>
   )
 }

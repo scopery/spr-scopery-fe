@@ -26,6 +26,7 @@ import * as traceabilityApi from '../api/traceability.api'
 import { NodeDetailInspector, type NodeEditPayload } from './NodeDetailInspector'
 import { SimpleExcelImportPanel } from './SimpleExcelImportPanel'
 import { OverallStructurePanel } from './OverallStructurePanel'
+import { ScreenSpecDocsPanel } from '../screen-spec/presentation/ui/ScreenSpecDocsPanel'
 import {
   API_ENDPOINT_IMPORT_SPEC,
   COMPONENT_IMPORT_SPEC,
@@ -34,12 +35,13 @@ import {
   SCREEN_IMPORT_SPEC,
 } from '../lib/excelImportSpecs'
 
-type MainTab = 'browse' | 'structure' | 'import'
+type MainTab = 'browse' | 'structure' | 'spec-docs' | 'import'
 type ImportKind = 'modules' | 'screens' | 'apis' | 'components' | 'entities'
 
 const MAIN_TABS: { id: MainTab; label: string }[] = [
   { id: 'browse', label: 'Browse' },
   { id: 'structure', label: 'Structure' },
+  { id: 'spec-docs', label: 'Spec docs' },
   { id: 'import', label: 'Import' },
 ]
 
@@ -437,7 +439,17 @@ export function ApplicationWorkbenchView() {
 
         <div className="mt-2 min-h-0 flex-1">
           {tab === 'browse' ? (
-            <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_minmax(260px,360px)] overflow-hidden border border-neutral-200 bg-white">
+            <div
+              className={cn(
+                'grid h-full min-h-0 overflow-hidden border border-neutral-200 bg-white',
+                selectedNode &&
+                  (selectedNode.type === 'SCREEN' ||
+                    selectedNode.type === 'COMPONENT' ||
+                    selectedNode.type === 'DATA_ENTITY')
+                  ? 'grid-cols-[minmax(0,1fr)_minmax(320px,520px)]'
+                  : 'grid-cols-[minmax(0,1fr)_minmax(260px,360px)]'
+              )}
+            >
               {/* Left: catalog — independent scroll */}
               <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-neutral-200">
                 <div className="flex shrink-0 items-center justify-between gap-3 border-b border-neutral-100 px-3 py-2">
@@ -544,11 +556,27 @@ export function ApplicationWorkbenchView() {
                   <NodeDetailInspector
                     node={selectedNode}
                     workspaceId={workspaceId}
+                    applicationId={applicationId}
                     screen={
                       selectedNode.type === 'SCREEN'
                         ? (screens.find((s) => s.id === selectedNode.id) ?? null)
                         : null
                     }
+                    components={components.map((c) => ({
+                      id: c.id,
+                      code: c.code,
+                      name: c.name,
+                    }))}
+                    entities={dataEntities.map((e) => ({
+                      id: e.id,
+                      code: e.code,
+                      name: e.name,
+                    }))}
+                    screens={screens.map((s) => ({
+                      id: s.id,
+                      code: s.code,
+                      name: s.name,
+                    }))}
                     relatedFunctions={relatedFunctionNodes}
                     onClose={closeInspector}
                     onSave={selectedNode.type === 'FUNCTION' ? undefined : saveNode}
@@ -582,6 +610,15 @@ export function ApplicationWorkbenchView() {
                 workspaceId={workspaceId}
                 applicationId={applicationId}
                 showModeSwitcher
+              />
+            </div>
+          ) : null}
+
+          {tab === 'spec-docs' ? (
+            <div className="h-full min-h-0 overflow-hidden">
+              <ScreenSpecDocsPanel
+                workspaceId={workspaceId}
+                screens={screens.map((s) => ({ id: s.id, code: s.code, name: s.name }))}
               />
             </div>
           ) : null}

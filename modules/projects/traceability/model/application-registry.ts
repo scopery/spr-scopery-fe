@@ -252,6 +252,10 @@ export interface CreateRegistryScreenFieldBody {
   required?: boolean | null
   displayOrder?: number | null
   sectionId?: string | null
+  maxLength?: number | null
+  remark?: string | null
+  componentId?: string | null
+  dataEntityFieldId?: string | null
 }
 
 export interface UpdateRegistryScreenFieldBody {
@@ -260,6 +264,11 @@ export interface UpdateRegistryScreenFieldBody {
   description?: string | null
   required?: boolean | null
   displayOrder?: number | null
+  sectionId?: string | null
+  maxLength?: number | null
+  remark?: string | null
+  componentId?: string | null
+  dataEntityFieldId?: string | null
 }
 
 export interface CreateRegistryScreenActionBody {

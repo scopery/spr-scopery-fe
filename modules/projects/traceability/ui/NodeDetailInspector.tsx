@@ -11,7 +11,11 @@ import {
   type BrowseCatalogNode,
 } from '../model/architecture-workbench'
 import { ScreenDetailPanel } from './ScreenDetailPanel'
+import { DataEntityFieldsPanel } from '../screen-spec/presentation/ui/DataEntityFieldsPanel'
+import { ComponentSpecPanel } from '../screen-spec/presentation/ui/ComponentSpecPanel'
 import type { RegistryScreen } from '../model/application-registry'
+import type { SpecCatalogComponent } from '../screen-spec/presentation/ui/FieldSpecDrawer'
+import type { SpecCatalogEntity } from '../screen-spec/presentation/ui/ComponentSpecPanel'
 
 export interface NodeEditPayload {
   name: string
@@ -21,7 +25,11 @@ export interface NodeEditPayload {
 interface NodeDetailInspectorProps {
   node: BrowseCatalogNode
   workspaceId: string
+  applicationId?: string
   screen?: RegistryScreen | null
+  components?: SpecCatalogComponent[]
+  entities?: SpecCatalogEntity[]
+  screens?: Array<{ id: string; code: string; name: string }>
   /** Related Functions for this application (used when viewing a Module). */
   relatedFunctions?: BrowseCatalogNode[]
   onClose: () => void
@@ -131,7 +139,11 @@ function ViewField({
 export function NodeDetailInspector({
   node,
   workspaceId,
+  applicationId,
   screen,
+  components = [],
+  entities = [],
+  screens = [],
   relatedFunctions = [],
   onClose,
   onSave,
@@ -439,6 +451,24 @@ export function NodeDetailInspector({
               screen={screen}
               onClose={onClose}
               embedded
+              components={components}
+              entities={entities}
+              screens={screens}
+            />
+          ) : null}
+
+          {node.type === 'DATA_ENTITY' ? (
+            <DataEntityFieldsPanel workspaceId={workspaceId} entityId={node.id} />
+          ) : null}
+
+          {node.type === 'COMPONENT' && applicationId ? (
+            <ComponentSpecPanel
+              workspaceId={workspaceId}
+              applicationId={applicationId}
+              componentId={node.id}
+              componentName={node.name}
+              componentType={node.secondary ?? null}
+              entities={entities}
             />
           ) : null}
         </Stack>

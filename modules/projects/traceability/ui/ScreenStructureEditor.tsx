@@ -16,6 +16,8 @@ import {
 import { ApiError } from '@/shared/lib/api-types'
 import { cn } from '@/utils/cn'
 
+export type StructureOption = string | { value: string; label: string }
+
 export interface StructureColumn {
   key: string
   label: string
@@ -24,7 +26,15 @@ export interface StructureColumn {
   /** Existing rows: field not editable (e.g. fieldKey / actionCode). */
   lockedOnExisting?: boolean
   /** When set, field is an enum — enables Single add mode with a Select. */
-  options?: readonly string[]
+  options?: readonly StructureOption[]
+}
+
+function optionValue(option: StructureOption): string {
+  return typeof option === 'string' ? option : option.value
+}
+
+function optionLabel(option: StructureOption): string {
+  return typeof option === 'string' ? option : option.label
 }
 
 export interface StructureItem {
@@ -60,7 +70,7 @@ interface EditRow extends StructureItem {
 }
 
 function emptyValues(columns: StructureColumn[]): Record<string, string> {
-  return Object.fromEntries(columns.map((c) => [c.key, c.options?.[0] ?? '']))
+  return Object.fromEntries(columns.map((c) => [c.key, c.options?.[0] ? optionValue(c.options[0]) : '']))
 }
 
 function newDraftId(): string {
@@ -371,13 +381,14 @@ export function ScreenStructureEditor({
     opts?: { disabled?: boolean; 'aria-label'?: string; size?: 'sm' | 'md' }
   ) => {
     if (col.options && col.options.length > 0) {
-      const base = col.options.map((o) => ({ value: o, label: o }))
+      const base = col.options.map((o) => ({ value: optionValue(o), label: optionLabel(o) }))
+      const known = new Set(base.map((o) => o.value))
       const options =
-        value && !col.options.includes(value) ? [{ value, label: value }, ...base] : base
+        value && !known.has(value) ? [{ value, label: value }, ...base] : base
       return (
         <Select
           options={options}
-          value={value || col.options[0]}
+          value={value || optionValue(col.options[0])}
           onValueChange={onChange}
           disabled={opts?.disabled}
           size={opts?.size ?? 'sm'}
