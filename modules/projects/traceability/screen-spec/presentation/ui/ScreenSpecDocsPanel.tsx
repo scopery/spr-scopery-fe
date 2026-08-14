@@ -1,9 +1,24 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { CircleHelp, Plus } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { ChevronDown, CircleHelp, MoreHorizontal, Plus, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button, Input, Modal, PageSkeleton, Select, Stack, Textarea, Typography } from '@/shared/ui'
+import {
+  AnchoredMenu,
+  Badge,
+  Button,
+  Card,
+  ConfirmDialog,
+  Input,
+  Modal,
+  PageSkeleton,
+  SearchableSelect,
+  Select,
+  Stack,
+  Textarea,
+  Typography,
+  anchoredMenuItemClassName,
+} from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { SCREEN_SPEC_EXCEL_SHEETS } from '../../domain/rules/screen-spec-excel.rules'
 import type { UpdateScreenSpecDocBody } from '../../domain/model/screen-spec-doc'
@@ -17,10 +32,38 @@ const SHEET_OPTIONS = Object.values(SCREEN_SPEC_EXCEL_SHEETS).map((name) => ({
   label: name,
 }))
 
+const LANGUAGE_OPTIONS = [
+  { value: 'EN', label: 'EN' },
+  { value: 'JA', label: 'JA' },
+]
+
+const EMPTY_REVISION = {
+  revisionNo: '',
+  targetSheetName: SCREEN_SPEC_EXCEL_SHEETS.defines as string,
+  details: '',
+  personInCharge: '',
+  changedAt: '',
+}
+
 interface CatalogScreen {
   id: string
   code: string
   name: string
+}
+
+function FieldControl({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex w-full min-w-0 flex-col gap-2">
+      <span className="text-sm font-normal text-neutral-700">{label}</span>
+      {children}
+    </div>
+  )
+}
+
+function languageOptions(current: string | null | undefined) {
+  const value = (current ?? 'EN').trim() || 'EN'
+  if (LANGUAGE_OPTIONS.some((o) => o.value === value)) return LANGUAGE_OPTIONS
+  return [...LANGUAGE_OPTIONS, { value, label: value }]
 }
 
 export function ScreenSpecDocsPanel({
@@ -189,10 +232,7 @@ export function ScreenSpecDocsPanel({
         ]}
       >
         <Stack direction="vertical" spacing="sm">
-          <div>
-            <Typography variant="small" className="mb-1 block">
-              Project
-            </Typography>
+          <FieldControl label="Project">
             <Select
               size="sm"
               value={draft.projectId}
@@ -201,7 +241,7 @@ export function ScreenSpecDocsPanel({
               placeholder="Select project"
               aria-label="Project"
             />
-          </div>
+          </FieldControl>
           <Input
             size="sm"
             fullWidth
@@ -218,14 +258,15 @@ export function ScreenSpecDocsPanel({
             onChange={(e) => setDraft((d) => ({ ...d, documentName: e.target.value }))}
             placeholder="Register / View / Edit"
           />
-          <Input
-            size="sm"
-            fullWidth
-            label="Language"
-            value={draft.language}
-            onChange={(e) => setDraft((d) => ({ ...d, language: e.target.value }))}
-            placeholder="EN"
-          />
+          <FieldControl label="Language">
+            <Select
+              size="sm"
+              value={draft.language}
+              onValueChange={(language: string) => setDraft((d) => ({ ...d, language }))}
+              options={LANGUAGE_OPTIONS}
+              aria-label="Language"
+            />
+          </FieldControl>
         </Stack>
       </Modal>
 
@@ -276,17 +317,22 @@ function ScreenSpecDocEditor({
   const { exporting, exportDocument } = useScreenSpecExcelExport(workspaceId)
   const [meta, setMeta] = useState<UpdateScreenSpecDocBody | null>(null)
   const [screenId, setScreenId] = useState('')
+  const [overviewOpen, setOverviewOpen] = useState(false)
+  const [revisionOpen, setRevisionOpen] = useState(false)
+  const [addingRevision, setAddingRevision] = useState(false)
+  const [addingScreen, setAddingScreen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const menuAnchorRef = useRef<HTMLDivElement>(null)
+  const [rev, setRev] = useState(EMPTY_REVISION)
+
   useEffect(() => {
     setMeta(null)
     setScreenId('')
+    setOverviewOpen(false)
+    setRevisionOpen(false)
+    setRev(EMPTY_REVISION)
   }, [docId])
-  const [rev, setRev] = useState({
-    revisionNo: '',
-    targetSheetName: SCREEN_SPEC_EXCEL_SHEETS.defines as string,
-    details: '',
-    personInCharge: '',
-    changedAt: '',
-  })
 
   const form = meta ?? (doc
     ? {
@@ -311,14 +357,84 @@ function ScreenSpecDocEditor({
   if (error) return <Typography tone="error">{error}</Typography>
   if (!doc || !form) return null
 
+  const dirty = meta !== null
+  const langOptions = languageOptions(form.language)
+
+  const patchMeta = (patch: Partial<UpdateScreenSpecDocBody>) => {
+    setMeta({ ...form, ...patch })
+  }
+
+  const handleSave = async () => {
+    try {
+      await saveMeta({
+        documentName: form.documentName.trim(),
+        projectName: form.projectName?.trim() || null,
+        systemName: form.systemName?.trim() || null,
+        phaseName: form.phaseName?.trim() || null,
+        language: form.language?.trim() || 'EN',
+        overview: form.overview?.trim() || null,
+        figmaUrl: form.figmaUrl?.trim() || null,
+      })
+      setMeta(null)
+      toast.success('Document saved')
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    }
+  }
+
+  const handleAddScreen = async () => {
+    if (!screenId) return
+    setAddingScreen(true)
+    try {
+      await addScreen({ screenId, displayOrder: linked.length + 1 })
+      setScreenId('')
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    } finally {
+      setAddingScreen(false)
+    }
+  }
+
+  const handleAddRevision = async () => {
+    setAddingRevision(true)
+    try {
+      await addRevision({
+        revisionNo: rev.revisionNo.trim(),
+        targetSheetName: rev.targetSheetName || null,
+        details: rev.details.trim() || null,
+        personInCharge: rev.personInCharge.trim() || null,
+        changedAt: rev.changedAt.trim() || null,
+        displayOrder: revisions.length + 1,
+      })
+      setRev(EMPTY_REVISION)
+      setRevisionOpen(false)
+      toast.success('Revision added')
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    } finally {
+      setAddingRevision(false)
+    }
+  }
+
   return (
-    <Stack direction="vertical" spacing="lg">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Typography weight="medium">{doc.documentName}</Typography>
-        <div className="flex gap-2">
+    <Stack direction="vertical" spacing="md">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge size="sm" variant="soft">
+              {doc.documentCode}
+            </Badge>
+            <Typography weight="medium">{doc.documentName}</Typography>
+          </div>
+          {doc.projectName ? (
+            <Typography variant="caption" tone="muted" className="mt-1 block">
+              {doc.projectName}
+            </Typography>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
           <Button
             size="sm"
-            variant="secondary"
             disabled={exporting}
             onClick={async () => {
               try {
@@ -331,179 +447,246 @@ function ScreenSpecDocEditor({
           >
             {exporting ? 'Exporting…' : 'Export Excel'}
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={async () => {
-              try {
-                await onDeleted()
-                toast.success('Document deleted')
-              } catch (err) {
-                toast.error(getProblemToastMessage(err))
-              }
-            }}
+          <div ref={menuAnchorRef}>
+            <Button
+              size="sm"
+              variant="ghost"
+              iconOnly
+              icon={<MoreHorizontal size={16} strokeWidth={1.75} />}
+              aria-label="Document actions"
+              onClick={() => setMenuOpen((open) => !open)}
+            />
+          </div>
+          <AnchoredMenu
+            open={menuOpen}
+            onClose={() => setMenuOpen(false)}
+            anchorRef={menuAnchorRef}
+            minWidth={140}
           >
-            Delete
-          </Button>
+            <button
+              type="button"
+              role="menuitem"
+              className={`${anchoredMenuItemClassName} text-error`}
+              onClick={() => {
+                setMenuOpen(false)
+                setDeleteOpen(true)
+              }}
+            >
+              Delete document
+            </button>
+          </AnchoredMenu>
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Input size="sm" fullWidth label="Code" value={doc.documentCode} readOnly />
-        <Input
-          size="sm"
-          fullWidth
-          label="Name"
-          value={form.documentName}
-          onChange={(e) => setMeta({ ...form, documentName: e.target.value })}
-        />
-        <Input
-          size="sm"
-          fullWidth
-          label="Project name"
-          value={form.projectName ?? ''}
-          onChange={(e) => setMeta({ ...form, projectName: e.target.value })}
-        />
-        <Input
-          size="sm"
-          fullWidth
-          label="System"
-          value={form.systemName ?? ''}
-          onChange={(e) => setMeta({ ...form, systemName: e.target.value })}
-        />
-        <Input
-          size="sm"
-          fullWidth
-          label="Phase"
-          value={form.phaseName ?? ''}
-          onChange={(e) => setMeta({ ...form, phaseName: e.target.value })}
-        />
-        <Input
-          size="sm"
-          fullWidth
-          label="Language"
-          value={form.language ?? ''}
-          onChange={(e) => setMeta({ ...form, language: e.target.value })}
-        />
-        <Input
-          size="sm"
-          fullWidth
-          label="Figma URL"
-          value={form.figmaUrl ?? ''}
-          onChange={(e) => setMeta({ ...form, figmaUrl: e.target.value })}
-        />
-      </div>
-      <Textarea
-        label="Overview"
-        value={form.overview ?? ''}
-        onChange={(e) => setMeta({ ...form, overview: e.target.value })}
-      />
-      <Button
-        size="sm"
-        onClick={async () => {
-          try {
-            await saveMeta({
-              documentName: form.documentName.trim(),
-              projectName: form.projectName?.trim() || null,
-              systemName: form.systemName?.trim() || null,
-              phaseName: form.phaseName?.trim() || null,
-              language: form.language?.trim() || 'EN',
-              overview: form.overview?.trim() || null,
-              figmaUrl: form.figmaUrl?.trim() || null,
-            })
-            setMeta(null)
-            toast.success('Document saved')
-          } catch (err) {
-            toast.error(getProblemToastMessage(err))
-          }
-        }}
-      >
-        Save metadata
-      </Button>
+      <Card hasShadow={false} className="p-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <Typography weight="medium" variant="small">
+            Document header
+          </Typography>
+          <Button size="sm" disabled={!dirty || !form.documentName.trim()} onClick={() => void handleSave()}>
+            Save
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Input
+            size="sm"
+            fullWidth
+            label="Name"
+            value={form.documentName}
+            onChange={(e) => patchMeta({ documentName: e.target.value })}
+          />
+          <Input
+            size="sm"
+            fullWidth
+            label="Project name"
+            value={form.projectName ?? ''}
+            onChange={(e) => patchMeta({ projectName: e.target.value })}
+          />
+          <Input
+            size="sm"
+            fullWidth
+            label="System"
+            value={form.systemName ?? ''}
+            onChange={(e) => patchMeta({ systemName: e.target.value })}
+          />
+          <Input
+            size="sm"
+            fullWidth
+            label="Phase"
+            value={form.phaseName ?? ''}
+            onChange={(e) => patchMeta({ phaseName: e.target.value })}
+          />
+          <FieldControl label="Language">
+            <Select
+              size="sm"
+              value={form.language ?? 'EN'}
+              onValueChange={(language: string) => patchMeta({ language })}
+              options={langOptions}
+              aria-label="Language"
+            />
+          </FieldControl>
+          <div className="sm:col-span-2 xl:col-span-3">
+            <Input
+              size="sm"
+              fullWidth
+              label="Figma URL"
+              value={form.figmaUrl ?? ''}
+              onChange={(e) => patchMeta({ figmaUrl: e.target.value })}
+            />
+          </div>
+        </div>
+        <button
+          type="button"
+          className="mt-3 flex items-center gap-1 text-sm text-neutral-600 hover:text-neutral-900"
+          onClick={() => setOverviewOpen((open) => !open)}
+        >
+          <ChevronDown
+            size={16}
+            strokeWidth={1.75}
+            className={overviewOpen ? 'rotate-180' : undefined}
+          />
+          Overview
+        </button>
+        {overviewOpen ? (
+          <div className="mt-2">
+            <Textarea
+              size="sm"
+              fullWidth
+              value={form.overview ?? ''}
+              onChange={(e) => patchMeta({ overview: e.target.value })}
+              placeholder="Shown on the Excel cover"
+            />
+          </div>
+        ) : null}
+      </Card>
 
-      <Stack direction="vertical" spacing="sm">
+      <Card hasShadow={false} className="p-4">
         <Typography weight="medium" variant="small">
-          Screens in this file
-        </Typography>
-        <Typography tone="muted" variant="caption">
-          One screen = a single-screen workbook. Several screens = grouped Startupper-style file
-          (Layout lists them; Defines / Process / Event / Validation are blocked per screen).
+          Screens{linked.length > 0 ? ` · ${linked.length}` : ''}
         </Typography>
         {linked.length === 0 ? (
-          <Typography tone="muted" variant="small">
-            No screens yet.
+          <Typography tone="muted" variant="small" className="mt-3 block">
+            Add screens to include in the workbook.
           </Typography>
         ) : (
-          <ul className="divide-y divide-neutral-100 border border-neutral-200">
+          <div className="mt-3 flex flex-wrap gap-2">
             {linked.map((item) => (
-              <li key={item.screenId} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+              <div
+                key={item.screenId}
+                className="inline-flex h-8 items-center gap-1 border border-neutral-200 bg-neutral-50 pl-2 text-sm"
+              >
                 <span>
                   {item.code ?? item.screenId}
                   {item.name ? ` · ${item.name}` : ''}
                 </span>
-                <Button size="sm" variant="ghost" onClick={() => void removeScreen(item.screenId)}>
-                  Remove
-                </Button>
-              </li>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  iconOnly
+                  icon={<X size={14} strokeWidth={1.75} />}
+                  aria-label={`Remove ${item.code ?? item.screenId}`}
+                  onClick={() => void removeScreen(item.screenId)}
+                />
+              </div>
             ))}
-          </ul>
+          </div>
         )}
-        <div className="flex max-w-md items-end gap-2">
-          <div className="min-w-0 flex-1">
-            <Select
+        <div className="mt-3 grid grid-cols-1 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <FieldControl label="Add screen">
+            <SearchableSelect
+              size="sm"
               value={screenId}
               onValueChange={setScreenId}
-              placeholder="Add a screen"
+              placeholder={available.length === 0 ? 'All screens added' : 'Search screens'}
+              searchPlaceholder="Search code or name"
+              disabled={available.length === 0}
               options={available.map((s) => ({ value: s.id, label: `${s.code} · ${s.name}` }))}
             />
-          </div>
-          <Button
-            size="sm"
-            disabled={!screenId}
-            onClick={async () => {
-              try {
-                await addScreen({ screenId, displayOrder: linked.length + 1 })
-                setScreenId('')
-              } catch (err) {
-                toast.error(getProblemToastMessage(err))
-              }
-            }}
-          >
+          </FieldControl>
+          <Button size="sm" disabled={!screenId || addingScreen} onClick={() => void handleAddScreen()}>
             Add
           </Button>
         </div>
-      </Stack>
+      </Card>
 
-      <Stack direction="vertical" spacing="sm">
-        <Typography weight="medium" variant="small">
-          Change history
-        </Typography>
+      <Card hasShadow={false} className="p-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <Typography weight="medium" variant="small">
+            Change history
+          </Typography>
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={<Plus size={14} strokeWidth={1.75} />}
+            onClick={() => {
+              setRev(EMPTY_REVISION)
+              setRevisionOpen(true)
+            }}
+          >
+            Add revision
+          </Button>
+        </div>
         {revisions.length === 0 ? (
           <Typography tone="muted" variant="small">
-            No revisions yet.
+            No revisions yet. Add a row for the Change History sheet.
           </Typography>
         ) : (
-          <ul className="divide-y divide-neutral-100 border border-neutral-200">
-            {revisions.map((item) => (
-              <li key={item.id} className="flex items-start justify-between gap-2 px-3 py-2 text-sm">
-                <div>
-                  <div className="font-medium">
-                    {item.revisionNo}
-                    {item.targetSheetName ? ` · ${item.targetSheetName}` : ''}
-                  </div>
-                  <div className="text-neutral-600">{item.details}</div>
-                  <div className="text-neutral-500">
-                    {[item.personInCharge, item.changedAt].filter(Boolean).join(' · ')}
-                  </div>
-                </div>
-                <Button size="sm" variant="ghost" onClick={() => void removeRevision(item.id)}>
-                  Remove
-                </Button>
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[36rem] text-left text-sm">
+              <thead className="border-b border-neutral-200 text-neutral-500">
+                <tr>
+                  <th className="px-2 py-2 font-medium">Rev</th>
+                  <th className="px-2 py-2 font-medium">Sheet</th>
+                  <th className="px-2 py-2 font-medium">Details</th>
+                  <th className="px-2 py-2 font-medium">Person</th>
+                  <th className="px-2 py-2 font-medium">Date</th>
+                  <th className="w-10 px-2 py-2" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {revisions.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-2 py-2 font-medium">{item.revisionNo}</td>
+                    <td className="px-2 py-2 text-neutral-600">{item.targetSheetName ?? '—'}</td>
+                    <td className="px-2 py-2 text-neutral-600">{item.details ?? '—'}</td>
+                    <td className="px-2 py-2 text-neutral-600">{item.personInCharge ?? '—'}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-neutral-600">
+                      {item.changedAt ?? '—'}
+                    </td>
+                    <td className="px-2 py-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        iconOnly
+                        icon={<X size={14} strokeWidth={1.75} />}
+                        aria-label={`Remove revision ${item.revisionNo}`}
+                        onClick={() => void removeRevision(item.id)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
-        <div className="grid gap-2 sm:grid-cols-2">
+      </Card>
+
+      <Modal
+        open={revisionOpen}
+        onClose={() => setRevisionOpen(false)}
+        title="Add revision"
+        size="sm"
+        actions={[
+          { label: 'Cancel', onClick: () => setRevisionOpen(false), variant: 'ghost' },
+          {
+            label: 'Add',
+            onClick: () => void handleAddRevision(),
+            disabled: addingRevision || !rev.revisionNo.trim(),
+            loading: addingRevision,
+          },
+        ]}
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Input
             size="sm"
             fullWidth
@@ -512,12 +695,15 @@ function ScreenSpecDocEditor({
             onChange={(e) => setRev((r) => ({ ...r, revisionNo: e.target.value }))}
             placeholder="1.0"
           />
-          <Select
-            value={rev.targetSheetName}
-            onValueChange={(v: string) => setRev((r) => ({ ...r, targetSheetName: v }))}
-            options={SHEET_OPTIONS}
-            placeholder="Sheet"
-          />
+          <FieldControl label="Sheet">
+            <Select
+              size="sm"
+              value={rev.targetSheetName}
+              onValueChange={(v: string) => setRev((r) => ({ ...r, targetSheetName: v }))}
+              options={SHEET_OPTIONS}
+              aria-label="Sheet"
+            />
+          </FieldControl>
           <Input
             size="sm"
             fullWidth
@@ -528,45 +714,32 @@ function ScreenSpecDocEditor({
           <Input
             size="sm"
             fullWidth
+            type="date"
             label="Date"
             value={rev.changedAt}
             onChange={(e) => setRev((r) => ({ ...r, changedAt: e.target.value }))}
-            placeholder="2026-08-14"
           />
+          <div className="sm:col-span-2">
+            <Textarea
+              size="sm"
+              fullWidth
+              label="Details"
+              value={rev.details}
+              onChange={(e) => setRev((r) => ({ ...r, details: e.target.value }))}
+            />
+          </div>
         </div>
-        <Textarea
-          label="Details"
-          value={rev.details}
-          onChange={(e) => setRev((r) => ({ ...r, details: e.target.value }))}
-        />
-        <Button
-          size="sm"
-          disabled={!rev.revisionNo.trim()}
-          onClick={async () => {
-            try {
-              await addRevision({
-                revisionNo: rev.revisionNo.trim(),
-                targetSheetName: rev.targetSheetName || null,
-                details: rev.details.trim() || null,
-                personInCharge: rev.personInCharge.trim() || null,
-                changedAt: rev.changedAt.trim() || null,
-                displayOrder: revisions.length + 1,
-              })
-              setRev({
-                revisionNo: '',
-                targetSheetName: SCREEN_SPEC_EXCEL_SHEETS.defines,
-                details: '',
-                personInCharge: '',
-                changedAt: '',
-              })
-            } catch (err) {
-              toast.error(getProblemToastMessage(err))
-            }
-          }}
-        >
-          Add revision
-        </Button>
-      </Stack>
+      </Modal>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title="Delete spec document?"
+        message="This removes the document and its change history. Screens in the catalog are not deleted."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={onDeleted}
+      />
     </Stack>
   )
 }
