@@ -18,7 +18,7 @@ export const MODULE_IMPORT_SPEC: ExcelListImportSpec = {
 
 export const SCREEN_IMPORT_SPEC: ExcelListImportSpec = {
   instruction:
-    'Create an Excel file (.xlsx) with columns: code, name, routePath (optional). One screen per row. This creates empty screens only. For modes, fields, processes, and events, use JSON full spec import below.'
+    'Create an Excel file (.xlsx) with columns: code, name, routePath (optional). One screen per row. This creates empty screens only. For modes, fields, processes, and events, use JSON full spec import below.',
   columns: [
     { key: 'code', required: true },
     { key: 'name', required: true },
