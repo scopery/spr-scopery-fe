@@ -251,39 +251,15 @@ function PlanStructureContent() {
               key={group.phaseId ?? 'unassigned'}
               className="overflow-hidden border border-neutral-300 bg-white"
             >
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 bg-neutral-50 px-3 py-2">
-                <div className="min-w-0">
-                  <Typography weight="medium" size="sm">
-                    {phaseTitle}
-                  </Typography>
-                  <Typography variant="caption" tone="muted">
-                    {isUnassigned
-                      ? 'Elements created without a phase. Phase cannot be changed after create — recreate under a phase to assign one.'
-                      : `${rows.length} element${rows.length === 1 ? '' : 's'}`}
-                  </Typography>
-                </div>
-                {!isUnassigned ? (
-                  <WbsAddBar
-                    phaseOptions={phaseOptions}
-                    defaultPhaseId={group.phaseId}
-                    parentId={null}
-                    parentTitle={null}
-                    disabled={phaseOptions.length === 0}
-                    onCreate={async (body) => {
-                      try {
-                        await createNode({ ...body, phaseId: group.phaseId! })
-                        toast.success('Planning element created')
-                      } catch (err) {
-                        toast.error(getProblemToastMessage(err))
-                        throw err
-                      }
-                    }}
-                    onSubmitBulk={submitWbsNodesBulk}
-                    onBatchComplete={async () => {
-                      await refetch({ silent: true })
-                    }}
-                  />
-                ) : null}
+              <div className="border-b border-neutral-200 bg-neutral-50 px-3 py-2">
+                <Typography weight="medium" size="sm">
+                  {phaseTitle}
+                </Typography>
+                <Typography variant="caption" tone="muted">
+                  {isUnassigned
+                    ? 'Elements created without a phase. Phase cannot be changed after create — recreate under a phase to assign one.'
+                    : `${rows.length} element${rows.length === 1 ? '' : 's'}`}
+                </Typography>
               </div>
 
               {rows.length === 0 ? (
@@ -302,18 +278,23 @@ function PlanStructureContent() {
                     {
                       id: 'node',
                       header: 'Element',
+                      align: 'left',
+                      truncate: false,
+                      width: '52%',
+                      headerClassName: 'text-left',
+                      cellClassName: 'text-left',
                       cell: ({ node, depth }) => {
                         const hasChildren = node.children.length > 0
                         const isExpanded = expanded.has(node.id)
                         return (
                           <div
-                            className="flex items-center gap-1.5"
+                            className="flex w-full min-w-0 items-center justify-start gap-1.5 text-left"
                             style={{ paddingLeft: depth * 20 }}
                           >
                             {hasChildren ? (
                               <button
                                 type="button"
-                                className="text-neutral-500 hover:text-neutral-900"
+                                className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center text-neutral-500 hover:text-neutral-900"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   toggle(node.id)
@@ -327,25 +308,30 @@ function PlanStructureContent() {
                                 )}
                               </button>
                             ) : (
-                              <span className="inline-block w-3.5" />
+                              <span className="inline-block h-3.5 w-3.5 shrink-0" />
                             )}
-                            <span className="font-normal text-neutral-600">{node.code}</span>
-                            <Typography as="span" weight="medium">
+                            <span className="min-w-0 truncate font-normal text-neutral-600">
+                              {node.code}
+                            </span>
+                            <Typography as="span" weight="medium" className="min-w-0 truncate">
                               {node.title}
                             </Typography>
                           </div>
                         )
                       },
-                      kind: 'code',
                     },
                     {
                       id: 'type',
                       header: 'Type',
+                      align: 'left',
+                      width: '18%',
                       cell: ({ node }) => <WbsNodeTypeBadge nodeType={node.nodeType} />,
                     },
                     {
                       id: 'status',
                       header: 'Status',
+                      align: 'left',
+                      width: '16%',
                       cell: ({ node }) => (
                         <Badge tone={node.status === 'ARCHIVED' ? 'neutral' : 'success'}>
                           {wbsNodeStatusLabel(node.status)}
@@ -355,6 +341,8 @@ function PlanStructureContent() {
                     {
                       id: 'actions',
                       header: 'Actions',
+                      align: 'left',
+                      width: '14%',
                       interactive: true,
                       cell: ({ node }) => (
                         <Button
