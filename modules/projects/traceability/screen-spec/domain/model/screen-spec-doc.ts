@@ -10,6 +10,7 @@ import type {
 
 export interface ScreenSpecDoc {
   id: string
+  projectId: string
   documentCode: string
   documentName: string
   projectName: string | null
@@ -31,8 +32,19 @@ export interface ScreenSpecDocScreenRef {
   routePath: string | null
 }
 
-export interface UpsertScreenSpecDocBody {
+export interface CreateScreenSpecDocBody {
+  projectId: string
   documentCode: string
+  documentName: string
+  projectName?: string | null
+  systemName?: string | null
+  phaseName?: string | null
+  language?: string | null
+  overview?: string | null
+  figmaUrl?: string | null
+}
+
+export interface UpdateScreenSpecDocBody {
   documentName: string
   projectName?: string | null
   systemName?: string | null
@@ -112,6 +124,7 @@ export interface ScreenSpecDocFullSpecScreen {
 
 export interface ScreenSpecDocFullSpec {
   id: string
+  projectId: string
   documentCode: string
   documentName: string
   projectName: string | null

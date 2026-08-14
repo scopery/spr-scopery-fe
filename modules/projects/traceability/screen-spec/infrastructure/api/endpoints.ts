@@ -45,6 +45,9 @@ export const SCREEN_SPEC_ENDPOINTS = {
     apiPath(`/workspaces/${workspaceId}/screens/${screenId}/full-spec`),
 
   screenSpecDocs: (workspaceId: string) => apiPath(`/workspaces/${workspaceId}/screen-spec-docs`),
+  screenSpecDocsByProject: (workspaceId: string, projectId: string) =>
+    apiPath(`/workspaces/${workspaceId}/screen-spec-docs`) +
+    `?${new URLSearchParams({ projectId }).toString()}`,
   screenSpecDoc: (workspaceId: string, docId: string) =>
     apiPath(`/workspaces/${workspaceId}/screen-spec-docs/${docId}`),
   screenSpecDocScreens: (workspaceId: string, docId: string) =>

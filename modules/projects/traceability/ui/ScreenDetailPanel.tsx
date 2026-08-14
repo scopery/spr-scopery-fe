@@ -13,11 +13,7 @@ import { useScreenModes } from '../screen-spec/presentation/hooks/useScreenModes
 import { FieldSpecDrawer } from '../screen-spec/presentation/ui/FieldSpecDrawer'
 import { ScreenModeMatrixPanel } from '../screen-spec/presentation/ui/ScreenModeMatrixPanel'
 import { useScreenSpecExcelExport } from '../screen-spec/presentation/hooks/useScreenSpecExcelExport'
-import {
-  SCREEN_SPEC_WORKFLOW_STEPS,
-  SCREEN_STRUCTURE_TAB_HINTS,
-  ScreenSpecHowTo,
-} from '../screen-spec/presentation/ui/ScreenSpecHowTo'
+import { SCREEN_STRUCTURE_TAB_HINTS } from '../screen-spec/presentation/ui/ScreenSpecHowTo'
 import {
   ScreenEventItemsPanel,
   ScreenProcessItemsPanel,
@@ -226,13 +222,6 @@ export function ScreenDetailPanel({
           </Button>
         </div>
       ) : null}
-
-      <ScreenSpecHowTo
-        title="How to spec this screen"
-        steps={SCREEN_SPEC_WORKFLOW_STEPS}
-        note="Export Excel here for this screen only. Use Spec docs to group several screens in one workbook."
-        defaultOpen
-      />
 
       <div
         className="flex flex-wrap gap-1 border-b border-neutral-200"

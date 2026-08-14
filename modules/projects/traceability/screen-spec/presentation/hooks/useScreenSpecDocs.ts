@@ -1,40 +1,49 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useProjects } from '@/modules/projects/project'
 import { ApiError, getErrorCode } from '@/shared/lib/api-types'
 import { ScreenSpecMessages } from '../../domain/messages/screen-spec.messages'
-import type { ScreenSpecDoc, UpsertScreenSpecDocBody } from '../../domain/model/screen-spec-doc'
+import type { CreateScreenSpecDocBody, ScreenSpecDoc } from '../../domain/model/screen-spec-doc'
 import * as api from '../../infrastructure/api/spec-doc.api'
 
 export function useScreenSpecDocs(workspaceId: string | null) {
+  const { projects, loading: projectsLoading } = useProjects(workspaceId)
   const [items, setItems] = useState<ScreenSpecDoc[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const projectIds = useMemo(() => projects.map((p) => p.id), [projects])
+  const projectKey = projectIds.join(',')
 
   const load = useCallback(async () => {
     if (!workspaceId) {
       setItems([])
       return
     }
+    const ids = projectKey ? projectKey.split(',') : []
+    if (ids.length === 0) {
+      setItems([])
+      return
+    }
     setLoading(true)
     setError(null)
     try {
-      const res = await api.listScreenSpecDocs(workspaceId)
-      setItems(res.items)
+      const results = await Promise.all(ids.map((id) => api.listScreenSpecDocs(workspaceId, id)))
+      setItems(results.flatMap((res) => res.items))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load spec documents')
       setItems([])
     } finally {
       setLoading(false)
     }
-  }, [workspaceId])
+  }, [workspaceId, projectKey])
 
   useEffect(() => {
     void load()
   }, [load])
 
   const createDoc = useCallback(
-    async (body: UpsertScreenSpecDocBody) => {
+    async (body: CreateScreenSpecDocBody) => {
       if (!workspaceId) return
       try {
         const created = await api.createScreenSpecDoc(workspaceId, body)
@@ -65,5 +74,13 @@ export function useScreenSpecDocs(workspaceId: string | null) {
     [workspaceId, load]
   )
 
-  return { items, loading, error, refetch: load, createDoc, removeDoc }
+  return {
+    items,
+    projects,
+    loading: loading || projectsLoading,
+    error,
+    refetch: load,
+    createDoc,
+    removeDoc,
+  }
 }

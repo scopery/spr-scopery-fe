@@ -1,19 +1,16 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { CircleHelp, Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button, Input, PageSkeleton, Select, Stack, Textarea, Typography } from '@/shared/ui'
+import { Button, Input, Modal, PageSkeleton, Select, Stack, Textarea, Typography } from '@/shared/ui'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { SCREEN_SPEC_EXCEL_SHEETS } from '../../domain/rules/screen-spec-excel.rules'
-import type { UpsertScreenSpecDocBody } from '../../domain/model/screen-spec-doc'
+import type { UpdateScreenSpecDocBody } from '../../domain/model/screen-spec-doc'
 import { useScreenSpecDocs } from '../hooks/useScreenSpecDocs'
 import { useScreenSpecDocDetail } from '../hooks/useScreenSpecDocDetail'
 import { useScreenSpecExcelExport } from '../hooks/useScreenSpecExcelExport'
-import {
-  SPEC_DOC_WORKFLOW_NOTE,
-  SPEC_DOC_WORKFLOW_STEPS,
-  ScreenSpecHowTo,
-} from './ScreenSpecHowTo'
+import { SPEC_DOC_WORKFLOW_NOTE, SPEC_DOC_WORKFLOW_STEPS } from './ScreenSpecHowTo'
 
 const SHEET_OPTIONS = Object.values(SCREEN_SPEC_EXCEL_SHEETS).map((name) => ({
   value: name,
@@ -33,60 +30,87 @@ export function ScreenSpecDocsPanel({
   workspaceId: string
   screens: CatalogScreen[]
 }) {
-  const { items, loading, error, createDoc, removeDoc } = useScreenSpecDocs(workspaceId)
+  const { items, projects, loading, error, createDoc, removeDoc } = useScreenSpecDocs(workspaceId)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [draft, setDraft] = useState({ documentCode: '', documentName: '' })
+  const [draft, setDraft] = useState({
+    projectId: '',
+    documentCode: '',
+    documentName: '',
+    language: 'EN',
+  })
+
+  const projectOptions = useMemo(
+    () => [
+      { value: '', label: projects.length === 0 ? 'No projects in this workspace' : 'Select project…' },
+      ...projects.map((p) => ({ value: p.id, label: `${p.code} — ${p.name}` })),
+    ],
+    [projects]
+  )
+
+  const openCreate = () => {
+    setDraft({
+      projectId: projects.length === 1 ? projects[0].id : '',
+      documentCode: '',
+      documentName: '',
+      language: 'EN',
+    })
+    setCreateOpen(true)
+  }
+
+  const handleCreate = async () => {
+    const project = projects.find((p) => p.id === draft.projectId)
+    if (!project) {
+      toast.error('Select a project')
+      return
+    }
+    setCreating(true)
+    try {
+      const created = await createDoc({
+        projectId: project.id,
+        documentCode: draft.documentCode.trim(),
+        documentName: draft.documentName.trim(),
+        projectName: project.name,
+        language: draft.language.trim() || 'EN',
+      })
+      setDraft({ projectId: '', documentCode: '', documentName: '', language: 'EN' })
+      setCreateOpen(false)
+      if (created) setSelectedId(created.id)
+      toast.success('Spec document created')
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    } finally {
+      setCreating(false)
+    }
+  }
 
   return (
     <div className="grid h-full min-h-0 grid-cols-[minmax(220px,280px)_minmax(0,1fr)] overflow-hidden border border-neutral-200 bg-white">
       <aside className="flex min-h-0 flex-col overflow-hidden border-r border-neutral-200">
-        <div className="space-y-2 border-b border-neutral-100 p-3">
+        <div className="flex items-center justify-between gap-2 border-b border-neutral-100 px-3 py-2">
           <Typography weight="medium" variant="small">
             Spec documents
           </Typography>
-          <Typography variant="caption" tone="muted">
-            Group screens into one Excel file. Spec field data on Browse first.
-          </Typography>
-          <Input
-            size="sm"
-            fullWidth
-            label="Code"
-            value={draft.documentCode}
-            onChange={(e) => setDraft((d) => ({ ...d, documentCode: e.target.value }))}
-            placeholder="SPEC-001"
-          />
-          <Input
-            size="sm"
-            fullWidth
-            label="Name"
-            value={draft.documentName}
-            onChange={(e) => setDraft((d) => ({ ...d, documentName: e.target.value }))}
-            placeholder="Register / View / Edit"
-          />
-          <Button
-            size="sm"
-            disabled={creating || !draft.documentCode.trim() || !draft.documentName.trim()}
-            onClick={async () => {
-              setCreating(true)
-              try {
-                const created = await createDoc({
-                  documentCode: draft.documentCode.trim(),
-                  documentName: draft.documentName.trim(),
-                  language: 'EN',
-                })
-                setDraft({ documentCode: '', documentName: '' })
-                if (created) setSelectedId(created.id)
-                toast.success('Spec document created')
-              } catch (err) {
-                toast.error(getProblemToastMessage(err))
-              } finally {
-                setCreating(false)
-              }
-            }}
-          >
-            Create
-          </Button>
+          <div className="flex items-center">
+            <Button
+              size="sm"
+              variant="ghost"
+              iconOnly
+              icon={<Plus size={16} strokeWidth={1.75} />}
+              aria-label="Create spec document"
+              onClick={openCreate}
+            />
+            <Button
+              size="sm"
+              variant="ghost"
+              iconOnly
+              icon={<CircleHelp size={16} strokeWidth={1.75} />}
+              aria-label="How to use spec documents"
+              onClick={() => setGuideOpen(true)}
+            />
+          </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {loading && items.length === 0 ? <PageSkeleton variant="list" /> : null}
@@ -97,7 +121,9 @@ export function ScreenSpecDocsPanel({
           ) : null}
           {items.length === 0 && !loading ? (
             <Typography tone="muted" variant="small" className="p-3">
-              No spec documents yet. Create one to group screens and export Excel.
+              {projects.length === 0
+                ? 'Create a project in this workspace first. Spec documents require a project.'
+                : 'No spec documents yet. Use + to create one.'}
             </Typography>
           ) : null}
           <ul>
@@ -114,6 +140,9 @@ export function ScreenSpecDocsPanel({
                   >
                     <div className="font-medium">{doc.documentCode}</div>
                     <div className="text-neutral-600">{doc.documentName}</div>
+                    {doc.projectName ? (
+                      <div className="text-xs text-neutral-500">{doc.projectName}</div>
+                    ) : null}
                   </button>
                 </li>
               )
@@ -134,19 +163,90 @@ export function ScreenSpecDocsPanel({
             }}
           />
         ) : (
-          <Stack direction="vertical" spacing="md">
-            <ScreenSpecHowTo
-              title="How to export a screen spec"
-              steps={SPEC_DOC_WORKFLOW_STEPS}
-              note={SPEC_DOC_WORKFLOW_NOTE}
-              defaultOpen
-            />
-            <Typography tone="muted" variant="small">
-              Select a document on the left, or create one to get started.
-            </Typography>
-          </Stack>
+          <Typography tone="muted" variant="small">
+            Select a document on the left, or create one with +.
+          </Typography>
         )}
       </div>
+
+      <Modal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title="Create spec document"
+        size="sm"
+        actions={[
+          { label: 'Cancel', onClick: () => setCreateOpen(false), variant: 'ghost' },
+          {
+            label: 'Create',
+            onClick: () => void handleCreate(),
+            disabled:
+              creating ||
+              !draft.projectId ||
+              !draft.documentCode.trim() ||
+              !draft.documentName.trim(),
+            loading: creating,
+          },
+        ]}
+      >
+        <Stack direction="vertical" spacing="sm">
+          <div>
+            <Typography variant="small" className="mb-1 block">
+              Project
+            </Typography>
+            <Select
+              size="sm"
+              value={draft.projectId}
+              onValueChange={(projectId: string) => setDraft((d) => ({ ...d, projectId }))}
+              options={projectOptions}
+              placeholder="Select project"
+              aria-label="Project"
+            />
+          </div>
+          <Input
+            size="sm"
+            fullWidth
+            label="Code"
+            value={draft.documentCode}
+            onChange={(e) => setDraft((d) => ({ ...d, documentCode: e.target.value }))}
+            placeholder="SPEC-001"
+          />
+          <Input
+            size="sm"
+            fullWidth
+            label="Name"
+            value={draft.documentName}
+            onChange={(e) => setDraft((d) => ({ ...d, documentName: e.target.value }))}
+            placeholder="Register / View / Edit"
+          />
+          <Input
+            size="sm"
+            fullWidth
+            label="Language"
+            value={draft.language}
+            onChange={(e) => setDraft((d) => ({ ...d, language: e.target.value }))}
+            placeholder="EN"
+          />
+        </Stack>
+      </Modal>
+
+      <Modal
+        open={guideOpen}
+        onClose={() => setGuideOpen(false)}
+        title="How spec documents work"
+        size="md"
+        actions={[{ label: 'Close', onClick: () => setGuideOpen(false), variant: 'ghost' }]}
+      >
+        <Stack direction="vertical" spacing="md">
+          <ol className="list-decimal space-y-2 pl-4 text-sm text-neutral-700">
+            {SPEC_DOC_WORKFLOW_STEPS.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+          <Typography variant="caption" tone="muted">
+            {SPEC_DOC_WORKFLOW_NOTE}
+          </Typography>
+        </Stack>
+      </Modal>
     </div>
   )
 }
@@ -174,7 +274,7 @@ function ScreenSpecDocEditor({
     removeRevision,
   } = useScreenSpecDocDetail(workspaceId, docId)
   const { exporting, exportDocument } = useScreenSpecExcelExport(workspaceId)
-  const [meta, setMeta] = useState<UpsertScreenSpecDocBody | null>(null)
+  const [meta, setMeta] = useState<UpdateScreenSpecDocBody | null>(null)
   const [screenId, setScreenId] = useState('')
   useEffect(() => {
     setMeta(null)
@@ -190,7 +290,6 @@ function ScreenSpecDocEditor({
 
   const form = meta ?? (doc
     ? {
-        documentCode: doc.documentCode,
         documentName: doc.documentName,
         projectName: doc.projectName,
         systemName: doc.systemName,
@@ -214,11 +313,6 @@ function ScreenSpecDocEditor({
 
   return (
     <Stack direction="vertical" spacing="lg">
-      <ScreenSpecHowTo
-        title="How this file is exported"
-        steps={SPEC_DOC_WORKFLOW_STEPS}
-        note={SPEC_DOC_WORKFLOW_NOTE}
-      />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Typography weight="medium">{doc.documentName}</Typography>
         <div className="flex gap-2">
@@ -255,13 +349,7 @@ function ScreenSpecDocEditor({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Input
-          size="sm"
-          fullWidth
-          label="Code"
-          value={form.documentCode}
-          onChange={(e) => setMeta({ ...form, documentCode: e.target.value })}
-        />
+        <Input size="sm" fullWidth label="Code" value={doc.documentCode} readOnly />
         <Input
           size="sm"
           fullWidth
@@ -272,7 +360,7 @@ function ScreenSpecDocEditor({
         <Input
           size="sm"
           fullWidth
-          label="Project"
+          label="Project name"
           value={form.projectName ?? ''}
           onChange={(e) => setMeta({ ...form, projectName: e.target.value })}
         />
@@ -315,7 +403,7 @@ function ScreenSpecDocEditor({
         onClick={async () => {
           try {
             await saveMeta({
-              ...form,
+              documentName: form.documentName.trim(),
               projectName: form.projectName?.trim() || null,
               systemName: form.systemName?.trim() || null,
               phaseName: form.phaseName?.trim() || null,

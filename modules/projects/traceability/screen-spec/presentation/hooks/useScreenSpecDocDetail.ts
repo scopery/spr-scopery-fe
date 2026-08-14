@@ -7,7 +7,7 @@ import type {
   AddScreenSpecDocScreenBody,
   ScreenSpecDoc,
   ScreenSpecDocRevision,
-  UpsertScreenSpecDocBody,
+  UpdateScreenSpecDocBody,
   UpsertScreenSpecDocRevisionBody,
 } from '../../domain/model/screen-spec-doc'
 import * as api from '../../infrastructure/api/spec-doc.api'
@@ -51,7 +51,7 @@ export function useScreenSpecDocDetail(workspaceId: string | null, docId: string
   }, [load])
 
   const saveMeta = useCallback(
-    async (body: UpsertScreenSpecDocBody) => {
+    async (body: UpdateScreenSpecDocBody) => {
       if (!workspaceId || !docId) return
       try {
         const updated = await api.updateScreenSpecDoc(workspaceId, docId, body)

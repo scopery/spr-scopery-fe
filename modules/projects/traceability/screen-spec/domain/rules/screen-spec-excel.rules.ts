@@ -127,6 +127,7 @@ export function wrapSingleScreenAsDocument(
 ): ScreenSpecDocFullSpec {
   return {
     id: screen.id,
+    projectId: '',
     documentCode: meta?.documentCode ?? screen.code,
     documentName: meta?.documentName ?? screen.name,
     projectName: meta?.projectName ?? null,

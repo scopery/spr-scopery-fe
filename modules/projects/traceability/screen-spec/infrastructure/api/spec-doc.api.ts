@@ -21,8 +21,9 @@ import type {
   ScreenSpecDocFullSpecScreen,
   ScreenSpecDocRevision,
   ScreenSpecDocScreenRef,
-  UpsertScreenSpecDocBody,
   UpsertScreenSpecDocRevisionBody,
+  CreateScreenSpecDocBody,
+  UpdateScreenSpecDocBody,
 } from '../../domain/model/screen-spec-doc'
 import {
   SCREEN_IMPORT_FULL_MAX_ITEMS,
@@ -57,6 +58,7 @@ export function mapScreenSpecDoc(raw: unknown): ScreenSpecDoc {
   const screensRaw = r.screens ?? r.screenRefs ?? r.screen_refs
   return {
     id: String(r.id ?? ''),
+    projectId: String(r.projectId ?? r.project_id ?? ''),
     documentCode: String(r.documentCode ?? r.document_code ?? ''),
     documentName: String(r.documentName ?? r.document_name ?? ''),
     projectName: str(r.projectName ?? r.project_name),
@@ -172,8 +174,13 @@ export function mapScreenSpecDocFullSpec(raw: unknown): ScreenSpecDocFullSpec {
   }
 }
 
-export async function listScreenSpecDocs(workspaceId: string): Promise<{ items: ScreenSpecDoc[] }> {
-  const res = await apiClient.get<ListPayload<unknown>>(EP.screenSpecDocs(workspaceId))
+export async function listScreenSpecDocs(
+  workspaceId: string,
+  projectId: string
+): Promise<{ items: ScreenSpecDoc[] }> {
+  const res = await apiClient.get<ListPayload<unknown>>(
+    EP.screenSpecDocsByProject(workspaceId, projectId)
+  )
   return { items: normalizeItemList(res).items.map(mapScreenSpecDoc) }
 }
 
@@ -184,7 +191,7 @@ export async function getScreenSpecDoc(workspaceId: string, docId: string): Prom
 
 export async function createScreenSpecDoc(
   workspaceId: string,
-  body: UpsertScreenSpecDocBody
+  body: CreateScreenSpecDocBody
 ): Promise<ScreenSpecDoc> {
   const res = await apiClient.post<unknown>(EP.screenSpecDocs(workspaceId), body)
   return mapScreenSpecDoc(res)
@@ -193,7 +200,7 @@ export async function createScreenSpecDoc(
 export async function updateScreenSpecDoc(
   workspaceId: string,
   docId: string,
-  body: UpsertScreenSpecDocBody
+  body: UpdateScreenSpecDocBody
 ): Promise<ScreenSpecDoc> {
   const res = await apiClient.put<unknown>(EP.screenSpecDoc(workspaceId, docId), body)
   return mapScreenSpecDoc(res)

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Button, Input, JsonImportModal, Stack, Typography } from '@/shared/ui'
+import { Button, BulkImportFormatHelp, Input, JsonImportModal, Stack, Typography } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
 import { isUuid } from '@/shared/lib/jsonImportValidation'
 import { useBackgroundJsonBulkImport } from '@/shared/lib/useBackgroundJsonBulkImport'
@@ -10,6 +10,7 @@ import { SCREEN_IMPORT_FULL_MAX_ITEMS, type ScreenImportItem } from '../../domai
 import { validateScreenFullSpecJsonImport } from '../../domain/rules/screen-spec-import.validation'
 import * as api from '../../infrastructure/api/spec-doc.api'
 import { SCREEN_FULL_SPEC_IMPORT_GUIDE } from './screen-full-spec-import.guide'
+import { SCREEN_IMPORT_WORKFLOW_STEPS, ScreenSpecHowTo } from './ScreenSpecHowTo'
 
 export function ScreenFullSpecJsonImportPanel({
   workspaceId,
@@ -55,9 +56,15 @@ export function ScreenFullSpecJsonImportPanel({
       <Typography variant="small" weight="medium">
         Import full screen spec (JSON)
       </Typography>
+      <ScreenSpecHowTo
+        title="How to import screens"
+        steps={SCREEN_IMPORT_WORKFLOW_STEPS}
+        note="Failed items keep the original JSON so you can retry only those screens."
+        defaultOpen
+      />
       <Typography variant="caption" tone="muted">
-        One POST …/screens/import-full (max {SCREEN_IMPORT_FULL_MAX_ITEMS}). Job is accepted as 202;
-        this page polls GET /bulk-jobs/{'{id}'} for per-screen success and failure.
+        Up to {SCREEN_IMPORT_FULL_MAX_ITEMS} screens per job. Catalog Excel above does not import
+        fields.
       </Typography>
       <Input
         size="sm"
@@ -78,12 +85,13 @@ export function ScreenFullSpecJsonImportPanel({
           Paste JSON
         </Button>
       </div>
+      <BulkImportFormatHelp guide={SCREEN_FULL_SPEC_IMPORT_GUIDE} defaultOpen />
       <JsonImportModal<ScreenImportItem>
         open={open}
         onClose={() => setOpen(false)}
         title="JSON import — Screen full spec"
         guide={SCREEN_FULL_SPEC_IMPORT_GUIDE}
-        description="Creates screens with modes, fields, validations, processes, and events in one async job."
+        description="Paste a JSON array of screens (or { items: [...] }). Client checks the shape first, then one async job creates modes, fields, validations, processes, and events."
         maxItems={SCREEN_IMPORT_FULL_MAX_ITEMS}
         validate={(raw) => validateScreenFullSpecJsonImport(raw, projectHint)}
         onImport={async (items, { markSubmitted }) => {
