@@ -58,7 +58,7 @@ function writeMeta(sheet: ExcelJS.Worksheet, header: ScreenSpecExcelHeader): num
     ['Screen ID', header.screenIdText],
     ['Screen name', header.screenNameText],
     ['Overview', header.overview],
-    ['Figma', header.figmaUrl],
+    ['Mockup URL', header.figmaUrl],
   ]
   rows.forEach((pair, i) => {
     const r = i + 2

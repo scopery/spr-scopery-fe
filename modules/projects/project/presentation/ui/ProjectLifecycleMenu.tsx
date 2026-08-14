@@ -1,9 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { MoreHorizontal } from 'lucide-react'
-import { Button, ConfirmDialog, Stack } from '@/shared/ui'
-import { cn } from '@/utils/cn'
+import {
+  AnchoredMenu,
+  Button,
+  ConfirmDialog,
+  anchoredMenuItemClassName,
+} from '@/shared/ui'
 import {
   allowedProjectLifecycleActions,
   type ProjectLifecycleAction,
@@ -48,12 +52,12 @@ export function ProjectLifecycleMenu({
   status,
   disabled,
   loading,
-  menuPlacement = 'bottom',
   onAction,
 }: ProjectLifecycleMenuProps) {
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState<ProjectLifecycleAction | null>(null)
   const [confirming, setConfirming] = useState(false)
+  const anchorRef = useRef<HTMLDivElement>(null)
   const actions = allowedProjectLifecycleActions(status)
 
   if (actions.length === 0) return null
@@ -71,48 +75,37 @@ export function ProjectLifecycleMenu({
   }
 
   return (
-    <div className="relative inline-flex">
-      <Button
-        variant="ghost"
-        size="sm"
-        disabled={disabled || loading}
-        onClick={() => setOpen((v) => !v)}
-        icon={<MoreHorizontal size={16} />}
-        aria-label="Project lifecycle actions"
-        aria-expanded={open}
-        aria-haspopup="menu"
-      >
-        Actions
-      </Button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" aria-hidden onClick={() => setOpen(false)} />
-          <div
-            role="menu"
-            className={cn(
-              'absolute right-0 z-20 min-w-[10rem] border border-neutral-200 bg-white py-1 shadow-md',
-              menuPlacement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
-            )}
+    <div className="inline-flex">
+      <div ref={anchorRef}>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={disabled || loading}
+          onClick={() => setOpen((v) => !v)}
+          icon={<MoreHorizontal size={16} />}
+          aria-label="Project lifecycle actions"
+          aria-expanded={open}
+          aria-haspopup="menu"
+        >
+          Actions
+        </Button>
+      </div>
+      <AnchoredMenu open={open} onClose={() => setOpen(false)} anchorRef={anchorRef} minWidth={160}>
+        {actions.map((action) => (
+          <button
+            key={action}
+            type="button"
+            role="menuitem"
+            className={anchoredMenuItemClassName}
+            onClick={() => {
+              setOpen(false)
+              setPending(action)
+            }}
           >
-            <Stack direction="vertical" spacing="none">
-              {actions.map((action) => (
-                <button
-                  key={action}
-                  type="button"
-                  role="menuitem"
-                  className="px-3 py-2 text-left text-sm text-neutral-800 hover:bg-neutral-50"
-                  onClick={() => {
-                    setOpen(false)
-                    setPending(action)
-                  }}
-                >
-                  {ACTION_LABEL[action]}
-                </button>
-              ))}
-            </Stack>
-          </div>
-        </>
-      )}
+            {ACTION_LABEL[action]}
+          </button>
+        ))}
+      </AnchoredMenu>
       {pending && (
         <ConfirmDialog
           open

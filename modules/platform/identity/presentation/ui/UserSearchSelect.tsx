@@ -1,10 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Input, Typography } from '@/shared/ui'
 import { iamUsersApi } from '@/modules/auth/iam'
 import { useDebounce } from '@/utils/useDebounce'
 import { cn } from '@/utils/cn'
+import { useFixedAnchorRect } from '@/shared/ui/atoms/SearchableSelect/useFixedAnchorRect'
 import type { PersonIdentity } from '../../domain/model/person-identity'
 import { mapIamUserToPerson } from '../../domain/rules/person-identity.rules'
 import { UserIdentity } from './UserIdentity'
@@ -40,11 +42,16 @@ export function UserSearchSelect({
   const [searching, setSearching] = useState(false)
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  const pos = useFixedAnchorRect(open, triggerRef)
 
   useEffect(() => {
     if (!open) return
     const handlePointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+      const t = event.target as Node
+      if (rootRef.current?.contains(t) || listRef.current?.contains(t)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', handlePointerDown)
     return () => document.removeEventListener('mousedown', handlePointerDown)
@@ -158,59 +165,75 @@ export function UserSearchSelect({
         </div>
       ) : (
         <>
-          <Input
-            fullWidth
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value)
-              setOpen(true)
-            }}
-            onFocus={() => setOpen(true)}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') setOpen(false)
-            }}
-            placeholder={placeholder}
-            disabled={disabled}
-            aria-label={label ?? 'Search users'}
-          />
+          <div ref={triggerRef}>
+            <Input
+              fullWidth
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                setOpen(true)
+              }}
+              onFocus={() => setOpen(true)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setOpen(false)
+              }}
+              placeholder={placeholder}
+              disabled={disabled}
+              aria-label={label ?? 'Search users'}
+            />
+          </div>
           {open && searching ? (
             <Typography variant="caption" tone="muted">
               Searching…
             </Typography>
           ) : null}
-          {open && visibleResults.length > 0 ? (
-            <ul className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-auto border border-neutral-200 bg-white shadow-md">
-              {visibleResults.map((person) => (
-                <li key={person.id}>
-                  <button
-                    type="button"
-                    disabled={disabled}
-                    className={cn(
-                      'flex w-full items-center px-3 py-2 text-left hover:bg-neutral-50',
-                      value === person.id && 'bg-primary-50'
-                    )}
-                    onClick={() => {
-                      onChange(person.id, person)
-                      setSelected(person)
-                      setQuery('')
-                      setOpen(false)
-                    }}
-                  >
-                    <UserIdentity userId={person.id} person={person} showEmail size="sm" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          {open && query.trim().length >= 2 && !searching && visibleResults.length === 0 ? (
-            <Typography
-              variant="small"
-              tone="muted"
-              className="absolute left-0 right-0 top-full z-50 mt-1 border border-neutral-200 bg-white px-3 py-2 shadow-md"
-            >
-              No users found.
-            </Typography>
-          ) : null}
+          {open &&
+          typeof document !== 'undefined' &&
+          (visibleResults.length > 0 || (query.trim().length >= 2 && !searching))
+            ? createPortal(
+                <div
+                  ref={listRef}
+                  style={{
+                    top: pos?.top ?? 0,
+                    left: pos?.left ?? 0,
+                    width: pos?.width ?? 0,
+                    maxHeight: pos?.maxHeight ?? 256,
+                    visibility: pos ? 'visible' : 'hidden',
+                  }}
+                  className="fixed z-[200] overflow-auto border border-neutral-200 bg-white shadow-md"
+                >
+                  {visibleResults.length > 0 ? (
+                    <ul>
+                      {visibleResults.map((person) => (
+                        <li key={person.id}>
+                          <button
+                            type="button"
+                            disabled={disabled}
+                            className={cn(
+                              'flex w-full items-center px-3 py-2 text-left hover:bg-neutral-50',
+                              value === person.id && 'bg-primary-50'
+                            )}
+                            onClick={() => {
+                              onChange(person.id, person)
+                              setSelected(person)
+                              setQuery('')
+                              setOpen(false)
+                            }}
+                          >
+                            <UserIdentity userId={person.id} person={person} showEmail size="sm" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : query.trim().length >= 2 && !searching ? (
+                    <Typography variant="small" tone="muted" className="px-3 py-2">
+                      No users found.
+                    </Typography>
+                  ) : null}
+                </div>,
+                document.body
+              )
+            : null}
         </>
       )}
     </div>

@@ -69,7 +69,7 @@ export const SCREEN_SPEC_WORKFLOW_STEPS = [
 
 export const SPEC_DOC_WORKFLOW_STEPS = [
   'Create a document: pick a project, then a unique code (SPEC-001) and a name (Register / View / Edit). Project is required by the API.',
-  'Save metadata: project, system, phase, language, Figma URL, overview — these fill the Excel header.',
+  'Save metadata: project, system, phase, language, mockup URL, overview — these fill the Excel header.',
   'Add screens from this app. One screen = a single-screen file. Several screens = one grouped workbook.',
   'Add Change history rows (rev, sheet, details, person, date) — they become the Change History sheet.',
   'Export Excel. Layout lists every screen; Defines / Processes / Event / Validation are blocked per screen.',

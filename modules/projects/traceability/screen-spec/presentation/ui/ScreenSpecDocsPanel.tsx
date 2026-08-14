@@ -529,7 +529,7 @@ function ScreenSpecDocEditor({
             <Input
               size="sm"
               fullWidth
-              label="Figma URL"
+              label="Mockup URL"
               value={form.figmaUrl ?? ''}
               onChange={(e) => patchMeta({ figmaUrl: e.target.value })}
             />
