@@ -14,7 +14,11 @@ import {
 } from '../screen-spec/domain/enums/screen-spec.enum'
 import { useScreenModes } from '../screen-spec/presentation/hooks/useScreenModes'
 import { useBindComponentToSection } from '../screen-spec/presentation/hooks/useBindComponentToSection'
-import { FieldSpecDrawer } from '../screen-spec/presentation/ui/FieldSpecDrawer'
+import {
+  FieldSpecDrawer,
+  type FieldSpecDrawerTab,
+  type SpecCatalogComponent,
+} from '../screen-spec/presentation/ui/FieldSpecDrawer'
 import { ScreenModeMatrixPanel } from '../screen-spec/presentation/ui/ScreenModeMatrixPanel'
 import { useScreenSpecExcelExport } from '../screen-spec/presentation/hooks/useScreenSpecExcelExport'
 import { SCREEN_STRUCTURE_TAB_HINTS } from '../screen-spec/presentation/ui/ScreenSpecHowTo'
@@ -23,8 +27,8 @@ import {
   ScreenProcessItemsPanel,
 } from '../screen-spec/presentation/ui/ScreenNarrativeItemsPanel'
 import { ScreenValidationsPanel } from '../screen-spec/presentation/ui/ScreenValidationsPanel'
+import { useScreenValidations } from '../screen-spec/presentation/hooks/useFieldValidations'
 import { ScreenSectionBindComponentModal } from '../screen-spec/presentation/ui/ScreenSectionBindComponentModal'
-import type { SpecCatalogComponent } from '../screen-spec/presentation/ui/FieldSpecDrawer'
 import type { SpecCatalogEntity } from '../screen-spec/presentation/ui/ComponentSpecPanel'
 
 type ScreenDetailTab =
@@ -48,6 +52,29 @@ interface ScreenDetailPanelProps {
 }
 
 const SCREEN_ACTION_TYPE_OPTIONS = ['PRIMARY', 'SECONDARY', 'DEFAULT'] as const
+
+function FieldStatusChip({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean
+  children: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'mr-1 inline-flex items-center px-1.5 py-0.5 text-[11px]',
+        active ? 'bg-primary/10 text-primary' : 'bg-neutral-100 text-neutral-400'
+      )}
+    >
+      {children}
+    </button>
+  )
+}
 
 const SECTION_COLS = [
   { key: 'name', label: 'Name', required: true, placeholder: 'Main form' },
@@ -141,9 +168,28 @@ export function ScreenDetailPanel({
   const { bind } = useBindComponentToSection(workspaceId, screen.id)
   const [tab, setTab] = useState<ScreenDetailTab>('sections')
   const [specFieldId, setSpecFieldId] = useState<string | null>(null)
+  const [specFieldTab, setSpecFieldTab] = useState<FieldSpecDrawerTab>('links')
   const [bindSectionId, setBindSectionId] = useState<string | null>(null)
   const [bindSaving, setBindSaving] = useState(false)
   const [bindError, setBindError] = useState<string | null>(null)
+  const fieldIds = useMemo(() => fields.map((f) => f.id), [fields])
+  const { items: screenValidations, refetch: refetchValidations } = useScreenValidations(
+    workspaceId,
+    screen.id,
+    fieldIds
+  )
+  const validationCountByField = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const item of screenValidations) {
+      map.set(item.fieldId, (map.get(item.fieldId) ?? 0) + 1)
+    }
+    return map
+  }, [screenValidations])
+
+  const openFieldSetup = (fieldId: string, nextTab: FieldSpecDrawerTab = 'links') => {
+    setSpecFieldTab(nextTab)
+    setSpecFieldId(fieldId)
+  }
 
   const sectionItems = useMemo(
     () =>
@@ -335,10 +381,46 @@ export function ScreenDetailPanel({
             }}
             onDelete={removeField}
             renderRowAction={(item) => (
-              <Button size="sm" variant="ghost" onClick={() => setSpecFieldId(item.id)}>
-                Bind
+              <Button size="sm" variant="ghost" onClick={() => openFieldSetup(item.id, 'links')}>
+                Configure
               </Button>
             )}
+            renderRowStatus={(item) => {
+              const field = fields.find((f) => f.id === item.id)
+              if (!field) return null
+              const component = field.componentId
+                ? components.find((c) => c.id === field.componentId)
+                : null
+              const ruleCount = validationCountByField.get(field.id) ?? 0
+              return (
+                <div>
+                  <FieldStatusChip
+                    active={Boolean(field.componentId)}
+                    onClick={() => openFieldSetup(field.id, 'links')}
+                  >
+                    {component
+                      ? `Component · ${component.code}`
+                      : field.componentId
+                        ? 'Component linked'
+                        : 'No component'}
+                  </FieldStatusChip>
+                  <FieldStatusChip
+                    active={Boolean(field.dataEntityFieldId)}
+                    onClick={() => openFieldSetup(field.id, 'links')}
+                  >
+                    {field.dataEntityFieldId ? 'Column linked' : 'No column'}
+                  </FieldStatusChip>
+                  <FieldStatusChip
+                    active={ruleCount > 0}
+                    onClick={() => openFieldSetup(field.id, 'validations')}
+                  >
+                    {ruleCount > 0
+                      ? `${ruleCount} validation${ruleCount === 1 ? '' : 's'}`
+                      : 'No validations'}
+                  </FieldStatusChip>
+                </div>
+              )
+            }}
           />
         </Stack>
       ) : null}
@@ -379,6 +461,7 @@ export function ScreenDetailPanel({
           screenId={screen.id}
           modes={activeModes}
           fields={fields}
+          onChanged={() => void refetchValidations()}
         />
       ) : null}
 
@@ -435,7 +518,11 @@ export function ScreenDetailPanel({
         modes={activeModes}
         components={components}
         entities={entities}
-        onSaved={() => void refetch()}
+        initialTab={specFieldTab}
+        onSaved={() => {
+          void refetch()
+          void refetchValidations()
+        }}
       />
       <ScreenSectionBindComponentModal
         open={Boolean(bindSectionId)}

@@ -827,14 +827,44 @@ export async function deleteScreenSection(
   )
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
+}
+
+function mapRegistryScreenField(raw: unknown): RegistryScreenField {
+  const r = asRecord(raw)
+  const componentId = r.componentId ?? r.component_id
+  const dataEntityFieldId = r.dataEntityFieldId ?? r.data_entity_field_id
+  return {
+    id: String(r.id ?? ''),
+    screenId: String(r.screenId ?? r.screen_id ?? ''),
+    sectionId: r.sectionId != null || r.section_id != null ? String(r.sectionId ?? r.section_id) : null,
+    workspaceId: String(r.workspaceId ?? r.workspace_id ?? ''),
+    fieldKey: String(r.fieldKey ?? r.field_key ?? ''),
+    label: String(r.label ?? ''),
+    fieldType: String(r.fieldType ?? r.field_type ?? 'TEXT'),
+    description: r.description == null ? null : String(r.description),
+    required: r.required == null ? null : Boolean(r.required),
+    displayOrder:
+      r.displayOrder == null && r.display_order == null
+        ? null
+        : Number(r.displayOrder ?? r.display_order),
+    status: String(r.status ?? 'ACTIVE'),
+    createdAt: String(r.createdAt ?? r.created_at ?? ''),
+    componentId: componentId == null || componentId === '' ? null : String(componentId),
+    dataEntityFieldId:
+      dataEntityFieldId == null || dataEntityFieldId === '' ? null : String(dataEntityFieldId),
+  }
+}
+
 export async function listScreenFields(
   workspaceId: string,
   screenId: string
 ): Promise<{ items: RegistryScreenField[] }> {
-  const res = await apiClient.get<ListPayload<RegistryScreenField>>(
+  const res = await apiClient.get<ListPayload<unknown>>(
     TRACEABILITY_ENDPOINTS.screenFields(workspaceId, screenId)
   )
-  return normalizeItemList(res)
+  return { items: normalizeItemList(res).items.map(mapRegistryScreenField) }
 }
 
 export async function createScreenField(

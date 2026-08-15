@@ -53,6 +53,8 @@ interface ScreenStructureEditorProps {
   allowDelete?: boolean
   /** Extra control on each list row (e.g. field Configure). */
   renderRowAction?: (item: StructureItem) => ReactNode
+  /** Status chips under the row title (e.g. linked component, rule count). */
+  renderRowStatus?: (item: StructureItem) => ReactNode
   onCreate: (values: Record<string, string>) => Promise<void>
   onUpdate: (id: string, values: Record<string, string>) => Promise<void>
   onDelete: (id: string) => Promise<void>
@@ -133,6 +135,7 @@ export function ScreenStructureEditor({
   itemLabel,
   allowDelete = true,
   renderRowAction,
+  renderRowStatus,
   onCreate,
   onUpdate,
   onDelete,
@@ -511,6 +514,7 @@ export function ScreenStructureEditor({
                       {meta}
                     </div>
                   ) : null}
+                  {renderRowStatus ? <div className="mt-1.5">{renderRowStatus(item)}</div> : null}
                 </div>
                 {renderRowAction ? (
                   <div className="shrink-0 self-start">{renderRowAction(item)}</div>

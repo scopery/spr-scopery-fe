@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Modal, Select, Stack, Typography } from '@/shared/ui'
+import { Modal, Select, Stack, Typography } from '@/shared/ui'
+import { cn } from '@/utils/cn'
 import { useDataEntityFields } from '../hooks/useDataEntityFields'
 import { useScreenFieldSpec } from '../hooks/useScreenFieldSpec'
 import { FieldValidationsEditor } from './FieldValidationsEditor'
@@ -14,6 +15,8 @@ export interface SpecCatalogComponent {
   name: string
 }
 
+export type FieldSpecDrawerTab = 'links' | 'validations'
+
 export function FieldSpecDrawer({
   open,
   onClose,
@@ -23,6 +26,7 @@ export function FieldSpecDrawer({
   modes,
   components,
   entities,
+  initialTab = 'links',
   onSaved,
 }: {
   open: boolean
@@ -33,6 +37,7 @@ export function FieldSpecDrawer({
   modes: ScreenMode[]
   components: SpecCatalogComponent[]
   entities: SpecCatalogEntity[]
+  initialTab?: FieldSpecDrawerTab
   onSaved?: () => void
 }) {
   const { field, loading, error, saveField } = useScreenFieldSpec(
@@ -40,6 +45,7 @@ export function FieldSpecDrawer({
     open ? screenId : null,
     open ? fieldId : null
   )
+  const [tab, setTab] = useState<FieldSpecDrawerTab>(initialTab)
   const [componentId, setComponentId] = useState('none')
   const [entityId, setEntityId] = useState('none')
   const [dataEntityFieldId, setDataEntityFieldId] = useState('none')
@@ -52,9 +58,15 @@ export function FieldSpecDrawer({
   )
 
   useEffect(() => {
+    if (!open) return
+    setTab(initialTab)
+  }, [open, initialTab, fieldId])
+
+  useEffect(() => {
     if (!field) return
     setComponentId(field.componentId ?? 'none')
     setDataEntityFieldId(field.dataEntityFieldId ?? 'none')
+    setEntityId('none')
   }, [field])
 
   const fieldOptions = useMemo(
@@ -92,6 +104,11 @@ export function FieldSpecDrawer({
     }
   }
 
+  const tabs: Array<{ id: FieldSpecDrawerTab; label: string }> = [
+    { id: 'links', label: 'Links' },
+    { id: 'validations', label: 'Validations' },
+  ]
+
   return (
     <Modal
       open={open}
@@ -100,7 +117,16 @@ export function FieldSpecDrawer({
       size="xl"
       actions={[
         { label: 'Close', onClick: onClose, variant: 'ghost' },
-        { label: 'Save binding', onClick: () => void handleSave(), variant: 'primary', disabled: saving || !field },
+        ...(tab === 'links'
+          ? [
+              {
+                label: 'Save links',
+                onClick: () => void handleSave(),
+                variant: 'primary' as const,
+                disabled: saving || !field,
+              },
+            ]
+          : []),
       ]}
     >
       {loading && !field ? (
@@ -111,41 +137,97 @@ export function FieldSpecDrawer({
       {error ? <Typography tone="error">{error}</Typography> : null}
       {field ? (
         <Stack direction="vertical" spacing="md">
-          <Select
-            value={componentId}
-            onValueChange={setComponentId}
-            options={[
-              { value: 'none', label: 'No component' },
-              ...components.map((c) => ({ value: c.id, label: `${c.code} · ${c.name}` })),
-            ]}
-            placeholder="Component"
-          />
-          <Select
-            value={entityId}
-            onValueChange={(id: string) => {
-              setEntityId(id)
-              setDataEntityFieldId('none')
-            }}
-            options={[
-              { value: 'none', label: 'No data entity' },
-              ...entities.map((e) => ({ value: e.id, label: `${e.code} · ${e.name}` })),
-            ]}
-            placeholder="Data entity"
-          />
-          <Select
-            value={dataEntityFieldId}
-            onValueChange={setDataEntityFieldId}
-            options={[{ value: 'none', label: 'No column' }, ...fieldOptions]}
-            placeholder="Data column"
-            disabled={!entityId || entityId === 'none'}
-          />
-          {formError ? <Typography tone="error" variant="small">{formError}</Typography> : null}
-          <FieldValidationsEditor
-            workspaceId={workspaceId}
-            screenId={screenId}
-            fieldId={field.id}
-            modes={modes}
-          />
+          <div className="flex gap-1 border-b border-neutral-200" role="tablist" aria-label="Field setup">
+            {tabs.map((item) => {
+              const active = tab === item.id
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setTab(item.id)}
+                  className={cn(
+                    'border-b-2 px-3 py-2 text-sm',
+                    active
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-neutral-500 hover:text-neutral-800'
+                  )}
+                >
+                  {item.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {tab === 'links' ? (
+            <Stack direction="vertical" spacing="sm">
+              <Typography variant="small" tone="muted">
+                Bind this screen field to a catalog component and a database column.
+              </Typography>
+              <div>
+                <Typography variant="caption" tone="muted" className="mb-1 block">
+                  Component
+                </Typography>
+                <Select
+                  value={componentId}
+                  onValueChange={setComponentId}
+                  options={[
+                    { value: 'none', label: 'Not linked' },
+                    ...components.map((c) => ({ value: c.id, label: `${c.code} · ${c.name}` })),
+                  ]}
+                  placeholder="Component"
+                />
+              </div>
+              <div>
+                <Typography variant="caption" tone="muted" className="mb-1 block">
+                  Data entity
+                </Typography>
+                <Select
+                  value={entityId}
+                  onValueChange={(id: string) => {
+                    setEntityId(id)
+                    setDataEntityFieldId('none')
+                  }}
+                  options={[
+                    { value: 'none', label: 'Pick an entity to choose a column' },
+                    ...entities.map((e) => ({ value: e.id, label: `${e.code} · ${e.name}` })),
+                  ]}
+                  placeholder="Data entity"
+                />
+              </div>
+              <div>
+                <Typography variant="caption" tone="muted" className="mb-1 block">
+                  Data column
+                </Typography>
+                <Select
+                  value={dataEntityFieldId}
+                  onValueChange={setDataEntityFieldId}
+                  options={[{ value: 'none', label: 'Not linked' }, ...fieldOptions]}
+                  placeholder="Data column"
+                  disabled={!entityId || entityId === 'none'}
+                />
+              </div>
+              {field.dataEntityFieldId && (entityId === 'none' || !entityId) ? (
+                <Typography variant="caption" tone="muted">
+                  A column is already linked. Pick the entity above to change it, then Save links.
+                </Typography>
+              ) : null}
+              {formError ? (
+                <Typography tone="error" variant="small">
+                  {formError}
+                </Typography>
+              ) : null}
+            </Stack>
+          ) : (
+            <FieldValidationsEditor
+              workspaceId={workspaceId}
+              screenId={screenId}
+              fieldId={field.id}
+              modes={modes}
+              onChanged={onSaved}
+            />
+          )}
         </Stack>
       ) : null}
     </Modal>

@@ -146,6 +146,8 @@ export interface RegistryScreenField {
   displayOrder?: number | null
   status: string
   createdAt: string
+  componentId?: string | null
+  dataEntityFieldId?: string | null
 }
 
 export interface RegistryScreenAction {

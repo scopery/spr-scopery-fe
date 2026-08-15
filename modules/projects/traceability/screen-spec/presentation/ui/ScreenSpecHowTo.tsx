@@ -43,12 +43,12 @@ export const SCREEN_STRUCTURE_TAB_HINTS: Record<
   sections:
     'Group fields into blocks. Bind component on a section copies that component’s fields onto the screen in this section.',
   fields:
-    'Add each control. Bind on the row opens component, data column, and extra validations. Required and max length go to Defines.',
+    'Add each control. Configure opens Links (component + column) and Validations. Chips on the row show what is already linked.',
   modes: 'Add CREATE / VIEW / EDIT (and SEARCH or DIALOG if needed) before the mode matrix. Missing modes show empty 〇 columns.',
   matrix:
     'Per field and mode: visible, readonly, required. Save replaces the whole set. Visible fields get 〇 on Defines (Create SC / View SC / Edit SC).',
   validations:
-    'Screen-level rules (Excel Validation sheet). Pick a field, rule type, and optional mode. Extra params as JSON when the rule needs them.',
+    'Pick a field on the left, then add or review rules on the right. Same rules as Configure → Validations on a field row.',
   processes:
     'Init and data-load steps. Title = heading in Excel; content = Get; source table = Table; condition = Condition.',
   events:
@@ -65,7 +65,7 @@ export const SCREEN_IMPORT_WORKFLOW_STEPS = [
 
 export const SCREEN_SPEC_WORKFLOW_STEPS = [
   'On Browse, spec catalog first: entity Columns, then component fields (and option source). Bind a component onto a screen section to copy those fields.',
-  'Select a screen. Add Modes and Sections, bind components or add Fields. Bind on a field row for column and validations.',
+  'Select a screen. Add Modes and Sections, bind components or add Fields. Configure a field to link component/column and add validations.',
   'Fill Mode matrix, then Processes and Events.',
   'To load many screens at once, use Import → Screens (Excel = shell, JSON = full spec). Then export from the inspector or Spec docs.',
 ]

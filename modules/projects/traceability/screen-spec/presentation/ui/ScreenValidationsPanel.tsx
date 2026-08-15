@@ -1,130 +1,51 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { PageSkeleton, Typography } from '@/shared/ui'
-import { coerceRuleParamJson, parseParamSchema } from '../../domain/rules/validation-params.rules'
-import { useScreenValidations, useValidationRuleTypes } from '../hooks/useFieldValidations'
-import { ScreenStructureEditor, type StructureOption } from '../../../ui/ScreenStructureEditor'
+import { cn } from '@/utils/cn'
+import { useScreenValidations } from '../hooks/useFieldValidations'
+import { FieldValidationsEditor } from './FieldValidationsEditor'
 import type { ScreenMode } from '../../domain/model/screen-spec'
 import type { RegistryScreenField } from '../../../model/application-registry'
-
-const NONE = 'none'
-
-function optionalId(value: string): string | null {
-  const next = value.trim()
-  return !next || next === NONE ? null : next
-}
-
-function stringifyParam(json: unknown): string {
-  if (json == null || json === '') return ''
-  if (typeof json === 'string') return json
-  try {
-    return JSON.stringify(json)
-  } catch {
-    return ''
-  }
-}
-
-function conditionParts(json: unknown): { field: string; op: string; value: string } {
-  if (!json || typeof json !== 'object' || Array.isArray(json)) {
-    return { field: '', op: '', value: '' }
-  }
-  const row = json as Record<string, unknown>
-  return {
-    field: typeof row.fieldKey === 'string' ? row.fieldKey : '',
-    op: typeof row.op === 'string' ? row.op : '',
-    value: row.value == null ? '' : String(row.value),
-  }
-}
 
 export function ScreenValidationsPanel({
   workspaceId,
   screenId,
   modes,
   fields,
+  onChanged,
 }: {
   workspaceId: string
   screenId: string
   modes: ScreenMode[]
   fields: RegistryScreenField[]
+  onChanged?: () => void
 }) {
   const fieldIds = useMemo(() => fields.map((f) => f.id), [fields])
-  const { items: ruleTypes } = useValidationRuleTypes(workspaceId)
-  const { items, loading, error, createValidation, updateValidation, removeValidation } =
-    useScreenValidations(workspaceId, screenId, fieldIds)
+  const { items, loading, error, refetch } = useScreenValidations(workspaceId, screenId, fieldIds)
+  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(fields[0]?.id ?? null)
 
-  const fieldOptions: StructureOption[] = useMemo(
-    () => fields.map((f) => ({ value: f.id, label: `${f.fieldKey} · ${f.label}` })),
-    [fields]
-  )
-  const ruleOptions: StructureOption[] = useMemo(
-    () => ruleTypes.map((t) => ({ value: t.id, label: `${t.code} · ${t.name}` })),
-    [ruleTypes]
-  )
-  const modeOptions: StructureOption[] = useMemo(
-    () => [
-      { value: NONE, label: 'All modes' },
-      ...modes.map((m) => ({ value: m.id, label: `${m.modeCode} · ${m.name}` })),
-    ],
-    [modes]
-  )
+  useEffect(() => {
+    if (selectedFieldId && fields.some((f) => f.id === selectedFieldId)) return
+    setSelectedFieldId(fields[0]?.id ?? null)
+  }, [fields, selectedFieldId])
 
-  const columns = useMemo(
-    () => [
-      {
-        key: 'fieldId',
-        label: 'Field',
-        required: true,
-        options: fieldOptions,
-        lockedOnExisting: true,
-      },
-      {
-        key: 'ruleTypeId',
-        label: 'Rule',
-        required: true,
-        options: ruleOptions,
-        lockedOnExisting: true,
-      },
-      { key: 'modeId', label: 'Mode', options: modeOptions },
-      { key: 'errorMessage', label: 'Error message', placeholder: 'Cannot be empty' },
-      { key: 'params', label: 'Params JSON', placeholder: '{"maxLength":255}' },
-      { key: 'applyField', label: 'Apply when field', placeholder: 'status' },
-      { key: 'applyOp', label: 'Apply op', placeholder: 'EQUALS' },
-      { key: 'applyValue', label: 'Apply value', placeholder: 'ACTIVE' },
-    ],
-    [fieldOptions, ruleOptions, modeOptions]
-  )
-
-  const toBody = (values: Record<string, string>) => {
-    const ruleType = ruleTypes.find((t) => t.id === values.ruleTypeId)
-    const schema = parseParamSchema(ruleType?.paramSchemaJson)
-    const paramsRaw = values.params.trim()
-    let ruleParamJson: unknown = null
-    if (schema) {
-      if (paramsRaw.startsWith('{')) {
-        try {
-          ruleParamJson = JSON.parse(paramsRaw) as unknown
-        } catch {
-          ruleParamJson = coerceRuleParamJson(schema, {})
-        }
-      } else {
-        ruleParamJson = coerceRuleParamJson(schema, {})
-      }
+  const countByField = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const item of items) {
+      map.set(item.fieldId, (map.get(item.fieldId) ?? 0) + 1)
     }
-    const applyField = values.applyField.trim()
-    return {
-      ruleTypeId: values.ruleTypeId,
-      modeId: optionalId(values.modeId),
-      ruleParamJson,
-      conditionJson: applyField
-        ? {
-            fieldKey: applyField,
-            op: values.applyOp.trim() || 'IS_NOT_EMPTY',
-            ...(values.applyValue.trim() ? { value: values.applyValue.trim() } : {}),
-          }
-        : null,
-      errorMessage: values.errorMessage.trim() || null,
-    }
+    return map
+  }, [items])
+
+  const selectedField = fields.find((f) => f.id === selectedFieldId) ?? null
+
+  if (fields.length === 0) {
+    return (
+      <Typography variant="small" tone="muted">
+        Add fields first, then add validation rules here.
+      </Typography>
+    )
   }
 
   return (
@@ -135,49 +56,70 @@ export function ScreenValidationsPanel({
           {error}
         </Typography>
       ) : null}
-      {fields.length === 0 ? (
-        <Typography variant="small" tone="muted">
-          Add fields first, then add validation rules here.
-        </Typography>
-      ) : null}
-      <ScreenStructureEditor
-        columns={columns}
-        items={items.map((item) => {
-          const when = conditionParts(item.conditionJson)
-          const ruleTypeId =
-            item.ruleTypeId ||
-            ruleTypes.find((t) => t.code === item.ruleTypeCode)?.id ||
-            item.ruleTypeCode
-          return {
-            id: item.id,
-            values: {
-              fieldId: item.fieldId,
-              ruleTypeId,
-              modeId: item.modeId ?? NONE,
-              errorMessage: item.errorMessage ?? '',
-              params: stringifyParam(item.ruleParamJson),
-              applyField: when.field,
-              applyOp: when.op,
-              applyValue: when.value,
-            },
-          }
-        })}
-        emptyLabel="No validation rules yet."
-        addTitle="Add validations"
-        editTitle="Edit validations"
-        itemLabel="validation"
-        onCreate={async (values) => {
-          await createValidation(values.fieldId, toBody(values))
-        }}
-        onUpdate={async (id, values) => {
-          await updateValidation(values.fieldId, id, toBody(values))
-        }}
-        onDelete={async (id) => {
-          const row = items.find((item) => item.id === id)
-          if (!row) return
-          await removeValidation(row.fieldId, id)
-        }}
-      />
+      <div className="flex min-h-[360px] border border-neutral-200">
+        <aside className="flex w-56 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50">
+          <Typography variant="caption" tone="muted" className="border-b border-neutral-200 px-3 py-2">
+            Fields
+          </Typography>
+          <ul className="min-h-0 flex-1 overflow-y-auto">
+            {fields.map((field) => {
+              const count = countByField.get(field.id) ?? 0
+              const active = selectedFieldId === field.id
+              return (
+                <li key={field.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFieldId(field.id)}
+                    className={cn(
+                      'flex w-full items-start justify-between gap-2 border-b border-neutral-100 px-3 py-2 text-left',
+                      active ? 'bg-white' : 'hover:bg-white'
+                    )}
+                  >
+                    <span className="min-w-0">
+                      <Typography variant="small">{field.fieldKey}</Typography>
+                      <Typography variant="caption" tone="muted" className="block truncate">
+                        {field.label}
+                      </Typography>
+                    </span>
+                    <span
+                      className={cn(
+                        'shrink-0 px-1.5 py-0.5 text-[11px]',
+                        count > 0 ? 'bg-primary/10 text-primary' : 'bg-neutral-100 text-neutral-400'
+                      )}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </aside>
+        <div className="min-w-0 flex-1 p-md">
+          {selectedField ? (
+            <div className="space-y-2">
+              <Typography weight="medium" variant="small">
+                {selectedField.fieldKey} · {selectedField.label}
+              </Typography>
+              <FieldValidationsEditor
+                key={selectedField.id}
+                workspaceId={workspaceId}
+                screenId={screenId}
+                fieldId={selectedField.id}
+                modes={modes}
+                onChanged={() => {
+                  void refetch()
+                  onChanged?.()
+                }}
+              />
+            </div>
+          ) : (
+            <Typography variant="small" tone="muted">
+              Select a field to add or review rules.
+            </Typography>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
