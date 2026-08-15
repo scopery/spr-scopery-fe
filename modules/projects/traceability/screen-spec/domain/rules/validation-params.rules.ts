@@ -25,6 +25,21 @@ export function emptyParamsForSchema(schema: ParamSchema): Record<string, unknow
   return next
 }
 
+export function missingRuleParamKeys(
+  schema: ParamSchema,
+  values: Record<string, string>
+): string[] {
+  if (!schema) return []
+  return Object.entries(schema)
+    .filter(([key, type]) => {
+      const raw = (values[key] ?? '').trim()
+      if (!raw) return true
+      if (type === 'integer') return !Number.isFinite(Number(raw))
+      return false
+    })
+    .map(([key]) => key)
+}
+
 export function coerceRuleParamJson(
   schema: ParamSchema,
   values: Record<string, string>
@@ -35,17 +50,18 @@ export function coerceRuleParamJson(
     const raw = (values[key] ?? '').trim()
     if (type === 'integer') {
       const n = Number(raw)
-      out[key] = Number.isFinite(n) ? Math.trunc(n) : raw
+      if (!raw || !Number.isFinite(n)) continue
+      out[key] = Math.trunc(n)
     } else if (key === 'values' || key === 'mimeTypes') {
       out[key] = raw
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean)
-    } else {
+    } else if (raw) {
       out[key] = raw
     }
   }
-  return out
+  return Object.keys(out).length > 0 ? out : null
 }
 
 export function paramsToFormValues(schema: ParamSchema, json: unknown): Record<string, string> {

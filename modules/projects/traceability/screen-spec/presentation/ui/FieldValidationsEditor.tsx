@@ -21,15 +21,18 @@ export function FieldValidationsEditor({
   screenId,
   fieldId,
   modes,
+  layout = 'split',
   onChanged,
 }: {
   workspaceId: string
   screenId: string
   fieldId: string
   modes: ScreenMode[]
+  /** `stack` for the narrow screen inspector; `split` for the field drawer. */
+  layout?: 'split' | 'stack'
   onChanged?: () => void
 }) {
-  const { items: ruleTypes } = useValidationRuleTypes(workspaceId)
+  const { items: ruleTypes, loading: typesLoading } = useValidationRuleTypes(workspaceId)
   const { items, error, createValidation, removeValidation } = useFieldValidations(
     workspaceId,
     screenId,
@@ -101,9 +104,181 @@ export function FieldValidationsEditor({
     onChanged?.()
   }
 
+  const addForm = (
+    <Stack direction="vertical" spacing="sm">
+      <Typography weight="medium" variant="small">
+        New validation rule
+      </Typography>
+      <div>
+        <Typography variant="caption" tone="muted" className="mb-1 block">
+          Rule type
+        </Typography>
+        <Select
+          value={ruleTypeId || undefined}
+          onValueChange={onRuleTypeChange}
+          options={ruleTypes.map((t) => ({ value: t.id, label: `${t.code} · ${t.name}` }))}
+          placeholder={typesLoading ? 'Loading rules…' : 'Choose a rule'}
+          disabled={typesLoading || ruleTypes.length === 0}
+        />
+        {!typesLoading && ruleTypes.length === 0 ? (
+          <Typography variant="caption" tone="muted" className="mt-1 block">
+            No validation rule types in this workspace.
+          </Typography>
+        ) : null}
+      </div>
+      <div>
+        <Typography variant="caption" tone="muted" className="mb-1 block">
+          Screen mode
+        </Typography>
+        <Select
+          value={modeId}
+          onValueChange={setModeId}
+          options={[
+            { value: 'all', label: 'All modes' },
+            ...modes.map((m) => ({ value: m.id, label: m.name })),
+          ]}
+          placeholder="All modes"
+        />
+      </div>
+      {schema
+        ? Object.entries(schema).map(([key, type]) => (
+            <Input
+              key={key}
+              fullWidth
+              size="sm"
+              value={paramValues[key] ?? ''}
+              onChange={(e) => setParamValues((prev) => ({ ...prev, [key]: e.target.value }))}
+              placeholder={
+                key === 'values' || key === 'mimeTypes'
+                  ? `${key} (comma-separated)`
+                  : `${key}${type === 'integer' ? ' (number)' : ''}`
+              }
+            />
+          ))
+        : null}
+      <Input
+        fullWidth
+        size="sm"
+        value={errorMessage}
+        onChange={(e) => setErrorMessage(e.target.value)}
+        placeholder="Error message shown to the user"
+      />
+      <Typography variant="caption" tone="muted">
+        Apply when (optional)
+      </Typography>
+      <Input
+        fullWidth
+        size="sm"
+        value={applyField}
+        onChange={(e) => setApplyField(e.target.value)}
+        placeholder="Other field key"
+      />
+      <Input
+        fullWidth
+        size="sm"
+        value={applyOp}
+        onChange={(e) => setApplyOp(e.target.value)}
+        placeholder="Op e.g. EQUALS"
+      />
+      <Input
+        fullWidth
+        size="sm"
+        value={applyValue}
+        onChange={(e) => setApplyValue(e.target.value)}
+        placeholder="Value"
+      />
+      {formError ? (
+        <Typography tone="error" variant="small">
+          {formError}
+        </Typography>
+      ) : null}
+      <Button size="sm" disabled={!ruleTypeId || saving} loading={saving} onClick={() => void handleAdd()}>
+        Add rule
+      </Button>
+    </Stack>
+  )
+
+  const ruleDetail = selectedRule ? (
+    <Stack direction="vertical" spacing="sm">
+      <Typography weight="medium">{selectedRule.ruleTypeCode || 'Rule'}</Typography>
+      <Typography variant="small" tone="muted">
+        {ruleSummary(selectedRule)}
+      </Typography>
+      {selectedRule.ruleParamJson != null ? (
+        <Typography variant="caption" className="whitespace-pre-wrap break-words font-mono">
+          {typeof selectedRule.ruleParamJson === 'string'
+            ? selectedRule.ruleParamJson
+            : JSON.stringify(selectedRule.ruleParamJson, null, 2)}
+        </Typography>
+      ) : null}
+      <Button size="sm" variant="ghost" onClick={() => void handleRemove(selectedRule.id)}>
+        Remove rule
+      </Button>
+    </Stack>
+  ) : null
+
+  const ruleList = (
+    <ul className="divide-y divide-neutral-100">
+      {items.map((rule) => {
+        const active = selectedId === rule.id
+        return (
+          <li key={rule.id}>
+            <button
+              type="button"
+              onClick={() => setSelectedId(rule.id)}
+              className={cn(
+                'w-full px-3 py-2 text-left',
+                active ? 'bg-white' : 'hover:bg-white'
+              )}
+            >
+              <Typography variant="small">{rule.ruleTypeCode || 'Rule'}</Typography>
+              <Typography variant="caption" tone="muted" className="block">
+                {ruleSummary(rule)}
+              </Typography>
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
+
+  if (layout === 'stack') {
+    return (
+      <div className="min-w-0 space-y-3">
+        {error ? (
+          <Typography tone="error" variant="small">
+            {error}
+          </Typography>
+        ) : null}
+        {items.length > 0 ? (
+          <div className="border border-neutral-200">
+            {ruleList}
+          </div>
+        ) : (
+          <Typography variant="caption" tone="muted">
+            No rules yet.
+          </Typography>
+        )}
+        {selectedRule ? ruleDetail : addForm}
+        {selectedRule ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setSelectedId('add')
+              resetAddForm()
+            }}
+          >
+            Add another rule
+          </Button>
+        ) : null}
+      </div>
+    )
+  }
+
   return (
-    <div className="flex min-h-[280px] border border-neutral-200">
-      <aside className="flex w-52 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50">
+    <div className="flex min-h-[280px] min-w-0 border border-neutral-200">
+      <aside className="flex w-44 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50">
         <button
           type="button"
           onClick={() => {
@@ -117,146 +292,24 @@ export function FieldValidationsEditor({
         >
           Add rule
         </button>
-        <ul className="min-h-0 flex-1 overflow-y-auto">
-          {items.map((rule) => {
-            const active = selectedId === rule.id
-            return (
-              <li key={rule.id}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedId(rule.id)}
-                  className={cn(
-                    'w-full border-b border-neutral-100 px-3 py-2 text-left',
-                    active ? 'bg-white' : 'hover:bg-white'
-                  )}
-                >
-                  <Typography variant="small">{rule.ruleTypeCode}</Typography>
-                  <Typography variant="caption" tone="muted" className="block">
-                    {ruleSummary(rule)}
-                  </Typography>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-        {items.length === 0 ? (
-          <Typography variant="caption" tone="muted" className="px-3 py-2">
-            No rules yet.
-          </Typography>
-        ) : null}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {items.length === 0 ? (
+            <Typography variant="caption" tone="muted" className="px-3 py-2">
+              No rules yet.
+            </Typography>
+          ) : (
+            ruleList
+          )}
+        </div>
       </aside>
 
-      <div className="min-w-0 flex-1 p-md">
+      <div className="min-w-0 flex-1 overflow-y-auto p-md">
         {error ? (
           <Typography tone="error" variant="small">
             {error}
           </Typography>
         ) : null}
-
-        {selectedRule ? (
-          <Stack direction="vertical" spacing="sm">
-            <Typography weight="medium">{selectedRule.ruleTypeCode}</Typography>
-            <Typography variant="small" tone="muted">
-              {ruleSummary(selectedRule)}
-            </Typography>
-            {selectedRule.ruleParamJson != null ? (
-              <Typography variant="caption" className="whitespace-pre-wrap break-words font-mono">
-                {typeof selectedRule.ruleParamJson === 'string'
-                  ? selectedRule.ruleParamJson
-                  : JSON.stringify(selectedRule.ruleParamJson, null, 2)}
-              </Typography>
-            ) : null}
-            <Button size="sm" variant="ghost" onClick={() => void handleRemove(selectedRule.id)}>
-              Remove rule
-            </Button>
-          </Stack>
-        ) : (
-          <Stack direction="vertical" spacing="sm">
-            <Typography weight="medium" variant="small">
-              New validation rule
-            </Typography>
-            <div>
-              <Typography variant="caption" tone="muted" className="mb-1 block">
-                Rule type
-              </Typography>
-              <Select
-                value={ruleTypeId}
-                onValueChange={onRuleTypeChange}
-                options={ruleTypes.map((t) => ({ value: t.id, label: `${t.code} · ${t.name}` }))}
-                placeholder="Choose a rule"
-              />
-            </div>
-            <div>
-              <Typography variant="caption" tone="muted" className="mb-1 block">
-                Screen mode
-              </Typography>
-              <Select
-                value={modeId}
-                onValueChange={setModeId}
-                options={[
-                  { value: 'all', label: 'All modes' },
-                  ...modes.map((m) => ({ value: m.id, label: m.name })),
-                ]}
-                placeholder="All modes"
-              />
-            </div>
-            {schema
-              ? Object.entries(schema).map(([key, type]) => (
-                  <Input
-                    key={key}
-                    fullWidth
-                    size="sm"
-                    value={paramValues[key] ?? ''}
-                    onChange={(e) => setParamValues((prev) => ({ ...prev, [key]: e.target.value }))}
-                    placeholder={
-                      key === 'values' || key === 'mimeTypes'
-                        ? `${key} (comma-separated)`
-                        : `${key}${type === 'integer' ? ' (number)' : ''}`
-                    }
-                  />
-                ))
-              : null}
-            <Input
-              fullWidth
-              size="sm"
-              value={errorMessage}
-              onChange={(e) => setErrorMessage(e.target.value)}
-              placeholder="Error message shown to the user"
-            />
-            <Typography variant="caption" tone="muted">
-              Apply when (optional)
-            </Typography>
-            <Input
-              fullWidth
-              size="sm"
-              value={applyField}
-              onChange={(e) => setApplyField(e.target.value)}
-              placeholder="Other field key"
-            />
-            <Input
-              fullWidth
-              size="sm"
-              value={applyOp}
-              onChange={(e) => setApplyOp(e.target.value)}
-              placeholder="Op e.g. EQUALS"
-            />
-            <Input
-              fullWidth
-              size="sm"
-              value={applyValue}
-              onChange={(e) => setApplyValue(e.target.value)}
-              placeholder="Value"
-            />
-            {formError ? (
-              <Typography tone="error" variant="small">
-                {formError}
-              </Typography>
-            ) : null}
-            <Button size="sm" disabled={!ruleTypeId || saving} loading={saving} onClick={() => void handleAdd()}>
-              Add rule
-            </Button>
-          </Stack>
-        )}
+        {selectedRule ? ruleDetail : addForm}
       </div>
     </div>
   )

@@ -14,18 +14,22 @@ import type {
 export function useValidationRuleTypes(workspaceId: string | null) {
   const [items, setItems] = useState<ValidationRuleType[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!workspaceId) {
       setItems([])
+      setError(null)
       return
     }
     setLoading(true)
+    setError(null)
     try {
       const res = await api.listValidationRuleTypes(workspaceId)
       setItems(res.items)
-    } catch {
+    } catch (err) {
       setItems([])
+      setError(err instanceof Error ? err.message : 'Failed to load rule types')
     } finally {
       setLoading(false)
     }
@@ -35,7 +39,7 @@ export function useValidationRuleTypes(workspaceId: string | null) {
     void load()
   }, [load])
 
-  return { items, loading, refetch: load }
+  return { items, loading, error, refetch: load }
 }
 
 export function useFieldValidations(

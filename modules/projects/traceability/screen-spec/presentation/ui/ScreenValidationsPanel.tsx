@@ -56,8 +56,8 @@ export function ScreenValidationsPanel({
           {error}
         </Typography>
       ) : null}
-      <div className="flex min-h-[360px] border border-neutral-200">
-        <aside className="flex w-56 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50">
+      <div className="flex min-h-[360px] min-w-0 border border-neutral-200">
+        <aside className="flex w-40 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50">
           <Typography variant="caption" tone="muted" className="border-b border-neutral-200 px-3 py-2">
             Fields
           </Typography>
@@ -95,9 +95,9 @@ export function ScreenValidationsPanel({
             })}
           </ul>
         </aside>
-        <div className="min-w-0 flex-1 p-md">
+        <div className="min-w-0 flex-1 overflow-y-auto p-md">
           {selectedField ? (
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <Typography weight="medium" variant="small">
                 {selectedField.fieldKey} · {selectedField.label}
               </Typography>
@@ -107,6 +107,7 @@ export function ScreenValidationsPanel({
                 screenId={screenId}
                 fieldId={selectedField.id}
                 modes={modes}
+                layout="stack"
                 onChanged={() => {
                   void refetch()
                   onChanged?.()

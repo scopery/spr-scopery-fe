@@ -74,11 +74,18 @@ export const Select = React.forwardRef(
   ) => {
     const Component = as || 'div'
     const [open, setOpen] = React.useState(false)
+    const hasEmptyOption = options.some((option) => option.value === '')
+    const rootValue =
+      value === undefined || value === ''
+        ? hasEmptyOption
+          ? EMPTY_OPTION_VALUE
+          : undefined
+        : value
 
     return (
       <Component ref={ref} className={cn('block w-full min-w-0', className)} {...props}>
         <SelectPrimitive.Root
-          value={normalizeRootValue(value)}
+          value={rootValue}
           defaultValue={normalizeRootValue(defaultValue)}
           onValueChange={(next) => onValueChange?.(fromItemValue(next))}
           disabled={disabled}
