@@ -103,7 +103,7 @@ export function RequirementTraceabilityView() {
   }
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       {scopeLocked && (
         <div className="mb-3">
           <ScopeLockBanner sessionId={lockingSessionId} />

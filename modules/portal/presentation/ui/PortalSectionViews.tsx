@@ -7,7 +7,7 @@ import { Stack, Typography } from '@/shared/ui'
 function PortalSimpleSection({ title, note }: { title: string; note: string }) {
   const { projectId } = useParams<{ projectId: string }>()
   return (
-    <Stack direction="vertical" spacing="sm" className="px-3 py-3 lg:px-4">
+    <Stack direction="vertical" spacing="sm">
       <Link href={`/portal/projects/${projectId}`} className="text-sm underline">
         ← Project home
       </Link>

@@ -33,7 +33,7 @@ export function ProjectGovernanceCenterView() {
     runBaselineGuard,
   } = useProjectGovernance(projectId)
 
-  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
+  if (loading) return <PageSkeleton variant="list" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   const selectedLock = selected

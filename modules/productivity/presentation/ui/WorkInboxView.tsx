@@ -18,7 +18,7 @@ export function WorkInboxView() {
     reviewJoinRequest,
   } = useWorkInbox(workspaceId)
 
-  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
+  if (loading) return <PageSkeleton variant="list" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   const inviteIdsFromInbox = new Set(
@@ -28,7 +28,7 @@ export function WorkInboxView() {
   const hasContent = items.length > 0 || standaloneInvites.length > 0
 
   return (
-    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+    <Stack direction="vertical" spacing="md">
       <Typography as="h1" size="md" weight="medium">
         Work Inbox
       </Typography>

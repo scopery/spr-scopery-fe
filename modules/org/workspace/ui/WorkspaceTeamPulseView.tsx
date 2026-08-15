@@ -142,7 +142,7 @@ export function WorkspaceTeamPulseView() {
     : null
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       {/* Header */}
       <div className="mb-4 border-b border-neutral-200 pb-4">
         <div className="flex flex-wrap items-center justify-between gap-3">

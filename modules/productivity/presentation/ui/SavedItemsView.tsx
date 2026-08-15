@@ -10,11 +10,11 @@ export function SavedItemsView() {
   const { favorites, recent, savedViews, savedSearches, pins, navPrefs, loading, error } =
     useSavedItems(workspaceId)
 
-  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
+  if (loading) return <PageSkeleton variant="list" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="lg" className="px-3 py-3 lg:px-4 lg:py-3">
+    <Stack direction="vertical" spacing="lg">
       <Typography as="h1" size="md" weight="medium">
         Saved Items
       </Typography>

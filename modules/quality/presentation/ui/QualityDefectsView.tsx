@@ -145,7 +145,7 @@ export function QualityDefectsView() {
   const source = selected?.source ?? null
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       <header className="mb-3 flex flex-wrap items-start justify-between gap-3 border-b border-neutral-200 pb-2">
         <div>
           <Typography as="h1" size="md" weight="medium">

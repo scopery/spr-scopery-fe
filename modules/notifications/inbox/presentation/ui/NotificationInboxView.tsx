@@ -51,7 +51,7 @@ export function NotificationInboxView() {
   }
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 pb-2">
         <div>
           <Typography as="h1" size="md" weight="medium">

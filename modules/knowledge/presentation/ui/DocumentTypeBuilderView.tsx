@@ -20,7 +20,7 @@ export function DocumentTypeBuilderView() {
   } = useDocumentTypeBuilder(refetch)
 
   return (
-    <Stack direction="vertical" spacing="sm" className="px-3 py-3 lg:px-4">
+    <Stack direction="vertical" spacing="sm">
       <Typography as="h1" size="md" weight="medium">
         Document Type Builder
       </Typography>

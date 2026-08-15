@@ -62,11 +62,11 @@ export function SupportCaseWorkbenchView() {
   const [comment, setComment] = useState('')
   const steps = caseLifecycleState(item?.status)
 
-  if (loading) return <PageSkeleton variant="detail" className="px-3 py-3 lg:px-4 lg:py-3" />
+  if (loading) return <PageSkeleton variant="detail" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+    <Stack direction="vertical" spacing="md">
       <Typography as="h1" size="md" weight="medium">
         Support case
       </Typography>

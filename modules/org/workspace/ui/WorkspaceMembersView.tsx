@@ -107,7 +107,7 @@ export function WorkspaceMembersView({ embedded = false }: { embedded?: boolean 
   }
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       {!embedded ? (
         <WorkspaceHierarchyBreadcrumb
           workspaceId={workspaceId}

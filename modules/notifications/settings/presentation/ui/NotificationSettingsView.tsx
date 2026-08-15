@@ -63,7 +63,7 @@ export function NotificationSettingsView() {
   }
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       <Typography as="h1" size="md" weight="medium" className="mb-2">
         Notification settings
       </Typography>

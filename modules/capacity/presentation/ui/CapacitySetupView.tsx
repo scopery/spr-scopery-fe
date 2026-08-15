@@ -43,7 +43,7 @@ export function CapacitySetupView() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       <div className="mb-2">
         <Typography as="h1" size="md" weight="medium">
           Capacity Setup

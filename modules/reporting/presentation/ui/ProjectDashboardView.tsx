@@ -39,7 +39,7 @@ export function ProjectDashboardView() {
   const setupMode = pulse.setup.show
 
   return (
-    <div className="min-h-full bg-neutral-50 px-3 py-3 lg:px-4 lg:py-3">
+    <div className="min-h-full bg-neutral-50">
       <Stack direction="vertical" spacing="md">
         <ProjectPulseHeader
           brief={pulse.brief}

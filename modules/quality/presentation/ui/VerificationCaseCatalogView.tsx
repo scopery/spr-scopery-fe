@@ -101,7 +101,7 @@ export function VerificationCaseCatalogView() {
   }
 
   return (
-    <div className="space-y-md px-3 py-3 lg:px-4 lg:py-3">
+    <div className="space-y-md">
       <div className="flex flex-wrap items-end justify-between gap-md border-b border-neutral-200 pb-2">
         <div>
           <Typography as="h1" size="md" weight="medium">
@@ -206,7 +206,7 @@ export function VerificationCaseCatalogView() {
             type="button"
             variant="secondary"
             size="sm"
-            disabled={catalog.offset + catalog.pageSize >= catalog.total}
+            disabled={catalog.offset + catalog.pageSize>= catalog.total}
             iconRight={<ChevronRight size={16} />}
             onClick={() => catalog.setOffset(catalog.offset + catalog.pageSize)}
           >

@@ -13,7 +13,7 @@ export function GlobalSearchView() {
   const [value, setValue] = useState('')
 
   return (
-    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+    <Stack direction="vertical" spacing="md">
       <Typography as="h1" size="md" weight="medium">
         Search
       </Typography>

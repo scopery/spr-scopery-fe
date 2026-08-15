@@ -95,7 +95,7 @@ export function UseCaseCatalogView() {
 
   if (view === 'links') {
     return (
-      <div className="flex h-full min-h-0 flex-col px-3 py-3 lg:px-4">
+      <div className="flex h-full min-h-0 flex-col px-3 py-3 lg:px-4 lg:py-3">
         <div className="mx-auto flex min-h-0 w-full max-w-[1480px] flex-1 flex-col">
           <header className="mb-2 flex items-end justify-between border-b border-neutral-200 pb-2">
             <div>

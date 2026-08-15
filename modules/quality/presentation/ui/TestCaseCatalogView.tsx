@@ -112,7 +112,7 @@ function parseTestCases(text: string): Array<CreateTestCasePayload & { status?: 
   const automationIdx = headerIndex(['automation'])
 
   const at = (cells: string[], namedIdx: number, fallbackIdx: number) =>
-    cells[namedIdx >= 0 ? namedIdx : fallbackIdx] ?? ''
+    cells[namedIdx>= 0 ? namedIdx : fallbackIdx] ?? ''
 
   return rows
     .slice(hasHeader ? 1 : 0)
@@ -130,7 +130,7 @@ function parseTestCases(text: string): Array<CreateTestCasePayload & { status?: 
 
       // No header: prefer Code · Title · Type · … when type sits in column 3;
       // keep legacy Title · Type · Priority · Status · Automation when type sits in column 2.
-      const withCode = looksLikeType(cells[2] ?? '') || (!looksLikeType(cells[1] ?? '') && cells.length >= 6)
+      const withCode = looksLikeType(cells[2] ?? '') || (!looksLikeType(cells[1] ?? '') && cells.length>= 6)
       if (withCode) {
         const [code = '', title = '', type = '', priority = '', status = '', automationStatus = ''] =
           cells
@@ -313,7 +313,7 @@ export function TestCaseCatalogView() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white px-3 py-3 lg:px-4 lg:py-3">
+    <div className="flex h-full min-h-0 flex-col bg-white">
       <header className="border-b border-neutral-200 pb-2">
         <div className="flex flex-wrap items-start justify-between gap-md">
           <div>
@@ -662,7 +662,7 @@ export function TestCaseCatalogView() {
             variant="ghost"
             icon={<ChevronRight size={15} />}
             aria-label="Next page"
-            disabled={catalog.offset + catalog.pageSize >= catalog.total}
+            disabled={catalog.offset + catalog.pageSize>= catalog.total}
             onClick={() => catalog.setOffset(catalog.offset + catalog.pageSize)}
           />
         </div>

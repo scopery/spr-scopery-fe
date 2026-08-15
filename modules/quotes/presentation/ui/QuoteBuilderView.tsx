@@ -170,7 +170,7 @@ export function QuoteBuilderView() {
     : []
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}

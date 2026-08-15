@@ -44,11 +44,11 @@ export function IntegrationDashboardView() {
   const credentialList = credentials ?? []
 
   if (loading && connections.length === 0 && credentialList.length === 0) {
-    return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
+    return <PageSkeleton variant="list" />
   }
 
   return (
-    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+    <Stack direction="vertical" spacing="md">
       <Typography as="h1" size="md" weight="medium">
         Integration Hub
       </Typography>

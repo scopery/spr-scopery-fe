@@ -9,11 +9,11 @@ export function PortalSupportView() {
   const { projectId } = useParams<{ projectId: string }>()
   const { items, loading, error } = usePortalSupport(projectId)
 
-  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
+  if (loading) return <PageSkeleton variant="list" />
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+    <Stack direction="vertical" spacing="md">
       <Link href={`/portal/projects/${projectId}`} className="text-sm underline">
         ← Project home
       </Link>

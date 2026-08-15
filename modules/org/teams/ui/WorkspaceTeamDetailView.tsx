@@ -229,7 +229,7 @@ export function WorkspaceTeamDetailView() {
   }
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         current={team.name}

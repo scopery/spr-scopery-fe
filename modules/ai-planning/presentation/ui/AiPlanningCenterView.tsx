@@ -39,14 +39,14 @@ export function AiPlanningCenterView() {
   const [selectedRunType, setSelectedRunType] = useState('PROJECT_PLAN_DRAFT')
   const [showNewRun, setShowNewRun] = useState(false)
 
-  if (loading && items.length === 0) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4" />
+  if (loading && items.length === 0) return <PageSkeleton variant="list" />
 
   const sortedRuns = [...items].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   )
 
   return (
-    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4">
+    <Stack direction="vertical" spacing="md">
       <div className="flex items-center justify-between gap-md">
         <div>
           <Typography as="h1" size="md" weight="medium">AI Planning History</Typography>

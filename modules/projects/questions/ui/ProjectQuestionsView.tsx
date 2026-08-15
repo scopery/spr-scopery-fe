@@ -100,7 +100,7 @@ export function ProjectQuestionsView() {
   ) => {
     if (!orgId || !projectId || !canEdit) return
     const toIdx = direction === 'up' ? fromIdx - 1 : fromIdx + 1
-    if (toIdx < 0 || toIdx >= questions.length) return
+    if (toIdx < 0 || toIdx>= questions.length) return
     const reordered = [...questions]
     ;[reordered[fromIdx], reordered[toIdx]] = [reordered[toIdx], reordered[fromIdx]]
     const orderedIds = reordered.map((q) => q.id)
@@ -132,7 +132,7 @@ export function ProjectQuestionsView() {
   }
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       <WorkspaceHierarchyBreadcrumb
         workspaceId={orgId}
         project={{ id: projectId, name: project.name }}

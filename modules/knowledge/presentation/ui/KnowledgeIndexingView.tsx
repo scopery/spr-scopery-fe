@@ -20,11 +20,11 @@ export function KnowledgeIndexingView() {
   } = useKnowledgeIndexing(workspaceId)
 
   if (loading && jobs.length === 0) {
-    return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4" />
+    return <PageSkeleton variant="list" />
   }
 
   return (
-    <Stack direction="vertical" spacing="sm" className="px-3 py-3 lg:px-4">
+    <Stack direction="vertical" spacing="sm">
       <Typography as="h1" size="md" weight="medium">
         Knowledge Indexing Center
       </Typography>

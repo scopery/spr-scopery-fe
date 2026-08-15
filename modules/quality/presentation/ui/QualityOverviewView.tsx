@@ -120,7 +120,7 @@ export function QualityOverviewView() {
   if (!overview) return null
 
   return (
-    <div className="space-y-4 px-3 py-3 lg:px-4 lg:py-3">
+    <div className="space-y-4">
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-neutral-200 pb-2">
         <div>
           <Typography as="h1" size="md" weight="medium">

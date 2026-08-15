@@ -35,7 +35,7 @@ export function BillingRateCardsView({
   if (loading && cards.length === 0) return <PageSkeleton variant="list" />
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       {!embedded ? (
         <div className="mb-2 flex flex-wrap items-start justify-between gap-4 border-b border-neutral-200 pb-2">
           <div>

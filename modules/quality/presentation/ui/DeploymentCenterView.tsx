@@ -26,7 +26,7 @@ export function DeploymentCenterView() {
   if (error) return <Typography tone="error">{error}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+    <Stack direction="vertical" spacing="md">
       <div className="border-b border-neutral-200 pb-2">
         <Typography as="h1" size="md" weight="medium">
           Deployment Center

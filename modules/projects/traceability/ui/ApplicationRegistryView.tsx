@@ -56,10 +56,10 @@ export function ApplicationRegistryView() {
       .finally(() => setSubmitting(false))
   }
 
-  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4" />
+  if (loading) return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
   if (error) {
     return (
-      <Stack direction="vertical" spacing="sm" className="px-3 py-3 lg:px-4">
+      <Stack direction="vertical" spacing="sm" className="px-3 py-3 lg:px-4 lg:py-3">
         <Typography tone="error">{error}</Typography>
       </Stack>
     )

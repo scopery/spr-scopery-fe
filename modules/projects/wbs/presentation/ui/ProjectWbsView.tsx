@@ -182,7 +182,7 @@ function PlanStructureContent() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col px-3 py-3 lg:px-4 lg:py-3">
+    <div className="flex h-full min-h-0 flex-col">
       <WorkspaceHierarchyBreadcrumb
         workspaceId={workspaceId}
         project={project ? { id: projectId, name: project.name } : undefined}

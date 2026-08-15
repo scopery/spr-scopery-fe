@@ -109,11 +109,11 @@ export function MyWorkView() {
   const groups = useMemo(() => groupByProject(items), [items])
 
   if (loading && items.length === 0) {
-    return <PageSkeleton variant="list" className="px-3 py-3 lg:px-4 lg:py-3" />
+    return <PageSkeleton variant="list" />
   }
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-4 border-b border-neutral-200 pb-4">
         <div>
           <Typography as="h1" size="md" weight="medium">
@@ -302,7 +302,7 @@ export function MyWorkView() {
             <Button
               size="sm"
               variant="outline"
-              disabled={page + 1 >= pageInfo.totalPages}
+              disabled={page + 1>= pageInfo.totalPages}
               onClick={() => setPage((p) => p + 1)}
             >
               Next

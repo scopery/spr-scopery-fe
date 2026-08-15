@@ -147,7 +147,7 @@ export function QualityCasesView() {
   if (loading && rows.length === 0) return <PageSkeleton variant="list" className="p-lg" />
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white px-3 py-3 lg:px-4 lg:py-3">
+    <div className="flex h-full min-h-0 flex-col bg-white">
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-neutral-200 pb-2">
         <div>
           <Typography as="h1" size="md" weight="medium">

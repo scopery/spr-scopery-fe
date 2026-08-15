@@ -84,7 +84,7 @@ export function WorkingCalendarDetailView() {
   )
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       <div className="mb-4">
         <NextLink
           href={ROUTES.workspace.settingsCapacityCalendars(workspaceId)}

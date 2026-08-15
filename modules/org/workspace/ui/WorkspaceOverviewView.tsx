@@ -72,7 +72,7 @@ export function WorkspaceOverviewView() {
   const hasPhases = portfolio.allRows.some((r) => r.activePhases.length > 0 || r.nextPhase != null)
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       <WorkspaceHierarchyBreadcrumb workspaceId={workspaceId} current="Overview" className="mb-4" />
 
       <div data-workspace-actions>

@@ -28,12 +28,12 @@ export function SupportDashboardView() {
   const [createOpen, setCreateOpen] = useState(false)
 
   if (loading || opsLoading)
-    return <PageSkeleton variant="cards" className="px-3 py-3 lg:px-4 lg:py-3" />
+    return <PageSkeleton variant="cards" />
   if (error) return <Typography tone="error">{error}</Typography>
   if (opsError) return <Typography tone="error">{opsError}</Typography>
 
   return (
-    <Stack direction="vertical" spacing="md" className="px-3 py-3 lg:px-4 lg:py-3">
+    <Stack direction="vertical" spacing="md">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <Typography as="h1" size="md" weight="medium">
           Support Center

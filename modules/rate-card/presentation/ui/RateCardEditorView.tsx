@@ -193,7 +193,7 @@ export function RateCardEditorView() {
       metaForm.defaultCurrencyCode.trim() !== rateCard.defaultCurrencyCode)
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       <div className="mb-2 flex flex-wrap items-start justify-between gap-4">
         <div>
           <Typography as="h1" size="md" weight="medium">

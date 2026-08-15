@@ -27,7 +27,7 @@ export function WorkspaceDailyRecordView() {
   const { labelFor } = useResolveUsers(userIds)
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 pb-4">
         <div>
           <Typography as="h1" size="md" weight="medium">

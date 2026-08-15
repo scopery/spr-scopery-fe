@@ -71,7 +71,7 @@ export function EffortWorkloadView() {
   }
 
   return (
-    <div className="px-3 py-3 lg:px-4 lg:py-3">
+    <div>
       <div className="mb-2 flex flex-wrap items-start justify-between gap-md">
         <div>
           <NextLink

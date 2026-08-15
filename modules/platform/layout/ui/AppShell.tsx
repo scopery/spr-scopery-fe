@@ -59,6 +59,7 @@ import { UserOrganizationMenu } from './UserOrganizationMenu'
 import { SettingsNavigation } from './SettingsNavigation'
 import { buildSettingsNavSections } from './buildSettingsNavSections'
 import { isWorkbenchPath } from '../lib/isWorkbenchPath'
+import { PAGE_GUTTER_CLASS } from '../lib/pageGutter'
 
 const HelpGuideModal = dynamic(() => import('./HelpGuideModal').then((m) => m.HelpGuideModal), {
   ssr: false,
@@ -1254,7 +1255,7 @@ export function AppShell({ workspaceId, children }: AppShellProps) {
             'min-h-0 flex-1',
             immersiveMain
               ? 'flex flex-col overflow-hidden'
-              : 'overflow-y-auto px-3 py-3 lg:px-4 lg:py-3'
+              : ['overflow-y-auto', PAGE_GUTTER_CLASS]
           )}
         >
           {currentWorkspace && !immersiveMain ? (
