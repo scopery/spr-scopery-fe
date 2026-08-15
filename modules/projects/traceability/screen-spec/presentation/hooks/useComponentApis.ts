@@ -72,8 +72,22 @@ export function useComponentApis(workspaceId: string | null, componentId: string
   const updateLink = useCallback(
     async (apiLinkId: string, body: UpdateComponentApiLinkBody) => {
       if (!workspaceId || !componentId) return
-      await api.updateComponentApi(workspaceId, componentId, apiLinkId, body)
-      await load()
+      try {
+        await api.updateComponentApi(workspaceId, componentId, apiLinkId, body)
+        await load()
+      } catch (err) {
+        const code = getErrorCode(err)
+        if (code === 'COMPONENT_API_DUPLICATE') {
+          throw new ApiError(409, {
+            type: 'about:blank',
+            title: 'Conflict',
+            status: 409,
+            detail: ScreenSpecMessages.COMPONENT_API_DUPLICATE,
+            code: 'COMPONENT_API_DUPLICATE',
+          })
+        }
+        throw err
+      }
     },
     [workspaceId, componentId, load]
   )

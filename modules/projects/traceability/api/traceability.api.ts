@@ -649,7 +649,11 @@ export async function createApiEndpoint(
   applicationId: string,
   body: CreateRegistryApiEndpointBody
 ): Promise<RegistryApiEndpoint> {
-  return apiClient.post(TRACEABILITY_ENDPOINTS.apiEndpoints(workspaceId, applicationId), body)
+  const res = await apiClient.post<unknown>(
+    TRACEABILITY_ENDPOINTS.apiEndpoints(workspaceId, applicationId),
+    body
+  )
+  return mapRegistryApiEndpoint(res)
 }
 
 export async function submitApiEndpointsBulk(
