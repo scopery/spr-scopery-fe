@@ -294,7 +294,7 @@ export function FieldValidationsEditor({
           {error}
         </Typography>
       ) : null}
-      <div className="flex flex-wrap justify-end gap-2">
+      <div className="flex justify-end">
         <Button
           size="sm"
           variant="secondary"
@@ -305,36 +305,6 @@ export function FieldValidationsEditor({
         >
           <Plus size={14} className="mr-1 inline" />
           Add
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          disabled={!selectedRule}
-          onClick={() => setPane('view')}
-        >
-          View
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          disabled={!selectedRule}
-          onClick={() => {
-            if (!selectedRule) return
-            fillFormFromRule(selectedRule)
-            setPane('edit')
-          }}
-        >
-          <Pencil size={14} className="mr-1 inline" />
-          Edit
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          disabled={!selectedRule}
-          onClick={() => selectedRule && void handleRemove(selectedRule.id)}
-        >
-          <Trash2 size={14} className="mr-1 inline" />
-          Delete
         </Button>
       </div>
       {items.length === 0 ? (
@@ -347,40 +317,75 @@ export function FieldValidationsEditor({
             const active = selectedId === rule.id
             return (
               <li key={rule.id}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedId(rule.id)}
-                  onDoubleClick={() => {
-                    setSelectedId(rule.id)
-                    setPane('view')
-                  }}
+                <div
                   className={cn(
-                    'flex w-full items-start gap-3 py-2.5 text-left',
+                    'flex items-start gap-2 py-2.5',
                     active ? 'bg-neutral-50' : 'hover:bg-neutral-50'
                   )}
                 >
-                  <span className="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400">
-                    {index + 1}
-                  </span>
-                  <span className="min-w-0">
-                    <Typography variant="small">{rule.ruleTypeCode || 'Rule'}</Typography>
-                    <Typography variant="caption" tone="muted" className="block truncate">
-                      {ruleSummary(rule)}
-                    </Typography>
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(rule.id)}
+                    className="flex min-w-0 flex-1 items-start gap-3 px-1 text-left"
+                  >
+                    <span className="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400">
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0">
+                      <Typography variant="small">{rule.ruleTypeCode || 'Rule'}</Typography>
+                      <Typography variant="caption" tone="muted" className="block truncate">
+                        {ruleSummary(rule)}
+                      </Typography>
+                    </span>
+                  </button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    iconOnly
+                    icon={<Pencil size={14} />}
+                    aria-label="Edit rule"
+                    onClick={() => {
+                      setSelectedId(rule.id)
+                      fillFormFromRule(rule)
+                      setPane('edit')
+                    }}
+                  />
+                </div>
               </li>
             )
           })}
         </ul>
       )}
+      {selectedRule ? (
+        <div className="space-y-2 border-t border-neutral-100 pt-3">
+          <Typography variant="small" className="line-clamp-2">
+            {selectedRule.errorMessage || selectedRule.ruleTypeCode || 'Rule'}
+          </Typography>
+          <Typography variant="caption" tone="muted">
+            {selectedRule.modeCode ?? 'All modes'}
+          </Typography>
+          <div className="flex flex-wrap items-center gap-1">
+            <Button size="sm" variant="ghost" onClick={() => setPane('view')}>
+              View full
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              iconOnly
+              icon={<Trash2 size={14} />}
+              aria-label="Delete rule"
+              onClick={() => void handleRemove(selectedRule.id)}
+            />
+          </div>
+        </div>
+      ) : null}
       <Modal
         open={modalOpen}
         onClose={closeModal}
         title={
           pane === 'add' ? 'Add validation rule' : pane === 'edit' ? 'Edit validation rule' : 'Validation rule'
         }
-        size="full"
+        size="lg"
         actions={
           pane === 'view'
             ? [

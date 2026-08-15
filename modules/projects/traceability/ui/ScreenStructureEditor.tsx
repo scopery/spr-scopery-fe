@@ -520,34 +520,15 @@ export function ScreenStructureEditor({
             </div>
           ) : null}
         </div>
-        {layout === 'masterDetail' ? (
+        {layout === 'list' ? (
           <Button
             size="sm"
             variant="ghost"
-            disabled={!selectedItem}
-            onClick={() => setViewOpen(true)}
+            disabled={items.length === 0}
+            onClick={() => setEditOpen(true)}
           >
-            View
-          </Button>
-        ) : null}
-        <Button
-          size="sm"
-          variant="ghost"
-          disabled={items.length === 0 || (layout === 'masterDetail' && !selectedId)}
-          onClick={() => setEditOpen(true)}
-        >
-          <Pencil size={14} className="mr-1 inline" />
-          Edit
-        </Button>
-        {layout === 'masterDetail' && allowDelete ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={!selectedRow}
-            onClick={() => selectedRow && setDeleteTarget(selectedRow)}
-          >
-            <Trash2 size={14} className="mr-1 inline" />
-            Delete
+            <Pencil size={14} className="mr-1 inline" />
+            Edit
           </Button>
         ) : null}
       </div>
@@ -567,28 +548,43 @@ export function ScreenStructureEditor({
                 const secondary = secondaryLabel(item, columns)
                 return (
                   <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(item.id)}
+                    <div
                       className={cn(
-                        'flex w-full items-start gap-3 px-3 py-2.5 text-left',
+                        'flex items-start gap-2 px-3 py-2.5',
                         active ? 'bg-neutral-50' : 'hover:bg-neutral-50'
                       )}
                     >
-                      <span className="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400">
-                        {index + 1}
-                      </span>
-                      <span className="min-w-0">
-                        <Typography variant="small" className="block truncate">
-                          {primaryLabel(item, columns)}
-                        </Typography>
-                        {secondary ? (
-                          <Typography variant="caption" tone="muted" className="block truncate">
-                            {secondary}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(item.id)}
+                        className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                      >
+                        <span className="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400">
+                          {index + 1}
+                        </span>
+                        <span className="min-w-0">
+                          <Typography variant="small" className="block truncate">
+                            {primaryLabel(item, columns)}
                           </Typography>
-                        ) : null}
-                      </span>
-                    </button>
+                          {secondary ? (
+                            <Typography variant="caption" tone="muted" className="block truncate">
+                              {secondary}
+                            </Typography>
+                          ) : null}
+                        </span>
+                      </button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        iconOnly
+                        icon={<Pencil size={14} />}
+                        aria-label={`Edit ${itemLabel}`}
+                        onClick={() => {
+                          setSelectedId(item.id)
+                          setEditOpen(true)
+                        }}
+                      />
+                    </div>
                   </li>
                 )
               })}
@@ -612,9 +608,21 @@ export function ScreenStructureEditor({
                 ) : null}
                 {renderRowStatus ? <div>{renderRowStatus(selectedItem)}</div> : null}
                 {renderRowAction ? <div>{renderRowAction(selectedItem)}</div> : null}
-                <Button size="sm" variant="ghost" onClick={() => setViewOpen(true)}>
-                  View full
-                </Button>
+                <div className="flex flex-wrap items-center gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => setViewOpen(true)}>
+                    View full
+                  </Button>
+                  {allowDelete && selectedRow ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      iconOnly
+                      icon={<Trash2 size={14} />}
+                      aria-label={`Delete ${itemLabel}`}
+                      onClick={() => setDeleteTarget(selectedRow)}
+                    />
+                  ) : null}
+                </div>
               </Stack>
             ) : (
               <Typography variant="small" tone="muted">
@@ -662,7 +670,7 @@ export function ScreenStructureEditor({
         open={viewOpen}
         onClose={() => setViewOpen(false)}
         title={selectedItem ? primaryLabel(selectedItem, columns) : `View ${itemLabel}`}
-        size="full"
+        size="lg"
         actions={[{ label: 'Close', onClick: () => setViewOpen(false), variant: 'ghost' }]}
       >
         {selectedItem ? (
@@ -697,7 +705,7 @@ export function ScreenStructureEditor({
         open={editOpen}
         onClose={closeEditModal}
         title={layout === 'masterDetail' && selectedItem ? `Edit ${itemLabel}` : editTitle}
-        size={layout === 'masterDetail' ? 'full' : 'xl'}
+        size="xl"
         actions={[
           { label: 'Close', onClick: closeEditModal, variant: 'ghost' },
           ...(layout === 'masterDetail' && selectedRow?.dirty
@@ -810,7 +818,7 @@ export function ScreenStructureEditor({
         open={addOpen}
         onClose={() => setAddOpen(false)}
         title={addTitle}
-        size={layout === 'masterDetail' ? 'full' : '2xl'}
+        size="2xl"
         actions={[
           { label: 'Cancel', onClick: () => setAddOpen(false), variant: 'ghost' },
           {
@@ -921,7 +929,7 @@ export function ScreenStructureEditor({
         open={singleOpen}
         onClose={() => setSingleOpen(false)}
         title={addTitle}
-        size={layout === 'masterDetail' ? 'full' : 'md'}
+        size="md"
         actions={[
           { label: 'Cancel', onClick: () => setSingleOpen(false), variant: 'ghost' },
           {
@@ -933,7 +941,7 @@ export function ScreenStructureEditor({
           },
         ]}
       >
-        <div className={cn('space-y-3', layout === 'masterDetail' && 'mx-auto max-w-3xl')}>
+        <div className="space-y-3">
           <Typography variant="small" tone="muted">
             Add one {itemLabel}. Enum fields use a dropdown.
           </Typography>
