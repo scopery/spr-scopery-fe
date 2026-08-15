@@ -8,8 +8,12 @@ import { cn } from '@/utils/cn'
 import type { RegistryScreen } from '../model/application-registry'
 import { useScreenDetail } from '../hooks/useScreenDetail'
 import { ScreenStructureEditor } from './ScreenStructureEditor'
-import { SCREEN_MODE_CODE_OPTIONS } from '../screen-spec/domain/enums/screen-spec.enum'
+import {
+  SCREEN_FIELD_TYPE_OPTIONS,
+  SCREEN_MODE_CODE_OPTIONS,
+} from '../screen-spec/domain/enums/screen-spec.enum'
 import { useScreenModes } from '../screen-spec/presentation/hooks/useScreenModes'
+import { useBindComponentToSection } from '../screen-spec/presentation/hooks/useBindComponentToSection'
 import { FieldSpecDrawer } from '../screen-spec/presentation/ui/FieldSpecDrawer'
 import { ScreenModeMatrixPanel } from '../screen-spec/presentation/ui/ScreenModeMatrixPanel'
 import { useScreenSpecExcelExport } from '../screen-spec/presentation/hooks/useScreenSpecExcelExport'
@@ -19,6 +23,7 @@ import {
   ScreenProcessItemsPanel,
 } from '../screen-spec/presentation/ui/ScreenNarrativeItemsPanel'
 import { ScreenValidationsPanel } from '../screen-spec/presentation/ui/ScreenValidationsPanel'
+import { ScreenSectionBindComponentModal } from '../screen-spec/presentation/ui/ScreenSectionBindComponentModal'
 import type { SpecCatalogComponent } from '../screen-spec/presentation/ui/FieldSpecDrawer'
 import type { SpecCatalogEntity } from '../screen-spec/presentation/ui/ComponentSpecPanel'
 
@@ -42,14 +47,6 @@ interface ScreenDetailPanelProps {
   screens?: Array<{ id: string; code: string; name: string }>
 }
 
-const SCREEN_FIELD_TYPE_OPTIONS = [
-  'TEXT',
-  'NUMBER',
-  'DATE',
-  'BOOLEAN',
-  'URL',
-  'INPUT',
-] as const
 const SCREEN_ACTION_TYPE_OPTIONS = ['PRIMARY', 'SECONDARY', 'DEFAULT'] as const
 
 const SECTION_COLS = [
@@ -141,8 +138,12 @@ export function ScreenDetailPanel({
     removeMode,
   } = useScreenModes(workspaceId, screen.id)
   const { exporting, exportScreen } = useScreenSpecExcelExport(workspaceId)
+  const { bind } = useBindComponentToSection(workspaceId, screen.id)
   const [tab, setTab] = useState<ScreenDetailTab>('sections')
   const [specFieldId, setSpecFieldId] = useState<string | null>(null)
+  const [bindSectionId, setBindSectionId] = useState<string | null>(null)
+  const [bindSaving, setBindSaving] = useState(false)
+  const [bindError, setBindError] = useState<string | null>(null)
 
   const sectionItems = useMemo(
     () =>
@@ -291,6 +292,14 @@ export function ScreenDetailPanel({
             })
           }}
           onDelete={removeSection}
+          renderRowAction={(item) => (
+            <Button size="sm" variant="ghost" onClick={() => {
+              setBindError(null)
+              setBindSectionId(item.id)
+            }}>
+              Bind component
+            </Button>
+          )}
         />
       ) : null}
 
@@ -427,6 +436,40 @@ export function ScreenDetailPanel({
         components={components}
         entities={entities}
         onSaved={() => void refetch()}
+      />
+      <ScreenSectionBindComponentModal
+        open={Boolean(bindSectionId)}
+        onClose={() => {
+          if (bindSaving) return
+          setBindSectionId(null)
+          setBindError(null)
+        }}
+        sectionName={sections.find((s) => s.id === bindSectionId)?.name ?? 'Section'}
+        components={components}
+        saving={bindSaving}
+        error={bindError}
+        onBind={async (componentId) => {
+          if (!bindSectionId) return
+          setBindSaving(true)
+          setBindError(null)
+          try {
+            const result = await bind(bindSectionId, { componentId, displayOrder: 0 })
+            const keys = result?.importedFieldKeys?.length
+              ? result.importedFieldKeys.join(', ')
+              : ''
+            toast.success(
+              result
+                ? `Imported ${result.fieldsImported} field${result.fieldsImported === 1 ? '' : 's'}${keys ? `: ${keys}` : ''}`
+                : 'Component bound'
+            )
+            setBindSectionId(null)
+            await refetch()
+          } catch (err) {
+            setBindError(err instanceof Error ? err.message : 'Failed to bind component')
+          } finally {
+            setBindSaving(false)
+          }
+        }}
       />
     </Stack>
   )

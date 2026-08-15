@@ -6,4 +6,6 @@ export const ScreenSpecMessages = {
   RULE_PARAM_INVALID: 'Rule parameters do not match the selected rule type.',
   DOC_CODE_EXISTS: 'A spec document with this code already exists.',
   SCREEN_ALREADY_IN_DOC: 'This screen is already in the document.',
+  COMPONENT_FIELD_EXISTS: 'This field key already exists on the component.',
+  COMPONENT_ALREADY_BOUND: 'This component is already bound to the screen.',
 } as const

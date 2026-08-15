@@ -40,7 +40,8 @@ export const SCREEN_STRUCTURE_TAB_HINTS: Record<
   'sections' | 'fields' | 'modes' | 'matrix' | 'validations' | 'processes' | 'events' | 'actions',
   string
 > = {
-  sections: 'Group fields into blocks (Main form, Footer). These become section rows on the Defines sheet.',
+  sections:
+    'Group fields into blocks. Bind component on a section copies that component’s fields onto the screen in this section.',
   fields:
     'Add each control. Bind on the row opens component, data column, and extra validations. Required and max length go to Defines.',
   modes: 'Add CREATE / VIEW / EDIT (and SEARCH or DIALOG if needed) before the mode matrix. Missing modes show empty 〇 columns.',
@@ -63,8 +64,8 @@ export const SCREEN_IMPORT_WORKFLOW_STEPS = [
 ]
 
 export const SCREEN_SPEC_WORKFLOW_STEPS = [
-  'On Browse, spec catalog first: entity Columns, then component option source (NONE / STATIC / DYNAMIC).',
-  'Select a screen. Add Modes, then Sections and Fields. Bind each field row (component, column, validations).',
+  'On Browse, spec catalog first: entity Columns, then component fields (and option source). Bind a component onto a screen section to copy those fields.',
+  'Select a screen. Add Modes and Sections, bind components or add Fields. Bind on a field row for column and validations.',
   'Fill Mode matrix, then Processes and Events.',
   'To load many screens at once, use Import → Screens (Excel = shell, JSON = full spec). Then export from the inspector or Spec docs.',
 ]

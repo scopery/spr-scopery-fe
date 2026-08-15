@@ -3,7 +3,11 @@ import { normalizeItemList, type ListPayload } from '@/shared/lib/normalizeListR
 import { SCREEN_SPEC_ENDPOINTS as EP } from './endpoints'
 import type {
   ApplicationComponentDetail,
+  ApplicationComponentField,
+  BindComponentToSectionBody,
+  BindComponentToSectionResult,
   ComponentOption,
+  CreateComponentFieldBody,
   CreateComponentOptionBody,
   CreateDataEntityFieldBody,
   CreateFieldValidationBody,
@@ -14,6 +18,7 @@ import type {
   ScreenFieldModeConfig,
   ScreenFieldValidation,
   ScreenMode,
+  UpdateComponentFieldBody,
   UpdateComponentOptionBody,
   UpdateComponentSourceBody,
   UpdateDataEntityFieldBody,
@@ -72,6 +77,30 @@ export function mapComponentOption(raw: unknown): ComponentOption {
     optionValue: String(r.optionValue ?? r.option_value ?? ''),
     optionLabel: String(r.optionLabel ?? r.option_label ?? ''),
     displayOrder: num(r.displayOrder ?? r.display_order),
+  }
+}
+
+export function mapComponentField(raw: unknown): ApplicationComponentField {
+  const r = asRecord(raw)
+  return {
+    id: String(r.id ?? ''),
+    componentId: String(r.componentId ?? r.component_id ?? ''),
+    fieldKey: String(r.fieldKey ?? r.field_key ?? ''),
+    label: String(r.label ?? ''),
+    fieldType: String(r.fieldType ?? r.field_type ?? 'TEXT'),
+    required: r.required == null ? null : bool(r.required),
+    maxLength: num(r.maxLength ?? r.max_length),
+    remark: str(r.remark),
+    displayOrder: num(r.displayOrder ?? r.display_order),
+  }
+}
+
+export function mapBindComponentToSectionResult(raw: unknown): BindComponentToSectionResult {
+  const r = asRecord(raw)
+  const keys = r.importedFieldKeys ?? r.imported_field_keys
+  return {
+    fieldsImported: num(r.fieldsImported ?? r.fields_imported) ?? 0,
+    importedFieldKeys: Array.isArray(keys) ? keys.map((k) => String(k)) : [],
   }
 }
 
@@ -219,6 +248,54 @@ export async function deleteDataEntityField(
   fieldId: string
 ): Promise<void> {
   await apiClient.delete<void>(EP.dataEntityField(workspaceId, entityId, fieldId), { parseJson: false })
+}
+
+export async function listComponentFields(
+  workspaceId: string,
+  componentId: string
+): Promise<{ items: ApplicationComponentField[] }> {
+  const res = await apiClient.get<ListPayload<unknown>>(EP.componentFields(workspaceId, componentId))
+  return { items: normalizeItemList(res).items.map(mapComponentField) }
+}
+
+export async function createComponentField(
+  workspaceId: string,
+  componentId: string,
+  body: CreateComponentFieldBody
+): Promise<ApplicationComponentField> {
+  const res = await apiClient.post<unknown>(EP.componentFields(workspaceId, componentId), body)
+  return mapComponentField(res)
+}
+
+export async function updateComponentField(
+  workspaceId: string,
+  componentId: string,
+  fieldId: string,
+  body: UpdateComponentFieldBody
+): Promise<ApplicationComponentField> {
+  const res = await apiClient.put<unknown>(EP.componentField(workspaceId, componentId, fieldId), body)
+  return mapComponentField(res)
+}
+
+export async function deleteComponentField(
+  workspaceId: string,
+  componentId: string,
+  fieldId: string
+): Promise<void> {
+  await apiClient.delete<void>(EP.componentField(workspaceId, componentId, fieldId), { parseJson: false })
+}
+
+export async function bindComponentToSection(
+  workspaceId: string,
+  screenId: string,
+  sectionId: string,
+  body: BindComponentToSectionBody
+): Promise<BindComponentToSectionResult> {
+  const res = await apiClient.post<unknown>(
+    EP.bindComponentToSection(workspaceId, screenId, sectionId),
+    body
+  )
+  return mapBindComponentToSectionResult(res)
 }
 
 export async function getApplicationComponent(

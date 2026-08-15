@@ -6,6 +6,7 @@ import { OptionSourceType, OPTION_SOURCE_TYPE_OPTIONS } from '../../domain/enums
 import { ScreenSpecMessages } from '../../domain/messages/screen-spec.messages'
 import { useApplicationComponentDetail } from '../hooks/useApplicationComponentDetail'
 import { useDataEntityFields } from '../hooks/useDataEntityFields'
+import { ComponentFieldsPanel } from './ComponentFieldsPanel'
 import { ScreenStructureEditor } from '../../../ui/ScreenStructureEditor'
 
 export interface SpecCatalogEntity {
@@ -147,6 +148,8 @@ export function ComponentSpecPanel({
       <Button size="sm" onClick={() => void handleSave()} loading={saving}>
         Save source
       </Button>
+
+      <ComponentFieldsPanel workspaceId={workspaceId} componentId={componentId} />
 
       {sourceType === OptionSourceType.Static ? (
         <div className="space-y-2 pt-2">

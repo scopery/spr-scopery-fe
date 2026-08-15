@@ -76,3 +76,24 @@ export const RequiredOverride = {
   Optional: 'optional',
 } as const
 export type RequiredOverride = (typeof RequiredOverride)[keyof typeof RequiredOverride]
+
+export const ScreenFieldType = {
+  Text: 'TEXT',
+  Number: 'NUMBER',
+  Date: 'DATE',
+  Boolean: 'BOOLEAN',
+  Url: 'URL',
+  Input: 'INPUT',
+  Password: 'PASSWORD',
+} as const
+export type ScreenFieldType = (typeof ScreenFieldType)[keyof typeof ScreenFieldType]
+
+export const SCREEN_FIELD_TYPE_OPTIONS: ScreenFieldType[] = [
+  ScreenFieldType.Text,
+  ScreenFieldType.Number,
+  ScreenFieldType.Date,
+  ScreenFieldType.Boolean,
+  ScreenFieldType.Url,
+  ScreenFieldType.Input,
+  ScreenFieldType.Password,
+]

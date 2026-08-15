@@ -12,6 +12,13 @@ export const SCREEN_SPEC_ENDPOINTS = {
     apiPath(`/workspaces/${workspaceId}/application-components/${componentId}/options`),
   componentOption: (workspaceId: string, componentId: string, optionId: string) =>
     apiPath(`/workspaces/${workspaceId}/application-components/${componentId}/options/${optionId}`),
+  componentFields: (workspaceId: string, componentId: string) =>
+    apiPath(`/workspaces/${workspaceId}/application-components/${componentId}/fields`),
+  componentField: (workspaceId: string, componentId: string, fieldId: string) =>
+    apiPath(`/workspaces/${workspaceId}/application-components/${componentId}/fields/${fieldId}`),
+
+  bindComponentToSection: (workspaceId: string, screenId: string, sectionId: string) =>
+    apiPath(`/workspaces/${workspaceId}/screens/${screenId}/sections/${sectionId}/bind-component`),
 
   screenModes: (workspaceId: string, screenId: string) =>
     apiPath(`/workspaces/${workspaceId}/screens/${screenId}/modes`),

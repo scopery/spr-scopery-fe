@@ -32,6 +32,47 @@ export interface UpdateDataEntityFieldBody {
   displayOrder?: number | null
 }
 
+export interface ApplicationComponentField {
+  id: string
+  componentId: string
+  fieldKey: string
+  label: string
+  fieldType: string
+  required: boolean | null
+  maxLength: number | null
+  remark: string | null
+  displayOrder: number | null
+}
+
+export interface CreateComponentFieldBody {
+  fieldKey: string
+  label: string
+  fieldType: string
+  required?: boolean | null
+  maxLength?: number | null
+  remark?: string | null
+  displayOrder?: number | null
+}
+
+export interface UpdateComponentFieldBody {
+  label: string
+  fieldType: string
+  required?: boolean | null
+  maxLength?: number | null
+  remark?: string | null
+  displayOrder?: number | null
+}
+
+export interface BindComponentToSectionBody {
+  componentId: string
+  displayOrder?: number | null
+}
+
+export interface BindComponentToSectionResult {
+  fieldsImported: number
+  importedFieldKeys: string[]
+}
+
 export interface ComponentOption {
   id: string
   componentId: string
