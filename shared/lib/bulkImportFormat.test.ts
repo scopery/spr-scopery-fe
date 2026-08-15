@@ -42,4 +42,30 @@ describe('formatBulkImportGuideForAgent', () => {
     expect(text).toContain('Enum note: Defaults to MEDIUM.')
     expect(text).toContain(formatBulkImportSampleJson(GUIDE))
   })
+
+  it('documents nested entities and their attributes', () => {
+    const text = formatBulkImportGuideForAgent({
+      ...GUIDE,
+      entities: [
+        {
+          name: 'Mode',
+          path: 'items[].modes[]',
+          description: 'Screen mode object.',
+          fields: [
+            {
+              name: 'modeCode',
+              required: true,
+              type: 'enum',
+              description: 'Mode identity.',
+              enumValues: ['CREATE', 'VIEW'],
+            },
+          ],
+        },
+      ],
+    })
+    expect(text).toContain('## Nested entities')
+    expect(text).toContain('### Mode (`items[].modes[]`)')
+    expect(text).toContain('`modeCode` (REQUIRED, enum)')
+    expect(text).toContain('Enum values: CREATE | VIEW')
+  })
 })

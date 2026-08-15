@@ -4,10 +4,56 @@ import React, { useCallback, useId, useState } from 'react'
 import { Check, CircleHelp, Copy } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/utils/cn'
-import { formatBulkImportGuideForAgent, formatBulkImportSampleJson } from '@/shared/lib/bulkImportFormat'
+import {
+  formatBulkImportGuideForAgent,
+  formatBulkImportSampleJson,
+  type BulkImportFieldGuide,
+} from '@/shared/lib/bulkImportFormat'
 import { Button } from '../../atoms/Button'
 import { Typography } from '../../atoms/Typography'
 import type { BulkImportFormatHelpProps } from './BulkImportFormatHelp.types'
+
+function FieldTable({ fields }: { fields: readonly BulkImportFieldGuide[] }) {
+  if (fields.length === 0) return null
+  return (
+    <div className="overflow-x-auto border border-neutral-200 bg-white">
+      <table className="w-full min-w-[520px] text-left text-xs">
+        <thead className="border-b border-neutral-200 bg-neutral-50 text-neutral-600">
+          <tr>
+            <th className="px-2 py-1.5 font-medium">Attribute</th>
+            <th className="px-2 py-1.5 font-medium">Required</th>
+            <th className="px-2 py-1.5 font-medium">Type</th>
+            <th className="px-2 py-1.5 font-medium">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          {fields.map((field) => (
+            <tr key={field.name} className="border-b border-neutral-100 align-top">
+              <td className="px-2 py-1.5 font-mono text-neutral-900">{field.name}</td>
+              <td className="px-2 py-1.5">
+                {field.required ? (
+                  <span className="font-medium text-error">Required</span>
+                ) : (
+                  <span className="text-neutral-500">Optional</span>
+                )}
+              </td>
+              <td className="px-2 py-1.5 text-neutral-700">{field.type}</td>
+              <td className="px-2 py-1.5 text-neutral-700">
+                <div>{field.description}</div>
+                {field.enumValues?.length ? (
+                  <div className="mt-1 font-mono text-[11px] text-neutral-500">
+                    Enum: {field.enumValues.join(' | ')}
+                    {field.enumNotes ? ` — ${field.enumNotes}` : ''}
+                  </div>
+                ) : null}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 
 /**
  * "?" control that opens an English JSON import format guide with Copy.
@@ -99,42 +145,32 @@ export const BulkImportFormatHelp = React.forwardRef<HTMLDivElement, BulkImportF
               </Typography>
             ) : null}
 
-            <div className="overflow-x-auto border border-neutral-200 bg-white">
-              <table className="w-full min-w-[520px] text-left text-xs">
-                <thead className="border-b border-neutral-200 bg-neutral-50 text-neutral-600">
-                  <tr>
-                    <th className="px-2 py-1.5 font-medium">Field</th>
-                    <th className="px-2 py-1.5 font-medium">Required</th>
-                    <th className="px-2 py-1.5 font-medium">Type</th>
-                    <th className="px-2 py-1.5 font-medium">Description</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {guide.fields.map((field) => (
-                    <tr key={field.name} className="border-b border-neutral-100 align-top">
-                      <td className="px-2 py-1.5 font-mono text-neutral-900">{field.name}</td>
-                      <td className="px-2 py-1.5">
-                        {field.required ? (
-                          <span className="font-medium text-error">Required</span>
-                        ) : (
-                          <span className="text-neutral-500">Optional</span>
-                        )}
-                      </td>
-                      <td className="px-2 py-1.5 text-neutral-700">{field.type}</td>
-                      <td className="px-2 py-1.5 text-neutral-700">
-                        <div>{field.description}</div>
-                        {field.enumValues?.length ? (
-                          <div className="mt-1 font-mono text-[11px] text-neutral-500">
-                            Enum: {field.enumValues.join(' | ')}
-                            {field.enumNotes ? ` — ${field.enumNotes}` : ''}
-                          </div>
-                        ) : null}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {guide.fields.length > 0 ? (
+              <div className="space-y-1">
+                <Typography variant="small" weight="medium">
+                  Item attributes
+                </Typography>
+                <FieldTable fields={guide.fields} />
+              </div>
+            ) : null}
+
+            {guide.entities?.map((entity) => (
+              <div key={entity.path} className="space-y-1">
+                <Typography variant="small" weight="medium">
+                  {entity.name}{' '}
+                  <span className="font-mono font-normal text-neutral-500">({entity.path})</span>
+                  {entity.required ? (
+                    <span className="ml-2 font-normal text-error">Required</span>
+                  ) : (
+                    <span className="ml-2 font-normal text-neutral-500">Optional</span>
+                  )}
+                </Typography>
+                <Typography variant="caption" tone="muted">
+                  {entity.description}
+                </Typography>
+                <FieldTable fields={entity.fields} />
+              </div>
+            ))}
 
             <pre className="max-h-56 overflow-auto border border-neutral-200 bg-white p-2 font-mono text-[11px] leading-relaxed text-neutral-800">
               {sampleJson}

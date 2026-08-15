@@ -9,6 +9,17 @@ export interface BulkImportFieldGuide {
   enumNotes?: string
 }
 
+/** Nested object (or object array) in a bulk JSON payload. */
+export interface BulkImportEntityGuide {
+  /** Short name, e.g. "Mode". */
+  name: string
+  /** JSON path from each item, e.g. `modes[]`. */
+  path: string
+  required?: boolean
+  description: string
+  fields: readonly BulkImportFieldGuide[]
+}
+
 export interface BulkImportFormatGuide {
   /** Short entity name shown in the help header, e.g. "Requirement". */
   entityLabel: string
@@ -17,6 +28,8 @@ export interface BulkImportFormatGuide {
   /** Extra notes shown above the field table. */
   notes?: readonly string[]
   fields: readonly BulkImportFieldGuide[]
+  /** Nested objects documented as their own entity + attributes. */
+  entities?: readonly BulkImportEntityGuide[]
   /**
    * Sample payload to copy for a third-party agent.
    * Prefer `{ "items": [ ... ] }` matching the bulk API body.
@@ -63,6 +76,27 @@ export function formatBulkImportGuideForAgent(guide: BulkImportFormatGuide): str
       lines.push(`  - Enum values: ${field.enumValues.join(' | ')}`)
       if (field.enumNotes) {
         lines.push(`  - Enum note: ${field.enumNotes}`)
+      }
+    }
+  }
+
+  if (guide.entities?.length) {
+    lines.push('')
+    lines.push('## Nested entities')
+    for (const entity of guide.entities) {
+      const requiredLabel = entity.required ? 'REQUIRED' : 'optional'
+      lines.push('')
+      lines.push(`### ${entity.name} (\`${entity.path}\`) — ${requiredLabel}`)
+      lines.push(entity.description)
+      for (const field of entity.fields) {
+        const fieldReq = field.required ? 'REQUIRED' : 'optional'
+        lines.push(`- \`${field.name}\` (${fieldReq}, ${field.type}): ${field.description}`)
+        if (field.enumValues?.length) {
+          lines.push(`  - Enum values: ${field.enumValues.join(' | ')}`)
+          if (field.enumNotes) {
+            lines.push(`  - Enum note: ${field.enumNotes}`)
+          }
+        }
       }
     }
   }
