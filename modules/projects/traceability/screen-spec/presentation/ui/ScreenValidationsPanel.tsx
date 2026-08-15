@@ -56,12 +56,9 @@ export function ScreenValidationsPanel({
           {error}
         </Typography>
       ) : null}
-      <div className="flex min-h-[360px] min-w-0 border border-neutral-200">
-        <aside className="flex w-40 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50">
-          <Typography variant="caption" tone="muted" className="border-b border-neutral-200 px-3 py-2">
-            Fields
-          </Typography>
-          <ul className="min-h-0 flex-1 overflow-y-auto">
+      <div className="flex min-w-0 border border-neutral-200">
+        <aside className="w-52 shrink-0 border-r border-neutral-200">
+          <ul className="divide-y divide-neutral-100">
             {fields.map((field) => {
               const count = countByField.get(field.id) ?? 0
               const active = selectedFieldId === field.id
@@ -71,8 +68,8 @@ export function ScreenValidationsPanel({
                     type="button"
                     onClick={() => setSelectedFieldId(field.id)}
                     className={cn(
-                      'flex w-full items-start justify-between gap-2 border-b border-neutral-100 px-3 py-2 text-left',
-                      active ? 'bg-white' : 'hover:bg-white'
+                      'flex w-full items-start justify-between gap-2 px-3 py-2.5 text-left',
+                      active ? 'bg-neutral-50' : 'hover:bg-neutral-50'
                     )}
                   >
                     <span className="min-w-0">
@@ -95,25 +92,19 @@ export function ScreenValidationsPanel({
             })}
           </ul>
         </aside>
-        <div className="min-w-0 flex-1 overflow-y-auto p-md">
+        <div className="min-w-0 flex-1 p-md">
           {selectedField ? (
-            <div className="min-w-0 space-y-2">
-              <Typography weight="medium" variant="small">
-                {selectedField.fieldKey} · {selectedField.label}
-              </Typography>
-              <FieldValidationsEditor
-                key={selectedField.id}
-                workspaceId={workspaceId}
-                screenId={screenId}
-                fieldId={selectedField.id}
-                modes={modes}
-                layout="stack"
-                onChanged={() => {
-                  void refetch()
-                  onChanged?.()
-                }}
-              />
-            </div>
+            <FieldValidationsEditor
+              key={selectedField.id}
+              workspaceId={workspaceId}
+              screenId={screenId}
+              fieldId={selectedField.id}
+              modes={modes}
+              onChanged={() => {
+                void refetch()
+                onChanged?.()
+              }}
+            />
           ) : (
             <Typography variant="small" tone="muted">
               Select a field to review rules.

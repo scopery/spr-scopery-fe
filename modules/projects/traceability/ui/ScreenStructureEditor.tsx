@@ -169,7 +169,7 @@ export function ScreenStructureEditor({
   const [deleting, setDeleting] = useState(false)
   const [pasteHint, setPasteHint] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null)
-  const [detailMode, setDetailMode] = useState<'view' | 'edit'>('view')
+  const [viewOpen, setViewOpen] = useState(false)
 
   useEffect(() => {
     if (!addMenuOpen) return
@@ -201,7 +201,6 @@ export function ScreenStructureEditor({
   useEffect(() => {
     if (selectedId && items.some((item) => item.id === selectedId)) return
     setSelectedId(items[0]?.id ?? null)
-    setDetailMode('view')
   }, [items, selectedId])
 
   useEffect(() => {
@@ -521,17 +520,21 @@ export function ScreenStructureEditor({
             </div>
           ) : null}
         </div>
+        {layout === 'masterDetail' ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={!selectedItem}
+            onClick={() => setViewOpen(true)}
+          >
+            View
+          </Button>
+        ) : null}
         <Button
           size="sm"
           variant="ghost"
           disabled={items.length === 0 || (layout === 'masterDetail' && !selectedId)}
-          onClick={() => {
-            if (layout === 'masterDetail') {
-              setDetailMode('edit')
-              return
-            }
-            setEditOpen(true)
-          }}
+          onClick={() => setEditOpen(true)}
         >
           <Pencil size={14} className="mr-1 inline" />
           Edit
@@ -556,12 +559,9 @@ export function ScreenStructureEditor({
           {emptyLabel}
         </Typography>
       ) : layout === 'masterDetail' ? (
-        <div className="flex min-h-[360px] min-w-0 border border-neutral-200">
-          <aside className="flex w-52 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50">
-            <Typography variant="caption" tone="muted" className="border-b border-neutral-200 px-3 py-2">
-              {itemLabel.charAt(0).toUpperCase() + itemLabel.slice(1)}
-            </Typography>
-            <ul className="min-h-0 flex-1 overflow-y-auto">
+        <div className="flex min-w-0 border border-neutral-200">
+          <aside className="min-h-[200px] min-w-0 flex-1">
+            <ul className="divide-y divide-neutral-100">
               {items.map((item, index) => {
                 const active = selectedId === item.id
                 const secondary = secondaryLabel(item, columns)
@@ -569,16 +569,13 @@ export function ScreenStructureEditor({
                   <li key={item.id}>
                     <button
                       type="button"
-                      onClick={() => {
-                        setSelectedId(item.id)
-                        setDetailMode('view')
-                      }}
+                      onClick={() => setSelectedId(item.id)}
                       className={cn(
-                        'flex w-full items-start gap-2 border-b border-neutral-100 px-3 py-2 text-left',
-                        active ? 'bg-white' : 'hover:bg-white'
+                        'flex w-full items-start gap-3 px-3 py-2.5 text-left',
+                        active ? 'bg-neutral-50' : 'hover:bg-neutral-50'
                       )}
                     >
-                      <span className="w-4 shrink-0 pt-0.5 text-[11px] tabular-nums text-neutral-400">
+                      <span className="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400">
                         {index + 1}
                       </span>
                       <span className="min-w-0">
@@ -597,102 +594,31 @@ export function ScreenStructureEditor({
               })}
             </ul>
           </aside>
-          <div className="min-w-0 flex-1 overflow-y-auto p-md">
-            {selectedItem && selectedRow && detailMode === 'edit' ? (
+          <div className="w-56 shrink-0 border-l border-neutral-200 p-md">
+            {selectedItem ? (
               <Stack direction="vertical" spacing="sm">
-                {columns
-                  .filter((col) => !col.createOnly)
-                  .map((col) => (
-                    <div key={col.key}>
-                      <Typography variant="small" className="mb-1.5">
-                        {col.label}
-                        {col.required ? ' *' : ''}
-                      </Typography>
-                      {col.lockedOnExisting ? (
-                        <Typography variant="small" className="py-1.5 text-neutral-600">
-                          {selectedRow.values[col.key] || '—'}
-                        </Typography>
-                      ) : (
-                        renderValueControl(
-                          col,
-                          selectedRow.draft[col.key] ?? '',
-                          (next) => updateDraftCell(selectedRow.id, col.key, next),
-                          {
-                            disabled: selectedRow.saving,
-                            'aria-label': col.label,
-                            size: 'md',
-                            fill: true,
-                          }
-                        )
-                      )}
-                    </div>
-                  ))}
-                {selectedRow.error ? (
-                  <Typography variant="caption" tone="error">
-                    {selectedRow.error}
+                <Typography weight="medium" variant="small" className="line-clamp-2">
+                  {primaryLabel(selectedItem, columns)}
+                </Typography>
+                {secondaryLabel(selectedItem, columns) ? (
+                  <Typography variant="caption" tone="muted" className="line-clamp-3">
+                    {secondaryLabel(selectedItem, columns)}
                   </Typography>
                 ) : null}
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    disabled={selectedRow.saving || !selectedRow.dirty}
-                    loading={selectedRow.saving}
-                    onClick={() => {
-                      void saveRow(selectedRow).then((ok) => {
-                        if (ok) setDetailMode('view')
-                      })
-                    }}
-                  >
-                    Save
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={selectedRow.saving}
-                    onClick={() => {
-                      setRows((prev) =>
-                        prev.map((row) =>
-                          row.id === selectedRow.id
-                            ? { ...row, draft: { ...row.values }, dirty: false, error: null }
-                            : row
-                        )
-                      )
-                      setDetailMode('view')
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </Stack>
-            ) : selectedItem ? (
-              <Stack direction="vertical" spacing="sm">
-                {columns
-                  .filter((col) => !col.createOnly)
-                  .map((col) => {
-                    const text = displayCellValue(col, selectedItem.values[col.key]) || '—'
-                    return (
-                      <div key={col.key}>
-                        <Typography variant="caption" tone="muted" className="mb-1 block">
-                          {col.label}
-                        </Typography>
-                        <Typography
-                          variant="small"
-                          className={cn(
-                            'break-words',
-                            DESCRIPTION_KEYS.has(col.key) && 'whitespace-pre-wrap'
-                          )}
-                        >
-                          {text}
-                        </Typography>
-                      </div>
-                    )
-                  })}
+                {metaLabel(selectedItem, columns) ? (
+                  <Typography variant="caption" tone="muted" className="line-clamp-2">
+                    {metaLabel(selectedItem, columns)}
+                  </Typography>
+                ) : null}
                 {renderRowStatus ? <div>{renderRowStatus(selectedItem)}</div> : null}
                 {renderRowAction ? <div>{renderRowAction(selectedItem)}</div> : null}
+                <Button size="sm" variant="ghost" onClick={() => setViewOpen(true)}>
+                  View full
+                </Button>
               </Stack>
             ) : (
               <Typography variant="small" tone="muted">
-                Select a {itemLabel} to review.
+                Select a {itemLabel}.
               </Typography>
             )}
           </div>
@@ -732,31 +658,81 @@ export function ScreenStructureEditor({
         </ol>
       )}
 
+      <Modal
+        open={viewOpen}
+        onClose={() => setViewOpen(false)}
+        title={selectedItem ? primaryLabel(selectedItem, columns) : `View ${itemLabel}`}
+        size="full"
+        actions={[{ label: 'Close', onClick: () => setViewOpen(false), variant: 'ghost' }]}
+      >
+        {selectedItem ? (
+          <div className="mx-auto max-w-3xl space-y-5">
+            {columns
+              .filter((col) => !col.createOnly)
+              .map((col) => {
+                const text = displayCellValue(col, selectedItem.values[col.key]) || '—'
+                return (
+                  <div key={col.key}>
+                    <Typography variant="caption" tone="muted" className="mb-1.5 block">
+                      {col.label}
+                    </Typography>
+                    <Typography
+                      variant="small"
+                      className={cn(
+                        'break-words',
+                        DESCRIPTION_KEYS.has(col.key) && 'whitespace-pre-wrap'
+                      )}
+                    >
+                      {text}
+                    </Typography>
+                  </div>
+                )
+              })}
+          </div>
+        ) : null}
+      </Modal>
+
       {/* Edit existing — stacked fields so text is not clipped in table cells */}
       <Modal
         open={editOpen}
         onClose={closeEditModal}
-        title={editTitle}
-        size="xl"
+        title={layout === 'masterDetail' && selectedItem ? `Edit ${itemLabel}` : editTitle}
+        size={layout === 'masterDetail' ? 'full' : 'xl'}
         actions={[
           { label: 'Close', onClick: closeEditModal, variant: 'ghost' },
-          ...(dirtyCount > 0
+          ...(layout === 'masterDetail' && selectedRow?.dirty
             ? [
                 {
-                  label: `Save all (${dirtyCount})`,
-                  onClick: () => void saveAllDirty(),
+                  label: 'Save',
+                  onClick: () => {
+                    void saveRow(selectedRow).then((ok) => {
+                      if (ok) closeEditModal()
+                    })
+                  },
                   variant: 'primary' as const,
+                  disabled: selectedRow.saving,
+                  loading: selectedRow.saving,
                 },
               ]
-            : []),
+            : dirtyCount > 0 && layout !== 'masterDetail'
+              ? [
+                  {
+                    label: `Save all (${dirtyCount})`,
+                    onClick: () => void saveAllDirty(),
+                    variant: 'primary' as const,
+                  },
+                ]
+              : []),
         ]}
       >
-        <div className="space-y-3">
-          <Typography variant="small" tone="muted">
-            Each item is a full-width form. Save a row or use Save all.
-          </Typography>
+        <div className="mx-auto max-w-3xl space-y-3">
+          {layout !== 'masterDetail' ? (
+            <Typography variant="small" tone="muted">
+              Each item is a full-width form. Save a row or use Save all.
+            </Typography>
+          ) : null}
           <div className="space-y-6">
-            {rows.map((row, index) => (
+            {(layout === 'masterDetail' && selectedRow ? [selectedRow] : rows).map((row, index) => (
               <div
                 key={row.id}
                 className={cn(
@@ -834,7 +810,7 @@ export function ScreenStructureEditor({
         open={addOpen}
         onClose={() => setAddOpen(false)}
         title={addTitle}
-        size="2xl"
+        size={layout === 'masterDetail' ? 'full' : '2xl'}
         actions={[
           { label: 'Cancel', onClick: () => setAddOpen(false), variant: 'ghost' },
           {
@@ -945,7 +921,7 @@ export function ScreenStructureEditor({
         open={singleOpen}
         onClose={() => setSingleOpen(false)}
         title={addTitle}
-        size="md"
+        size={layout === 'masterDetail' ? 'full' : 'md'}
         actions={[
           { label: 'Cancel', onClick: () => setSingleOpen(false), variant: 'ghost' },
           {
@@ -957,7 +933,7 @@ export function ScreenStructureEditor({
           },
         ]}
       >
-        <div className="space-y-3">
+        <div className={cn('space-y-3', layout === 'masterDetail' && 'mx-auto max-w-3xl')}>
           <Typography variant="small" tone="muted">
             Add one {itemLabel}. Enum fields use a dropdown.
           </Typography>
