@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, Pencil, Plus, Trash2 } from 'lucide-react'
 import {
   Button,
@@ -51,6 +51,8 @@ interface ScreenStructureEditorProps {
   itemLabel: string
   /** Temporarily hide delete for safer catalogs. Default true. */
   allowDelete?: boolean
+  /** Extra control on each list row (e.g. field Configure). */
+  renderRowAction?: (item: StructureItem) => ReactNode
   onCreate: (values: Record<string, string>) => Promise<void>
   onUpdate: (id: string, values: Record<string, string>) => Promise<void>
   onDelete: (id: string) => Promise<void>
@@ -123,6 +125,7 @@ export function ScreenStructureEditor({
   editTitle,
   itemLabel,
   allowDelete = true,
+  renderRowAction,
   onCreate,
   onUpdate,
   onDelete,
@@ -378,8 +381,9 @@ export function ScreenStructureEditor({
     col: StructureColumn,
     value: string,
     onChange: (next: string) => void,
-    opts?: { disabled?: boolean; 'aria-label'?: string; size?: 'sm' | 'md' }
+    opts?: { disabled?: boolean; 'aria-label'?: string; size?: 'sm' | 'md'; fill?: boolean }
   ) => {
+    const fill = opts?.fill ?? false
     if (col.options && col.options.length > 0) {
       const base = col.options.map((o) => ({ value: optionValue(o), label: optionLabel(o) }))
       const known = new Set(base.map((o) => o.value))
@@ -391,8 +395,8 @@ export function ScreenStructureEditor({
           value={value || optionValue(col.options[0])}
           onValueChange={onChange}
           disabled={opts?.disabled}
-          size={opts?.size ?? 'sm'}
-          className="w-full"
+          size={opts?.size ?? 'md'}
+          className={fill ? 'w-full' : 'min-w-[200px]'}
         />
       )
     }
@@ -402,8 +406,8 @@ export function ScreenStructureEditor({
         onChange={(e) => onChange(e.target.value)}
         placeholder={col.placeholder}
         aria-label={opts?.['aria-label']}
-        fullWidth
-        size={opts?.size ?? 'sm'}
+        fullWidth={fill}
+        size={opts?.size ?? 'md'}
         disabled={opts?.disabled}
       />
     )
@@ -501,18 +505,21 @@ export function ScreenStructureEditor({
                     </div>
                   ) : null}
                 </div>
+                {renderRowAction ? (
+                  <div className="shrink-0 self-start">{renderRowAction(item)}</div>
+                ) : null}
               </li>
             )
           })}
         </ol>
       )}
 
-      {/* Edit existing — spreadsheet modal */}
+      {/* Edit existing — stacked fields so text is not clipped in table cells */}
       <Modal
         open={editOpen}
         onClose={closeEditModal}
         title={editTitle}
-        size="2xl"
+        size="xl"
         actions={[
           { label: 'Close', onClick: closeEditModal, variant: 'ghost' },
           ...(dirtyCount > 0
@@ -528,78 +535,79 @@ export function ScreenStructureEditor({
       >
         <div className="space-y-3">
           <Typography variant="small" tone="muted">
-            Edit cells like Excel. Save each dirty row or use Save all.
+            Each item is a full-width form. Save a row or use Save all.
           </Typography>
-          <DataTable
-            className="max-h-[min(60vh,520px)] border border-neutral-200"
-            tableClassName="min-w-[480px]"
-            ariaLabel={editTitle}
-            rows={rows}
-            rowKey={(row) => row.id}
-            rowClassName={(row) => cn(row.dirty && 'bg-amber-50/50', row.error && 'bg-red-50/60')}
-            columns={[
-              { id: 'index', header: '#', cell: (_row, index) => index + 1, width: '48px' },
-              ...columns.map((col) => ({
-                id: col.key,
-                header: `${col.label}${col.required ? ' *' : ''}`,
-                kind: /code|key/i.test(col.key) ? ('code' as const) : undefined,
-                cell: (row: EditRow, index: number) =>
-                  col.lockedOnExisting ? (
-                    <span className="block truncate py-1.5 text-neutral-600">
-                      {row.values[col.key] || '—'}
-                    </span>
-                  ) : (
-                    renderValueControl(
-                      col,
-                      row.draft[col.key] ?? '',
-                      (next) => updateDraftCell(row.id, col.key, next),
-                      {
-                        disabled: row.saving,
-                        'aria-label': `${col.label} row ${index + 1}`,
-                        size: 'sm',
-                      }
-                    )
-                  ),
-              })),
-              {
-                id: 'actions',
-                header: '',
-                width: '112px',
-                cell: (row) => (
-                  <div>
-                    <div className="flex items-center gap-0.5">
-                      {row.dirty ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={row.saving}
-                          loading={row.saving}
-                          onClick={() => void saveRow(row)}
-                        >
-                          Save
-                        </Button>
-                      ) : null}
-                      {allowDelete ? (
-                        <button
-                          type="button"
-                          className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
-                          aria-label={`Delete ${itemLabel}`}
-                          onClick={() => setDeleteTarget(row)}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      ) : null}
-                    </div>
-                    {row.error ? (
-                      <Typography variant="caption" tone="error" className="mt-0.5 block">
-                        {row.error}
-                      </Typography>
+          <div className="space-y-6">
+            {rows.map((row, index) => (
+              <div
+                key={row.id}
+                className={cn(
+                  'space-y-3 border-b border-neutral-200 pb-6 last:border-b-0 last:pb-0',
+                  row.error && 'border-error/40'
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <Typography variant="caption" tone="muted" className="tabular-nums">
+                    {index + 1}
+                    {row.dirty ? ' · unsaved' : ''}
+                  </Typography>
+                  <div className="flex items-center gap-1">
+                    {row.dirty ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={row.saving}
+                        loading={row.saving}
+                        onClick={() => void saveRow(row)}
+                      >
+                        Save
+                      </Button>
+                    ) : null}
+                    {allowDelete ? (
+                      <button
+                        type="button"
+                        className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
+                        aria-label={`Delete ${itemLabel}`}
+                        onClick={() => setDeleteTarget(row)}
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     ) : null}
                   </div>
-                ),
-              },
-            ]}
-          />
+                </div>
+                {columns.map((col) => (
+                  <div key={col.key}>
+                    <Typography variant="small" className="mb-1.5">
+                      {col.label}
+                      {col.required ? ' *' : ''}
+                    </Typography>
+                    {col.lockedOnExisting ? (
+                      <Typography variant="small" className="py-1.5 text-neutral-600">
+                        {row.values[col.key] || '—'}
+                      </Typography>
+                    ) : (
+                      renderValueControl(
+                        col,
+                        row.draft[col.key] ?? '',
+                        (next) => updateDraftCell(row.id, col.key, next),
+                        {
+                          disabled: row.saving,
+                          'aria-label': `${col.label} row ${index + 1}`,
+                          size: 'md',
+                          fill: true,
+                        }
+                      )
+                    )}
+                  </div>
+                ))}
+                {row.error ? (
+                  <Typography variant="caption" tone="error">
+                    {row.error}
+                  </Typography>
+                ) : null}
+              </div>
+            ))}
+          </div>
         </div>
       </Modal>
 
@@ -632,17 +640,19 @@ export function ScreenStructureEditor({
           ) : null}
           <DataTable
             className="max-h-[min(60vh,520px)] border border-neutral-200"
-            tableClassName="min-w-[480px]"
+            tableClassName="min-w-max table-auto"
             ariaLabel={addTitle}
             rows={drafts}
             rowKey={(draft) => draft.id}
             rowClassName={(draft) => cn(draft.error && 'bg-red-50/60')}
             columns={[
-              { id: 'index', header: '#', cell: (_draft, index) => index + 1, width: '48px' },
+              { id: 'index', header: '#', cell: (_draft, index) => index + 1, width: '48px', truncate: false },
               ...columns.map((col) => ({
                 id: col.key,
                 header: `${col.label}${col.required ? ' *' : ''}`,
                 kind: /code|key/i.test(col.key) ? ('code' as const) : undefined,
+                truncate: false,
+                interactive: true,
                 cell: (draft: DraftRow, index: number) =>
                   renderValueControl(
                     col,
@@ -655,7 +665,7 @@ export function ScreenStructureEditor({
                             : item
                         )
                       ),
-                    { 'aria-label': `${col.label} draft ${index + 1}`, size: 'sm' }
+                    { 'aria-label': `${col.label} draft ${index + 1}`, size: 'md' }
                   ),
               })),
               {
@@ -743,7 +753,7 @@ export function ScreenStructureEditor({
                 col,
                 singleValues[col.key] ?? '',
                 (next) => setSingleValues((prev) => ({ ...prev, [col.key]: next })),
-                { size: 'md', 'aria-label': col.label }
+                { size: 'md', 'aria-label': col.label, fill: true }
               )}
             </div>
           ))}

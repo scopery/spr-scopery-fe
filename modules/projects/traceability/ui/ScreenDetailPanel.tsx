@@ -315,23 +315,12 @@ export function ScreenDetailPanel({
               })
             }}
             onDelete={removeField}
+            renderRowAction={(item) => (
+              <Button size="sm" variant="ghost" onClick={() => setSpecFieldId(item.id)}>
+                Bind
+              </Button>
+            )}
           />
-          {fields.length > 0 ? (
-            <div className="space-y-1">
-              <Typography variant="caption" tone="muted">
-                Bind component, data column, and validations
-              </Typography>
-              <ul className="space-y-1">
-                {fields.map((f) => (
-                  <li key={f.id}>
-                    <Button size="sm" variant="ghost" onClick={() => setSpecFieldId(f.id)}>
-                      Configure {f.fieldKey}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
         </Stack>
       ) : null}
 

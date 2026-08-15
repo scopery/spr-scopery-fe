@@ -97,7 +97,7 @@ export function FieldSpecDrawer({
       open={open}
       onClose={onClose}
       title={field ? `Field · ${field.fieldKey}` : 'Field'}
-      size="lg"
+      size="xl"
       actions={[
         { label: 'Close', onClick: onClose, variant: 'ghost' },
         { label: 'Save binding', onClick: () => void handleSave(), variant: 'primary', disabled: saving || !field },

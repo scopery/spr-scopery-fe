@@ -42,7 +42,7 @@ export const SCREEN_STRUCTURE_TAB_HINTS: Record<
 > = {
   sections: 'Group fields into blocks (Main form, Footer). These become section rows on the Defines sheet.',
   fields:
-    'Add each control, then use Configure to bind a component, data column, and extra validations. Required and max length go to Defines.',
+    'Add each control. Bind on the row opens component, data column, and extra validations. Required and max length go to Defines.',
   modes: 'Add CREATE / VIEW / EDIT (and SEARCH or DIALOG if needed) before the mode matrix. Missing modes show empty 〇 columns.',
   matrix:
     'Per field and mode: visible, readonly, required. Save replaces the whole set. Visible fields get 〇 on Defines (Create SC / View SC / Edit SC).',
@@ -62,7 +62,7 @@ export const SCREEN_IMPORT_WORKFLOW_STEPS = [
 
 export const SCREEN_SPEC_WORKFLOW_STEPS = [
   'On Browse, spec catalog first: entity Columns, then component option source (NONE / STATIC / DYNAMIC).',
-  'Select a screen. Add Modes, then Sections and Fields. Configure each field (component, column, validations).',
+  'Select a screen. Add Modes, then Sections and Fields. Bind each field row (component, column, validations).',
   'Fill Mode matrix, then Processes and Events.',
   'To load many screens at once, use Import → Screens (Excel = shell, JSON = full spec). Then export from the inspector or Spec docs.',
 ]
