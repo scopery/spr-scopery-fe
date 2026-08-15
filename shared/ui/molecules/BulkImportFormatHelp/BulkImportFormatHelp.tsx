@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useId, useState } from 'react'
-import { Check, Copy } from 'lucide-react'
+import { Check, CircleHelp, Copy } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/utils/cn'
 import {
@@ -56,11 +56,11 @@ function FieldTable({ fields }: { fields: readonly BulkImportFieldGuide[] }) {
 }
 
 /**
- * Collapsed JSON import format guide with Copy. Starts closed — click the summary to expand.
+ * Collapsed JSON import format guide. Trigger is a Lucide help icon — click to expand.
  * Pass a domain-specific `guide` from the calling module (design-system stays domain-free).
  */
-export const BulkImportFormatHelp = React.forwardRef<HTMLDetailsElement, BulkImportFormatHelpProps>(
-  ({ guide, className, defaultOpen = false }, ref) => {
+export const BulkImportFormatHelp = React.forwardRef<HTMLDivElement, BulkImportFormatHelpProps>(
+  ({ guide, className, defaultOpen = false, label }, ref) => {
     const [open, setOpen] = useState(defaultOpen)
     const [copied, setCopied] = useState(false)
     const panelId = useId()
@@ -83,23 +83,30 @@ export const BulkImportFormatHelp = React.forwardRef<HTMLDetailsElement, BulkImp
     }, [guideText])
 
     return (
-      <details
-        ref={ref}
-        className={cn('border border-neutral-200 bg-neutral-50 px-3 py-2', className)}
-        open={open}
-        onToggle={(event) => setOpen((event.currentTarget as HTMLDetailsElement).open)}
-      >
-        <summary
-          className="cursor-pointer text-sm font-medium text-neutral-800"
-          aria-controls={panelId}
-        >
-          JSON format guide
-        </summary>
+      <div ref={ref} className={cn(className)}>
+        <div className="flex items-center gap-1">
+          {label}
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls={panelId}
+            aria-label="JSON format guide"
+            onClick={() => setOpen((v) => !v)}
+            className={cn(
+              'inline-flex h-6 w-6 shrink-0 items-center justify-center text-neutral-400 transition-colors',
+              'hover:text-neutral-700',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
+              open && 'text-neutral-700'
+            )}
+          >
+            <CircleHelp size={16} strokeWidth={1.75} aria-hidden />
+          </button>
+        </div>
 
         {open ? (
           <div
             id={panelId}
-            className="mt-2 max-h-[min(60vh,36rem)] space-y-3 overflow-y-auto"
+            className="mt-2 max-h-[min(60vh,36rem)] space-y-3 overflow-y-auto border border-neutral-200 bg-neutral-50 px-3 py-2"
             role="region"
             aria-label={`${guide.entityLabel} JSON import format guide`}
           >
@@ -175,7 +182,7 @@ export const BulkImportFormatHelp = React.forwardRef<HTMLDetailsElement, BulkImp
             </pre>
           </div>
         ) : null}
-      </details>
+      </div>
     )
   }
 )

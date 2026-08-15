@@ -7,13 +7,13 @@ export const ENTITY_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
   notes: [
     'Payload shape: { "items": [ DataEntity, ... ] }. A bare array is also accepted.',
     'POST …/applications/{appId}/data-entities/import-full — one async job creates each entity, then its columns.',
-    'projectId is required on each item, or set Default project ID in the dialog.',
+    'projectId is required on each item, or select a project in the dialog.',
     'fields[] is optional. Omit it to create a catalog table only.',
     'Excel / Bulk add still create the catalog shell only (code, name, tableName, description).',
     'Unknown keys are rejected. Duplicate entity code or columnName in the same file is rejected on the client.',
   ],
   fields: [
-    { name: 'projectId', required: true, type: 'uuid', description: 'Owning project. Can come from Default project ID.' },
+    { name: 'projectId', required: true, type: 'uuid', description: 'Owning project. Omit only if a project is selected in the dialog.' },
     { name: 'code', required: true, type: 'string', description: 'Entity code (e.g. CART_ITEM).' },
     { name: 'name', required: true, type: 'string', description: 'Entity display name.' },
     { name: 'description', required: false, type: 'string', description: 'Optional description.' },

@@ -29,7 +29,7 @@ export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
   maxItems: SCREEN_IMPORT_FULL_MAX_ITEMS,
   notes: [
     'Payload shape: { "items": [ Screen, ... ] }. A bare array is also accepted. Each Screen is one catalog screen plus nested spec objects listed below.',
-    'How to import: (1) Create components (fields / API links) on Browse first if fields use componentCode. (2) Put a project UUID in Default project ID, or set projectId on every Screen. (3) Paste JSON. (4) Submit — 202 job; this page polls per-screen success/failure.',
+    'How to import: (1) Create components (fields / API links) on Browse first if fields use componentCode. (2) Select a project, or set projectId on every Screen. (3) Paste JSON. (4) Submit — 202 job; this page polls per-screen success/failure.',
     'Max 200 screens per job. Duplicate screen code in the same file is rejected on the client.',
     'Do not send UUIDs for fields, modes, processes, or events. Keys are codes and fieldKey strings. There is no sections array — only fields[].',
     'Do not send componentFieldId. Bind a component to a section on Browse to copy fields; the API sets that id. componentCode only links an existing catalog component. Component → API roles are not in this payload.',
@@ -41,7 +41,7 @@ export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
       name: 'projectId',
       required: true,
       type: 'uuid',
-      description: 'Project UUID that owns the screen. Omit only if Default project ID is filled on this page.',
+      description: 'Project that owns the screen. Omit only if a project is selected on this page.',
     },
     {
       name: 'code',

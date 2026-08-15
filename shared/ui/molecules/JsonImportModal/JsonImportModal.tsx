@@ -212,9 +212,16 @@ export function JsonImportModal<T>({
         {progress}
 
         <div>
-          <Typography variant="small" className="mb-1.5">
-            JSON payload
-          </Typography>
+          <BulkImportFormatHelp
+            key={open ? 'open' : 'closed'}
+            guide={guide}
+            className="mb-1.5"
+            label={
+              <Typography variant="small" as="span">
+                JSON payload
+              </Typography>
+            }
+          />
           <Textarea
             rows={14}
             fullWidth
@@ -267,8 +274,6 @@ export function JsonImportModal<T>({
             ) : null}
           </div>
         ) : null}
-
-        <BulkImportFormatHelp key={open ? 'open' : 'closed'} guide={guide} />
       </div>
     </Modal>
   )

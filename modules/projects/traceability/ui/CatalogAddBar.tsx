@@ -40,6 +40,7 @@ interface CatalogCreateInput {
 }
 
 interface CatalogAddBarProps {
+  workspaceId: string
   /** Create one item — prefer `{ refresh: false }` in the hook; batch refreshes once. */
   onCreate: (input: CatalogCreateInput) => Promise<void>
   onSubmitBulk: (kind: CatalogAddKind, items: CatalogBulkCreateInput[]) => Promise<BulkJobResponse>
@@ -50,6 +51,7 @@ interface CatalogAddBarProps {
 }
 
 export function CatalogAddBar({
+  workspaceId,
   onCreate,
   onSubmitBulk,
   onSubmitScreenFullSpec,
@@ -174,6 +176,7 @@ export function CatalogAddBar({
         open={modal?.mode === 'json'}
         kind={activeKind}
         title={modalTitle}
+        workspaceId={workspaceId}
         onClose={() => setModal(null)}
         onSubmitBulk={(items) => onSubmitBulk(activeKind, items)}
         onSubmitScreenFullSpec={onSubmitScreenFullSpec}

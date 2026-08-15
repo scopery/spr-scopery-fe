@@ -2,9 +2,9 @@
 
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Button, BulkImportFormatHelp, Input, JsonImportModal, Stack, Typography } from '@/shared/ui'
+import { Button, BulkImportFormatHelp, JsonImportModal, Stack, Typography } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
-import { isUuid } from '@/shared/lib/jsonImportValidation'
+import { ProjectSearchSelect } from '@/modules/projects/project'
 import { useBackgroundJsonBulkImport } from '@/shared/lib/useBackgroundJsonBulkImport'
 import { SCREEN_IMPORT_FULL_MAX_ITEMS, type ScreenImportItem } from '../../domain/model/screen-spec-import'
 import { validateScreenFullSpecJsonImport } from '../../domain/rules/screen-spec-import.validation'
@@ -29,7 +29,7 @@ export function ScreenFullSpecJsonImportPanel({
     onBatchComplete: onComplete,
   })
 
-  const projectHint = defaultProjectId.trim() && isUuid(defaultProjectId.trim()) ? defaultProjectId.trim() : null
+  const projectHint = defaultProjectId.trim() || null
 
   const submit = async (items: ScreenImportItem[]) => {
     lastItemsRef.current = items
@@ -60,20 +60,13 @@ export function ScreenFullSpecJsonImportPanel({
         Up to {SCREEN_IMPORT_FULL_MAX_ITEMS} screens per job. Catalog Excel above does not import
         fields.
       </Typography>
-      <Input
-        size="sm"
-        fullWidth
-        label="Default project ID"
-        helperText="Used when JSON items omit projectId (required by the API)."
+      <ProjectSearchSelect
+        workspaceId={workspaceId}
         value={defaultProjectId}
-        onChange={(e) => setDefaultProjectId(e.target.value)}
-        placeholder="uuid"
+        onChange={setDefaultProjectId}
+        autoSelectSingle
+        helperText="Used when JSON items omit projectId."
       />
-      {defaultProjectId.trim() && !projectHint ? (
-        <Typography variant="caption" tone="error">
-          Default project ID must be a UUID.
-        </Typography>
-      ) : null}
       <div>
         <Button size="sm" onClick={() => setOpen(true)}>
           Paste JSON

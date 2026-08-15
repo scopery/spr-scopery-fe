@@ -1,11 +1,11 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { Button, Input, JsonImportModal, Typography } from '@/shared/ui'
+import { Button, JsonImportModal, Typography } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
 import { BULK_MAX_ITEMS, type BulkJobResponse } from '@/shared/lib/bulkJobs'
-import { isUuid } from '@/shared/lib/jsonImportValidation'
 import { useBackgroundJsonBulkImport } from '@/shared/lib/useBackgroundJsonBulkImport'
+import { ProjectSearchSelect } from '@/modules/projects/project'
 import {
   COMPONENT_FULL_SPEC_IMPORT_GUIDE,
   COMPONENT_IMPORT_FULL_MAX_ITEMS,
@@ -31,6 +31,7 @@ interface Props {
   open: boolean
   kind: CatalogAddKind
   title: string
+  workspaceId?: string
   onClose: () => void
   onSubmitBulk: (items: CatalogBulkCreateInput[]) => Promise<BulkJobResponse>
   /** Screen JSON uses import-full (modes, fields, processes, events). */
@@ -46,6 +47,7 @@ export function CatalogJsonImportModal({
   open,
   kind,
   title,
+  workspaceId,
   onClose,
   onSubmitBulk,
   onSubmitScreenFullSpec,
@@ -53,10 +55,11 @@ export function CatalogJsonImportModal({
   onSubmitEntityFullSpec,
   onBatchComplete,
 }: Props) {
-  if (kind === 'SCREEN' && onSubmitScreenFullSpec) {
+  if (kind === 'SCREEN' && onSubmitScreenFullSpec && workspaceId) {
     return (
       <ScreenFullSpecFromCatalogModal
         open={open}
+        workspaceId={workspaceId}
         onClose={onClose}
         onSubmit={onSubmitScreenFullSpec}
         onBatchComplete={onBatchComplete}
@@ -73,10 +76,11 @@ export function CatalogJsonImportModal({
       />
     )
   }
-  if (kind === 'DATA_ENTITY' && onSubmitEntityFullSpec) {
+  if (kind === 'DATA_ENTITY' && onSubmitEntityFullSpec && workspaceId) {
     return (
       <EntityFullSpecFromCatalogModal
         open={open}
+        workspaceId={workspaceId}
         onClose={onClose}
         onSubmit={onSubmitEntityFullSpec}
         onBatchComplete={onBatchComplete}
@@ -170,11 +174,13 @@ function CatalogShellJsonModal({
 
 function ScreenFullSpecFromCatalogModal({
   open,
+  workspaceId,
   onClose,
   onSubmit,
   onBatchComplete,
 }: {
   open: boolean
+  workspaceId: string
   onClose: () => void
   onSubmit: (items: ScreenImportItem[]) => Promise<BulkJobResponse>
   onBatchComplete?: () => Promise<void> | void
@@ -185,8 +191,7 @@ function ScreenFullSpecFromCatalogModal({
     entityLabel: 'screen',
     onBatchComplete,
   })
-  const projectHint =
-    defaultProjectId.trim() && isUuid(defaultProjectId.trim()) ? defaultProjectId.trim() : null
+  const projectHint = defaultProjectId.trim() || null
 
   const rememberAndWireRetries = (items: ScreenImportItem[]) => {
     lastItemsRef.current = items
@@ -214,22 +219,13 @@ function ScreenFullSpecFromCatalogModal({
         description="Paste screens with nested modes, fields, validations, processes, and events. Client checks the shape, then POST …/screens/import-full."
         maxItems={SCREEN_IMPORT_FULL_MAX_ITEMS}
         extra={
-          <div>
-            <Input
-              size="sm"
-              fullWidth
-              label="Default project ID"
-              helperText="Used when JSON items omit projectId (required by the API)."
-              value={defaultProjectId}
-              onChange={(e) => setDefaultProjectId(e.target.value)}
-              placeholder="uuid"
-            />
-            {defaultProjectId.trim() && !projectHint ? (
-              <Typography variant="caption" tone="error" className="mt-1 block">
-                Default project ID must be a UUID.
-              </Typography>
-            ) : null}
-          </div>
+          <ProjectSearchSelect
+            workspaceId={workspaceId}
+            value={defaultProjectId}
+            onChange={setDefaultProjectId}
+            autoSelectSingle
+            helperText="Used when JSON items omit projectId."
+          />
         }
         validate={(raw) => validateScreenFullSpecJsonImport(raw, projectHint)}
         onImport={async (items, { markSubmitted }) => {
@@ -306,11 +302,13 @@ function ComponentFullSpecFromCatalogModal({
 
 function EntityFullSpecFromCatalogModal({
   open,
+  workspaceId,
   onClose,
   onSubmit,
   onBatchComplete,
 }: {
   open: boolean
+  workspaceId: string
   onClose: () => void
   onSubmit: (items: EntityImportItem[]) => Promise<BulkJobResponse>
   onBatchComplete?: () => Promise<void> | void
@@ -321,8 +319,7 @@ function EntityFullSpecFromCatalogModal({
     entityLabel: 'data entity',
     onBatchComplete,
   })
-  const projectHint =
-    defaultProjectId.trim() && isUuid(defaultProjectId.trim()) ? defaultProjectId.trim() : null
+  const projectHint = defaultProjectId.trim() || null
 
   const rememberAndWireRetries = (items: EntityImportItem[]) => {
     lastItemsRef.current = items
@@ -349,22 +346,13 @@ function EntityFullSpecFromCatalogModal({
         description="Paste entities with optional fields[]. Client checks the shape, then POST …/data-entities/import-full."
         maxItems={ENTITY_IMPORT_FULL_MAX_ITEMS}
         extra={
-          <div>
-            <Input
-              size="sm"
-              fullWidth
-              label="Default project ID"
-              helperText="Used when JSON items omit projectId (required by the API)."
-              value={defaultProjectId}
-              onChange={(e) => setDefaultProjectId(e.target.value)}
-              placeholder="uuid"
-            />
-            {defaultProjectId.trim() && !projectHint ? (
-              <Typography variant="caption" tone="error" className="mt-1 block">
-                Default project ID must be a UUID.
-              </Typography>
-            ) : null}
-          </div>
+          <ProjectSearchSelect
+            workspaceId={workspaceId}
+            value={defaultProjectId}
+            onChange={setDefaultProjectId}
+            autoSelectSingle
+            helperText="Used when JSON items omit projectId."
+          />
         }
         validate={(raw) => validateEntityFullSpecJsonImport(raw, projectHint)}
         onImport={async (items, { markSubmitted }) => {
@@ -418,9 +406,11 @@ export function CatalogComponentJsonImportPanel({
 }
 
 export function CatalogEntityJsonImportPanel({
+  workspaceId,
   onSubmit,
   onComplete,
 }: {
+  workspaceId: string
   onSubmit: (items: EntityImportItem[]) => Promise<BulkJobResponse>
   onComplete?: () => Promise<void> | void
 }) {
@@ -441,6 +431,7 @@ export function CatalogEntityJsonImportPanel({
         open={open}
         kind="DATA_ENTITY"
         title="Data entities"
+        workspaceId={workspaceId}
         onClose={() => setOpen(false)}
         onSubmitBulk={async () => {
           throw new Error('Data entity JSON uses import-full')

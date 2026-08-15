@@ -498,6 +498,7 @@ export function ApplicationWorkbenchView() {
                     }
                     toolbarAction={
                       <CatalogAddBar
+                        workspaceId={workspaceId}
                         onCreate={async ({ kind, code, name, extra }) => {
                           const opts = { refresh: false as const }
                           switch (kind) {
@@ -793,6 +794,7 @@ export function ApplicationWorkbenchView() {
                       onComplete={() => void refetch({ silent: true })}
                     />
                     <CatalogEntityJsonImportPanel
+                      workspaceId={workspaceId}
                       onSubmit={(items) =>
                         importFullDataEntities(workspaceId, applicationId, items)
                       }
