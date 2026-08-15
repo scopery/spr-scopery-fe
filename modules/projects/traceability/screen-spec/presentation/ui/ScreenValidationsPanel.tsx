@@ -116,7 +116,7 @@ export function ScreenValidationsPanel({
             </div>
           ) : (
             <Typography variant="small" tone="muted">
-              Select a field to add or review rules.
+              Select a field to review rules.
             </Typography>
           )}
         </div>

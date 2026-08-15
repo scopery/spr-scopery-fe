@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { Button, Input, Select, Stack, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import {
@@ -16,6 +17,24 @@ function ruleSummary(rule: ScreenFieldValidation): string {
   return rule.errorMessage ? `${mode} · ${rule.errorMessage}` : mode
 }
 
+function readCondition(json: unknown): { field: string; op: string; value: string } {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) {
+    return { field: '', op: '', value: '' }
+  }
+  const o = json as Record<string, unknown>
+  return {
+    field: typeof o.fieldKey === 'string' ? o.fieldKey : '',
+    op: typeof o.op === 'string' ? o.op : '',
+    value: o.value == null ? '' : String(o.value),
+  }
+}
+
+function formatJson(value: unknown): string {
+  if (value == null) return ''
+  if (typeof value === 'string') return value
+  return JSON.stringify(value, null, 2)
+}
+
 export function FieldValidationsEditor({
   workspaceId,
   screenId,
@@ -28,17 +47,18 @@ export function FieldValidationsEditor({
   screenId: string
   fieldId: string
   modes: ScreenMode[]
-  /** `stack` for the narrow screen inspector; `split` for the field drawer. */
+  /** `stack` for the screen inspector; `split` for the field drawer. */
   layout?: 'split' | 'stack'
   onChanged?: () => void
 }) {
   const { items: ruleTypes, loading: typesLoading } = useValidationRuleTypes(workspaceId)
-  const { items, error, createValidation, removeValidation } = useFieldValidations(
+  const { items, error, createValidation, updateValidation, removeValidation } = useFieldValidations(
     workspaceId,
     screenId,
     fieldId
   )
-  const [selectedId, setSelectedId] = useState<string | 'add'>('add')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [pane, setPane] = useState<'view' | 'add' | 'edit'>('view')
   const [ruleTypeId, setRuleTypeId] = useState('')
   const [modeId, setModeId] = useState('all')
   const [errorMessage, setErrorMessage] = useState('')
@@ -53,6 +73,12 @@ export function FieldValidationsEditor({
   const schema = useMemo(() => parseParamSchema(selectedType?.paramSchemaJson), [selectedType])
   const selectedRule = items.find((rule) => rule.id === selectedId) ?? null
 
+  useEffect(() => {
+    if (selectedId && items.some((rule) => rule.id === selectedId)) return
+    setSelectedId(items[0]?.id ?? null)
+    setPane('view')
+  }, [items, selectedId])
+
   const onRuleTypeChange = (id: string) => {
     setRuleTypeId(id)
     const next = ruleTypes.find((t) => t.id === id)
@@ -60,7 +86,7 @@ export function FieldValidationsEditor({
     if (next?.defaultMessage && !errorMessage) setErrorMessage(next.defaultMessage)
   }
 
-  const resetAddForm = () => {
+  const resetForm = () => {
     setRuleTypeId('')
     setModeId('all')
     setErrorMessage('')
@@ -71,28 +97,49 @@ export function FieldValidationsEditor({
     setFormError(null)
   }
 
-  const handleAdd = async () => {
+  const fillFormFromRule = (rule: ScreenFieldValidation) => {
+    const typeId = rule.ruleTypeId ?? ruleTypes.find((t) => t.code === rule.ruleTypeCode)?.id ?? ''
+    const next = ruleTypes.find((t) => t.id === typeId)
+    setRuleTypeId(typeId)
+    setParamValues(paramsToFormValues(parseParamSchema(next?.paramSchemaJson), rule.ruleParamJson))
+    setModeId(rule.modeId ?? 'all')
+    setErrorMessage(rule.errorMessage ?? '')
+    const cond = readCondition(rule.conditionJson)
+    setApplyField(cond.field)
+    setApplyOp(cond.op)
+    setApplyValue(cond.value)
+    setFormError(null)
+  }
+
+  const buildBody = () => ({
+    ruleTypeId,
+    modeId: modeId === 'all' || !modeId ? null : modeId,
+    ruleParamJson: coerceRuleParamJson(schema, paramValues),
+    conditionJson: applyField.trim()
+      ? {
+          fieldKey: applyField.trim(),
+          op: applyOp.trim() || 'IS_NOT_EMPTY',
+          ...(applyValue.trim() ? { value: applyValue.trim() } : {}),
+        }
+      : null,
+    errorMessage: errorMessage.trim() || null,
+  })
+
+  const handleSave = async () => {
     if (!ruleTypeId) return
     setSaving(true)
     setFormError(null)
     try {
-      await createValidation({
-        ruleTypeId,
-        modeId: modeId === 'all' || !modeId ? null : modeId,
-        ruleParamJson: coerceRuleParamJson(schema, paramValues),
-        conditionJson: applyField.trim()
-          ? {
-              fieldKey: applyField.trim(),
-              op: applyOp.trim() || 'IS_NOT_EMPTY',
-              ...(applyValue.trim() ? { value: applyValue.trim() } : {}),
-            }
-          : null,
-        errorMessage: errorMessage.trim() || null,
-      })
-      resetAddForm()
+      if (pane === 'edit' && selectedRule) {
+        await updateValidation(selectedRule.id, buildBody())
+      } else {
+        await createValidation(buildBody())
+      }
+      resetForm()
+      setPane('view')
       onChanged?.()
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Failed to add rule')
+      setFormError(err instanceof Error ? err.message : 'Failed to save rule')
     } finally {
       setSaving(false)
     }
@@ -100,14 +147,14 @@ export function FieldValidationsEditor({
 
   const handleRemove = async (id: string) => {
     await removeValidation(id)
-    setSelectedId('add')
+    setPane('view')
     onChanged?.()
   }
 
-  const addForm = (
+  const form = (
     <Stack direction="vertical" spacing="sm">
       <Typography weight="medium" variant="small">
-        New validation rule
+        {pane === 'edit' ? 'Edit validation rule' : 'New validation rule'}
       </Typography>
       <div>
         <Typography variant="caption" tone="muted" className="mb-1 block">
@@ -192,40 +239,81 @@ export function FieldValidationsEditor({
           {formError}
         </Typography>
       ) : null}
-      <Button size="sm" disabled={!ruleTypeId || saving} loading={saving} onClick={() => void handleAdd()}>
-        Add rule
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" disabled={!ruleTypeId || saving} loading={saving} onClick={() => void handleSave()}>
+          {pane === 'edit' ? 'Save rule' : 'Add rule'}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={saving}
+          onClick={() => {
+            resetForm()
+            setPane('view')
+          }}
+        >
+          Cancel
+        </Button>
+      </div>
     </Stack>
   )
 
   const ruleDetail = selectedRule ? (
     <Stack direction="vertical" spacing="sm">
       <Typography weight="medium">{selectedRule.ruleTypeCode || 'Rule'}</Typography>
-      <Typography variant="small" tone="muted">
-        {ruleSummary(selectedRule)}
-      </Typography>
-      {selectedRule.ruleParamJson != null ? (
-        <Typography variant="caption" className="whitespace-pre-wrap break-words font-mono">
-          {typeof selectedRule.ruleParamJson === 'string'
-            ? selectedRule.ruleParamJson
-            : JSON.stringify(selectedRule.ruleParamJson, null, 2)}
+      <div>
+        <Typography variant="caption" tone="muted" className="mb-1 block">
+          Mode
         </Typography>
+        <Typography variant="small">{selectedRule.modeCode ?? 'All modes'}</Typography>
+      </div>
+      {selectedRule.errorMessage ? (
+        <div>
+          <Typography variant="caption" tone="muted" className="mb-1 block">
+            Error message
+          </Typography>
+          <Typography variant="small">{selectedRule.errorMessage}</Typography>
+        </div>
       ) : null}
-      <Button size="sm" variant="ghost" onClick={() => void handleRemove(selectedRule.id)}>
-        Remove rule
-      </Button>
+      {selectedRule.ruleParamJson != null ? (
+        <div>
+          <Typography variant="caption" tone="muted" className="mb-1 block">
+            Parameters
+          </Typography>
+          <Typography variant="caption" className="whitespace-pre-wrap break-words font-mono">
+            {formatJson(selectedRule.ruleParamJson)}
+          </Typography>
+        </div>
+      ) : null}
+      {selectedRule.conditionJson != null ? (
+        <div>
+          <Typography variant="caption" tone="muted" className="mb-1 block">
+            Apply when
+          </Typography>
+          <Typography variant="caption" className="whitespace-pre-wrap break-words font-mono">
+            {formatJson(selectedRule.conditionJson)}
+          </Typography>
+        </div>
+      ) : null}
     </Stack>
-  ) : null
+  ) : (
+    <Typography variant="small" tone="muted">
+      {items.length === 0 ? 'No rules yet. Use Add to create one.' : 'Select a rule to review.'}
+    </Typography>
+  )
 
   const ruleList = (
     <ul className="divide-y divide-neutral-100">
       {items.map((rule) => {
-        const active = selectedId === rule.id
+        const active = selectedId === rule.id && pane === 'view'
         return (
           <li key={rule.id}>
             <button
               type="button"
-              onClick={() => setSelectedId(rule.id)}
+              onClick={() => {
+                setSelectedId(rule.id)
+                setPane('view')
+              }}
               className={cn(
                 'w-full px-3 py-2 text-left',
                 active ? 'bg-white' : 'hover:bg-white'
@@ -242,74 +330,75 @@ export function FieldValidationsEditor({
     </ul>
   )
 
-  if (layout === 'stack') {
-    return (
-      <div className="min-w-0 space-y-3">
-        {error ? (
-          <Typography tone="error" variant="small">
-            {error}
-          </Typography>
-        ) : null}
-        {items.length > 0 ? (
-          <div className="border border-neutral-200">
-            {ruleList}
-          </div>
-        ) : (
-          <Typography variant="caption" tone="muted">
-            No rules yet.
-          </Typography>
-        )}
-        {selectedRule ? ruleDetail : addForm}
-        {selectedRule ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              setSelectedId('add')
-              resetAddForm()
-            }}
-          >
-            Add another rule
-          </Button>
-        ) : null}
-      </div>
-    )
-  }
+  const toolbar = (
+    <div className="flex flex-wrap justify-end gap-2">
+      <Button
+        size="sm"
+        variant="secondary"
+        onClick={() => {
+          resetForm()
+          setPane('add')
+        }}
+      >
+        <Plus size={14} className="mr-1 inline" />
+        Add
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={!selectedRule || pane !== 'view'}
+        onClick={() => {
+          if (!selectedRule) return
+          fillFormFromRule(selectedRule)
+          setPane('edit')
+        }}
+      >
+        <Pencil size={14} className="mr-1 inline" />
+        Edit
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={!selectedRule || pane === 'add'}
+        onClick={() => selectedRule && void handleRemove(selectedRule.id)}
+      >
+        <Trash2 size={14} className="mr-1 inline" />
+        Delete
+      </Button>
+    </div>
+  )
+
+  const detail = pane === 'view' ? ruleDetail : form
 
   return (
-    <div className="flex min-h-[280px] min-w-0 border border-neutral-200">
-      <aside className="flex w-44 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50">
-        <button
-          type="button"
-          onClick={() => {
-            setSelectedId('add')
-            resetAddForm()
-          }}
-          className={cn(
-            'border-b border-neutral-200 px-3 py-2 text-left text-sm',
-            selectedId === 'add' ? 'bg-white text-primary' : 'text-neutral-700 hover:bg-white'
-          )}
-        >
-          Add rule
-        </button>
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          {items.length === 0 ? (
-            <Typography variant="caption" tone="muted" className="px-3 py-2">
-              No rules yet.
-            </Typography>
-          ) : (
-            ruleList
-          )}
-        </div>
-      </aside>
-
-      <div className="min-w-0 flex-1 overflow-y-auto p-md">
-        {error ? (
-          <Typography tone="error" variant="small">
-            {error}
+    <div className="min-w-0 space-y-3">
+      {error ? (
+        <Typography tone="error" variant="small">
+          {error}
+        </Typography>
+      ) : null}
+      {toolbar}
+      <div
+        className={cn(
+          'flex min-w-0 border border-neutral-200',
+          layout === 'split' ? 'min-h-[280px]' : 'min-h-[240px]'
+        )}
+      >
+        <aside className="flex w-40 shrink-0 flex-col border-r border-neutral-200 bg-neutral-50">
+          <Typography variant="caption" tone="muted" className="border-b border-neutral-200 px-3 py-2">
+            Rules
           </Typography>
-        ) : null}
-        {selectedRule ? ruleDetail : addForm}
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {items.length === 0 ? (
+              <Typography variant="caption" tone="muted" className="px-3 py-2">
+                No rules yet.
+              </Typography>
+            ) : (
+              ruleList
+            )}
+          </div>
+        </aside>
+        <div className="min-w-0 flex-1 overflow-y-auto p-md">{detail}</div>
       </div>
     </div>
   )

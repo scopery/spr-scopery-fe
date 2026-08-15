@@ -568,6 +568,7 @@ export function ScreenDetailPanel({
           addTitle="Add actions"
           editTitle="Edit actions"
           itemLabel="action"
+          layout="masterDetail"
           onCreate={async (values) => {
             await createAction({
               actionCode: values.actionCode.trim(),

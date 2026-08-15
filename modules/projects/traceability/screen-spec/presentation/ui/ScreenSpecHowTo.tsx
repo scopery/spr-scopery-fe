@@ -56,14 +56,14 @@ export const SCREEN_STRUCTURE_TAB_HINTS: Record<
     'Components linked to this screen. Unlink deletes copied fields (and their validations / mode config). Fields you added by hand stay.',
   modes: 'Add CREATE / VIEW / EDIT (and SEARCH or DIALOG if needed) before the mode matrix. Missing modes show empty 〇 columns.',
   matrix:
-    'Per field and mode: visible, readonly, required. Save replaces the whole set. Visible fields get 〇 on Defines (Create SC / View SC / Edit SC).',
+    'Pick a field, review visibility per mode, then Edit to change. Save replaces that field mode set. Visible fields get 〇 on Defines.',
   validations:
-    'Pick a field on the left, then add or review rules on the right. Same rules as Configure → Validations on a field row.',
+    'Pick a field, then a rule. The right side is view-only until you Add or Edit. Same rules as Configure → Validations.',
   processes:
-    'Init and data-load steps. Title = heading in Excel; content = Get; source table = Table; condition = Condition.',
+    'Pick a process on the left to read it. Add / Edit open the form. Title = Excel heading; content = Get; source table = Table.',
   events:
-    'User actions (click, submit). Title = heading; trigger / content / condition / navigate become outline rows on the Event sheet.',
-  actions: 'Buttons shown on the screen (Submit, Cancel). Not a separate Excel sheet.',
+    'Pick an event on the left to read it. Add / Edit open the form. Trigger / content / condition / navigate become Event sheet rows.',
+  actions: 'Pick a button on the left to read it. Add / Edit open the form. Not a separate Excel sheet.',
 }
 
 export const SCREEN_IMPORT_WORKFLOW_STEPS = [

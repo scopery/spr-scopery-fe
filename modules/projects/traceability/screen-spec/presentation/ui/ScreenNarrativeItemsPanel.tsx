@@ -80,6 +80,7 @@ export function ScreenProcessItemsPanel({
         addTitle="Add processes"
         editTitle="Edit processes"
         itemLabel="process"
+        layout="masterDetail"
         onCreate={async (values) => {
           await createItem({
             title: values.title.trim(),
@@ -175,6 +176,7 @@ export function ScreenEventItemsPanel({
         addTitle="Add events"
         editTitle="Edit events"
         itemLabel="event"
+        layout="masterDetail"
         onCreate={async (values) => {
           await createItem({
             title: values.title.trim(),
