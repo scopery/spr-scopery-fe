@@ -18,10 +18,19 @@ import {
   ScreenEventItemsPanel,
   ScreenProcessItemsPanel,
 } from '../screen-spec/presentation/ui/ScreenNarrativeItemsPanel'
+import { ScreenValidationsPanel } from '../screen-spec/presentation/ui/ScreenValidationsPanel'
 import type { SpecCatalogComponent } from '../screen-spec/presentation/ui/FieldSpecDrawer'
 import type { SpecCatalogEntity } from '../screen-spec/presentation/ui/ComponentSpecPanel'
 
-type ScreenDetailTab = 'sections' | 'fields' | 'modes' | 'matrix' | 'processes' | 'events' | 'actions'
+type ScreenDetailTab =
+  | 'sections'
+  | 'fields'
+  | 'modes'
+  | 'matrix'
+  | 'validations'
+  | 'processes'
+  | 'events'
+  | 'actions'
 
 interface ScreenDetailPanelProps {
   workspaceId: string
@@ -193,6 +202,7 @@ export function ScreenDetailPanel({
     { id: 'fields' as const, label: `Fields (${fields.length})` },
     { id: 'modes' as const, label: `Modes (${modes.length})` },
     { id: 'matrix' as const, label: 'Mode matrix' },
+    { id: 'validations' as const, label: 'Validations' },
     { id: 'processes' as const, label: 'Processes' },
     { id: 'events' as const, label: 'Events' },
     { id: 'actions' as const, label: `Actions (${actions.length})` },
@@ -351,6 +361,15 @@ export function ScreenDetailPanel({
           screenId={screen.id}
           fields={fields}
           modes={activeModes}
+        />
+      ) : null}
+
+      {tab === 'validations' ? (
+        <ScreenValidationsPanel
+          workspaceId={workspaceId}
+          screenId={screen.id}
+          modes={activeModes}
+          fields={fields}
         />
       ) : null}
 

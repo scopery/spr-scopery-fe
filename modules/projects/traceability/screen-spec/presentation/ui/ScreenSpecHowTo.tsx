@@ -37,7 +37,7 @@ export function ScreenSpecHowTo({
 }
 
 export const SCREEN_STRUCTURE_TAB_HINTS: Record<
-  'sections' | 'fields' | 'modes' | 'matrix' | 'processes' | 'events' | 'actions',
+  'sections' | 'fields' | 'modes' | 'matrix' | 'validations' | 'processes' | 'events' | 'actions',
   string
 > = {
   sections: 'Group fields into blocks (Main form, Footer). These become section rows on the Defines sheet.',
@@ -46,6 +46,8 @@ export const SCREEN_STRUCTURE_TAB_HINTS: Record<
   modes: 'Add CREATE / VIEW / EDIT (and SEARCH or DIALOG if needed) before the mode matrix. Missing modes show empty 〇 columns.',
   matrix:
     'Per field and mode: visible, readonly, required. Save replaces the whole set. Visible fields get 〇 on Defines (Create SC / View SC / Edit SC).',
+  validations:
+    'Screen-level rules (Excel Validation sheet). Pick a field, rule type, and optional mode. Extra params as JSON when the rule needs them.',
   processes:
     'Init and data-load steps. Title = heading in Excel; content = Get; source table = Table; condition = Condition.',
   events:

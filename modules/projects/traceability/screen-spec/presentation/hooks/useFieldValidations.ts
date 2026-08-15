@@ -111,3 +111,88 @@ export function useFieldValidations(
 
   return { items, loading, error, refetch: load, createValidation, updateValidation, removeValidation }
 }
+
+export interface ScreenValidationListItem extends ScreenFieldValidation {
+  fieldId: string
+}
+
+export function useScreenValidations(
+  workspaceId: string | null,
+  screenId: string | null,
+  fieldIds: string[]
+) {
+  const [items, setItems] = useState<ScreenValidationListItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const fieldKey = fieldIds.join(',')
+
+  const load = useCallback(async () => {
+    const ids = fieldKey ? fieldKey.split(',') : []
+    if (!workspaceId || !screenId || ids.length === 0) {
+      setItems([])
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const groups = await Promise.all(
+        ids.map(async (fieldId) => {
+          const res = await api.listFieldValidations(workspaceId, screenId, fieldId)
+          return res.items.map((rule) => ({ ...rule, fieldId }))
+        })
+      )
+      setItems(groups.flat())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load validations')
+      setItems([])
+    } finally {
+      setLoading(false)
+    }
+  }, [workspaceId, screenId, fieldKey])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const createValidation = useCallback(
+    async (fieldId: string, body: CreateFieldValidationBody) => {
+      if (!workspaceId || !screenId) return
+      try {
+        await api.createFieldValidation(workspaceId, screenId, fieldId, body)
+        await load()
+      } catch (err) {
+        if (getErrorCode(err) === 'FIELD_VALIDATION_RULE_PARAM_INVALID') {
+          throw new ApiError(422, {
+            type: 'about:blank',
+            title: 'Unprocessable',
+            status: 422,
+            detail: ScreenSpecMessages.RULE_PARAM_INVALID,
+            code: 'FIELD_VALIDATION_RULE_PARAM_INVALID',
+          })
+        }
+        throw err
+      }
+    },
+    [workspaceId, screenId, load]
+  )
+
+  const updateValidation = useCallback(
+    async (fieldId: string, validationId: string, body: UpdateFieldValidationBody) => {
+      if (!workspaceId || !screenId) return
+      await api.updateFieldValidation(workspaceId, screenId, fieldId, validationId, body)
+      await load()
+    },
+    [workspaceId, screenId, load]
+  )
+
+  const removeValidation = useCallback(
+    async (fieldId: string, validationId: string) => {
+      if (!workspaceId || !screenId) return
+      await api.deleteFieldValidation(workspaceId, screenId, fieldId, validationId)
+      await load()
+    },
+    [workspaceId, screenId, load]
+  )
+
+  return { items, loading, error, refetch: load, createValidation, updateValidation, removeValidation }
+}

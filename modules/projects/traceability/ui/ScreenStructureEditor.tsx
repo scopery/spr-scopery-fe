@@ -80,7 +80,7 @@ function newDraftId(): string {
 }
 
 const PRIMARY_KEYS = new Set(['title', 'name', 'label'])
-const DESCRIPTION_KEYS = new Set(['description', 'note'])
+const DESCRIPTION_KEYS = new Set(['description', 'note', 'content'])
 /** Codes stay quiet in the list — shown as meta, not the headline. */
 const META_KEYS = new Set([
   'code',
@@ -91,6 +91,16 @@ const META_KEYS = new Set([
   'type',
 ])
 
+function displayCellValue(col: StructureColumn, raw: string | undefined): string {
+  const value = raw?.trim() ?? ''
+  if (!value || value === 'none') return ''
+  if (col.options && col.options.length > 0) {
+    const match = col.options.find((o) => optionValue(o) === value)
+    return match ? optionLabel(match) : ''
+  }
+  return value
+}
+
 function primaryLabel(item: StructureItem, columns: StructureColumn[]): string {
   const nameCol = columns.find((c) => PRIMARY_KEYS.has(c.key))
   if (nameCol) return item.values[nameCol.key]?.trim() || '—'
@@ -99,20 +109,17 @@ function primaryLabel(item: StructureItem, columns: StructureColumn[]): string {
 }
 
 function secondaryLabel(item: StructureItem, columns: StructureColumn[]): string {
-  const descCol = columns.find((c) => DESCRIPTION_KEYS.has(c.key))
-  const desc = descCol ? item.values[descCol.key]?.trim() : ''
-  if (desc) return desc
   return columns
-    .filter((c) => !PRIMARY_KEYS.has(c.key) && !META_KEYS.has(c.key) && !DESCRIPTION_KEYS.has(c.key))
-    .map((c) => item.values[c.key]?.trim())
+    .filter((c) => DESCRIPTION_KEYS.has(c.key))
+    .map((c) => displayCellValue(c, item.values[c.key]))
     .filter(Boolean)
     .join(' · ')
 }
 
 function metaLabel(item: StructureItem, columns: StructureColumn[]): string {
   return columns
-    .filter((c) => META_KEYS.has(c.key))
-    .map((c) => item.values[c.key]?.trim())
+    .filter((c) => !PRIMARY_KEYS.has(c.key) && !DESCRIPTION_KEYS.has(c.key))
+    .map((c) => displayCellValue(c, item.values[c.key]))
     .filter(Boolean)
     .join(' · ')
 }
