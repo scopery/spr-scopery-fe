@@ -46,8 +46,8 @@ export function ScreenSectionBindComponentModal({
     >
       <div className="space-y-3">
         <Typography variant="small" tone="muted">
-          Copies this component’s fields onto the screen in this section. Binding the same
-          component twice is rejected.
+          Copies this component’s fields into this section and tags them as copied. Binding the
+          same component twice is rejected. Unlink later to delete those copied fields.
         </Typography>
         {components.length === 0 ? (
           <Typography variant="small" tone="muted">

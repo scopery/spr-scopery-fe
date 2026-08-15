@@ -32,12 +32,46 @@ export interface RegistryScreen {
   createdAt: string
 }
 
+export const ApiParamLocation = {
+  Query: 'QUERY',
+  Path: 'PATH',
+  Body: 'BODY',
+  Header: 'HEADER',
+} as const
+export type ApiParamLocation = (typeof ApiParamLocation)[keyof typeof ApiParamLocation]
+
+export const API_PARAM_LOCATION_OPTIONS: ApiParamLocation[] = [
+  ApiParamLocation.Query,
+  ApiParamLocation.Path,
+  ApiParamLocation.Body,
+  ApiParamLocation.Header,
+]
+
+export const API_PARAM_LOCATION_SELECT_OPTIONS: Array<{ value: ApiParamLocation; label: string }> = [
+  { value: ApiParamLocation.Query, label: 'Query' },
+  { value: ApiParamLocation.Path, label: 'Path' },
+  { value: ApiParamLocation.Body, label: 'Body' },
+  { value: ApiParamLocation.Header, label: 'Header' },
+]
+
+export interface ApiRequestParam {
+  name: string
+  in: ApiParamLocation
+  type: string
+  required?: boolean
+  description?: string | null
+  example?: string | null
+}
+
 export interface RegistryApiEndpoint {
   id: string
   applicationId: string
   method: string
   pathPattern: string
   name?: string | null
+  description?: string | null
+  requestParams?: ApiRequestParam[] | null
+  responseSchemaJson?: string | null
   status: string
   createdAt: string
 }
@@ -148,6 +182,8 @@ export interface RegistryScreenField {
   createdAt: string
   componentId?: string | null
   dataEntityFieldId?: string | null
+  /** Set when this field was copied from a component field via bind-component. */
+  componentFieldId?: string | null
 }
 
 export interface RegistryScreenAction {
@@ -197,6 +233,9 @@ export interface CreateRegistryApiEndpointBody {
   method: string
   pathPattern: string
   name?: string | null
+  description?: string | null
+  requestParams?: ApiRequestParam[] | null
+  responseSchemaJson?: string | null
   projectId?: string | null
 }
 
@@ -204,6 +243,9 @@ export interface UpdateRegistryApiEndpointBody {
   method: string
   pathPattern: string
   name: string
+  description?: string | null
+  requestParams?: ApiRequestParam[] | null
+  responseSchemaJson?: string | null
 }
 
 export interface CreateRegistryAppComponentBody {

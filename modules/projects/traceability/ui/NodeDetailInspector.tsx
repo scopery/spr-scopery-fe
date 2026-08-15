@@ -13,6 +13,8 @@ import {
 import { ScreenDetailPanel } from './ScreenDetailPanel'
 import { DataEntityFieldsPanel } from '../screen-spec/presentation/ui/DataEntityFieldsPanel'
 import { ComponentSpecPanel } from '../screen-spec/presentation/ui/ComponentSpecPanel'
+import { ApiEndpointSpecPanel } from '../screen-spec/presentation/ui/ApiEndpointSpecPanel'
+import type { SpecCatalogApi } from '../screen-spec/presentation/ui/ComponentApisPanel'
 import type { RegistryScreen } from '../model/application-registry'
 import type { SpecCatalogComponent } from '../screen-spec/presentation/ui/FieldSpecDrawer'
 import type { SpecCatalogEntity } from '../screen-spec/presentation/ui/ComponentSpecPanel'
@@ -29,6 +31,8 @@ interface NodeDetailInspectorProps {
   screen?: RegistryScreen | null
   components?: SpecCatalogComponent[]
   entities?: SpecCatalogEntity[]
+  apis?: SpecCatalogApi[]
+  onApiSpecSaved?: () => void
   screens?: Array<{ id: string; code: string; name: string }>
   /** Related Functions for this application (used when viewing a Module). */
   relatedFunctions?: BrowseCatalogNode[]
@@ -143,6 +147,8 @@ export function NodeDetailInspector({
   screen,
   components = [],
   entities = [],
+  apis = [],
+  onApiSpecSaved,
   screens = [],
   relatedFunctions = [],
   onClose,
@@ -461,6 +467,15 @@ export function NodeDetailInspector({
             <DataEntityFieldsPanel workspaceId={workspaceId} entityId={node.id} />
           ) : null}
 
+          {node.type === 'API_ENDPOINT' && applicationId ? (
+            <ApiEndpointSpecPanel
+              workspaceId={workspaceId}
+              applicationId={applicationId}
+              endpointId={node.id}
+              onSaved={onApiSpecSaved}
+            />
+          ) : null}
+
           {node.type === 'COMPONENT' && applicationId ? (
             <ComponentSpecPanel
               workspaceId={workspaceId}
@@ -469,6 +484,7 @@ export function NodeDetailInspector({
               componentName={node.name}
               componentType={node.secondary ?? null}
               entities={entities}
+              apis={apis}
             />
           ) : null}
         </Stack>

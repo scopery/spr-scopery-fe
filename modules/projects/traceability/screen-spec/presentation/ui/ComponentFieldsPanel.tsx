@@ -38,7 +38,7 @@ export function ComponentFieldsPanel({
   )
 
   return (
-    <div className="space-y-3 border-t border-neutral-200 pt-4">
+    <div className="space-y-3">
       <Typography weight="medium" variant="small">
         Component fields
       </Typography>

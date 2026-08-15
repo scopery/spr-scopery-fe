@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Modal, Select, Stack, Typography } from '@/shared/ui'
-import { cn } from '@/utils/cn'
 import { useDataEntityFields } from '../hooks/useDataEntityFields'
 import { useScreenFieldSpec } from '../hooks/useScreenFieldSpec'
 import { FieldValidationsEditor } from './FieldValidationsEditor'
+import { SpecTabBar } from './SpecTabBar'
 import type { ScreenMode } from '../../domain/model/screen-spec'
 import type { SpecCatalogEntity } from './ComponentSpecPanel'
 
@@ -104,11 +104,6 @@ export function FieldSpecDrawer({
     }
   }
 
-  const tabs: Array<{ id: FieldSpecDrawerTab; label: string }> = [
-    { id: 'links', label: 'Links' },
-    { id: 'validations', label: 'Validations' },
-  ]
-
   return (
     <Modal
       open={open}
@@ -137,34 +132,32 @@ export function FieldSpecDrawer({
       {error ? <Typography tone="error">{error}</Typography> : null}
       {field ? (
         <Stack direction="vertical" spacing="md">
-          <div className="flex gap-1 border-b border-neutral-200" role="tablist" aria-label="Field setup">
-            {tabs.map((item) => {
-              const active = tab === item.id
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setTab(item.id)}
-                  className={cn(
-                    'border-b-2 px-3 py-2 text-sm',
-                    active
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-neutral-500 hover:text-neutral-800'
-                  )}
-                >
-                  {item.label}
-                </button>
-              )
-            })}
-          </div>
+          <SpecTabBar
+            label="Field setup"
+            value={tab}
+            onChange={setTab}
+            tabs={[
+              { id: 'links', label: 'Links' },
+              { id: 'validations', label: 'Validations' },
+            ]}
+          />
 
           {tab === 'links' ? (
             <Stack direction="vertical" spacing="sm">
               <Typography variant="small" tone="muted">
                 Bind this screen field to a catalog component and a database column.
               </Typography>
+              {field.componentFieldId ? (
+                <Typography variant="caption" tone="muted">
+                  Copied from a component field. Unlink that component on the screen’s Components
+                  tab to remove this field and its rules.
+                </Typography>
+              ) : (
+                <Typography variant="caption" tone="muted">
+                  Added on this screen. Linking a component here is metadata only — it does not
+                  copy fields.
+                </Typography>
+              )}
               <div>
                 <Typography variant="caption" tone="muted" className="mb-1 block">
                   Component

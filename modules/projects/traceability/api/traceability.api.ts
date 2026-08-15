@@ -15,6 +15,7 @@ import type {
   CreateRegistryScreenSectionBody,
   CommunicationSpecification,
   RegistryApiEndpoint,
+  ApiRequestParam,
   RegistryAppComponent,
   RegistryAppModule,
   RegistryApplication,
@@ -569,14 +570,78 @@ export async function deleteScreen(
   await apiClient.delete<void>(TRACEABILITY_ENDPOINTS.screen(workspaceId, applicationId, screenId))
 }
 
+const API_PARAM_LOCATIONS = new Set(['QUERY', 'PATH', 'BODY', 'HEADER'])
+
+function mapApiRequestParam(raw: unknown): ApiRequestParam | null {
+  const r = asRecord(raw)
+  const name = String(r.name ?? '').trim()
+  if (!name) return null
+  const loc = String(r.in ?? '').toUpperCase()
+  return {
+    name,
+    in: (API_PARAM_LOCATIONS.has(loc) ? loc : 'QUERY') as ApiRequestParam['in'],
+    type: String(r.type ?? 'string'),
+    required: r.required == null ? false : Boolean(r.required),
+    description: r.description == null ? null : String(r.description),
+    example: r.example == null ? null : String(r.example),
+  }
+}
+
+function parseRequestParams(raw: unknown): ApiRequestParam[] | null {
+  let value: unknown = raw
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim()
+    if (!trimmed) return null
+    try {
+      value = JSON.parse(trimmed) as unknown
+    } catch {
+      return null
+    }
+  }
+  if (!Array.isArray(value)) return null
+  return value.map(mapApiRequestParam).filter((item): item is ApiRequestParam => item != null)
+}
+
+function mapRegistryApiEndpoint(raw: unknown): RegistryApiEndpoint {
+  const r = asRecord(raw)
+  return {
+    id: String(r.id ?? ''),
+    applicationId: String(r.applicationId ?? r.application_id ?? ''),
+    method: String(r.method ?? 'GET'),
+    pathPattern: String(r.pathPattern ?? r.path_pattern ?? ''),
+    name: r.name == null ? null : String(r.name),
+    description: r.description == null ? null : String(r.description),
+    requestParams: parseRequestParams(
+      r.requestParams ?? r.request_params ?? r.requestParamsJson ?? r.request_params_json
+    ),
+    responseSchemaJson:
+      r.responseSchemaJson == null && r.response_schema_json == null
+        ? null
+        : String(r.responseSchemaJson ?? r.response_schema_json),
+    status: String(r.status ?? 'ACTIVE'),
+    createdAt: String(r.createdAt ?? r.created_at ?? ''),
+  }
+}
+
 export async function listApiEndpoints(
   workspaceId: string,
   applicationId: string
 ): Promise<{ items: RegistryApiEndpoint[] }> {
-  const res = await apiClient.get<ListPayload<RegistryApiEndpoint>>(
+  const res = await apiClient.get<ListPayload<unknown>>(
     TRACEABILITY_ENDPOINTS.apiEndpoints(workspaceId, applicationId)
   )
-  return normalizeItemList(res)
+  return { items: normalizeItemList(res).items.map(mapRegistryApiEndpoint) }
+}
+
+export async function getApiEndpoint(
+  workspaceId: string,
+  applicationId: string,
+  endpointId: string
+): Promise<RegistryApiEndpoint> {
+  const res = await apiClient.get<unknown>(
+    TRACEABILITY_ENDPOINTS.apiEndpoint(workspaceId, applicationId, endpointId)
+  )
+  return mapRegistryApiEndpoint(res)
 }
 
 export async function createApiEndpoint(
@@ -606,10 +671,11 @@ export async function updateApiEndpoint(
   endpointId: string,
   body: UpdateRegistryApiEndpointBody
 ): Promise<RegistryApiEndpoint> {
-  return apiClient.put(
+  const res = await apiClient.put<unknown>(
     TRACEABILITY_ENDPOINTS.apiEndpoint(workspaceId, applicationId, endpointId),
     body
   )
+  return mapRegistryApiEndpoint(res)
 }
 
 export async function deleteApiEndpoint(
@@ -835,6 +901,7 @@ function mapRegistryScreenField(raw: unknown): RegistryScreenField {
   const r = asRecord(raw)
   const componentId = r.componentId ?? r.component_id
   const dataEntityFieldId = r.dataEntityFieldId ?? r.data_entity_field_id
+  const componentFieldId = r.componentFieldId ?? r.component_field_id
   return {
     id: String(r.id ?? ''),
     screenId: String(r.screenId ?? r.screen_id ?? ''),
@@ -854,6 +921,8 @@ function mapRegistryScreenField(raw: unknown): RegistryScreenField {
     componentId: componentId == null || componentId === '' ? null : String(componentId),
     dataEntityFieldId:
       dataEntityFieldId == null || dataEntityFieldId === '' ? null : String(dataEntityFieldId),
+    componentFieldId:
+      componentFieldId == null || componentFieldId === '' ? null : String(componentFieldId),
   }
 }
 

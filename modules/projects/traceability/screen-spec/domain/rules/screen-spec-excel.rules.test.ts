@@ -43,6 +43,7 @@ describe('screen-spec-excel.rules', () => {
         remark: null,
         componentId: null,
         dataEntityFieldId: 'df1',
+        componentFieldId: null,
         component: {
           id: 'c1',
           applicationId: 'a1',

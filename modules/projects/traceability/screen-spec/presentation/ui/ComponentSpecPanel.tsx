@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Input, PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
-import { OptionSourceType, OPTION_SOURCE_TYPE_OPTIONS } from '../../domain/enums/screen-spec.enum'
+import { Button, PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
+import { OptionSourceType } from '../../domain/enums/screen-spec.enum'
 import { ScreenSpecMessages } from '../../domain/messages/screen-spec.messages'
 import { useApplicationComponentDetail } from '../hooks/useApplicationComponentDetail'
 import { useDataEntityFields } from '../hooks/useDataEntityFields'
 import { ComponentFieldsPanel } from './ComponentFieldsPanel'
+import { ComponentApisPanel, type SpecCatalogApi } from './ComponentApisPanel'
+import { SpecTabBar } from './SpecTabBar'
 import { ScreenStructureEditor } from '../../../ui/ScreenStructureEditor'
 
 export interface SpecCatalogEntity {
@@ -28,6 +30,7 @@ export function ComponentSpecPanel({
   componentName,
   componentType,
   entities,
+  apis = [],
 }: {
   workspaceId: string
   applicationId: string
@@ -35,6 +38,7 @@ export function ComponentSpecPanel({
   componentName: string
   componentType: string | null
   entities: SpecCatalogEntity[]
+  apis?: SpecCatalogApi[]
 }) {
   const {
     component,
@@ -47,6 +51,7 @@ export function ComponentSpecPanel({
     removeOption,
   } = useApplicationComponentDetail(workspaceId, applicationId, componentId)
 
+  const [tab, setTab] = useState<'fields' | 'options' | 'apis'>('fields')
   const [sourceType, setSourceType] = useState<string>(OptionSourceType.None)
   const [sourceEntityId, setSourceEntityId] = useState('')
   const [valueCol, setValueCol] = useState('')
@@ -94,108 +99,136 @@ export function ComponentSpecPanel({
 
   return (
     <div className="space-y-3 border-t border-neutral-200 pt-4">
-      <Typography weight="medium" variant="small">
-        Option source
-      </Typography>
-      <Typography variant="caption" tone="muted">
-        NONE = no list. STATIC = type the options below. DYNAMIC = load from an entity column (create Columns on the entity first).
-      </Typography>
       {loading && !component ? <PageSkeleton variant="list" /> : null}
-      {error ? <Typography tone="error" variant="small">{error}</Typography> : null}
-      <Select
-        value={sourceType}
-        onValueChange={setSourceType}
-        options={OPTION_SOURCE_TYPE_OPTIONS.map((v) => ({ value: v, label: v }))}
-      />
-      {sourceType === OptionSourceType.Dynamic ? (
-        <Stack direction="vertical" spacing="sm">
-          {entities.length === 0 ? (
-            <Typography variant="small" tone="muted">
-              Create a data entity first, then map value and label columns.
-            </Typography>
-          ) : (
-            <Select
-              value={sourceEntityId}
-              onValueChange={setSourceEntityId}
-              options={entities.map((e) => ({
-                value: e.id,
-                label: `${e.code} · ${e.name}`,
-              }))}
-              placeholder="Source entity"
-            />
-          )}
-          <Select
-            value={valueCol}
-            onValueChange={setValueCol}
-            options={columnOptions}
-            placeholder="Value column"
-            disabled={!sourceEntityId}
-          />
-          <Select
-            value={labelCol}
-            onValueChange={setLabelCol}
-            options={columnOptions}
-            placeholder="Label column"
-            disabled={!sourceEntityId}
-          />
-        </Stack>
-      ) : null}
-      {formError ? (
+      {error ? (
         <Typography tone="error" variant="small">
-          {formError}
+          {error}
         </Typography>
       ) : null}
-      <Button size="sm" onClick={() => void handleSave()} loading={saving}>
-        Save source
-      </Button>
+      <SpecTabBar
+        label="Component spec"
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { id: 'fields', label: 'Fields' },
+          { id: 'options', label: 'Options' },
+          { id: 'apis', label: 'APIs' },
+        ]}
+      />
 
-      <ComponentFieldsPanel workspaceId={workspaceId} componentId={componentId} />
+      {tab === 'fields' ? (
+        <ComponentFieldsPanel workspaceId={workspaceId} componentId={componentId} />
+      ) : null}
 
-      {sourceType === OptionSourceType.Static ? (
-        <div className="space-y-2 pt-2">
+      {tab === 'options' ? (
+        <div className="space-y-3">
           <Typography weight="medium" variant="small">
-            Static options
+            Option source
           </Typography>
-          <ScreenStructureEditor
-            columns={OPTION_COLS}
-            items={options.map((o) => ({
-              id: o.id,
-              values: {
-                optionValue: o.optionValue,
-                optionLabel: o.optionLabel,
-                displayOrder: o.displayOrder != null ? String(o.displayOrder) : '',
-              },
-            }))}
-            emptyLabel="No options yet."
-            addTitle="Add options"
-            editTitle="Edit options"
-            itemLabel="option"
-            onCreate={async (values) => {
-              const order = values.displayOrder.trim()
-              await createOption({
-                optionValue: values.optionValue.trim(),
-                optionLabel: values.optionLabel.trim(),
-                displayOrder: order ? Number(order) : null,
-              })
-            }}
-            onUpdate={async (id, values) => {
-              const order = values.displayOrder.trim()
-              await updateOption(id, {
-                optionValue: values.optionValue.trim(),
-                optionLabel: values.optionLabel.trim(),
-                displayOrder: order ? Number(order) : null,
-              })
-            }}
-            onDelete={removeOption}
+          <Typography variant="caption" tone="muted">
+            None = no list. Static = type values here. Dynamic = load from an entity column.
+          </Typography>
+          <Select
+            value={sourceType}
+            onValueChange={setSourceType}
+            options={[
+              { value: OptionSourceType.None, label: 'None' },
+              { value: OptionSourceType.Static, label: 'Static' },
+              { value: OptionSourceType.Dynamic, label: 'Dynamic' },
+            ]}
           />
+          {sourceType === OptionSourceType.Dynamic ? (
+            <Stack direction="vertical" spacing="sm">
+              {entities.length === 0 ? (
+                <Typography variant="small" tone="muted">
+                  Create a data entity first, then map value and label columns.
+                </Typography>
+              ) : (
+                <Select
+                  value={sourceEntityId}
+                  onValueChange={setSourceEntityId}
+                  options={entities.map((e) => ({
+                    value: e.id,
+                    label: `${e.code} · ${e.name}`,
+                  }))}
+                  placeholder="Source entity"
+                />
+              )}
+              <Select
+                value={valueCol}
+                onValueChange={setValueCol}
+                options={columnOptions}
+                placeholder="Value column"
+                disabled={!sourceEntityId}
+              />
+              <Select
+                value={labelCol}
+                onValueChange={setLabelCol}
+                options={columnOptions}
+                placeholder="Label column"
+                disabled={!sourceEntityId}
+              />
+            </Stack>
+          ) : null}
+          {formError ? (
+            <Typography tone="error" variant="small">
+              {formError}
+            </Typography>
+          ) : null}
+          <Button size="sm" onClick={() => void handleSave()} loading={saving}>
+            Save source
+          </Button>
+          {sourceType === OptionSourceType.Static ? (
+            <div className="space-y-2 pt-2">
+              <Typography weight="medium" variant="small">
+                Static options
+              </Typography>
+              <ScreenStructureEditor
+                columns={OPTION_COLS}
+                items={options.map((o) => ({
+                  id: o.id,
+                  values: {
+                    optionValue: o.optionValue,
+                    optionLabel: o.optionLabel,
+                    displayOrder: o.displayOrder != null ? String(o.displayOrder) : '',
+                  },
+                }))}
+                emptyLabel="No options yet."
+                addTitle="Add options"
+                editTitle="Edit options"
+                itemLabel="option"
+                onCreate={async (values) => {
+                  const order = values.displayOrder.trim()
+                  await createOption({
+                    optionValue: values.optionValue.trim(),
+                    optionLabel: values.optionLabel.trim(),
+                    displayOrder: order ? Number(order) : null,
+                  })
+                }}
+                onUpdate={async (id, values) => {
+                  const order = values.displayOrder.trim()
+                  await updateOption(id, {
+                    optionValue: values.optionValue.trim(),
+                    optionLabel: values.optionLabel.trim(),
+                    displayOrder: order ? Number(order) : null,
+                  })
+                }}
+                onDelete={removeOption}
+              />
+            </div>
+          ) : (
+            <Typography variant="small" tone="muted">
+              {sourceType === OptionSourceType.None
+                ? ScreenSpecMessages.STATIC_OPTIONS_ONLY
+                : 'Dynamic options are resolved by the consuming app, not listed here.'}
+            </Typography>
+          )}
         </div>
-      ) : (
-        <Typography variant="small" tone="muted">
-          {sourceType === OptionSourceType.None
-            ? ScreenSpecMessages.STATIC_OPTIONS_ONLY
-            : 'DYNAMIC options are resolved by the consuming app, not listed here.'}
-        </Typography>
-      )}
+      ) : null}
+
+      {tab === 'apis' ? (
+        <ComponentApisPanel workspaceId={workspaceId} componentId={componentId} apis={apis} />
+      ) : null}
     </div>
   )
 }

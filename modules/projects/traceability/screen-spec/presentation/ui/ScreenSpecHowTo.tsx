@@ -37,13 +37,23 @@ export function ScreenSpecHowTo({
 }
 
 export const SCREEN_STRUCTURE_TAB_HINTS: Record<
-  'sections' | 'fields' | 'modes' | 'matrix' | 'validations' | 'processes' | 'events' | 'actions',
+  | 'sections'
+  | 'fields'
+  | 'components'
+  | 'modes'
+  | 'matrix'
+  | 'validations'
+  | 'processes'
+  | 'events'
+  | 'actions',
   string
 > = {
   sections:
-    'Group fields into blocks. Bind component on a section copies that component’s fields onto the screen in this section.',
+    'Group fields into blocks. Bind component copies that component’s fields into this section.',
   fields:
-    'Add each control. Configure opens Links (component + column) and Validations. Chips on the row show what is already linked.',
+    'Add controls or review copied ones. Copied = came from bind. Configure opens Links and Validations.',
+  components:
+    'Components linked to this screen. Unlink deletes copied fields, including their validations and mode config.',
   modes: 'Add CREATE / VIEW / EDIT (and SEARCH or DIALOG if needed) before the mode matrix. Missing modes show empty 〇 columns.',
   matrix:
     'Per field and mode: visible, readonly, required. Save replaces the whole set. Visible fields get 〇 on Defines (Create SC / View SC / Edit SC).',
@@ -64,7 +74,7 @@ export const SCREEN_IMPORT_WORKFLOW_STEPS = [
 ]
 
 export const SCREEN_SPEC_WORKFLOW_STEPS = [
-  'On Browse, spec catalog first: entity Columns, then component fields (and option source). Bind a component onto a screen section to copy those fields.',
+  'On Browse, spec catalog first: entity Columns, component fields, option source, and component APIs. Bind a component onto a screen section to copy those fields.',
   'Select a screen. Add Modes and Sections, bind components or add Fields. Configure a field to link component/column and add validations.',
   'Fill Mode matrix, then Processes and Events.',
   'To load many screens at once, use Import → Screens (Excel = shell, JSON = full spec). Then export from the inspector or Spec docs.',

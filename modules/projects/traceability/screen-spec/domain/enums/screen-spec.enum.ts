@@ -97,3 +97,28 @@ export const SCREEN_FIELD_TYPE_OPTIONS: ScreenFieldType[] = [
   ScreenFieldType.Input,
   ScreenFieldType.Password,
 ]
+
+export const ComponentApiRole = {
+  FetchOptions: 'FETCH_OPTIONS',
+  Submit: 'SUBMIT',
+  Validate: 'VALIDATE',
+  LoadData: 'LOAD_DATA',
+  Autocomplete: 'AUTOCOMPLETE',
+} as const
+export type ComponentApiRole = (typeof ComponentApiRole)[keyof typeof ComponentApiRole]
+
+export const COMPONENT_API_ROLE_OPTIONS: ComponentApiRole[] = [
+  ComponentApiRole.FetchOptions,
+  ComponentApiRole.Submit,
+  ComponentApiRole.Validate,
+  ComponentApiRole.LoadData,
+  ComponentApiRole.Autocomplete,
+]
+
+export const COMPONENT_API_ROLE_SELECT_OPTIONS: Array<{ value: ComponentApiRole; label: string }> = [
+  { value: ComponentApiRole.FetchOptions, label: 'Fetch options' },
+  { value: ComponentApiRole.Submit, label: 'Submit' },
+  { value: ComponentApiRole.Validate, label: 'Validate' },
+  { value: ComponentApiRole.LoadData, label: 'Load data' },
+  { value: ComponentApiRole.Autocomplete, label: 'Autocomplete' },
+]

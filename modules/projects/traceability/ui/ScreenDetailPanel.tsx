@@ -29,11 +29,13 @@ import {
 import { ScreenValidationsPanel } from '../screen-spec/presentation/ui/ScreenValidationsPanel'
 import { useScreenValidations } from '../screen-spec/presentation/hooks/useFieldValidations'
 import { ScreenSectionBindComponentModal } from '../screen-spec/presentation/ui/ScreenSectionBindComponentModal'
+import { ScreenLinkedComponentsPanel } from '../screen-spec/presentation/ui/ScreenLinkedComponentsPanel'
 import type { SpecCatalogEntity } from '../screen-spec/presentation/ui/ComponentSpecPanel'
 
 type ScreenDetailTab =
   | 'sections'
   | 'fields'
+  | 'components'
   | 'modes'
   | 'matrix'
   | 'validations'
@@ -247,6 +249,7 @@ export function ScreenDetailPanel({
   const tabs = [
     { id: 'sections' as const, label: `Sections (${sections.length})` },
     { id: 'fields' as const, label: `Fields (${fields.length})` },
+    { id: 'components' as const, label: 'Components' },
     { id: 'modes' as const, label: `Modes (${modes.length})` },
     { id: 'matrix' as const, label: 'Mode matrix' },
     { id: 'validations' as const, label: 'Validations' },
@@ -394,35 +397,55 @@ export function ScreenDetailPanel({
               const ruleCount = validationCountByField.get(field.id) ?? 0
               return (
                 <div>
-                  <FieldStatusChip
-                    active={Boolean(field.componentId)}
-                    onClick={() => openFieldSetup(field.id, 'links')}
-                  >
-                    {component
-                      ? `Component · ${component.code}`
-                      : field.componentId
-                        ? 'Component linked'
-                        : 'No component'}
-                  </FieldStatusChip>
-                  <FieldStatusChip
-                    active={Boolean(field.dataEntityFieldId)}
-                    onClick={() => openFieldSetup(field.id, 'links')}
-                  >
-                    {field.dataEntityFieldId ? 'Column linked' : 'No column'}
-                  </FieldStatusChip>
+                  {field.componentFieldId ? (
+                    <FieldStatusChip
+                      active
+                      onClick={() => openFieldSetup(field.id, 'links')}
+                    >
+                      Copied
+                    </FieldStatusChip>
+                  ) : null}
+                  {component || field.componentId ? (
+                    <FieldStatusChip
+                      active
+                      onClick={() => openFieldSetup(field.id, 'links')}
+                    >
+                      {component ? `Component · ${component.code}` : 'Component'}
+                    </FieldStatusChip>
+                  ) : null}
+                  {field.dataEntityFieldId ? (
+                    <FieldStatusChip
+                      active
+                      onClick={() => openFieldSetup(field.id, 'links')}
+                    >
+                      Column
+                    </FieldStatusChip>
+                  ) : null}
                   <FieldStatusChip
                     active={ruleCount > 0}
                     onClick={() => openFieldSetup(field.id, 'validations')}
                   >
                     {ruleCount > 0
-                      ? `${ruleCount} validation${ruleCount === 1 ? '' : 's'}`
-                      : 'No validations'}
+                      ? `${ruleCount} rule${ruleCount === 1 ? '' : 's'}`
+                      : 'No rules'}
                   </FieldStatusChip>
                 </div>
               )
             }}
           />
         </Stack>
+      ) : null}
+
+      {tab === 'components' ? (
+        <ScreenLinkedComponentsPanel
+          workspaceId={workspaceId}
+          screenId={screen.id}
+          components={components}
+          onChanged={() => {
+            void refetch()
+            void refetchValidations()
+          }}
+        />
       ) : null}
 
       {tab === 'modes' ? (

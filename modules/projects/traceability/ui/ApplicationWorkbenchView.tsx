@@ -579,6 +579,13 @@ export function ApplicationWorkbenchView() {
                       code: e.code,
                       name: e.name,
                     }))}
+                    apis={apiEndpoints.map((e) => ({
+                      id: e.id,
+                      method: e.method,
+                      pathPattern: e.pathPattern,
+                      name: e.name,
+                    }))}
+                    onApiSpecSaved={() => void refetch()}
                     screens={screens.map((s) => ({
                       id: s.id,
                       code: s.code,

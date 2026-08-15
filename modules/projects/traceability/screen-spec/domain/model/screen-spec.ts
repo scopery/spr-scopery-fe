@@ -73,6 +73,31 @@ export interface BindComponentToSectionResult {
   importedFieldKeys: string[]
 }
 
+export interface ComponentApiLink {
+  id: string
+  componentId: string
+  apiId: string
+  workspaceId: string
+  role: string
+  note: string | null
+  displayOrder: number | null
+  status: string
+  createdAt: string
+}
+
+export interface CreateComponentApiLinkBody {
+  apiId: string
+  role: string
+  note?: string | null
+  displayOrder?: number | null
+}
+
+export interface UpdateComponentApiLinkBody {
+  role: string
+  note?: string | null
+  displayOrder?: number | null
+}
+
 export interface ComponentOption {
   id: string
   componentId: string
@@ -225,6 +250,7 @@ export interface ScreenFieldDetail {
   remark: string | null
   componentId: string | null
   dataEntityFieldId: string | null
+  componentFieldId: string | null
   modeConfigs: ScreenFieldModeConfig[]
   validations: ScreenFieldValidation[]
 }

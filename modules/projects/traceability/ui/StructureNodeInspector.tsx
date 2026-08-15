@@ -1,6 +1,7 @@
 'use client'
 
-import { Button, Typography } from '@/shared/ui'
+import { useState } from 'react'
+import { Button, ConfirmDialog, Typography } from '@/shared/ui'
 import type {
   OverallStructureResponse,
   StructureFocus,
@@ -142,6 +143,11 @@ export function StructureNodeInspector({
   onClose,
 }: StructureNodeInspectorProps) {
   const label = findFocusLabel(tree, focus)
+  const [unlinkComponent, setUnlinkComponent] = useState<{
+    screenId: string
+    componentId: string
+    label: string
+  } | null>(null)
 
   const linked = (() => {
     if (!tree || !focus) return null
@@ -214,6 +220,7 @@ export function StructureNodeInspector({
   }
 
   return (
+    <>
     <div className="flex h-full min-h-0 flex-col bg-neutral-50/40">
       <div className="flex shrink-0 items-start justify-between gap-2 border-b border-neutral-100 p-3">
         <div className="min-w-0">
@@ -293,7 +300,12 @@ export function StructureNodeInspector({
             items={linked.components.map((c) => ({
               id: c.id,
               label: `${c.code} · ${c.name}`,
-              onUnlink: () => onUnlinkComponent(linked.screenId, c.id),
+              onUnlink: () =>
+                setUnlinkComponent({
+                  screenId: linked.screenId,
+                  componentId: c.id,
+                  label: `${c.code} · ${c.name}`,
+                }),
             }))}
           />
         ) : null}
@@ -331,6 +343,24 @@ export function StructureNodeInspector({
         ) : null}
       </div>
     </div>
+    <ConfirmDialog
+      open={Boolean(unlinkComponent)}
+      onClose={() => setUnlinkComponent(null)}
+      title="Unlink component"
+      message={
+        unlinkComponent
+          ? `Unlink "${unlinkComponent.label}"? Screen fields copied from this component (including validations and mode config) will be deleted.`
+          : ''
+      }
+      confirmLabel="Unlink"
+      variant="danger"
+      onConfirm={() => {
+        if (!unlinkComponent) return
+        onUnlinkComponent(unlinkComponent.screenId, unlinkComponent.componentId)
+        setUnlinkComponent(null)
+      }}
+    />
+    </>
   )
 }
 

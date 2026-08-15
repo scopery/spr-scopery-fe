@@ -8,4 +8,6 @@ export const ScreenSpecMessages = {
   SCREEN_ALREADY_IN_DOC: 'This screen is already in the document.',
   COMPONENT_FIELD_EXISTS: 'This field key already exists on the component.',
   COMPONENT_ALREADY_BOUND: 'This component is already bound to the screen.',
+  COMPONENT_API_DUPLICATE: 'This API is already linked to the component with that role.',
+  API_ENDPOINT_NOT_IN_WORKSPACE: 'That API does not belong to this workspace.',
 } as const

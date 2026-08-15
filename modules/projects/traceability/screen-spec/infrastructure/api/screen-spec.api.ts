@@ -6,9 +6,11 @@ import type {
   ApplicationComponentField,
   BindComponentToSectionBody,
   BindComponentToSectionResult,
+  ComponentApiLink,
   ComponentOption,
   CreateComponentFieldBody,
   CreateComponentOptionBody,
+  CreateComponentApiLinkBody,
   CreateDataEntityFieldBody,
   CreateFieldValidationBody,
   CreateScreenModeBody,
@@ -20,6 +22,7 @@ import type {
   ScreenMode,
   UpdateComponentFieldBody,
   UpdateComponentOptionBody,
+  UpdateComponentApiLinkBody,
   UpdateComponentSourceBody,
   UpdateDataEntityFieldBody,
   UpdateFieldValidationBody,
@@ -101,6 +104,21 @@ export function mapBindComponentToSectionResult(raw: unknown): BindComponentToSe
   return {
     fieldsImported: num(r.fieldsImported ?? r.fields_imported) ?? 0,
     importedFieldKeys: Array.isArray(keys) ? keys.map((k) => String(k)) : [],
+  }
+}
+
+export function mapComponentApiLink(raw: unknown): ComponentApiLink {
+  const r = asRecord(raw)
+  return {
+    id: String(r.id ?? ''),
+    componentId: String(r.componentId ?? r.component_id ?? ''),
+    apiId: String(r.apiId ?? r.api_id ?? ''),
+    workspaceId: String(r.workspaceId ?? r.workspace_id ?? ''),
+    role: String(r.role ?? ''),
+    note: str(r.note),
+    displayOrder: num(r.displayOrder ?? r.display_order),
+    status: String(r.status ?? 'ACTIVE'),
+    createdAt: String(r.createdAt ?? r.created_at ?? ''),
   }
 }
 
@@ -191,6 +209,7 @@ export function mapScreenFieldDetail(raw: unknown): ScreenFieldDetail {
     remark: str(r.remark),
     componentId: str(r.componentId ?? r.component_id ?? component.id),
     dataEntityFieldId: str(r.dataEntityFieldId ?? r.data_entity_field_id ?? dataField.id),
+    componentFieldId: str(r.componentFieldId ?? r.component_field_id),
     modeConfigs: Array.isArray(r.modeConfigs)
       ? (r.modeConfigs as unknown[]).map(mapModeConfig)
       : Array.isArray(r.mode_configs)
@@ -283,6 +302,41 @@ export async function deleteComponentField(
   fieldId: string
 ): Promise<void> {
   await apiClient.delete<void>(EP.componentField(workspaceId, componentId, fieldId), { parseJson: false })
+}
+
+export async function listComponentApis(
+  workspaceId: string,
+  componentId: string
+): Promise<{ items: ComponentApiLink[] }> {
+  const res = await apiClient.get<ListPayload<unknown>>(EP.componentApis(workspaceId, componentId))
+  return { items: normalizeItemList(res).items.map(mapComponentApiLink) }
+}
+
+export async function createComponentApi(
+  workspaceId: string,
+  componentId: string,
+  body: CreateComponentApiLinkBody
+): Promise<ComponentApiLink> {
+  const res = await apiClient.post<unknown>(EP.componentApis(workspaceId, componentId), body)
+  return mapComponentApiLink(res)
+}
+
+export async function updateComponentApi(
+  workspaceId: string,
+  componentId: string,
+  apiLinkId: string,
+  body: UpdateComponentApiLinkBody
+): Promise<ComponentApiLink> {
+  const res = await apiClient.put<unknown>(EP.componentApi(workspaceId, componentId, apiLinkId), body)
+  return mapComponentApiLink(res)
+}
+
+export async function deleteComponentApi(
+  workspaceId: string,
+  componentId: string,
+  apiLinkId: string
+): Promise<void> {
+  await apiClient.delete<void>(EP.componentApi(workspaceId, componentId, apiLinkId), { parseJson: false })
 }
 
 export async function bindComponentToSection(
