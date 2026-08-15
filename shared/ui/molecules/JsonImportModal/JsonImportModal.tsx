@@ -211,6 +211,8 @@ export function JsonImportModal<T>({
 
         {extra}
 
+        <BulkImportFormatHelp guide={guide} defaultOpen />
+
         {progress}
 
         {hasErrorPanel ? (
@@ -267,8 +269,6 @@ export function JsonImportModal<T>({
             className="font-mono text-xs"
           />
         </div>
-
-        <BulkImportFormatHelp guide={guide} />
       </div>
     </Modal>
   )

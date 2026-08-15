@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
 import { AnchoredMenu, Button, anchoredMenuItemClassName } from '@/shared/ui'
 import type { BulkJobResponse } from '@/shared/lib/bulkJobs'
 import { cn } from '@/utils/cn'
+import type { ScreenImportItem } from '@/modules/projects/traceability/screen-spec'
 import type { ArchitectureNodeType } from '../model/architecture-workbench'
 import { CatalogBulkAddModal, type CatalogAddKind, type CatalogBulkCreateInput } from './CatalogBulkAddModal'
 import { CatalogSingleAddModal } from './CatalogSingleAddModal'
@@ -38,10 +39,16 @@ interface CatalogAddBarProps {
   /** Create one item — prefer `{ refresh: false }` in the hook; batch refreshes once. */
   onCreate: (input: CatalogCreateInput) => Promise<void>
   onSubmitBulk: (kind: CatalogAddKind, items: CatalogBulkCreateInput[]) => Promise<BulkJobResponse>
+  onSubmitScreenFullSpec: (items: ScreenImportItem[]) => Promise<BulkJobResponse>
   onBatchComplete?: () => Promise<void> | void
 }
 
-export function CatalogAddBar({ onCreate, onSubmitBulk, onBatchComplete }: CatalogAddBarProps) {
+export function CatalogAddBar({
+  onCreate,
+  onSubmitBulk,
+  onSubmitScreenFullSpec,
+  onBatchComplete,
+}: CatalogAddBarProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [hoveredKind, setHoveredKind] = useState<CatalogAddKind | null>(null)
   const [modal, setModal] = useState<{ kind: CatalogAddKind; mode: AddMode } | null>(null)
@@ -161,6 +168,7 @@ export function CatalogAddBar({ onCreate, onSubmitBulk, onBatchComplete }: Catal
         title={modalTitle}
         onClose={() => setModal(null)}
         onSubmitBulk={(items) => onSubmitBulk(activeKind, items)}
+        onSubmitScreenFullSpec={onSubmitScreenFullSpec}
         onBatchComplete={onBatchComplete}
       />
     </div>

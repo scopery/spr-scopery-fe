@@ -28,6 +28,7 @@ import { SimpleExcelImportPanel } from './SimpleExcelImportPanel'
 import { OverallStructurePanel } from './OverallStructurePanel'
 import { ScreenSpecDocsPanel } from '../screen-spec/presentation/ui/ScreenSpecDocsPanel'
 import { ScreenFullSpecJsonImportPanel } from '../screen-spec/presentation/ui/ScreenFullSpecJsonImportPanel'
+import { importFullScreens } from '../screen-spec'
 import {
   API_ENDPOINT_IMPORT_SPEC,
   COMPONENT_IMPORT_SPEC,
@@ -546,6 +547,9 @@ export function ApplicationWorkbenchView() {
                           }
                         }}
                         onSubmitBulk={handleSubmitBulk}
+                        onSubmitScreenFullSpec={(items) =>
+                          importFullScreens(workspaceId, applicationId, items)
+                        }
                         onBatchComplete={() => refetch({ silent: true })}
                       />
                     }

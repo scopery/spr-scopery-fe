@@ -82,7 +82,7 @@ export const BulkImportFormatHelp = React.forwardRef<HTMLDivElement, BulkImportF
       <div ref={ref} className={cn('relative', className)}>
         <div className="flex items-center gap-1.5">
           <Typography variant="small" tone="muted">
-            JSON import format
+            JSON entities & attributes
           </Typography>
           <Button
             type="button"
@@ -101,7 +101,7 @@ export const BulkImportFormatHelp = React.forwardRef<HTMLDivElement, BulkImportF
         {open ? (
           <div
             id={panelId}
-            className="mt-2 space-y-3 border border-neutral-200 bg-neutral-50 p-3"
+            className="mt-2 max-h-[min(60vh,36rem)] space-y-3 overflow-y-auto border border-neutral-200 bg-neutral-50 p-3"
             role="region"
             aria-label={`${guide.entityLabel} JSON import format guide`}
           >
