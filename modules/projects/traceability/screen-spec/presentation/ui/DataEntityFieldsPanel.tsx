@@ -31,6 +31,18 @@ function parseBool(value: string, fallback: boolean): boolean {
   return fallback
 }
 
+function toDataEntityFieldBody(values: Record<string, string>) {
+  const max = values.maxLength.trim()
+  return {
+    columnName: values.columnName.trim(),
+    dataType: values.dataType.trim() || 'VARCHAR',
+    maxLength: max ? Number(max) : null,
+    isNullable: parseBool(values.isNullable, true),
+    isUnique: parseBool(values.isUnique, false),
+    remark: values.remark.trim() || null,
+  }
+}
+
 export function DataEntityFieldsPanel({
   workspaceId,
   entityId,
@@ -38,10 +50,8 @@ export function DataEntityFieldsPanel({
   workspaceId: string
   entityId: string
 }) {
-  const { items, loading, error, createField, updateField, removeField } = useDataEntityFields(
-    workspaceId,
-    entityId
-  )
+  const { items, loading, error, createField, createFieldsBulk, updateField, removeField } =
+    useDataEntityFields(workspaceId, entityId)
 
   return (
     <div className="space-y-3 border-t border-neutral-200 pt-4">
@@ -71,16 +81,9 @@ export function DataEntityFieldsPanel({
         editTitle="Edit columns"
         itemLabel="column"
         onCreate={async (values) => {
-          const max = values.maxLength.trim()
-          await createField({
-            columnName: values.columnName.trim(),
-            dataType: values.dataType.trim() || 'VARCHAR',
-            maxLength: max ? Number(max) : null,
-            isNullable: parseBool(values.isNullable, true),
-            isUnique: parseBool(values.isUnique, false),
-            remark: values.remark.trim() || null,
-          })
+          await createField(toDataEntityFieldBody(values))
         }}
+        onCreateMany={async (rows) => createFieldsBulk(rows.map(toDataEntityFieldBody))}
         onUpdate={async (id, values) => {
           const max = values.maxLength.trim()
           await updateField(id, {

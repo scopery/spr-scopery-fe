@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { Input, JsonImportModal, Typography } from '@/shared/ui'
+import { Button, Input, JsonImportModal, Typography } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
 import { BULK_MAX_ITEMS, type BulkJobResponse } from '@/shared/lib/bulkJobs'
 import { isUuid } from '@/shared/lib/jsonImportValidation'
@@ -88,6 +88,9 @@ function CatalogShellJsonModal({
       code: item.code,
       name: item.name,
       extra: item.extra,
+      description: item.description,
+      requestParams: item.requestParams,
+      responseSchemaJson: item.responseSchemaJson,
     }))
 
   const rememberAndWireRetries = (items: CatalogBulkCreateInput[]) => {
@@ -207,6 +210,39 @@ function ScreenFullSpecFromCatalogModal({
       />
       {resultModal}
     </>
+  )
+}
+
+export function CatalogApiJsonImportPanel({
+  onSubmitBulk,
+  onComplete,
+}: {
+  onSubmitBulk: (items: CatalogBulkCreateInput[]) => Promise<BulkJobResponse>
+  onComplete?: () => Promise<void> | void
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="space-y-2 border-t border-neutral-200 pt-4">
+      <Typography variant="small" weight="medium">
+        Import API endpoints (JSON)
+      </Typography>
+      <Typography variant="caption" tone="muted">
+        Same job as Browse → Add node → API → JSON. Sends description, requestParams, and
+        responseSchemaJson. <code>in</code> must be QUERY, PATH, BODY, or HEADER — COOKIE is
+        rejected.
+      </Typography>
+      <Button size="sm" onClick={() => setOpen(true)}>
+        Paste JSON
+      </Button>
+      <CatalogJsonImportModal
+        open={open}
+        kind="API_ENDPOINT"
+        title="API endpoints"
+        onClose={() => setOpen(false)}
+        onSubmitBulk={onSubmitBulk}
+        onBatchComplete={onComplete}
+      />
+    </div>
   )
 }
 

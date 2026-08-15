@@ -56,6 +56,10 @@ interface ScreenStructureEditorProps {
   /** Status chips under the row title (e.g. linked component, rule count). */
   renderRowStatus?: (item: StructureItem) => ReactNode
   onCreate: (values: Record<string, string>) => Promise<void>
+  /** One job for Bulk add. `failed.index` is 0-based in the submitted (valid) rows. */
+  onCreateMany?: (
+    rows: Record<string, string>[]
+  ) => Promise<{ failed?: Array<{ index: number; message: string }> } | void>
   onUpdate: (id: string, values: Record<string, string>) => Promise<void>
   onDelete: (id: string) => Promise<void>
 }
@@ -137,6 +141,7 @@ export function ScreenStructureEditor({
   renderRowAction,
   renderRowStatus,
   onCreate,
+  onCreateMany,
   onUpdate,
   onDelete,
 }: ScreenStructureEditorProps) {
@@ -314,7 +319,7 @@ export function ScreenStructureEditor({
     setSubmitting(true)
     setFormError(null)
     const remaining: DraftRow[] = []
-    let created = 0
+    const valid: DraftRow[] = []
     for (const draft of drafts) {
       const blank = Object.values(draft.values).every((v) => !v.trim())
       if (blank) continue
@@ -323,19 +328,45 @@ export function ScreenStructureEditor({
         remaining.push({ ...draft, error: 'Missing required fields' })
         continue
       }
+      valid.push(draft)
+    }
+
+    let created = 0
+    if (onCreateMany && valid.length > 0) {
       try {
-        await onCreate(draft.values)
-        created += 1
+        const result = await onCreateMany(valid.map((d) => d.values))
+        const failed = result?.failed ?? []
+        for (const item of failed) {
+          const draft = valid[item.index]
+          if (!draft) continue
+          remaining.push({ ...draft, error: item.message || 'Failed' })
+        }
+        created = valid.length - failed.filter((f) => valid[f.index]).length
       } catch (err: unknown) {
-        remaining.push({
-          ...draft,
-          error:
-            err instanceof ApiError && err.status === 409
-              ? 'Already exists'
-              : err instanceof Error
-                ? err.message
-                : 'Failed',
-        })
+        const message =
+          err instanceof ApiError && err.status === 409
+            ? 'Already exists'
+            : err instanceof Error
+              ? err.message
+              : 'Failed'
+        remaining.push(...valid.map((draft) => ({ ...draft, error: message })))
+      }
+    } else {
+      for (const draft of valid) {
+        try {
+          await onCreate(draft.values)
+          created += 1
+        } catch (err: unknown) {
+          remaining.push({
+            ...draft,
+            error:
+              err instanceof ApiError && err.status === 409
+                ? 'Already exists'
+                : err instanceof Error
+                  ? err.message
+                  : 'Failed',
+          })
+        }
       }
     }
     setSubmitting(false)

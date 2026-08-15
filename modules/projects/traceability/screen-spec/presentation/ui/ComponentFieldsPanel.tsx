@@ -25,6 +25,18 @@ const COLS = [
   { key: 'remark', label: 'Remark', placeholder: 'Optional' },
 ]
 
+function toComponentFieldBody(values: Record<string, string>) {
+  const max = values.maxLength.trim()
+  return {
+    fieldKey: values.fieldKey.trim(),
+    label: values.label.trim(),
+    fieldType: values.fieldType.trim() || 'TEXT',
+    required: values.required === 'true',
+    maxLength: max ? Number(max) : null,
+    remark: values.remark.trim() || null,
+  }
+}
+
 export function ComponentFieldsPanel({
   workspaceId,
   componentId,
@@ -32,10 +44,8 @@ export function ComponentFieldsPanel({
   workspaceId: string
   componentId: string
 }) {
-  const { items, loading, error, createField, updateField, removeField } = useComponentFields(
-    workspaceId,
-    componentId
-  )
+  const { items, loading, error, createField, createFieldsBulk, updateField, removeField } =
+    useComponentFields(workspaceId, componentId)
 
   return (
     <div className="space-y-3">
@@ -70,16 +80,9 @@ export function ComponentFieldsPanel({
         editTitle="Edit component fields"
         itemLabel="field"
         onCreate={async (values) => {
-          const max = values.maxLength.trim()
-          await createField({
-            fieldKey: values.fieldKey.trim(),
-            label: values.label.trim(),
-            fieldType: values.fieldType.trim() || 'TEXT',
-            required: values.required === 'true',
-            maxLength: max ? Number(max) : null,
-            remark: values.remark.trim() || null,
-          })
+          await createField(toComponentFieldBody(values))
         }}
+        onCreateMany={async (rows) => createFieldsBulk(rows.map(toComponentFieldBody))}
         onUpdate={async (id, values) => {
           const max = values.maxLength.trim()
           await updateField(id, {

@@ -115,6 +115,18 @@ const MODE_COLS = [
   { key: 'name', label: 'Name', required: true, placeholder: 'Create' },
 ]
 
+function toScreenFieldBody(values: Record<string, string>) {
+  const max = values.maxLength.trim()
+  return {
+    fieldKey: values.fieldKey.trim(),
+    label: values.label.trim(),
+    fieldType: values.fieldType.trim() || 'TEXT',
+    required: values.required === 'true',
+    maxLength: max ? Number(max) : null,
+    remark: values.remark.trim() || null,
+  }
+}
+
 const ACTION_COLS = [
   {
     key: 'actionCode',
@@ -152,6 +164,7 @@ export function ScreenDetailPanel({
     updateSection,
     removeSection,
     createField,
+    createFieldsBulk,
     updateField,
     removeField,
     createAction,
@@ -362,16 +375,9 @@ export function ScreenDetailPanel({
             editTitle="Edit fields"
             itemLabel="field"
             onCreate={async (values) => {
-              const max = values.maxLength.trim()
-              await createField({
-                fieldKey: values.fieldKey.trim(),
-                label: values.label.trim(),
-                fieldType: values.fieldType.trim() || 'TEXT',
-                required: values.required === 'true',
-                maxLength: max ? Number(max) : null,
-                remark: values.remark.trim() || null,
-              })
+              await createField(toScreenFieldBody(values))
             }}
+            onCreateMany={async (rows) => createFieldsBulk(rows.map(toScreenFieldBody))}
             onUpdate={async (id, values) => {
               const max = values.maxLength.trim()
               await updateField(id, {

@@ -59,6 +59,17 @@ export function useComponentFields(workspaceId: string | null, componentId: stri
     [workspaceId, componentId, load]
   )
 
+  const createFieldsBulk = useCallback(
+    async (items: CreateComponentFieldBody[]) => {
+      if (!workspaceId || !componentId) return { failed: [] }
+      const job = await api.submitComponentFieldsBulk(workspaceId, componentId, items)
+      const result = await api.waitForFieldBulkJob(job)
+      await load()
+      return result
+    },
+    [workspaceId, componentId, load]
+  )
+
   const updateField = useCallback(
     async (fieldId: string, body: UpdateComponentFieldBody) => {
       if (!workspaceId || !componentId) return
@@ -77,5 +88,5 @@ export function useComponentFields(workspaceId: string | null, componentId: stri
     [workspaceId, componentId, load]
   )
 
-  return { items, loading, error, refetch: load, createField, updateField, removeField }
+  return { items, loading, error, refetch: load, createField, createFieldsBulk, updateField, removeField }
 }

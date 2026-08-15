@@ -1,4 +1,11 @@
 import { apiClient } from '@/shared/lib/apiClient'
+import {
+  assertBulkItemCount,
+  BulkJobStatus,
+  getBulkJobFailures,
+  pollBulkJobUntilDone,
+  type BulkJobResponse,
+} from '@/shared/lib/bulkJobs'
 import { normalizeItemList, type ListPayload } from '@/shared/lib/normalizeListResponse'
 import { SCREEN_SPEC_ENDPOINTS as EP } from './endpoints'
 import type {
@@ -13,6 +20,7 @@ import type {
   CreateComponentApiLinkBody,
   CreateDataEntityFieldBody,
   CreateFieldValidationBody,
+  CreateScreenFieldBody,
   CreateScreenModeBody,
   DataEntityField,
   ReplaceFieldModeConfigsBody,
@@ -251,6 +259,19 @@ export async function createDataEntityField(
   return mapDataEntityField(res)
 }
 
+export async function submitDataEntityFieldsBulk(
+  workspaceId: string,
+  entityId: string,
+  items: CreateDataEntityFieldBody[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(
+    EP.dataEntityFieldsBulk(workspaceId, entityId),
+    { items },
+    { skipGlobalLoading: true }
+  )
+}
+
 export async function updateDataEntityField(
   workspaceId: string,
   entityId: string,
@@ -284,6 +305,49 @@ export async function createComponentField(
 ): Promise<ApplicationComponentField> {
   const res = await apiClient.post<unknown>(EP.componentFields(workspaceId, componentId), body)
   return mapComponentField(res)
+}
+
+export async function submitComponentFieldsBulk(
+  workspaceId: string,
+  componentId: string,
+  items: CreateComponentFieldBody[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(
+    EP.componentFieldsBulk(workspaceId, componentId),
+    { items },
+    { skipGlobalLoading: true }
+  )
+}
+
+export async function submitScreenFieldsBulk(
+  workspaceId: string,
+  screenId: string,
+  items: CreateScreenFieldBody[]
+): Promise<BulkJobResponse> {
+  assertBulkItemCount(items.length)
+  return apiClient.post<BulkJobResponse>(
+    EP.screenFieldsBulk(workspaceId, screenId),
+    { items },
+    { skipGlobalLoading: true }
+  )
+}
+
+export interface FieldBulkCreateResult {
+  succeeded: number
+  failed: Array<{ index: number; message: string }>
+}
+
+export async function waitForFieldBulkJob(job: BulkJobResponse): Promise<FieldBulkCreateResult> {
+  const done = await pollBulkJobUntilDone(job.id)
+  const failed = getBulkJobFailures(done).map((f) => ({
+    index: f.index,
+    message: f.message?.trim() || String(f.errorCode ?? 'Failed'),
+  }))
+  if (done.status === BulkJobStatus.Failed && failed.length === 0) {
+    throw new Error(done.errorMessage?.trim() || done.resultSummary?.trim() || 'Bulk create failed')
+  }
+  return { succeeded: done.succeededItems, failed }
 }
 
 export async function updateComponentField(

@@ -3,6 +3,8 @@ import { apiPath } from '@/shared/lib/api-paths'
 export const SCREEN_SPEC_ENDPOINTS = {
   dataEntityFields: (workspaceId: string, entityId: string) =>
     apiPath(`/workspaces/${workspaceId}/data-entities/${entityId}/fields`),
+  dataEntityFieldsBulk: (workspaceId: string, entityId: string) =>
+    apiPath(`/workspaces/${workspaceId}/data-entities/${entityId}/fields/bulk`),
   dataEntityField: (workspaceId: string, entityId: string, fieldId: string) =>
     apiPath(`/workspaces/${workspaceId}/data-entities/${entityId}/fields/${fieldId}`),
 
@@ -14,6 +16,8 @@ export const SCREEN_SPEC_ENDPOINTS = {
     apiPath(`/workspaces/${workspaceId}/application-components/${componentId}/options/${optionId}`),
   componentFields: (workspaceId: string, componentId: string) =>
     apiPath(`/workspaces/${workspaceId}/application-components/${componentId}/fields`),
+  componentFieldsBulk: (workspaceId: string, componentId: string) =>
+    apiPath(`/workspaces/${workspaceId}/application-components/${componentId}/fields/bulk`),
   componentField: (workspaceId: string, componentId: string, fieldId: string) =>
     apiPath(`/workspaces/${workspaceId}/application-components/${componentId}/fields/${fieldId}`),
   componentApis: (workspaceId: string, componentId: string) =>
@@ -29,6 +33,10 @@ export const SCREEN_SPEC_ENDPOINTS = {
   screenMode: (workspaceId: string, screenId: string, modeId: string) =>
     apiPath(`/workspaces/${workspaceId}/screens/${screenId}/modes/${modeId}`),
 
+  screenFields: (workspaceId: string, screenId: string) =>
+    apiPath(`/workspaces/${workspaceId}/screens/${screenId}/fields`),
+  screenFieldsBulk: (workspaceId: string, screenId: string) =>
+    apiPath(`/workspaces/${workspaceId}/screens/${screenId}/fields/bulk`),
   screenField: (workspaceId: string, screenId: string, fieldId: string) =>
     apiPath(`/workspaces/${workspaceId}/screens/${screenId}/fields/${fieldId}`),
   fieldModeConfigs: (workspaceId: string, screenId: string, fieldId: string) =>

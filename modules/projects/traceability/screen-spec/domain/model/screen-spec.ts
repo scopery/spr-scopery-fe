@@ -236,6 +236,20 @@ export interface UpdateFieldValidationBody {
   displayOrder?: number | null
 }
 
+export interface CreateScreenFieldBody {
+  fieldKey: string
+  label: string
+  fieldType: string
+  description?: string | null
+  required?: boolean | null
+  displayOrder?: number | null
+  sectionId?: string | null
+  maxLength?: number | null
+  remark?: string | null
+  componentId?: string | null
+  dataEntityFieldId?: string | null
+}
+
 export interface ScreenFieldDetail {
   id: string
   screenId?: string

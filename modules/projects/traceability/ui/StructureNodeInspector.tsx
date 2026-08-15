@@ -349,7 +349,7 @@ export function StructureNodeInspector({
       title="Unlink component"
       message={
         unlinkComponent
-          ? `Unlink "${unlinkComponent.label}"? Screen fields copied from this component (including validations and mode config) will be deleted.`
+          ? `Unlink "${unlinkComponent.label}"? Screen fields copied from this component (including validations and mode config) will be deleted. Fields you added by hand stay.`
           : ''
       }
       confirmLabel="Unlink"

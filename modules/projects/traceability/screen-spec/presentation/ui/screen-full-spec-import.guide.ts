@@ -21,6 +21,7 @@ const FIELD_TYPES = [
   'LABEL',
   'HIDDEN',
   'URL',
+  'PASSWORD',
 ] as const
 
 export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
@@ -28,9 +29,10 @@ export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
   maxItems: SCREEN_IMPORT_FULL_MAX_ITEMS,
   notes: [
     'Payload shape: { "items": [ Screen, ... ] }. A bare array is also accepted. Each Screen is one catalog screen plus nested spec objects listed below.',
-    'How to import: (1) Create components on Browse first if fields use componentCode. (2) Put a project UUID in Default project ID, or set projectId on every Screen. (3) Paste JSON. (4) Submit — 202 job; this page polls per-screen success/failure.',
+    'How to import: (1) Create components (fields / API links) on Browse first if fields use componentCode. (2) Put a project UUID in Default project ID, or set projectId on every Screen. (3) Paste JSON. (4) Submit — 202 job; this page polls per-screen success/failure.',
     'Max 200 screens per job. Duplicate screen code in the same file is rejected on the client.',
     'Do not send UUIDs for fields, modes, processes, or events. Keys are codes and fieldKey strings. There is no sections array — only fields[].',
+    'Do not send componentFieldId. Bind a component to a section on Browse to copy fields; the API sets that id. componentCode only links an existing catalog component. Component → API roles are not in this payload.',
     'Excel on this tab only creates empty screens (code, name, routePath) via …/screens/bulk. This JSON is the full spec: modes, fields, modeConfigs, validations, processes, events.',
     'Unknown keys on any object are rejected. ruleParamJson / conditionJson may be a JSON string or an object (objects are stringified).',
   ],
@@ -159,7 +161,7 @@ export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
           required: false,
           type: 'string',
           description:
-            'Existing application component code (not a UUID). Create the component on Browse first. Options come from that component, not this payload.',
+            'Existing application component code (not a UUID). Create the component on Browse first. This links the field; it does not copy component fields or set componentFieldId. Bind on a section to copy.',
         },
         {
           name: 'modeConfigs',

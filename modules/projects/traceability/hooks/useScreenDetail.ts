@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import * as api from '../api/traceability.api'
+import { submitScreenFieldsBulk, waitForFieldBulkJob } from '../screen-spec'
 import type {
   CreateRegistryScreenActionBody,
   CreateRegistryScreenFieldBody,
@@ -86,6 +87,17 @@ export function useScreenDetail(workspaceId: string | null, screenId: string | n
     [workspaceId, screenId, load]
   )
 
+  const createFieldsBulk = useCallback(
+    async (items: CreateRegistryScreenFieldBody[]) => {
+      if (!workspaceId || !screenId) return { failed: [] }
+      const job = await submitScreenFieldsBulk(workspaceId, screenId, items)
+      const result = await waitForFieldBulkJob(job)
+      await load()
+      return result
+    },
+    [workspaceId, screenId, load]
+  )
+
   const updateField = useCallback(
     async (fieldId: string, body: UpdateRegistryScreenFieldBody) => {
       if (!workspaceId || !screenId) return
@@ -142,6 +154,7 @@ export function useScreenDetail(workspaceId: string | null, screenId: string | n
     updateSection,
     removeSection,
     createField,
+    createFieldsBulk,
     updateField,
     removeField,
     createAction,

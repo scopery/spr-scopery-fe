@@ -26,7 +26,10 @@ export const CATALOG_BULK_IMPORT_GUIDES: Record<ArchitectureNodeType, BulkImport
   SCREEN: {
     entityLabel: 'Screen',
     maxItems: MAX,
-    notes: ['code and name are required.', 'routePath is optional (e.g. /cart).'],
+    notes: [
+      'Excel / …/screens/bulk: code, name, optional routePath only — empty catalog screens.',
+      'Browse → Add node → Screen → JSON uses import-full (modes, fields, validations, processes, events). See that guide, not this shell.',
+    ],
     fields: [
       { name: 'code', required: true, type: 'string', description: 'Screen code (e.g. CART_VIEW).' },
       { name: 'name', required: true, type: 'string', description: 'Screen display name.' },
@@ -45,8 +48,10 @@ export const CATALOG_BULK_IMPORT_GUIDES: Record<ArchitectureNodeType, BulkImport
     entityLabel: 'API Endpoint',
     maxItems: MAX,
     notes: [
-      'method and pathPattern are required.',
-      'method must be an HTTP verb in uppercase.',
+      'method and pathPattern are required. method must be an uppercase HTTP verb.',
+      'This job creates catalog endpoints only. Linking them to a Function (Structure) or a Component (Browse → APIs tab) is a separate step.',
+      'requestParams is an array of objects (or a JSON string of that array). in must be QUERY | PATH | BODY | HEADER.',
+      'responseSchemaJson is a JSON string, or an object (the client stringifies it).',
     ],
     fields: [
       {
@@ -60,46 +65,128 @@ export const CATALOG_BULK_IMPORT_GUIDES: Record<ArchitectureNodeType, BulkImport
         name: 'pathPattern',
         required: true,
         type: 'string',
-        description: 'URL path pattern (e.g. /carts/{id}).',
+        description: 'URL path pattern. Must start with / (e.g. /carts/{id}).',
       },
       {
         name: 'name',
         required: false,
         type: 'string',
-        description: 'Optional human-readable endpoint name.',
+        description: 'Human-readable endpoint name.',
+      },
+      {
+        name: 'description',
+        required: false,
+        type: 'string',
+        description: 'What the endpoint does.',
+      },
+      {
+        name: 'requestParams',
+        required: false,
+        type: 'RequestParam[]',
+        description: 'Query, path, body, or header params. Nested entity: RequestParam.',
+      },
+      {
+        name: 'responseSchemaJson',
+        required: false,
+        type: 'string | object',
+        description: 'Response body schema stored as a JSON string.',
+      },
+    ],
+    entities: [
+      {
+        name: 'RequestParam',
+        path: 'items[].requestParams[]',
+        description: 'One request parameter on the catalog API.',
+        fields: [
+          { name: 'name', required: true, type: 'string', description: 'Param name, e.g. page.' },
+          {
+            name: 'in',
+            required: true,
+            type: 'enum',
+            enumValues: ['QUERY', 'PATH', 'BODY', 'HEADER'],
+            description: 'Where the param is sent.',
+          },
+          {
+            name: 'type',
+            required: false,
+            type: 'string',
+            description: 'Value type, e.g. string, integer, boolean. Defaults to string.',
+          },
+          { name: 'required', required: false, type: 'boolean', description: 'Whether the param is required.' },
+          { name: 'description', required: false, type: 'string', description: 'What the param means.' },
+          { name: 'example', required: false, type: 'string', description: 'Example value as a string.' },
+        ],
       },
     ],
     sample: {
-      items: [{ method: 'GET', pathPattern: '/carts/{id}', name: 'Get cart by id' }],
+      items: [
+        {
+          method: 'GET',
+          pathPattern: '/users',
+          name: 'List users',
+          description: 'Returns a paginated user list',
+          requestParams: [
+            {
+              name: 'page',
+              in: 'QUERY',
+              type: 'integer',
+              required: false,
+              description: 'Page number',
+              example: '0',
+            },
+          ],
+          responseSchemaJson: { data: [{ id: 'string' }] },
+        },
+      ],
     },
   },
   COMPONENT: {
     entityLabel: 'App Component',
     maxItems: MAX,
-    notes: ['code and name are required.', 'componentType is optional free text or taxonomy label.'],
+    notes: [
+      'code and name are required. This job creates the catalog shell only.',
+      'Do not send fields, options, or API links here. After import, open the component on Browse: Fields, Options, and APIs tabs.',
+      'Component → API links (FETCH_OPTIONS / SUBMIT / VALIDATE / LOAD_DATA / AUTOCOMPLETE) are configured on Browse, not in this JSON.',
+    ],
     fields: [
       {
         name: 'code',
         required: true,
         type: 'string',
-        description: 'Component code (e.g. BTN_PRIMARY).',
+        description: 'Component code (e.g. BTN_PRIMARY). Used later as componentCode on screen full-spec fields.',
       },
       { name: 'name', required: true, type: 'string', description: 'Component display name.' },
       {
         name: 'componentType',
         required: false,
         type: 'string',
-        description: 'Optional component type label.',
+        description: 'Optional type label (BUTTON, INPUT, …).',
+      },
+      {
+        name: 'description',
+        required: false,
+        type: 'string',
+        description: 'Optional description.',
       },
     ],
     sample: {
-      items: [{ code: 'BTN_PRIMARY', name: 'Primary button', componentType: 'BUTTON' }],
+      items: [
+        {
+          code: 'BTN_PRIMARY',
+          name: 'Primary button',
+          componentType: 'BUTTON',
+          description: 'Primary submit control',
+        },
+      ],
     },
   },
   DATA_ENTITY: {
     entityLabel: 'Data Entity',
     maxItems: MAX,
-    notes: ['code and name are required.', 'tableName is optional physical table name.'],
+    notes: [
+      'code and name are required. This job creates the catalog table only.',
+      'Physical columns are added later on Browse → entity → Columns. Do not send fields[] here.',
+    ],
     fields: [
       {
         name: 'code',
@@ -114,9 +201,22 @@ export const CATALOG_BULK_IMPORT_GUIDES: Record<ArchitectureNodeType, BulkImport
         type: 'string',
         description: 'Optional database table name.',
       },
+      {
+        name: 'description',
+        required: false,
+        type: 'string',
+        description: 'Optional description.',
+      },
     ],
     sample: {
-      items: [{ code: 'CART_ITEM', name: 'Cart item', tableName: 'cart_items' }],
+      items: [
+        {
+          code: 'CART_ITEM',
+          name: 'Cart item',
+          tableName: 'cart_items',
+          description: 'Line item on a cart',
+        },
+      ],
     },
   },
   COMMUNICATION: {

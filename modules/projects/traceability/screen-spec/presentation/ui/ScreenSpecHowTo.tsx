@@ -53,7 +53,7 @@ export const SCREEN_STRUCTURE_TAB_HINTS: Record<
   fields:
     'Add controls or review copied ones. Copied = came from bind. Configure opens Links and Validations.',
   components:
-    'Components linked to this screen. Unlink deletes copied fields, including their validations and mode config.',
+    'Components linked to this screen. Unlink deletes copied fields (and their validations / mode config). Fields you added by hand stay.',
   modes: 'Add CREATE / VIEW / EDIT (and SEARCH or DIALOG if needed) before the mode matrix. Missing modes show empty 〇 columns.',
   matrix:
     'Per field and mode: visible, readonly, required. Save replaces the whole set. Visible fields get 〇 on Defines (Create SC / View SC / Edit SC).',

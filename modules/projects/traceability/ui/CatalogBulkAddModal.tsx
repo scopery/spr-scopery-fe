@@ -15,6 +15,7 @@ import { BULK_MAX_ITEMS, type BulkJobResponse } from '@/shared/lib/bulkJobs'
 import { useBackgroundJsonBulkImport } from '@/shared/lib/useBackgroundJsonBulkImport'
 import { cn } from '@/utils/cn'
 import type { ArchitectureNodeType } from '../model/architecture-workbench'
+import type { ApiRequestParam } from '../model/application-registry'
 
 export type CatalogAddKind = ArchitectureNodeType
 
@@ -37,6 +38,9 @@ export interface CatalogBulkCreateInput {
   code: string
   name: string
   extra?: string
+  description?: string | null
+  requestParams?: ApiRequestParam[] | null
+  responseSchemaJson?: string | null
 }
 
 interface CatalogBulkAddModalProps {

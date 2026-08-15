@@ -156,6 +156,13 @@ function mapValidation(
 }
 
 function mapField(row: Record<string, unknown>, pathPrefix: string, issues: JsonImportIssue[]): ScreenImportFieldItem | null {
+  if ('componentFieldId' in row && row.componentFieldId != null && row.componentFieldId !== '') {
+    issues.push({
+      path: `${pathPrefix}.componentFieldId`,
+      message:
+        'Do not send componentFieldId. Bind a component to a section on Browse to copy fields; the API sets this id.',
+    })
+  }
   const fieldKey = requireNonEmptyString(row, 'fieldKey', `${pathPrefix}.fieldKey`, issues)
   const label = requireNonEmptyString(row, 'label', `${pathPrefix}.label`, issues)
   const fieldType = requireNonEmptyString(row, 'fieldType', `${pathPrefix}.fieldType`, issues)

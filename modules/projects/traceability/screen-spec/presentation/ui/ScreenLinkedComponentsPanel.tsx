@@ -73,7 +73,7 @@ export function ScreenLinkedComponentsPanel({
         title="Unlink component"
         message={
           pending
-            ? `Unlink "${pending.label}"? Fields copied from this component (including validations and mode config) will be deleted.`
+            ? `Unlink "${pending.label}"? Fields copied from this component (including validations and mode config) will be deleted. Fields you added by hand stay.`
             : ''
         }
         confirmLabel="Unlink"

@@ -28,7 +28,7 @@ export const SCREEN_IMPORT_SPEC: ExcelListImportSpec = {
 
 export const API_ENDPOINT_IMPORT_SPEC: ExcelListImportSpec = {
   instruction:
-    'Create an Excel file (.xlsx) with columns: method, pathPattern, name (optional). method must be GET|POST|PUT|PATCH|DELETE. Example: method=POST, pathPattern=/carts/{id}/items.',
+    'Create an Excel file (.xlsx) with columns: method, pathPattern, name (optional), description (optional). method must be GET|POST|PUT|PATCH|DELETE. Request params and response schema are not in Excel — use JSON import on this tab (or Browse → Add node → API → JSON).',
   columns: [
     {
       key: 'method',
@@ -38,12 +38,13 @@ export const API_ENDPOINT_IMPORT_SPEC: ExcelListImportSpec = {
     },
     { key: 'pathPattern', required: true },
     { key: 'name' },
+    { key: 'description' },
   ],
 }
 
 export const COMPONENT_IMPORT_SPEC: ExcelListImportSpec = {
   instruction:
-    'Create an Excel file (.xlsx) with columns: code, name, componentType (optional), description (optional).',
+    'Create an Excel file (.xlsx) with columns: code, name, componentType (optional), description (optional). This creates the catalog shell only. Add fields, options, and API links on Browse after import.',
   columns: [
     { key: 'code', required: true },
     { key: 'name', required: true },
@@ -54,7 +55,7 @@ export const COMPONENT_IMPORT_SPEC: ExcelListImportSpec = {
 
 export const DATA_ENTITY_IMPORT_SPEC: ExcelListImportSpec = {
   instruction:
-    'Create an Excel file (.xlsx) with columns: code, name, tableName (optional), description (optional).',
+    'Create an Excel file (.xlsx) with columns: code, name, tableName (optional), description (optional). This creates the catalog table only. Add columns on Browse after import.',
   columns: [
     { key: 'code', required: true },
     { key: 'name', required: true },

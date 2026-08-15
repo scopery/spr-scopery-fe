@@ -19,5 +19,13 @@ export { ScreenFullSpecJsonImportPanel } from './presentation/ui/ScreenFullSpecJ
 export { SCREEN_FULL_SPEC_IMPORT_GUIDE } from './presentation/ui/screen-full-spec-import.guide'
 export { validateScreenFullSpecJsonImport } from './domain/rules/screen-spec-import.validation'
 export { importFullScreens } from './infrastructure/api/spec-doc.api'
+export {
+  submitDataEntityFieldsBulk,
+  submitComponentFieldsBulk,
+  submitScreenFieldsBulk,
+  waitForFieldBulkJob,
+} from './infrastructure/api/screen-spec.api'
+export type { FieldBulkCreateResult } from './infrastructure/api/screen-spec.api'
+export type { CreateScreenFieldBody } from './domain/model/screen-spec'
 export type { ScreenImportItem } from './domain/model/screen-spec-import'
 export { SCREEN_IMPORT_FULL_MAX_ITEMS } from './domain/model/screen-spec-import'

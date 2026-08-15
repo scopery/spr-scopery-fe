@@ -59,6 +59,17 @@ export function useDataEntityFields(workspaceId: string | null, entityId: string
     [workspaceId, entityId, load]
   )
 
+  const createFieldsBulk = useCallback(
+    async (items: CreateDataEntityFieldBody[]) => {
+      if (!workspaceId || !entityId) return { failed: [] }
+      const job = await api.submitDataEntityFieldsBulk(workspaceId, entityId, items)
+      const result = await api.waitForFieldBulkJob(job)
+      await load()
+      return result
+    },
+    [workspaceId, entityId, load]
+  )
+
   const updateField = useCallback(
     async (fieldId: string, body: UpdateDataEntityFieldBody) => {
       if (!workspaceId || !entityId) return
@@ -77,5 +88,5 @@ export function useDataEntityFields(workspaceId: string | null, entityId: string
     [workspaceId, entityId, load]
   )
 
-  return { items, loading, error, refetch: load, createField, updateField, removeField }
+  return { items, loading, error, refetch: load, createField, createFieldsBulk, updateField, removeField }
 }

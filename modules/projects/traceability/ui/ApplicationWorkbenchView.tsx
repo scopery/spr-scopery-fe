@@ -21,6 +21,7 @@ import type {
 } from '../model/architecture-workbench'
 import { ArchitectureCatalogTable } from './ArchitectureCatalogTable'
 import { CatalogAddBar } from './CatalogAddBar'
+import { CatalogApiJsonImportPanel } from './CatalogJsonImportModal'
 import type { CatalogAddKind, CatalogBulkCreateInput } from './CatalogBulkAddModal'
 import * as traceabilityApi from '../api/traceability.api'
 import { NodeDetailInspector, type NodeEditPayload } from './NodeDetailInspector'
@@ -139,6 +140,9 @@ export function ApplicationWorkbenchView() {
               method: i.code.toUpperCase(),
               pathPattern: i.name,
               name: i.extra ?? null,
+              description: i.description ?? null,
+              requestParams: i.requestParams ?? null,
+              responseSchemaJson: i.responseSchemaJson ?? null,
             }))
           )
         case 'COMPONENT':
@@ -149,6 +153,7 @@ export function ApplicationWorkbenchView() {
               code: i.code,
               name: i.name,
               componentType: i.extra ?? null,
+              description: i.description ?? null,
             }))
           )
         case 'DATA_ENTITY':
@@ -159,6 +164,7 @@ export function ApplicationWorkbenchView() {
               code: i.code,
               name: i.name,
               tableName: i.extra ?? null,
+              description: i.description ?? null,
             }))
           )
         case 'COMMUNICATION':
@@ -282,11 +288,18 @@ export function ApplicationWorkbenchView() {
         })
         break
       case 'API_ENDPOINT': {
-        const current = apiEndpoints.find((e) => e.id === node.id)
+        const current = await traceabilityApi.getApiEndpoint(
+          workspaceId,
+          applicationId,
+          node.id
+        )
         await updateEndpoint(node.id, {
-          method: current?.method ?? node.code,
+          method: current.method || node.code,
           pathPattern: payload.name,
-          name: payload.secondary ?? current?.name ?? payload.name,
+          name: payload.secondary ?? current.name ?? payload.name,
+          description: current.description ?? null,
+          requestParams: current.requestParams ?? null,
+          responseSchemaJson: current.responseSchemaJson ?? null,
         })
         break
       }
@@ -696,23 +709,32 @@ export function ApplicationWorkbenchView() {
                   </>
                 ) : null}
                 {importKind === 'apis' ? (
-                  <SimpleExcelImportPanel
-                    title="Import API endpoints"
-                    spec={API_ENDPOINT_IMPORT_SPEC}
-                    uniqueKeys={['method', 'pathPattern']}
-                    onSubmitBulk={(rows) =>
-                      traceabilityApi.submitApiEndpointsBulk(
-                        workspaceId,
-                        applicationId,
-                        rows.map((row) => ({
-                          method: row.method.toUpperCase(),
-                          pathPattern: row.pathPattern,
-                          name: row.name || null,
-                        }))
-                      )
-                    }
-                    onComplete={() => void refetch({ silent: true })}
-                  />
+                  <>
+                    <SimpleExcelImportPanel
+                      title="Import API endpoints"
+                      spec={API_ENDPOINT_IMPORT_SPEC}
+                      uniqueKeys={['method', 'pathPattern']}
+                      onSubmitBulk={(rows) =>
+                        traceabilityApi.submitApiEndpointsBulk(
+                          workspaceId,
+                          applicationId,
+                          rows.map((row) => ({
+                            method: row.method.toUpperCase(),
+                            pathPattern: row.pathPattern,
+                            name: row.name || null,
+                            description: row.description || null,
+                          }))
+                        )
+                      }
+                      onComplete={() => void refetch({ silent: true })}
+                    />
+                    <CatalogApiJsonImportPanel
+                      onSubmitBulk={(items) =>
+                        handleSubmitBulk('API_ENDPOINT', items)
+                      }
+                      onComplete={() => void refetch({ silent: true })}
+                    />
+                  </>
                 ) : null}
                 {importKind === 'components' ? (
                   <SimpleExcelImportPanel
