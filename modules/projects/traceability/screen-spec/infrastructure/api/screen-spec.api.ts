@@ -187,12 +187,21 @@ function parseJsonish(value: unknown): unknown {
   }
 }
 
+function modeFromRaw(raw: Record<string, unknown>): { modeId: string | null; modeCode: string | null } {
+  const nested = asRecord(raw.mode ?? raw.screenMode ?? raw.screen_mode)
+  return {
+    modeId: str(raw.modeId ?? raw.mode_id ?? nested.id ?? raw.screenModeId ?? raw.screen_mode_id),
+    modeCode: str(raw.modeCode ?? raw.mode_code ?? nested.modeCode ?? nested.mode_code),
+  }
+}
+
 function mapValidation(raw: unknown): ScreenFieldValidation {
   const r = asRecord(raw)
+  const mode = modeFromRaw(r)
   return {
     id: String(r.id ?? ''),
-    modeId: str(r.modeId ?? r.mode_id),
-    modeCode: str(r.modeCode ?? r.mode_code),
+    modeId: mode.modeId,
+    modeCode: mode.modeCode,
     ruleTypeId: str(r.ruleTypeId ?? r.rule_type_id) ?? undefined,
     ruleTypeCode: String(r.ruleTypeCode ?? r.rule_type_code ?? ''),
     ruleParamJson: parseJsonish(r.ruleParamJson ?? r.rule_param_json),
@@ -642,11 +651,12 @@ export async function listValidationRuleTypes(
 
 export function mapProcessItem(raw: unknown): ScreenProcessItem {
   const r = asRecord(raw)
+  const mode = modeFromRaw(r)
   return {
     id: String(r.id ?? ''),
     screenId: str(r.screenId ?? r.screen_id) ?? undefined,
-    modeId: str(r.modeId ?? r.mode_id),
-    modeCode: str(r.modeCode ?? r.mode_code),
+    modeId: mode.modeId,
+    modeCode: mode.modeCode,
     targetFieldId: str(r.targetFieldId ?? r.target_field_id),
     title: String(r.title ?? ''),
     content: str(r.content),
@@ -658,11 +668,12 @@ export function mapProcessItem(raw: unknown): ScreenProcessItem {
 
 export function mapEventItem(raw: unknown): ScreenEventItem {
   const r = asRecord(raw)
+  const mode = modeFromRaw(r)
   return {
     id: String(r.id ?? ''),
     screenId: str(r.screenId ?? r.screen_id) ?? undefined,
-    modeId: str(r.modeId ?? r.mode_id),
-    modeCode: str(r.modeCode ?? r.mode_code),
+    modeId: mode.modeId,
+    modeCode: mode.modeCode,
     triggerFieldId: str(r.triggerFieldId ?? r.trigger_field_id),
     triggerActionCode: str(r.triggerActionCode ?? r.trigger_action_code),
     title: String(r.title ?? ''),

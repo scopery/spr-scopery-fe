@@ -25,6 +25,19 @@ function modeOptions(modes: ScreenMode[]): StructureOption[] {
   ]
 }
 
+function resolveModeValue(
+  modeId: string | null,
+  modeCode: string | null | undefined,
+  modes: ScreenMode[]
+): string {
+  if (modeId && modes.some((m) => m.id === modeId)) return modeId
+  if (modeCode) {
+    const match = modes.find((m) => m.modeCode === modeCode)
+    if (match) return match.id
+  }
+  return modeId || NONE
+}
+
 function fieldOptions(fields: RegistryScreenField[]): StructureOption[] {
   return [
     { value: NONE, label: 'No field' },
@@ -72,7 +85,7 @@ export function ScreenProcessItemsPanel({
             content: item.content ?? '',
             sourceTable: item.sourceTable ?? '',
             conditionNote: item.conditionNote ?? '',
-            modeId: item.modeId ?? NONE,
+            modeId: resolveModeValue(item.modeId, item.modeCode, modes),
             targetFieldId: item.targetFieldId ?? NONE,
           },
         }))}
@@ -166,7 +179,7 @@ export function ScreenEventItemsPanel({
             content: item.content ?? '',
             triggerActionCode: item.triggerActionCode ?? 'CLICK',
             triggerFieldId: item.triggerFieldId ?? NONE,
-            modeId: item.modeId ?? NONE,
+            modeId: resolveModeValue(item.modeId, item.modeCode, modes),
             conditionNote: item.conditionNote ?? '',
             targetScreenId: item.targetScreenId ?? NONE,
             targetModeCode: item.targetModeCode ?? NONE,

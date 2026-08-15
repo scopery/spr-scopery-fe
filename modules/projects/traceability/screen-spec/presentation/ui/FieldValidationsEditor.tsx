@@ -12,8 +12,21 @@ import {
 import { useFieldValidations, useValidationRuleTypes } from '../hooks/useFieldValidations'
 import type { ScreenFieldValidation, ScreenMode } from '../../domain/model/screen-spec'
 
-function ruleSummary(rule: ScreenFieldValidation): string {
-  const mode = rule.modeCode ?? 'All modes'
+function modeLabel(rule: ScreenFieldValidation, modes: ScreenMode[]): string {
+  if (rule.modeId) {
+    const match = modes.find((m) => m.id === rule.modeId)
+    if (match) return `${match.modeCode} · ${match.name}`
+  }
+  if (rule.modeCode) {
+    const match = modes.find((m) => m.modeCode === rule.modeCode)
+    if (match) return `${match.modeCode} · ${match.name}`
+    return rule.modeCode
+  }
+  return 'All modes'
+}
+
+function ruleSummary(rule: ScreenFieldValidation, modes: ScreenMode[]): string {
+  const mode = modeLabel(rule, modes)
   return rule.errorMessage ? `${mode} · ${rule.errorMessage}` : mode
 }
 
@@ -101,7 +114,12 @@ export function FieldValidationsEditor({
     const next = ruleTypes.find((t) => t.id === typeId)
     setRuleTypeId(typeId)
     setParamValues(paramsToFormValues(parseParamSchema(next?.paramSchemaJson), rule.ruleParamJson))
-    setModeId(rule.modeId ?? 'all')
+    const resolvedMode =
+      (rule.modeId && modes.some((m) => m.id === rule.modeId) ? rule.modeId : null) ??
+      modes.find((m) => m.modeCode === rule.modeCode)?.id ??
+      rule.modeId ??
+      'all'
+    setModeId(resolvedMode)
     setErrorMessage(rule.errorMessage ?? '')
     const cond = readCondition(rule.conditionJson)
     setApplyField(cond.field)
@@ -182,7 +200,7 @@ export function FieldValidationsEditor({
           onValueChange={setModeId}
           options={[
             { value: 'all', label: 'All modes' },
-            ...modes.map((m) => ({ value: m.id, label: m.name })),
+            ...modes.map((m) => ({ value: m.id, label: `${m.modeCode} · ${m.name}` })),
           ]}
           placeholder="All modes"
         />
@@ -254,7 +272,7 @@ export function FieldValidationsEditor({
         <Typography variant="caption" tone="muted" className="mb-1.5 block">
           Mode
         </Typography>
-        <Typography variant="small">{selectedRule.modeCode ?? 'All modes'}</Typography>
+        <Typography variant="small">{modeLabel(selectedRule, modes)}</Typography>
       </div>
       {selectedRule.errorMessage ? (
         <div>
@@ -334,7 +352,7 @@ export function FieldValidationsEditor({
                     <span className="min-w-0">
                       <Typography variant="small">{rule.ruleTypeCode || 'Rule'}</Typography>
                       <Typography variant="caption" tone="muted" className="block truncate">
-                        {ruleSummary(rule)}
+                        {ruleSummary(rule, modes)}
                       </Typography>
                     </span>
                   </button>
@@ -362,7 +380,7 @@ export function FieldValidationsEditor({
             {selectedRule.errorMessage || selectedRule.ruleTypeCode || 'Rule'}
           </Typography>
           <Typography variant="caption" tone="muted">
-            {selectedRule.modeCode ?? 'All modes'}
+            {modeLabel(selectedRule, modes)}
           </Typography>
           <div className="flex flex-wrap items-center gap-1">
             <Button size="sm" variant="ghost" onClick={() => setPane('view')}>

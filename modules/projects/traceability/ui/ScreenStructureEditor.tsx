@@ -103,11 +103,13 @@ const META_KEYS = new Set([
 
 function displayCellValue(col: StructureColumn, raw: string | undefined): string {
   const value = raw?.trim() ?? ''
-  if (!value || value === 'none') return ''
   if (col.options && col.options.length > 0) {
-    const match = col.options.find((o) => optionValue(o) === value)
-    return match ? optionLabel(match) : ''
+    const match = col.options.find((o) => optionValue(o) === (value || 'none'))
+    if (match) return optionLabel(match)
+    if (!value || value === 'none') return ''
+    return value
   }
+  if (!value || value === 'none') return ''
   return value
 }
 
@@ -540,8 +542,8 @@ export function ScreenStructureEditor({
           {emptyLabel}
         </Typography>
       ) : layout === 'masterDetail' ? (
-        <div className="flex min-w-0 border border-neutral-200">
-          <aside className="min-h-[200px] min-w-0 flex-1">
+        <div className="flex max-h-[min(28rem,55vh)] min-h-0 min-w-0 border border-neutral-200">
+          <aside className="min-h-0 min-w-0 flex-1 overflow-y-auto">
             <ul className="divide-y divide-neutral-100">
               {items.map((item, index) => {
                 const active = selectedId === item.id
@@ -590,7 +592,7 @@ export function ScreenStructureEditor({
               })}
             </ul>
           </aside>
-          <div className="w-56 shrink-0 border-l border-neutral-200 p-md">
+          <div className="w-56 shrink-0 self-start overflow-y-auto border-l border-neutral-200 p-md">
             {selectedItem ? (
               <Stack direction="vertical" spacing="sm">
                 <Typography weight="medium" variant="small" className="line-clamp-2">

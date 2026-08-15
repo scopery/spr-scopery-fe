@@ -56,8 +56,8 @@ export function ScreenValidationsPanel({
           {error}
         </Typography>
       ) : null}
-      <div className="flex min-w-0 border border-neutral-200">
-        <aside className="w-52 shrink-0 border-r border-neutral-200">
+      <div className="flex max-h-[min(28rem,55vh)] min-h-0 min-w-0 border border-neutral-200">
+        <aside className="w-52 shrink-0 overflow-y-auto border-r border-neutral-200">
           <ul className="divide-y divide-neutral-100">
             {fields.map((field) => {
               const count = countByField.get(field.id) ?? 0
@@ -92,7 +92,7 @@ export function ScreenValidationsPanel({
             })}
           </ul>
         </aside>
-        <div className="min-w-0 flex-1 p-md">
+        <div className="min-w-0 flex-1 overflow-y-auto p-md">
           {selectedField ? (
             <FieldValidationsEditor
               key={selectedField.id}
