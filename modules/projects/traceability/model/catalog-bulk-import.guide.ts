@@ -144,9 +144,9 @@ export const CATALOG_BULK_IMPORT_GUIDES: Record<ArchitectureNodeType, BulkImport
     entityLabel: 'App Component',
     maxItems: MAX,
     notes: [
-      'code and name are required. This job creates the catalog shell only.',
-      'Do not send fields, options, or API links here. After import, open the component on Browse: Fields, Options, and APIs tabs.',
-      'Component → API links (FETCH_OPTIONS / SUBMIT / VALIDATE / LOAD_DATA / AUTOCOMPLETE) are configured on Browse, not in this JSON.',
+      'Excel / Bulk add / …/components/bulk: code, name, optional componentType and description — catalog shell only.',
+      'Browse → Add node → Component → JSON uses import-full (component + fields[]). See that guide, not this shell.',
+      'Options and Component → API links are still configured on Browse after import.',
     ],
     fields: [
       {
@@ -184,8 +184,8 @@ export const CATALOG_BULK_IMPORT_GUIDES: Record<ArchitectureNodeType, BulkImport
     entityLabel: 'Data Entity',
     maxItems: MAX,
     notes: [
-      'code and name are required. This job creates the catalog table only.',
-      'Physical columns are added later on Browse → entity → Columns. Do not send fields[] here.',
+      'Excel / Bulk add / …/data-entities/bulk: code, name, optional tableName and description — catalog shell only.',
+      'Browse → Add node → Data Entity → JSON uses import-full (entity + fields[]). See that guide, not this shell.',
     ],
     fields: [
       {

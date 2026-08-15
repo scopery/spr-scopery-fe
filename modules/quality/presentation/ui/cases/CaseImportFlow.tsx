@@ -270,10 +270,6 @@ export function CaseImportFlow({
             : 'Paste JSON items or TSV with fixed columns (code, title, requirementId, verificationMethod, environment). No column mapping.'}
         </Typography>
 
-        {caseKind === 'FUNCTIONAL' ? (
-          <BulkImportFormatHelp guide={TEST_CASE_BULK_IMPORT_GUIDE} />
-        ) : null}
-
         <Textarea
           value={raw}
           onChange={(e) => {
@@ -288,6 +284,10 @@ export function CaseImportFlow({
               : 'code\ttitle\trequirementId\tverificationMethod\tenvironment\nVC-1\tp95 latency\t<requirement-uuid>\tMANUAL_REVIEW\tstaging'
           }
         />
+
+        {caseKind === 'FUNCTIONAL' ? (
+          <BulkImportFormatHelp guide={TEST_CASE_BULK_IMPORT_GUIDE} />
+        ) : null}
 
         {importError ? (
           <Typography variant="small" tone="error">

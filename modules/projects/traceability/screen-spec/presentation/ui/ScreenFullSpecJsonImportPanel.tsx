@@ -56,12 +56,6 @@ export function ScreenFullSpecJsonImportPanel({
       <Typography variant="small" weight="medium">
         Import full screen spec (JSON)
       </Typography>
-      <ScreenSpecHowTo
-        title="How to import screens"
-        steps={SCREEN_IMPORT_WORKFLOW_STEPS}
-        note="Failed items keep the original JSON so you can retry only those screens."
-        defaultOpen
-      />
       <Typography variant="caption" tone="muted">
         Up to {SCREEN_IMPORT_FULL_MAX_ITEMS} screens per job. Catalog Excel above does not import
         fields.
@@ -85,7 +79,12 @@ export function ScreenFullSpecJsonImportPanel({
           Paste JSON
         </Button>
       </div>
-      <BulkImportFormatHelp guide={SCREEN_FULL_SPEC_IMPORT_GUIDE} defaultOpen />
+      <ScreenSpecHowTo
+        title="How to import screens"
+        steps={SCREEN_IMPORT_WORKFLOW_STEPS}
+        note="Failed items keep the original JSON so you can retry only those screens."
+      />
+      <BulkImportFormatHelp guide={SCREEN_FULL_SPEC_IMPORT_GUIDE} />
       <JsonImportModal<ScreenImportItem>
         open={open}
         onClose={() => setOpen(false)}

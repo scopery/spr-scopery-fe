@@ -29,7 +29,7 @@ export interface JsonImportModalProps<T> {
   onClose: () => void
   title: string
   guide: BulkImportFormatGuide
-  /** Short helper under the title (before the guide). */
+  /** Short helper under the title (above the payload). */
   description?: string
   /** Optional content under the description (e.g. id reference lists). */
   extra?: React.ReactNode
@@ -58,7 +58,7 @@ export interface JsonImportModalProps<T> {
 }
 
 /**
- * Dedicated JSON import dialog: guide + textarea + client validation before BE.
+ * Dedicated JSON import dialog: textarea first, collapsed format guide below.
  */
 export function JsonImportModal<T>({
   open,
@@ -209,11 +209,29 @@ export function JsonImportModal<T>({
           </Typography>
         )}
 
-        {extra}
-
-        <BulkImportFormatHelp guide={guide} defaultOpen />
-
         {progress}
+
+        <div>
+          <Typography variant="small" className="mb-1.5">
+            JSON payload
+          </Typography>
+          <Textarea
+            rows={14}
+            fullWidth
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value)
+              setError(null)
+              setIssues([])
+              setCopiedErrors(false)
+            }}
+            placeholder={`{\n  "items": [\n    { ... }\n  ]\n}`}
+            disabled={blocked}
+            className="font-mono text-xs"
+          />
+        </div>
+
+        {extra}
 
         {hasErrorPanel ? (
           <div
@@ -250,25 +268,7 @@ export function JsonImportModal<T>({
           </div>
         ) : null}
 
-        <div>
-          <Typography variant="small" className="mb-1.5">
-            JSON payload
-          </Typography>
-          <Textarea
-            rows={14}
-            fullWidth
-            value={text}
-            onChange={(e) => {
-              setText(e.target.value)
-              setError(null)
-              setIssues([])
-              setCopiedErrors(false)
-            }}
-            placeholder={`{\n  "items": [\n    { ... }\n  ]\n}`}
-            disabled={blocked}
-            className="font-mono text-xs"
-          />
-        </div>
+        <BulkImportFormatHelp key={open ? 'open' : 'closed'} guide={guide} />
       </div>
     </Modal>
   )

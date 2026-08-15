@@ -19,6 +19,15 @@ export { ScreenFullSpecJsonImportPanel } from './presentation/ui/ScreenFullSpecJ
 export { SCREEN_FULL_SPEC_IMPORT_GUIDE } from './presentation/ui/screen-full-spec-import.guide'
 export { validateScreenFullSpecJsonImport } from './domain/rules/screen-spec-import.validation'
 export { importFullScreens } from './infrastructure/api/spec-doc.api'
+export { importFullComponents, importFullDataEntities } from './infrastructure/api/screen-spec.api'
+export { validateComponentFullSpecJsonImport } from './domain/rules/component-import.validation'
+export { COMPONENT_FULL_SPEC_IMPORT_GUIDE } from './presentation/ui/component-full-import.guide'
+export type { ComponentImportItem } from './domain/model/component-import'
+export { COMPONENT_IMPORT_FULL_MAX_ITEMS } from './domain/model/component-import'
+export { validateEntityFullSpecJsonImport } from './domain/rules/entity-import.validation'
+export { ENTITY_FULL_SPEC_IMPORT_GUIDE } from './presentation/ui/entity-full-import.guide'
+export type { EntityImportItem } from './domain/model/entity-import'
+export { ENTITY_IMPORT_FULL_MAX_ITEMS } from './domain/model/entity-import'
 export {
   submitDataEntityFieldsBulk,
   submitComponentFieldsBulk,

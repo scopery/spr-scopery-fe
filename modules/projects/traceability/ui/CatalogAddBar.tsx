@@ -5,7 +5,11 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
 import { AnchoredMenu, Button, anchoredMenuItemClassName } from '@/shared/ui'
 import type { BulkJobResponse } from '@/shared/lib/bulkJobs'
 import { cn } from '@/utils/cn'
-import type { ScreenImportItem } from '@/modules/projects/traceability/screen-spec'
+import type {
+  ComponentImportItem,
+  EntityImportItem,
+  ScreenImportItem,
+} from '@/modules/projects/traceability/screen-spec'
 import type { ArchitectureNodeType } from '../model/architecture-workbench'
 import { CatalogBulkAddModal, type CatalogAddKind, type CatalogBulkCreateInput } from './CatalogBulkAddModal'
 import { CatalogSingleAddModal } from './CatalogSingleAddModal'
@@ -40,6 +44,8 @@ interface CatalogAddBarProps {
   onCreate: (input: CatalogCreateInput) => Promise<void>
   onSubmitBulk: (kind: CatalogAddKind, items: CatalogBulkCreateInput[]) => Promise<BulkJobResponse>
   onSubmitScreenFullSpec: (items: ScreenImportItem[]) => Promise<BulkJobResponse>
+  onSubmitComponentFullSpec: (items: ComponentImportItem[]) => Promise<BulkJobResponse>
+  onSubmitEntityFullSpec: (items: EntityImportItem[]) => Promise<BulkJobResponse>
   onBatchComplete?: () => Promise<void> | void
 }
 
@@ -47,6 +53,8 @@ export function CatalogAddBar({
   onCreate,
   onSubmitBulk,
   onSubmitScreenFullSpec,
+  onSubmitComponentFullSpec,
+  onSubmitEntityFullSpec,
   onBatchComplete,
 }: CatalogAddBarProps) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -169,6 +177,8 @@ export function CatalogAddBar({
         onClose={() => setModal(null)}
         onSubmitBulk={(items) => onSubmitBulk(activeKind, items)}
         onSubmitScreenFullSpec={onSubmitScreenFullSpec}
+        onSubmitComponentFullSpec={onSubmitComponentFullSpec}
+        onSubmitEntityFullSpec={onSubmitEntityFullSpec}
         onBatchComplete={onBatchComplete}
       />
     </div>

@@ -44,7 +44,7 @@ export const API_ENDPOINT_IMPORT_SPEC: ExcelListImportSpec = {
 
 export const COMPONENT_IMPORT_SPEC: ExcelListImportSpec = {
   instruction:
-    'Create an Excel file (.xlsx) with columns: code, name, componentType (optional), description (optional). This creates the catalog shell only. Add fields, options, and API links on Browse after import.',
+    'Create an Excel file (.xlsx) with columns: code, name, componentType (optional), description (optional). This creates the catalog shell only. Use JSON import on this tab (or Browse → Add node → Component → JSON) to create fields in the same job.',
   columns: [
     { key: 'code', required: true },
     { key: 'name', required: true },
@@ -55,7 +55,7 @@ export const COMPONENT_IMPORT_SPEC: ExcelListImportSpec = {
 
 export const DATA_ENTITY_IMPORT_SPEC: ExcelListImportSpec = {
   instruction:
-    'Create an Excel file (.xlsx) with columns: code, name, tableName (optional), description (optional). This creates the catalog table only. Add columns on Browse after import.',
+    'Create an Excel file (.xlsx) with columns: code, name, tableName (optional), description (optional). This creates the catalog table only. Use JSON import on this tab (or Browse → Add node → Data Entity → JSON) to create columns in the same job.',
   columns: [
     { key: 'code', required: true },
     { key: 'name', required: true },

@@ -42,6 +42,10 @@ import type {
   ScreenEventItem,
   ScreenProcessItem,
 } from '../../domain/model/screen-spec'
+import type { ComponentImportItem } from '../../domain/model/component-import'
+import { COMPONENT_IMPORT_FULL_MAX_ITEMS } from '../../domain/model/component-import'
+import type { EntityImportItem } from '../../domain/model/entity-import'
+import { ENTITY_IMPORT_FULL_MAX_ITEMS } from '../../domain/model/entity-import'
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
@@ -315,6 +319,38 @@ export async function submitComponentFieldsBulk(
   assertBulkItemCount(items.length)
   return apiClient.post<BulkJobResponse>(
     EP.componentFieldsBulk(workspaceId, componentId),
+    { items },
+    { skipGlobalLoading: true }
+  )
+}
+
+export async function importFullComponents(
+  workspaceId: string,
+  applicationId: string,
+  items: ComponentImportItem[]
+): Promise<BulkJobResponse> {
+  if (items.length < 1) throw new Error('At least one item is required')
+  if (items.length > COMPONENT_IMPORT_FULL_MAX_ITEMS) {
+    throw new Error(`Maximum ${COMPONENT_IMPORT_FULL_MAX_ITEMS} components per import-full request`)
+  }
+  return apiClient.post<BulkJobResponse>(
+    EP.componentsImportFull(workspaceId, applicationId),
+    { items },
+    { skipGlobalLoading: true }
+  )
+}
+
+export async function importFullDataEntities(
+  workspaceId: string,
+  applicationId: string,
+  items: EntityImportItem[]
+): Promise<BulkJobResponse> {
+  if (items.length < 1) throw new Error('At least one item is required')
+  if (items.length > ENTITY_IMPORT_FULL_MAX_ITEMS) {
+    throw new Error(`Maximum ${ENTITY_IMPORT_FULL_MAX_ITEMS} data entities per import-full request`)
+  }
+  return apiClient.post<BulkJobResponse>(
+    EP.dataEntitiesImportFull(workspaceId, applicationId),
     { items },
     { skipGlobalLoading: true }
   )

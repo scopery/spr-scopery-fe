@@ -21,7 +21,11 @@ import type {
 } from '../model/architecture-workbench'
 import { ArchitectureCatalogTable } from './ArchitectureCatalogTable'
 import { CatalogAddBar } from './CatalogAddBar'
-import { CatalogApiJsonImportPanel } from './CatalogJsonImportModal'
+import {
+  CatalogApiJsonImportPanel,
+  CatalogComponentJsonImportPanel,
+  CatalogEntityJsonImportPanel,
+} from './CatalogJsonImportModal'
 import type { CatalogAddKind, CatalogBulkCreateInput } from './CatalogBulkAddModal'
 import * as traceabilityApi from '../api/traceability.api'
 import { NodeDetailInspector, type NodeEditPayload } from './NodeDetailInspector'
@@ -29,7 +33,7 @@ import { SimpleExcelImportPanel } from './SimpleExcelImportPanel'
 import { OverallStructurePanel } from './OverallStructurePanel'
 import { ScreenSpecDocsPanel } from '../screen-spec/presentation/ui/ScreenSpecDocsPanel'
 import { ScreenFullSpecJsonImportPanel } from '../screen-spec/presentation/ui/ScreenFullSpecJsonImportPanel'
-import { importFullScreens } from '../screen-spec'
+import { importFullComponents, importFullDataEntities, importFullScreens } from '../screen-spec'
 import {
   API_ENDPOINT_IMPORT_SPEC,
   COMPONENT_IMPORT_SPEC,
@@ -563,6 +567,12 @@ export function ApplicationWorkbenchView() {
                         onSubmitScreenFullSpec={(items) =>
                           importFullScreens(workspaceId, applicationId, items)
                         }
+                        onSubmitComponentFullSpec={(items) =>
+                          importFullComponents(workspaceId, applicationId, items)
+                        }
+                        onSubmitEntityFullSpec={(items) =>
+                          importFullDataEntities(workspaceId, applicationId, items)
+                        }
                         onBatchComplete={() => refetch({ silent: true })}
                       />
                     }
@@ -737,42 +747,58 @@ export function ApplicationWorkbenchView() {
                   </>
                 ) : null}
                 {importKind === 'components' ? (
-                  <SimpleExcelImportPanel
-                    title="Import components"
-                    spec={COMPONENT_IMPORT_SPEC}
-                    onSubmitBulk={(rows) =>
-                      traceabilityApi.submitAppComponentsBulk(
-                        workspaceId,
-                        applicationId,
-                        rows.map((row) => ({
-                          code: row.code,
-                          name: row.name,
-                          componentType: row.componentType || null,
-                          description: row.description || null,
-                        }))
-                      )
-                    }
-                    onComplete={() => void refetch({ silent: true })}
-                  />
+                  <>
+                    <SimpleExcelImportPanel
+                      title="Import components"
+                      spec={COMPONENT_IMPORT_SPEC}
+                      onSubmitBulk={(rows) =>
+                        traceabilityApi.submitAppComponentsBulk(
+                          workspaceId,
+                          applicationId,
+                          rows.map((row) => ({
+                            code: row.code,
+                            name: row.name,
+                            componentType: row.componentType || null,
+                            description: row.description || null,
+                          }))
+                        )
+                      }
+                      onComplete={() => void refetch({ silent: true })}
+                    />
+                    <CatalogComponentJsonImportPanel
+                      onSubmit={(items) =>
+                        importFullComponents(workspaceId, applicationId, items)
+                      }
+                      onComplete={() => void refetch({ silent: true })}
+                    />
+                  </>
                 ) : null}
                 {importKind === 'entities' ? (
-                  <SimpleExcelImportPanel
-                    title="Import data entities"
-                    spec={DATA_ENTITY_IMPORT_SPEC}
-                    onSubmitBulk={(rows) =>
-                      traceabilityApi.submitDataEntitiesBulk(
-                        workspaceId,
-                        applicationId,
-                        rows.map((row) => ({
-                          code: row.code,
-                          name: row.name,
-                          tableName: row.tableName || null,
-                          description: row.description || null,
-                        }))
-                      )
-                    }
-                    onComplete={() => void refetch({ silent: true })}
-                  />
+                  <>
+                    <SimpleExcelImportPanel
+                      title="Import data entities"
+                      spec={DATA_ENTITY_IMPORT_SPEC}
+                      onSubmitBulk={(rows) =>
+                        traceabilityApi.submitDataEntitiesBulk(
+                          workspaceId,
+                          applicationId,
+                          rows.map((row) => ({
+                            code: row.code,
+                            name: row.name,
+                            tableName: row.tableName || null,
+                            description: row.description || null,
+                          }))
+                        )
+                      }
+                      onComplete={() => void refetch({ silent: true })}
+                    />
+                    <CatalogEntityJsonImportPanel
+                      onSubmit={(items) =>
+                        importFullDataEntities(workspaceId, applicationId, items)
+                      }
+                      onComplete={() => void refetch({ silent: true })}
+                    />
+                  </>
                 ) : null}
               </Stack>
             </div>

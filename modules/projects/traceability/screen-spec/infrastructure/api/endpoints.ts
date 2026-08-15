@@ -82,4 +82,8 @@ export const SCREEN_SPEC_ENDPOINTS = {
 
   screensImportFull: (workspaceId: string, applicationId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/screens/import-full`),
+  componentsImportFull: (workspaceId: string, applicationId: string) =>
+    apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/components/import-full`),
+  dataEntitiesImportFull: (workspaceId: string, applicationId: string) =>
+    apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/data-entities/import-full`),
 } as const

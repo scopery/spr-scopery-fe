@@ -95,8 +95,6 @@ export function UseCaseNestedImportPanel({ onImport, onApplied }: Props) {
         </Typography>
       </div>
 
-      <BulkImportFormatHelp guide={USE_CASE_NESTED_IMPORT_GUIDE} />
-
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -104,6 +102,8 @@ export function UseCaseNestedImportPanel({ onImport, onApplied }: Props) {
         placeholder="Paste nested JSON…"
         disabled={importing}
       />
+
+      <BulkImportFormatHelp guide={USE_CASE_NESTED_IMPORT_GUIDE} />
 
       {hasErrorPanel ? (
         <div className="space-y-2 rounded border border-error/30 bg-error/5 p-3">
