@@ -49,7 +49,7 @@ export const SCREEN_STRUCTURE_TAB_HINTS: Record<
   string
 > = {
   sections:
-    'Group fields into blocks. Bind component copies that component’s fields into this section.',
+    'Group fields into blocks. Pick a component when adding a section to copy its fields, or bind later.',
   fields:
     'Add controls or review copied ones. Copied = came from bind. Configure opens Links and Validations.',
   components:

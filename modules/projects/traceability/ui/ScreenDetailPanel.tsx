@@ -30,6 +30,7 @@ import { ScreenValidationsPanel } from '../screen-spec/presentation/ui/ScreenVal
 import { useScreenValidations } from '../screen-spec/presentation/hooks/useFieldValidations'
 import { ScreenSectionBindComponentModal } from '../screen-spec/presentation/ui/ScreenSectionBindComponentModal'
 import { ScreenLinkedComponentsPanel } from '../screen-spec/presentation/ui/ScreenLinkedComponentsPanel'
+import { useScreenComponents } from '../screen-spec/presentation/hooks/useScreenComponents'
 import type { SpecCatalogEntity } from '../screen-spec/presentation/ui/ComponentSpecPanel'
 
 type ScreenDetailTab =
@@ -78,10 +79,10 @@ function FieldStatusChip({
   )
 }
 
-const SECTION_COLS = [
+const SECTION_BASE_COLS = [
   { key: 'name', label: 'Name', required: true, placeholder: 'Main form' },
   { key: 'description', label: 'Description', placeholder: 'Optional' },
-]
+] as const
 
 const FIELD_COLS = [
   {
@@ -181,6 +182,10 @@ export function ScreenDetailPanel({
   } = useScreenModes(workspaceId, screen.id)
   const { exporting, exportScreen } = useScreenSpecExcelExport(workspaceId)
   const { bind } = useBindComponentToSection(workspaceId, screen.id)
+  const { items: linkedComponents, refetch: refetchLinked } = useScreenComponents(
+    workspaceId,
+    screen.id
+  )
   const [tab, setTab] = useState<ScreenDetailTab>('sections')
   const [specFieldId, setSpecFieldId] = useState<string | null>(null)
   const [specFieldTab, setSpecFieldTab] = useState<FieldSpecDrawerTab>('links')
@@ -206,6 +211,33 @@ export function ScreenDetailPanel({
     setSpecFieldId(fieldId)
   }
 
+  const componentBySectionId = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const link of linkedComponents) {
+      if (link.sectionId) map.set(link.sectionId, link.componentId)
+    }
+    return map
+  }, [linkedComponents])
+
+  const sectionCols = useMemo(
+    () => [
+      ...SECTION_BASE_COLS,
+      {
+        key: 'componentId',
+        label: 'Component',
+        createOnly: true,
+        options: [
+          { value: '', label: 'None' },
+          ...components.map((c) => ({
+            value: c.id,
+            label: `${c.code} · ${c.name}`,
+          })),
+        ],
+      },
+    ],
+    [components]
+  )
+
   const sectionItems = useMemo(
     () =>
       sections.map((s) => ({
@@ -213,9 +245,10 @@ export function ScreenDetailPanel({
         values: {
           name: s.name,
           description: s.description ?? '',
+          componentId: componentBySectionId.get(s.id) ?? '',
         },
       })),
-    [sections]
+    [sections, componentBySectionId]
   )
 
   const fieldItems = useMemo(
@@ -335,17 +368,31 @@ export function ScreenDetailPanel({
 
       {tab === 'sections' ? (
         <ScreenStructureEditor
-          columns={SECTION_COLS}
+          columns={sectionCols}
           items={sectionItems}
           emptyLabel="No sections yet."
           addTitle="Add sections"
           editTitle="Edit sections"
           itemLabel="section"
           onCreate={async (values) => {
-            await createSection({
+            const created = await createSection({
               name: values.name.trim(),
               description: values.description.trim() || null,
             })
+            const componentId = values.componentId?.trim()
+            if (!created?.id || !componentId) return
+            const result = await bind(created.id, { componentId, displayOrder: 0 })
+            const keys = result?.importedFieldKeys?.length
+              ? result.importedFieldKeys.join(', ')
+              : ''
+            toast.success(
+              result
+                ? `Imported ${result.fieldsImported} field${result.fieldsImported === 1 ? '' : 's'}${keys ? `: ${keys}` : ''}`
+                : 'Component bound'
+            )
+            await refetch()
+            await refetchLinked()
+            void refetchValidations()
           }}
           onUpdate={async (id, values) => {
             await updateSection(id, {
@@ -359,7 +406,7 @@ export function ScreenDetailPanel({
               setBindError(null)
               setBindSectionId(item.id)
             }}>
-              Bind component
+              {item.values.componentId ? 'Change component' : 'Bind component'}
             </Button>
           )}
         />
@@ -580,6 +627,7 @@ export function ScreenDetailPanel({
             )
             setBindSectionId(null)
             await refetch()
+            await refetchLinked()
           } catch (err) {
             setBindError(err instanceof Error ? err.message : 'Failed to bind component')
           } finally {

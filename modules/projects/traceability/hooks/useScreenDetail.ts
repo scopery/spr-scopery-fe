@@ -53,9 +53,10 @@ export function useScreenDetail(workspaceId: string | null, screenId: string | n
 
   const createSection = useCallback(
     async (body: CreateRegistryScreenSectionBody) => {
-      if (!workspaceId || !screenId) return
-      await api.createScreenSection(workspaceId, screenId, body)
+      if (!workspaceId || !screenId) return undefined
+      const created = await api.createScreenSection(workspaceId, screenId, body)
       await load()
+      return created
     },
     [workspaceId, screenId, load]
   )

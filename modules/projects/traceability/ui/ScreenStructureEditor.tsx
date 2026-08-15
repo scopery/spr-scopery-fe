@@ -27,6 +27,8 @@ export interface StructureColumn {
   lockedOnExisting?: boolean
   /** When set, field is an enum — enables Single add mode with a Select. */
   options?: readonly StructureOption[]
+  /** Shown on Add only — not in the Edit form (e.g. bind a component when creating a section). */
+  createOnly?: boolean
 }
 
 function optionValue(option: StructureOption): string {
@@ -617,7 +619,7 @@ export function ScreenStructureEditor({
                     ) : null}
                   </div>
                 </div>
-                {columns.map((col) => (
+                {columns.filter((col) => !col.createOnly).map((col) => (
                   <div key={col.key}>
                     <Typography variant="small" className="mb-1.5">
                       {col.label}
