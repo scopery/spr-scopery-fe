@@ -27,6 +27,8 @@ export interface StructureColumn {
   lockedOnExisting?: boolean
   /** When set, field is an enum — enables Single add mode with a Select. */
   options?: readonly StructureOption[]
+  /** Add-form choices only. Display still uses `options` so already-selected values keep their labels. */
+  createOptions?: readonly StructureOption[]
   /** Shown on Add only — not in the Edit form (e.g. bind a component when creating a section). */
   createOnly?: boolean
 }
@@ -81,8 +83,17 @@ interface EditRow extends StructureItem {
   error?: string | null
 }
 
+function choicesForCreate(col: StructureColumn): readonly StructureOption[] | undefined {
+  return col.createOptions ?? col.options
+}
+
 function emptyValues(columns: StructureColumn[]): Record<string, string> {
-  return Object.fromEntries(columns.map((c) => [c.key, c.options?.[0] ? optionValue(c.options[0]) : '']))
+  return Object.fromEntries(
+    columns.map((c) => {
+      const choices = choicesForCreate(c)
+      return [c.key, choices?.[0] ? optionValue(choices[0]) : '']
+    })
+  )
 }
 
 function newDraftId(): string {
@@ -446,18 +457,25 @@ export function ScreenStructureEditor({
     col: StructureColumn,
     value: string,
     onChange: (next: string) => void,
-    opts?: { disabled?: boolean; 'aria-label'?: string; size?: 'sm' | 'md'; fill?: boolean }
+    opts?: {
+      disabled?: boolean
+      'aria-label'?: string
+      size?: 'sm' | 'md'
+      fill?: boolean
+      forCreate?: boolean
+    }
   ) => {
     const fill = opts?.fill ?? false
-    if (col.options && col.options.length > 0) {
-      const base = col.options.map((o) => ({ value: optionValue(o), label: optionLabel(o) }))
+    const choices = opts?.forCreate ? choicesForCreate(col) : col.options
+    if (choices && choices.length > 0) {
+      const base = choices.map((o) => ({ value: optionValue(o), label: optionLabel(o) }))
       const known = new Set(base.map((o) => o.value))
       const options =
         value && !known.has(value) ? [{ value, label: value }, ...base] : base
       return (
         <Select
           options={options}
-          value={value || optionValue(col.options[0])}
+          value={value || optionValue(choices[0])}
           onValueChange={onChange}
           disabled={opts?.disabled}
           size={opts?.size ?? 'md'}
@@ -684,7 +702,6 @@ export function ScreenStructureEditor({
         {selectedItem ? (
           <div className="mx-auto max-w-3xl space-y-5">
             {columns
-              .filter((col) => !col.createOnly)
               .map((col) => {
                 const text = displayCellValue(col, selectedItem.values[col.key]) || '—'
                 return (
@@ -875,7 +892,7 @@ export function ScreenStructureEditor({
                             : item
                         )
                       ),
-                    { 'aria-label': `${col.label} draft ${index + 1}`, size: 'md' }
+                    { 'aria-label': `${col.label} draft ${index + 1}`, size: 'md', forCreate: true }
                   ),
               })),
               {
@@ -963,7 +980,7 @@ export function ScreenStructureEditor({
                 col,
                 singleValues[col.key] ?? '',
                 (next) => setSingleValues((prev) => ({ ...prev, [col.key]: next })),
-                { size: 'md', 'aria-label': col.label, fill: true }
+                { size: 'md', 'aria-label': col.label, fill: true, forCreate: true }
               )}
             </div>
           ))}

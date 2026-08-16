@@ -9,11 +9,13 @@ export function ScreenLinkedComponentsPanel({
   workspaceId,
   screenId,
   components,
+  sections = [],
   onChanged,
 }: {
   workspaceId: string
   screenId: string
   components: SpecCatalogComponent[]
+  sections?: Array<{ id: string; name: string }>
   onChanged?: () => void
 }) {
   const { items, loading, error, unlink } = useScreenComponents(workspaceId, screenId)
@@ -39,13 +41,16 @@ export function ScreenLinkedComponentsPanel({
             const label = catalog
               ? `${catalog.code} · ${catalog.name}`
               : link.componentId
+            const sectionName = link.sectionId
+              ? sections.find((s) => s.id === link.sectionId)?.name
+              : null
             return (
               <li key={`${link.componentId}-${link.sectionId ?? 'none'}`} className="flex items-center justify-between gap-2 px-3 py-2">
                 <div className="min-w-0">
                   <Typography variant="small">{label}</Typography>
                   {link.sectionId ? (
                     <Typography variant="caption" tone="muted" className="block">
-                      Bound to a section · copied fields stay until you unlink
+                      Bound to {sectionName ?? 'a section'} · copied fields stay until you unlink
                     </Typography>
                   ) : (
                     <Typography variant="caption" tone="muted" className="block">

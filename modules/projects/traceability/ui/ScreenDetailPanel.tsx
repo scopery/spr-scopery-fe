@@ -225,26 +225,25 @@ export function ScreenDetailPanel({
     [linkedComponents]
   )
 
-  const sectionCols = useMemo(
-    () => [
+  const sectionCols = useMemo(() => {
+    const catalogOptions = components.map((c) => ({
+      value: c.id,
+      label: `${c.code} · ${c.name}`,
+    }))
+    return [
       ...SECTION_BASE_COLS,
       {
         key: 'componentId',
         label: 'Component',
         createOnly: true,
-        options: [
+        options: [{ value: '', label: 'None' }, ...catalogOptions],
+        createOptions: [
           { value: '', label: 'None' },
-          ...components
-            .filter((c) => !linkedComponentIds.has(c.id))
-            .map((c) => ({
-              value: c.id,
-              label: `${c.code} · ${c.name}`,
-            })),
+          ...catalogOptions.filter((c) => !linkedComponentIds.has(c.value)),
         ],
       },
-    ],
-    [components, linkedComponentIds]
-  )
+    ]
+  }, [components, linkedComponentIds])
 
   const sectionItems = useMemo(
     () =>
@@ -508,6 +507,7 @@ export function ScreenDetailPanel({
           workspaceId={workspaceId}
           screenId={screen.id}
           components={components}
+          sections={sections}
           onChanged={() => {
             void refetch()
             void refetchValidations()
