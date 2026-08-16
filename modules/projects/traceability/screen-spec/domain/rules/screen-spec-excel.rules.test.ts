@@ -3,6 +3,7 @@ import type { ScreenFullSpec, ScreenSpecDocFullSpec } from '../model/screen-spec
 import {
   MODE_VISIBLE_MARK,
   buildScreenSpecWorkbookModel,
+  collectDefineModeCodes,
   wrapSingleScreenAsDocument,
 } from './screen-spec-excel.rules'
 
@@ -121,12 +122,43 @@ describe('screen-spec-excel.rules', () => {
         modeId: null,
         title: '1. Init',
         content: 'Load options',
-        sourceTable: 'users',
+        sourceTable: 'USER_MASTER',
         conditionNote: 'active = true',
         targetFieldId: null,
         displayOrder: 1,
       },
     ],
+  })
+
+  it('keeps Search and Dialog columns only when those modes exist', () => {
+    expect(collectDefineModeCodes([login])).toEqual(['CREATE', 'VIEW', 'EDIT'])
+    const withSearch = screen({
+      id: 's-search',
+      code: 'JOBS',
+      name: 'Jobs',
+      modes: [
+        { id: 'm1', screenId: 's-search', modeCode: 'CREATE', name: 'Create', displayOrder: 0, status: 'ACTIVE' },
+        { id: 'm2', screenId: 's-search', modeCode: 'SEARCH', name: 'Search', displayOrder: 1, status: 'ACTIVE' },
+      ],
+    })
+    expect(collectDefineModeCodes([withSearch])).toEqual(['CREATE', 'VIEW', 'EDIT', 'SEARCH'])
+    const withDialog = screen({
+      id: 's-dialog',
+      code: 'PICKER',
+      name: 'Picker',
+      modes: [
+        { id: 'm1', screenId: 's-dialog', modeCode: 'VIEW', name: 'View', displayOrder: 0, status: 'ACTIVE' },
+        { id: 'm2', screenId: 's-dialog', modeCode: 'DIALOG', name: 'Dialog', displayOrder: 1, status: 'ACTIVE' },
+      ],
+    })
+    expect(collectDefineModeCodes([withDialog])).toEqual(['CREATE', 'VIEW', 'EDIT', 'DIALOG'])
+    expect(collectDefineModeCodes([withSearch, withDialog])).toEqual([
+      'CREATE',
+      'VIEW',
+      'EDIT',
+      'SEARCH',
+      'DIALOG',
+    ])
   })
 
   it('wraps a single screen as a one-screen document', () => {
@@ -177,5 +209,61 @@ describe('screen-spec-excel.rules', () => {
     expect(model.processRows.map((r) => r.label)).toEqual(['1. Init', 'Get', 'Source', 'Filter', 'Trigger'])
     expect(model.databaseRows.map((r) => r.name)).toEqual(['users'])
     expect(model.databaseRows[0].attributes).toBe('email')
+  })
+
+  it('does not invent Database rows from process Source or entity name', () => {
+    const unbound = screen({
+      id: 's3',
+      code: 'SEARCH',
+      name: 'Search',
+      fields: [
+        {
+          id: 'f2',
+          sectionId: null,
+          fieldKey: 'q',
+          label: 'Query',
+          fieldType: 'INPUT',
+          description: null,
+          required: false,
+          displayOrder: 1,
+          maxLength: null,
+          remark: null,
+          componentId: null,
+          dataEntityFieldId: null,
+          componentFieldId: null,
+          component: null,
+          dataField: {
+            id: 'df2',
+            dataEntityId: 'e2',
+            columnName: 'q',
+            dataType: 'VARCHAR',
+            maxLength: 64,
+            isNullable: true,
+            isUnique: false,
+            remark: null,
+            displayOrder: 1,
+            tableName: null,
+            entityName: 'SearchQuery',
+          },
+          modeConfigs: [],
+          validations: [],
+        },
+      ],
+      processItems: [
+        {
+          id: 'p2',
+          modeId: null,
+          title: 'Load',
+          content: 'Search',
+          sourceTable: 'USER_MASTER',
+          conditionNote: null,
+          targetFieldId: null,
+          displayOrder: 1,
+        },
+      ],
+    })
+    const model = buildScreenSpecWorkbookModel(wrapSingleScreenAsDocument(unbound))
+    expect(model.databaseRows).toEqual([])
+    expect(model.processRows.find((r) => r.label === 'Source')?.source).toBe('USER_MASTER')
   })
 })

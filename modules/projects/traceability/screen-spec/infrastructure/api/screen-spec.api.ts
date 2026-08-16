@@ -158,13 +158,14 @@ export function mapComponentDetail(raw: unknown): ApplicationComponentDetail {
 
 export function mapScreenMode(raw: unknown): ScreenMode {
   const r = asRecord(raw)
+  const nested = asRecord(r.mode ?? r.screenMode ?? r.screen_mode)
   return {
-    id: String(r.id ?? ''),
-    screenId: String(r.screenId ?? r.screen_id ?? ''),
-    modeCode: String(r.modeCode ?? r.mode_code ?? ''),
-    name: String(r.name ?? ''),
-    displayOrder: num(r.displayOrder ?? r.display_order),
-    status: String(r.status ?? 'ACTIVE'),
+    id: String(r.id ?? nested.id ?? ''),
+    screenId: String(r.screenId ?? r.screen_id ?? nested.screenId ?? nested.screen_id ?? ''),
+    modeCode: String(r.modeCode ?? r.mode_code ?? nested.modeCode ?? nested.mode_code ?? ''),
+    name: String(r.name ?? nested.name ?? ''),
+    displayOrder: num(r.displayOrder ?? r.display_order ?? nested.displayOrder ?? nested.display_order),
+    status: String(r.status ?? nested.status ?? 'ACTIVE'),
   }
 }
 

@@ -146,11 +146,7 @@ export function mapFullSpecField(raw: unknown): ScreenFullSpecField {
       ? {
           ...mapDataEntityField(dataFieldRaw),
           tableName: str(
-            dataFieldRec.tableName ??
-              dataFieldRec.table_name ??
-              entity.tableName ??
-              entity.table_name ??
-              entity.code
+            dataFieldRec.tableName ?? dataFieldRec.table_name ?? entity.tableName ?? entity.table_name
           ),
           entityName: str(
             dataFieldRec.entityName ?? dataFieldRec.entity_name ?? entity.name ?? entity.code
@@ -247,7 +243,7 @@ export async function addScreenToSpecDoc(
   docId: string,
   body: AddScreenSpecDocScreenBody
 ): Promise<ScreenSpecDoc> {
-  const res = await apiClient.put<unknown>(EP.screenSpecDocScreens(workspaceId, docId), body)
+  const res = await apiClient.post<unknown>(EP.screenSpecDocScreens(workspaceId, docId), body)
   return mapScreenSpecDoc(res)
 }
 

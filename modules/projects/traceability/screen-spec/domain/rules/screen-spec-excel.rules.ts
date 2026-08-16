@@ -21,6 +21,8 @@ export const STANDARD_DEFINE_MODE_CODES = [
   ScreenModeCode.Edit,
 ] as const
 
+const OPTIONAL_DEFINE_MODE_CODES = [ScreenModeCode.Search, ScreenModeCode.Dialog] as const
+
 /** Required / max length live on Defines, matching the Startupper workbook. */
 export const DEFINES_COVERED_RULE_CODES = new Set(['REQUIRED', 'MAX_LENGTH'])
 
@@ -152,19 +154,17 @@ export function wrapSingleScreenAsDocument(
 }
 
 export function collectDefineModeCodes(screens: ScreenFullSpec[]): string[] {
-  const extra: string[] = []
-  const seen = new Set<string>(STANDARD_DEFINE_MODE_CODES)
+  const present = new Set<string>()
   for (const screen of screens) {
     for (const mode of screen.modes) {
-      const code = String(mode.modeCode)
-      if (!seen.has(code)) {
-        seen.add(code)
-        extra.push(code)
-      }
+      const code = String(mode.modeCode ?? '').trim().toUpperCase()
+      if (code) present.add(code)
     }
   }
-  extra.sort()
-  return [...STANDARD_DEFINE_MODE_CODES, ...extra]
+  const optional = OPTIONAL_DEFINE_MODE_CODES.filter((code) => present.has(code))
+  const known = new Set<string>([...STANDARD_DEFINE_MODE_CODES, ...OPTIONAL_DEFINE_MODE_CODES])
+  const extra = [...present].filter((code) => !known.has(code)).sort()
+  return [...STANDARD_DEFINE_MODE_CODES, ...optional, ...extra]
 }
 
 export function defineModeColumnLabel(modeCode: string): string {
@@ -206,6 +206,11 @@ export function fieldDefaultValue(field: ScreenFullSpecField): string {
 export function fieldTableName(field: ScreenFullSpecField): string {
   if (!field.dataField) return ''
   return field.dataField.tableName || field.dataField.entityName || ''
+}
+
+/** Physical table only — do not infer from entity name or process Source text. */
+export function fieldLinkedDataSource(field: ScreenFullSpecField): string {
+  return field.dataField?.tableName?.trim() ?? ''
 }
 
 export function formatRuleParams(value: unknown): string {
@@ -296,7 +301,7 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
       for (const field of sectionFields) {
         fieldNo += 1
         defineRows.push(toDefineFieldRow(field, fieldNo, modeCodes, screen.code))
-        rememberTable(fieldTableName(field), field.dataField?.columnName || field.fieldKey)
+        rememberTable(fieldLinkedDataSource(field), field.dataField?.columnName || field.fieldKey)
         pushValidationRows(validationRows, field, screen.code)
       }
     }
@@ -305,7 +310,7 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
     for (const field of unsectioned) {
       fieldNo += 1
       defineRows.push(toDefineFieldRow(field, fieldNo, modeCodes, screen.code))
-      rememberTable(fieldTableName(field), field.dataField?.columnName || field.fieldKey)
+      rememberTable(fieldLinkedDataSource(field), field.dataField?.columnName || field.fieldKey)
       pushValidationRows(validationRows, field, screen.code)
     }
 
@@ -347,7 +352,6 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
         extra: '',
         screenCode: screen.code,
       })
-      if (item.sourceTable) rememberTable(item.sourceTable)
     }
 
     for (const item of sortByOrder(screen.eventItems)) {

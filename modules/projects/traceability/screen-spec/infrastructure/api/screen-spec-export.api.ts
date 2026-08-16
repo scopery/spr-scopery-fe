@@ -1,6 +1,7 @@
 import { apiClient } from '@/shared/lib/apiClient'
 import { listScreenFields, listScreenSections } from '../../../api/traceability.api'
 import type { RegistryScreenField, RegistryScreenSection } from '../../../model/application-registry'
+import type { ScreenMode } from '../../domain/model/screen-spec'
 import type { ScreenFullSpec, ScreenFullSpecField, ScreenSpecDocFullSpec } from '../../domain/model/screen-spec-doc'
 import { SCREEN_SPEC_ENDPOINTS as EP } from './endpoints'
 import {
@@ -18,6 +19,16 @@ import {
   listProcessItems,
   listScreenModes,
 } from './screen-spec.api'
+
+function mergeModesByCode(fromSpec: ScreenMode[], fromList: ScreenMode[]): ScreenMode[] {
+  const byCode = new Map<string, ScreenMode>()
+  for (const mode of [...fromSpec, ...fromList]) {
+    const code = String(mode.modeCode ?? '').trim().toUpperCase()
+    if (!code || byCode.has(code)) continue
+    byCode.set(code, { ...mode, modeCode: code })
+  }
+  return [...byCode.values()].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
+}
 
 function fieldFromList(field: RegistryScreenField): ScreenFullSpecField {
   return {
@@ -114,7 +125,7 @@ export async function loadScreenFullSpecForExport(
   const merged: ScreenFullSpec = {
     ...base,
     id: base.id || screenId,
-    modes: base.modes.length > 0 ? base.modes : modes.items,
+    modes: mergeModesByCode(base.modes, modes.items),
     sections: base.sections.length > 0 ? base.sections : sections.items.map(sectionFromList),
     fields: base.fields.length > 0 ? base.fields : fields.items.map(fieldFromList),
     processItems: base.processItems.length > 0 ? base.processItems : processes.items,

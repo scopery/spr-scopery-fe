@@ -21,12 +21,13 @@ const WHITE_BOLD: Partial<ExcelJS.Font> = {
 }
 const NOTE_FONT: Partial<ExcelJS.Font> = { ...FONT, italic: true, color: { argb: 'FF595959' } }
 
-const NAVY_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E79' } }
-const LABEL_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E1F2' } }
-const PROCESS_BAR_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFBDD7EE' } }
-const SECTION_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } }
-const GROUP_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6E0B4' } }
-const FIELD_BANNER_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } }
+const TEAL_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4FA4C2' } }
+const LABEL_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9EAF7' } }
+const PROCESS_BAR_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB8D9E8' } }
+const SECTION_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFEDE2' } }
+const GROUP_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E0D0' } }
+const FIELD_BANNER_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8813B' } }
+const HEADER_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD36A2A' } }
 const WHITE_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }
 
 const BLACK: Partial<ExcelJS.Borders> = {
@@ -87,17 +88,17 @@ function writeLabelValuePair(
   paint(labelCell, LABEL_FILL, BOLD)
   const valueCell = sheet.getCell(row, valueCol)
   valueCell.value = value
-  paint(valueCell, WHITE_FILL)
+  paint(valueCell, LABEL_FILL)
 }
 
 function writeMeta(sheet: ExcelJS.Worksheet, header: ScreenSpecExcelHeader): number {
   sheet.mergeCells(2, 1, 6, 2)
   const common = sheet.getCell(2, 1)
   common.value = 'Common Information'
-  paint(common, NAVY_FILL, WHITE_BOLD, { vertical: 'top' })
-  paintRange(sheet, 2, 2, 2, NAVY_FILL, WHITE_BOLD, { vertical: 'top' })
+  paint(common, TEAL_FILL, WHITE_BOLD, { vertical: 'top' })
+  paintRange(sheet, 2, 2, 2, TEAL_FILL, WHITE_BOLD, { vertical: 'top' })
   for (let r = 3; r <= 6; r++) {
-    paintRange(sheet, r, 1, 2, NAVY_FILL, WHITE_BOLD, { vertical: 'top' })
+    paintRange(sheet, r, 1, 2, TEAL_FILL, WHITE_BOLD, { vertical: 'top' })
     ensureRowHeight(sheet.getRow(r))
   }
   ensureRowHeight(sheet.getRow(2))
@@ -122,18 +123,18 @@ function writeMeta(sheet: ExcelJS.Worksheet, header: ScreenSpecExcelHeader): num
   sheet.mergeCells(7, 1, 9, 2)
   const screenInfo = sheet.getCell(7, 1)
   screenInfo.value = 'Screen Information'
-  paint(screenInfo, NAVY_FILL, WHITE_BOLD, { vertical: 'top' })
-  paintRange(sheet, 7, 2, 2, NAVY_FILL, WHITE_BOLD, { vertical: 'top' })
-  for (let r = 8; r <= 9; r++) paintRange(sheet, r, 1, 2, NAVY_FILL, WHITE_BOLD, { vertical: 'top' })
+  paint(screenInfo, TEAL_FILL, WHITE_BOLD, { vertical: 'top' })
+  paintRange(sheet, 7, 2, 2, TEAL_FILL, WHITE_BOLD, { vertical: 'top' })
+  for (let r = 8; r <= 9; r++) paintRange(sheet, r, 1, 2, TEAL_FILL, WHITE_BOLD, { vertical: 'top' })
 
   writeLabelValuePair(sheet, 7, 3, 4, 'Screen ID', header.screenIdText)
   writeLabelValuePair(sheet, 8, 3, 4, 'Screen Name', header.screenNameText)
   writeLabelValuePair(sheet, 9, 3, 4, 'Overview', header.overview)
   sheet.mergeCells(9, 4, 9, 6)
-  paint(sheet.getCell(9, 4), WHITE_FILL)
-  paintRange(sheet, 9, 5, 6, WHITE_FILL)
-  paintRange(sheet, 7, 5, 6, WHITE_FILL)
-  paintRange(sheet, 8, 5, 6, WHITE_FILL)
+  paint(sheet.getCell(9, 4), LABEL_FILL)
+  paintRange(sheet, 9, 5, 6, LABEL_FILL)
+  paintRange(sheet, 7, 5, 6, LABEL_FILL)
+  paintRange(sheet, 8, 5, 6, LABEL_FILL)
   ensureRowHeight(sheet.getRow(7))
   ensureRowHeight(sheet.getRow(8))
   ensureRowHeight(sheet.getRow(9), header.overview ? 36 : MIN_ROW_HEIGHT)
@@ -146,7 +147,7 @@ function writeNavyHeaderRow(sheet: ExcelJS.Worksheet, rowNumber: number, headers
   headers.forEach((h, i) => {
     const cell = sheet.getCell(rowNumber, i + 1)
     cell.value = h
-    paint(cell, NAVY_FILL, WHITE_BOLD, { horizontal: 'center' })
+    paint(cell, HEADER_FILL, WHITE_BOLD, { horizontal: 'center' })
   })
   ensureRowHeight(sheet.getRow(rowNumber))
 }
@@ -262,7 +263,7 @@ function addChangeHistory(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) 
 function addLayout(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   const sheet = wb.addWorksheet(SCREEN_SPEC_EXCEL_SHEETS.layout)
   const start = writeMeta(sheet, model.header)
-  writeBanner(sheet, start, HEADER_LAST_COL, 'Figma / UI Reference', NAVY_FILL, WHITE_BOLD)
+  writeBanner(sheet, start, HEADER_LAST_COL, 'Figma / UI Reference', TEAL_FILL, WHITE_BOLD)
   sheet.mergeCells(start + 1, 1, start + 1, HEADER_LAST_COL)
   const url = sheet.getCell(start + 1, 1)
   url.value = model.header.figmaUrl
@@ -349,7 +350,7 @@ function addProcesses(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
 function addEvents(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   const sheet = wb.addWorksheet(SCREEN_SPEC_EXCEL_SHEETS.event)
   const start = writeMeta(sheet, model.header)
-  writeOutlineBlocks(sheet, start, model.eventRows, HEADER_LAST_COL, NAVY_FILL, WHITE_BOLD)
+  writeOutlineBlocks(sheet, start, model.eventRows, HEADER_LAST_COL, TEAL_FILL, WHITE_BOLD)
   applySheetColumns(sheet, [18, 22, 18, 28, 16, 18])
 }
 
