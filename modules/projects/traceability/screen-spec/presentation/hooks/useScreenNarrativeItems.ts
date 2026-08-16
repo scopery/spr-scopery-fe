@@ -44,7 +44,7 @@ async function persistDisplayOrder<T extends { id: string; displayOrder: number 
   items: T[],
   orderedIds: string[],
   setItems: (next: T[]) => void,
-  persist: (id: string, displayOrder: number, item: T) => Promise<void>,
+  persist: (id: string, displayOrder: number, item: T) => Promise<unknown>,
   reload: () => Promise<void>
 ) {
   const patches = ordersNeedingUpdate(items, orderedIds)
