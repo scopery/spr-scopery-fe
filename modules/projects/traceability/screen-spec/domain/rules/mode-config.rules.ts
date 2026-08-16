@@ -1,4 +1,4 @@
-import { RequiredOverride } from '../enums/screen-spec.enum'
+import { RequiredOverride, ScreenModeCode } from '../enums/screen-spec.enum'
 import type {
   ModeConfigDraft,
   ReplaceFieldModeConfigsBody,
@@ -85,4 +85,28 @@ export function buildModeConfigReplacePayload(
   fieldRequired: boolean | null | undefined
 ): ReplaceFieldModeConfigsBody {
   return { modeConfigs: drafts.map((d) => toInput(d, fieldRequired)) }
+}
+
+export function fieldLevelDefaultValue(
+  configs: ScreenFieldModeConfig[] | undefined,
+  modes: Array<{ id: string; modeCode?: string | null }>
+): string {
+  const create = modes.find((mode) => String(mode.modeCode) === ScreenModeCode.Create)
+  const fromCreate = create ? findModeConfig(configs, create)?.defaultValue : null
+  if (fromCreate) return fromCreate
+  return configs?.find((config) => config.defaultValue)?.defaultValue ?? ''
+}
+
+export function applyDefaultValueToDrafts(
+  drafts: ModeConfigDraft[],
+  modes: Array<{ id: string; modeCode?: string | null }>,
+  defaultValue: string | null
+): ModeConfigDraft[] {
+  const create = modes.find((mode) => String(mode.modeCode) === ScreenModeCode.Create)
+  return drafts.map((draft) => {
+    if (create) {
+      return draft.modeId === create.id ? { ...draft, defaultValue } : draft
+    }
+    return { ...draft, defaultValue }
+  })
 }

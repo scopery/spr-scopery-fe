@@ -40,6 +40,7 @@ export interface ApplicationComponentField {
   fieldType: string
   required: boolean | null
   maxLength: number | null
+  defaultValue: string | null
   remark: string | null
   displayOrder: number | null
 }
@@ -50,6 +51,7 @@ export interface CreateComponentFieldBody {
   fieldType: string
   required?: boolean | null
   maxLength?: number | null
+  defaultValue?: string | null
   remark?: string | null
   displayOrder?: number | null
 }
@@ -59,6 +61,7 @@ export interface UpdateComponentFieldBody {
   fieldType: string
   required?: boolean | null
   maxLength?: number | null
+  defaultValue?: string | null
   remark?: string | null
   displayOrder?: number | null
 }

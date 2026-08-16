@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { RequiredOverride } from '../enums/screen-spec.enum'
-import { buildModeConfigReplacePayload, draftFromModeConfig, effectiveRequired } from './mode-config.rules'
+import {
+  applyDefaultValueToDrafts,
+  buildModeConfigReplacePayload,
+  draftFromModeConfig,
+  effectiveRequired,
+  fieldLevelDefaultValue,
+} from './mode-config.rules'
 import type { ModeConfigDraft, ScreenFieldModeConfig } from '../model/screen-spec'
 
 describe('mode-config.rules', () => {
@@ -76,5 +82,42 @@ describe('mode-config.rules', () => {
     const draft = draftFromModeConfig('m1', config)
     expect(draft.required).toBe(RequiredOverride.Required)
     expect(draft.isReadonly).toBe(true)
+  })
+
+  it('writes a field-level default onto the CREATE mode row', () => {
+    const drafts: ModeConfigDraft[] = [
+      {
+        modeId: 'm1',
+        isVisible: true,
+        required: RequiredOverride.Inherit,
+        isReadonly: false,
+        defaultValue: null,
+        displayOrder: null,
+      },
+      {
+        modeId: 'm2',
+        isVisible: true,
+        required: RequiredOverride.Inherit,
+        isReadonly: false,
+        defaultValue: null,
+        displayOrder: null,
+      },
+    ]
+    const next = applyDefaultValueToDrafts(
+      drafts,
+      [
+        { id: 'm1', modeCode: 'CREATE' },
+        { id: 'm2', modeCode: 'VIEW' },
+      ],
+      'guest'
+    )
+    expect(next[0].defaultValue).toBe('guest')
+    expect(next[1].defaultValue).toBeNull()
+    expect(
+      fieldLevelDefaultValue(
+        [{ modeId: 'm1', modeCode: 'CREATE', isVisible: true, isRequired: false, isReadonly: false, defaultValue: 'guest', displayOrder: null }],
+        [{ id: 'm1', modeCode: 'CREATE' }]
+      )
+    ).toBe('guest')
   })
 })

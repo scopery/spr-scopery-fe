@@ -551,7 +551,10 @@ export function ScreenStructureEditor({
             size="sm"
             variant="ghost"
             disabled={items.length === 0}
-            onClick={() => setEditOpen(true)}
+            onClick={() => {
+              if (!selectedId) setSelectedId(items[0]?.id ?? null)
+              setEditOpen(true)
+            }}
           >
             <Pencil size={14} className="mr-1 inline" />
             Edit
@@ -725,115 +728,125 @@ export function ScreenStructureEditor({
         ) : null}
       </Modal>
 
-      {/* Edit existing — stacked fields so text is not clipped in table cells */}
       <Modal
         open={editOpen}
         onClose={closeEditModal}
-        title={layout === 'masterDetail' && selectedItem ? `Edit ${itemLabel}` : editTitle}
-        size="xl"
+        title={editTitle}
+        size="2xl"
         actions={[
           { label: 'Close', onClick: closeEditModal, variant: 'ghost' },
-          ...(layout === 'masterDetail' && selectedRow?.dirty
+          ...(selectedRow?.dirty
             ? [
                 {
-                  label: 'Save',
-                  onClick: () => {
-                    void saveRow(selectedRow).then((ok) => {
-                      if (ok) closeEditModal()
-                    })
-                  },
+                  label: selectedRow.saving ? 'Saving…' : 'Save',
+                  onClick: () => void saveRow(selectedRow),
                   variant: 'primary' as const,
                   disabled: selectedRow.saving,
                   loading: selectedRow.saving,
                 },
               ]
-            : dirtyCount > 0 && layout !== 'masterDetail'
-              ? [
-                  {
-                    label: `Save all (${dirtyCount})`,
-                    onClick: () => void saveAllDirty(),
-                    variant: 'primary' as const,
-                  },
-                ]
-              : []),
+            : []),
+          ...(dirtyCount > 1
+            ? [
+                {
+                  label: `Save all (${dirtyCount})`,
+                  onClick: () => void saveAllDirty(),
+                  variant: 'secondary' as const,
+                },
+              ]
+            : []),
         ]}
       >
-        <div className="mx-auto max-w-3xl space-y-3">
-          {layout !== 'masterDetail' ? (
-            <Typography variant="small" tone="muted">
-              Each item is a full-width form. Save a row or use Save all.
-            </Typography>
-          ) : null}
-          <div className="space-y-6">
-            {(layout === 'masterDetail' && selectedRow ? [selectedRow] : rows).map((row, index) => (
-              <div
-                key={row.id}
-                className={cn(
-                  'space-y-3 border-b border-neutral-200 pb-6 last:border-b-0 last:pb-0',
-                  row.error && 'border-error/40'
-                )}
-              >
+        <div className="flex min-h-[min(32rem,65vh)] border border-neutral-200">
+          <aside className="w-56 shrink-0 overflow-y-auto border-r border-neutral-200">
+            <ul className="divide-y divide-neutral-100">
+              {rows.map((row, index) => {
+                const active = selectedId === row.id
+                return (
+                  <li key={row.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(row.id)}
+                      className={cn(
+                        'flex w-full items-start gap-2 px-3 py-2.5 text-left',
+                        active ? 'bg-neutral-50' : 'hover:bg-neutral-50'
+                      )}
+                    >
+                      <span className="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400">
+                        {index + 1}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <Typography variant="small" className="block truncate">
+                          {primaryLabel(row, columns)}
+                        </Typography>
+                        {row.dirty ? (
+                          <Typography variant="caption" tone="muted">
+                            Unsaved
+                          </Typography>
+                        ) : null}
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </aside>
+          <div className="min-w-0 flex-1 overflow-y-auto p-md">
+            {selectedRow ? (
+              <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <Typography variant="caption" tone="muted" className="tabular-nums">
-                    {index + 1}
-                    {row.dirty ? ' · unsaved' : ''}
+                  <Typography weight="medium" variant="small">
+                    {primaryLabel(selectedRow, columns)}
                   </Typography>
-                  <div className="flex items-center gap-1">
-                    {row.dirty ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={row.saving}
-                        loading={row.saving}
-                        onClick={() => void saveRow(row)}
-                      >
-                        Save
-                      </Button>
-                    ) : null}
-                    {allowDelete ? (
-                      <button
-                        type="button"
-                        className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
-                        aria-label={`Delete ${itemLabel}`}
-                        onClick={() => setDeleteTarget(row)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    ) : null}
-                  </div>
+                  {allowDelete ? (
+                    <button
+                      type="button"
+                      className="inline-flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-neutral-800"
+                      aria-label={`Delete ${itemLabel}`}
+                      onClick={() => setDeleteTarget(selectedRow)}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  ) : null}
                 </div>
-                {columns.filter((col) => !col.createOnly).map((col) => (
-                  <div key={col.key}>
-                    <Typography variant="small" className="mb-1.5">
-                      {col.label}
-                      {col.required ? ' *' : ''}
-                    </Typography>
-                    {col.lockedOnExisting ? (
-                      <Typography variant="small" className="py-1.5 text-neutral-600">
-                        {row.values[col.key] || '—'}
+                {columns
+                  .filter((col) => !col.createOnly)
+                  .map((col) => (
+                    <div key={col.key}>
+                      <Typography variant="small" className="mb-1.5">
+                        {col.label}
+                        {col.required ? ' *' : ''}
                       </Typography>
-                    ) : (
-                      renderValueControl(
-                        col,
-                        row.draft[col.key] ?? '',
-                        (next) => updateDraftCell(row.id, col.key, next),
-                        {
-                          disabled: row.saving,
-                          'aria-label': `${col.label} row ${index + 1}`,
-                          size: 'md',
-                          fill: true,
-                        }
-                      )
-                    )}
-                  </div>
-                ))}
-                {row.error ? (
+                      {col.lockedOnExisting ? (
+                        <Typography variant="small" className="py-1.5 text-neutral-600">
+                          {selectedRow.values[col.key] || '—'}
+                        </Typography>
+                      ) : (
+                        renderValueControl(
+                          col,
+                          selectedRow.draft[col.key] ?? '',
+                          (next) => updateDraftCell(selectedRow.id, col.key, next),
+                          {
+                            disabled: selectedRow.saving,
+                            'aria-label': col.label,
+                            size: 'md',
+                            fill: true,
+                          }
+                        )
+                      )}
+                    </div>
+                  ))}
+                {selectedRow.error ? (
                   <Typography variant="caption" tone="error">
-                    {row.error}
+                    {selectedRow.error}
                   </Typography>
                 ) : null}
               </div>
-            ))}
+            ) : (
+              <Typography variant="small" tone="muted">
+                Select a {itemLabel}.
+              </Typography>
+            )}
           </div>
         </div>
       </Modal>

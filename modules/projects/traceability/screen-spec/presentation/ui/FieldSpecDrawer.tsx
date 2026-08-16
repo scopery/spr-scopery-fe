@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Modal, Select, Stack, Typography } from '@/shared/ui'
+import { Input, Modal, Select, Stack, Typography } from '@/shared/ui'
 import { useDataEntityFields } from '../hooks/useDataEntityFields'
 import { useScreenFieldSpec } from '../hooks/useScreenFieldSpec'
+import { applyDefaultValueToDrafts, draftFromModeConfig, fieldLevelDefaultValue, findModeConfig } from '../../domain/rules/mode-config.rules'
 import { FieldValidationsEditor } from './FieldValidationsEditor'
 import { SpecTabBar } from './SpecTabBar'
 import type { ScreenMode } from '../../domain/model/screen-spec'
@@ -40,7 +41,7 @@ export function FieldSpecDrawer({
   initialTab?: FieldSpecDrawerTab
   onSaved?: () => void
 }) {
-  const { field, loading, error, saveField } = useScreenFieldSpec(
+  const { field, loading, error, saveField, saveModeConfigs } = useScreenFieldSpec(
     open ? workspaceId : null,
     open ? screenId : null,
     open ? fieldId : null
@@ -49,6 +50,7 @@ export function FieldSpecDrawer({
   const [componentId, setComponentId] = useState('none')
   const [entityId, setEntityId] = useState('none')
   const [dataEntityFieldId, setDataEntityFieldId] = useState('none')
+  const [defaultValue, setDefaultValue] = useState('')
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -66,8 +68,9 @@ export function FieldSpecDrawer({
     if (!field) return
     setComponentId(field.componentId ?? 'none')
     setDataEntityFieldId(field.dataEntityFieldId ?? 'none')
+    setDefaultValue(fieldLevelDefaultValue(field.modeConfigs, modes))
     setEntityId('none')
-  }, [field])
+  }, [field, modes])
 
   const fieldOptions = useMemo(
     () =>
@@ -96,6 +99,15 @@ export function FieldSpecDrawer({
         dataEntityFieldId:
           dataEntityFieldId === 'none' || !dataEntityFieldId ? null : dataEntityFieldId,
       })
+      if (modes.length > 0) {
+        const drafts = modes.map((mode) =>
+          draftFromModeConfig(mode.id, findModeConfig(field.modeConfigs, mode))
+        )
+        await saveModeConfigs(
+          applyDefaultValueToDrafts(drafts, modes, defaultValue.trim() || null),
+          field.required
+        )
+      }
       onSaved?.()
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Failed to save')
@@ -187,6 +199,17 @@ export function FieldSpecDrawer({
                     ...entities.map((e) => ({ value: e.id, label: `${e.code} · ${e.name}` })),
                   ]}
                   placeholder="Data entity"
+                />
+              </div>
+              <div>
+                <Typography variant="caption" tone="muted" className="mb-1 block">
+                  Default
+                </Typography>
+                <Input
+                  value={defaultValue}
+                  onChange={(e) => setDefaultValue(e.target.value)}
+                  placeholder="Shown on create / Defines"
+                  fullWidth
                 />
               </div>
               <div>

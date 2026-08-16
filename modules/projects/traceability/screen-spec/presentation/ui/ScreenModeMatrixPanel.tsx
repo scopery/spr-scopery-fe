@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
-import { Button, Checkbox, Modal, Select, Typography } from '@/shared/ui'
+import { Button, Checkbox, Input, Modal, Select, Typography } from '@/shared/ui'
 import { RequiredOverride } from '../../domain/enums/screen-spec.enum'
 import { ScreenSpecMessages } from '../../domain/messages/screen-spec.messages'
 import { draftFromModeConfig, findModeConfig } from '../../domain/rules/mode-config.rules'
@@ -26,7 +26,10 @@ function modeSummary(draft: ModeConfigDraft): string {
     draft.isVisible ? 'Visible' : 'Hidden',
     draft.isReadonly ? 'Readonly' : 'Editable',
     requiredLabel(draft.required),
-  ].join(' · ')
+    draft.defaultValue ? `Default ${draft.defaultValue}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 function draftsFromDetail(
@@ -106,7 +109,8 @@ function MatrixEditRow({
     return (
       draft.isVisible !== orig.isVisible ||
       draft.isReadonly !== orig.isReadonly ||
-      draft.required !== orig.required
+      draft.required !== orig.required ||
+      (draft.defaultValue ?? '') !== (orig.defaultValue ?? '')
     )
   })
 
@@ -172,6 +176,14 @@ function MatrixEditRow({
                 updateDraft(mode.id, { required: v as ModeConfigDraft['required'] })
               }
               options={REQUIRED_OPTIONS}
+            />
+            <Input
+              size="sm"
+              className="mt-1"
+              value={draft.defaultValue ?? ''}
+              onChange={(e) => updateDraft(mode.id, { defaultValue: e.target.value || null })}
+              placeholder="Default"
+              aria-label={`Default · ${mode.name}`}
             />
           </td>
         )

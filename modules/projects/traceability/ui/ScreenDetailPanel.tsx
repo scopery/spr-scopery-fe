@@ -14,6 +14,7 @@ import {
 } from '../screen-spec/domain/enums/screen-spec.enum'
 import { useScreenModes } from '../screen-spec/presentation/hooks/useScreenModes'
 import { useBindComponentToSection } from '../screen-spec/presentation/hooks/useBindComponentToSection'
+import { useApplyFieldDefault } from '../screen-spec/presentation/hooks/useApplyFieldDefault'
 import {
   FieldSpecDrawer,
   type FieldSpecDrawerTab,
@@ -103,6 +104,7 @@ const FIELD_COLS = [
   },
   { key: 'required', label: 'Required', options: ['false', 'true'] as const },
   { key: 'maxLength', label: 'Max length', placeholder: '255' },
+  { key: 'defaultValue', label: 'Default', placeholder: 'Optional', createOnly: true },
   { key: 'remark', label: 'Remark', placeholder: 'Optional' },
 ]
 
@@ -127,6 +129,10 @@ function toScreenFieldBody(values: Record<string, string>) {
     maxLength: max ? Number(max) : null,
     remark: values.remark.trim() || null,
   }
+}
+
+function fieldDefault(values: Record<string, string>): string | null {
+  return values.defaultValue?.trim() || null
 }
 
 const ACTION_COLS = [
@@ -183,6 +189,7 @@ export function ScreenDetailPanel({
   } = useScreenModes(workspaceId, screen.id)
   const { exporting, exportScreen } = useScreenSpecExcelExport(workspaceId)
   const { bind } = useBindComponentToSection(workspaceId, screen.id)
+  const applyFieldDefault = useApplyFieldDefault(workspaceId, screen.id)
   const { items: linkedComponents, refetch: refetchLinked } = useScreenComponents(
     workspaceId,
     screen.id
@@ -435,7 +442,11 @@ export function ScreenDetailPanel({
             editTitle="Edit fields"
             itemLabel="field"
             onCreate={async (values) => {
-              await createField(toScreenFieldBody(values))
+              const created = await createField(toScreenFieldBody(values))
+              const defaultValue = fieldDefault(values)
+              if (created?.id && defaultValue) {
+                await applyFieldDefault(created.id, defaultValue, modes, values.required === 'true')
+              }
             }}
             onCreateMany={async (rows) => createFieldsBulk(rows.map(toScreenFieldBody))}
             onUpdate={async (id, values) => {

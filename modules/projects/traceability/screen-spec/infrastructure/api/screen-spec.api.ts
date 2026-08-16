@@ -105,6 +105,7 @@ export function mapComponentField(raw: unknown): ApplicationComponentField {
     fieldType: String(r.fieldType ?? r.field_type ?? 'TEXT'),
     required: r.required == null ? null : bool(r.required),
     maxLength: num(r.maxLength ?? r.max_length),
+    defaultValue: str(r.defaultValue ?? r.default_value),
     remark: str(r.remark),
     displayOrder: num(r.displayOrder ?? r.display_order),
   }

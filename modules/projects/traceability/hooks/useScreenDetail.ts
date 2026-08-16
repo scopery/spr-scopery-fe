@@ -82,8 +82,9 @@ export function useScreenDetail(workspaceId: string | null, screenId: string | n
   const createField = useCallback(
     async (body: CreateRegistryScreenFieldBody) => {
       if (!workspaceId || !screenId) return
-      await api.createScreenField(workspaceId, screenId, body)
+      const created = await api.createScreenField(workspaceId, screenId, body)
       await load()
+      return created
     },
     [workspaceId, screenId, load]
   )
