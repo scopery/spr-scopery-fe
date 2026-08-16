@@ -1,7 +1,7 @@
 'use client'
 
-import { useRef } from 'react'
-import { Button, Typography } from '@/shared/ui'
+import { useRef, useState } from 'react'
+import { Button, Modal, Typography } from '@/shared/ui'
 import { SCREEN_MEDIA_CONTENT_TYPES } from '../../domain/rules/screen-media.rules'
 import {
   useComponentScreenshotUpload,
@@ -24,6 +24,7 @@ export function SpecImageUpload({
   onFile: (file: File) => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   return (
     <div className="space-y-2">
@@ -52,13 +53,20 @@ export function SpecImageUpload({
         }}
       />
       {imageUrl ? (
-        // External MinIO URL — not in the Next image host list.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={imageUrl}
-          alt={label}
-          className="max-h-48 w-full border border-neutral-200 object-contain"
-        />
+        <button
+          type="button"
+          onClick={() => setPreviewOpen(true)}
+          className="block w-full cursor-zoom-in border border-neutral-200 bg-neutral-50"
+          aria-label={`View ${label} larger`}
+        >
+          {/* External MinIO URL — not in the Next image host list. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageUrl}
+            alt={label}
+            className="max-h-48 w-full object-contain"
+          />
+        </button>
       ) : (
         <Typography variant="caption" tone="muted">
           PNG, JPEG, WebP, or GIF. Max 5MB. File goes to storage, then the spec is updated.
@@ -74,6 +82,22 @@ export function SpecImageUpload({
           {error}
         </Typography>
       ) : null}
+      <Modal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title={label}
+        size="full"
+        actions={[{ label: 'Close', onClick: () => setPreviewOpen(false), variant: 'ghost' }]}
+      >
+        {imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imageUrl}
+            alt={label}
+            className="mx-auto max-h-[80vh] w-full object-contain"
+          />
+        ) : null}
+      </Modal>
     </div>
   )
 }
