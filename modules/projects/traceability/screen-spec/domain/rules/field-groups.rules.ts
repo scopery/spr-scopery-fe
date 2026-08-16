@@ -16,13 +16,10 @@ export interface FieldComponentGroup<
 
 export function resolveFieldComponentId(
   field: { componentId?: string | null; sectionId?: string | null },
-  componentIdBySectionId?: ReadonlyMap<string, string> | Record<string, string>
+  componentIdBySectionId?: Record<string, string>
 ): string | null {
   if (field.componentId) return field.componentId
   if (!field.sectionId || !componentIdBySectionId) return null
-  if (componentIdBySectionId instanceof Map) {
-    return componentIdBySectionId.get(field.sectionId) ?? null
-  }
   return componentIdBySectionId[field.sectionId] ?? null
 }
 
@@ -31,7 +28,7 @@ export function groupFieldsByComponent<
 >(
   fields: T[],
   components: FieldComponentRef[],
-  componentIdBySectionId?: ReadonlyMap<string, string> | Record<string, string>
+  componentIdBySectionId?: Record<string, string>
 ): FieldComponentGroup<T>[] {
   const groups: FieldComponentGroup<T>[] = []
   const indexByKey = new Map<string, number>()
