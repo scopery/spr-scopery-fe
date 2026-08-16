@@ -27,7 +27,6 @@ function solid(argb: string): ExcelJS.Fill {
 
 const FILL = {
   teal: solid('FF4FA4C2'),
-  paleBlue: solid('FFD9EAF7'),
   orange: solid('FFE8813B'),
   terracotta: solid('FFD36A2A'),
   beige: solid('FFEFEDE2'),
@@ -55,9 +54,9 @@ interface SheetTheme {
 
 const THEME = {
   defines: {
-    sidebar: FILL.teal,
-    label: FILL.paleBlue,
-    value: FILL.paleBlue,
+    sidebar: FILL.grey,
+    label: FILL.labelGrey,
+    value: FILL.white,
     tableHeader: FILL.terracotta,
     tableHeaderFont: WHITE_BOLD,
     banner: FILL.orange,

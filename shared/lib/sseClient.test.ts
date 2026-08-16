@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
-import { openSseStream, parseSseChunk, SseEventType } from '@/shared/lib/sseClient'
+import {
+  extractSseTextDelta,
+  openSseStream,
+  parseSseChunk,
+  parseSseJson,
+  resolveSseEventName,
+  SseEventType,
+} from '@/shared/lib/sseClient'
 
 describe('parseSseChunk', () => {
   it('parses Wave 5 TOKEN / COMPLETED events with ids', () => {
@@ -25,6 +32,63 @@ describe('parseSseChunk', () => {
   it('exposes heartbeat comments', () => {
     const { events } = parseSseChunk(': heartbeat\n\n')
     expect(events[0]?.event).toBe(SseEventType.Heartbeat)
+  })
+
+  it('parses CRLF-delimited answer.delta frames from Spring', () => {
+    const { events, rest } = parseSseChunk(
+      'id: 1\r\nevent: answer.delta\r\ndata: {"delta":"Hello"}\r\n\r\npartial'
+    )
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({
+      id: '1',
+      event: 'answer.delta',
+      data: '{"delta":"Hello"}',
+    })
+    expect(rest).toBe('partial')
+  })
+})
+
+describe('extractSseTextDelta', () => {
+  it('reads BE answer.delta { delta }', () => {
+    expect(extractSseTextDelta('{"delta":"Hello"}')).toBe('Hello')
+  })
+
+  it('reads Phase 42 { text }', () => {
+    expect(extractSseTextDelta('{"text":"Task **API**"}')).toBe('Task **API**')
+  })
+
+  it('unwraps Spring double-encoded JSON strings', () => {
+    expect(extractSseTextDelta('"{\\"delta\\":\\"Hi\\"}"')).toBe('Hi')
+    expect(parseSseJson('"{\\"delta\\":\\"Hi\\"}"')).toEqual({ delta: 'Hi' })
+  })
+
+  it('reads nested delta.content objects', () => {
+    expect(extractSseTextDelta('{"delta":{"content":"Hi"}}')).toBe('Hi')
+  })
+
+  it('keeps raw text when data is not JSON', () => {
+    expect(extractSseTextDelta('plain token')).toBe('plain token')
+  })
+
+  it('does not dump the JSON envelope when no token field exists', () => {
+    expect(extractSseTextDelta('{"messageId":"m1","sequence":1}')).toBe('')
+  })
+})
+
+describe('resolveSseEventName', () => {
+  it('keeps a named SSE event', () => {
+    expect(
+      resolveSseEventName({ event: 'answer.delta', data: '{"delta":"x"}' })
+    ).toBe('answer.delta')
+  })
+
+  it('reads type from JSON when event is the default message', () => {
+    expect(
+      resolveSseEventName({
+        event: 'message',
+        data: '{"eventType":"answer.completed","status":"COMPLETED"}',
+      })
+    ).toBe('answer.completed')
   })
 })
 
@@ -149,6 +213,48 @@ describe('openSseStream', () => {
 
     const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers)
     expect(headers.get('Last-Event-ID')).toBe('10')
+    vi.unstubAllGlobals()
+  })
+
+  it('resolves default message events and double-encoded answer.delta payloads', async () => {
+    const chunks = [
+      'event: message\ndata: {"eventType":"answer.delta","delta":"Hello"}\n\n',
+      'id: 2\nevent: answer.delta\ndata: "{\\"delta\\":\\" world\\"}"\n\n',
+      'event: message\ndata: {"type":"answer.completed"}\n\n',
+    ]
+    let i = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        body: {
+          getReader: () => ({
+            read: async () => {
+              if (i >= chunks.length) return { done: true, value: undefined }
+              const value = new TextEncoder().encode(chunks[i++])
+              return { done: false, value }
+            },
+          }),
+        },
+      }))
+    )
+
+    const names: string[] = []
+    const tokens: string[] = []
+    await new Promise<void>((resolve) => {
+      openSseStream({
+        url: '/api/v1/ai-assistant/messages/1/stream',
+        onEvent: (ev) => {
+          names.push(ev.event)
+          if (ev.event === 'answer.delta') tokens.push(extractSseTextDelta(ev.data))
+        },
+        onDone: () => resolve(),
+        maxReconnects: 0,
+      })
+    })
+
+    expect(names).toEqual(['answer.delta', 'answer.delta', 'answer.completed'])
+    expect(tokens.join('')).toBe('Hello world')
     vi.unstubAllGlobals()
   })
 })

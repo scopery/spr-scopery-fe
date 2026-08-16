@@ -77,10 +77,15 @@ export async function createMessage(
   const res = await apiClient.post<{
     conversationId?: string
     userMessageId?: string
+    user_message_id?: string
     assistantMessageId?: string
+    assistant_message_id?: string
     turnId?: string
+    turn_id?: string
     messageId?: string
+    message_id?: string
     streamUrl?: string
+    stream_url?: string
   }>(AI_ASSISTANT_ENDPOINTS.messages(conversationId), {
     content: body.content,
     idempotencyKey: body.idempotencyKey ?? null,
@@ -89,14 +94,26 @@ export async function createMessage(
     entityId: body.entityId ?? null,
     sourceProjectId: body.sourceProjectId ?? null,
   })
+  const assistantMessageId =
+    res.assistantMessageId ?? res.assistant_message_id ?? res.messageId ?? res.message_id
   return {
     conversationId: res.conversationId,
-    userMessageId: res.userMessageId,
-    assistantMessageId: res.assistantMessageId,
-    turnId: res.turnId,
-    messageId: res.assistantMessageId ?? res.messageId ?? res.userMessageId ?? '',
-    streamUrl: res.streamUrl,
+    userMessageId: res.userMessageId ?? res.user_message_id,
+    assistantMessageId,
+    turnId: res.turnId ?? res.turn_id,
+    messageId: assistantMessageId ?? res.userMessageId ?? res.user_message_id ?? '',
+    streamUrl: res.streamUrl ?? res.stream_url,
   }
+}
+
+export function resolveMessageStreamUrl(result: {
+  streamUrl?: string
+  assistantMessageId?: string
+  messageId?: string
+}): string | null {
+  if (result.streamUrl) return result.streamUrl
+  const id = result.assistantMessageId ?? result.messageId
+  return id ? AI_ASSISTANT_ENDPOINTS.messageStream(id) : null
 }
 
 export async function getMessage(messageId: string): Promise<AiMessage> {

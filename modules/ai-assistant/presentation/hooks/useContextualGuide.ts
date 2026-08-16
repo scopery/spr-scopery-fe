@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildAiAssistantHeaders } from '@/shared/lib/aiAssistantHeaders'
-import { openSseStream, SseEventType } from '@/shared/lib/sseClient'
+import {
+  extractSseTextDelta,
+  isSseFailedEvent,
+  isSseTerminalEvent,
+  isSseTokenEvent,
+  openSseStream,
+  parseSseJson,
+  resolveSseUrl,
+} from '@/shared/lib/sseClient'
 import * as api from '../../infrastructure/api/ai-assistant.api'
 
 export type GuideMode = 'page' | 'field' | 'disabled_action' | null
@@ -15,11 +23,6 @@ export interface GuideContext {
   actionCode?: string
   locale?: string
   title?: string
-}
-
-function resolveStreamUrl(streamUrl: string): string {
-  if (streamUrl.startsWith('http') || streamUrl.startsWith('/')) return streamUrl
-  return `/${streamUrl}`
 }
 
 export function useContextualGuide(args: {
@@ -111,7 +114,7 @@ export function useContextualGuide(args: {
 
       try {
         const res = await start()
-        const streamUrl = res.streamUrl
+        const streamUrl = api.resolveMessageStreamUrl(res)
         if (!streamUrl) {
           clearTimeout(noResponseTimer)
           setStreaming(false)
@@ -119,52 +122,24 @@ export function useContextualGuide(args: {
           return
         }
         const { cancel } = openSseStream({
-          url: resolveStreamUrl(streamUrl),
+          url: resolveSseUrl(streamUrl),
           headers: buildAiAssistantHeaders(),
           maxReconnects: 2,
           onEvent: (ev) => {
-            if (
-              ev.event === SseEventType.Token ||
-              ev.event === 'message.delta' ||
-              ev.event === 'content.delta' ||
-              ev.event === 'answer.delta'
-            ) {
+            if (isSseTokenEvent(ev.event)) {
               clearTimeout(noResponseTimer)
-              try {
-                const parsed = JSON.parse(ev.data) as {
-                  token?: string
-                  delta?: string
-                  text?: string
-                }
-                setStreamingText(
-                  (prev) => prev + (parsed.token ?? parsed.delta ?? parsed.text ?? '')
-                )
-              } catch {
-                setStreamingText((prev) => prev + ev.data)
-              }
+              const token = extractSseTextDelta(ev.data)
+              if (token) setStreamingText((prev) => prev + token)
             }
-            if (
-              ev.event === SseEventType.Completed ||
-              ev.event === SseEventType.Error ||
-              ev.event === 'message.completed' ||
-              ev.event === 'message.error' ||
-              ev.event === 'answer.completed' ||
-              ev.event === 'answer.failed' ||
-              ev.event === 'answer.cancelled'
-            ) {
+            if (isSseTerminalEvent(ev.event)) {
               clearTimeout(noResponseTimer)
               setStreaming(false)
-              if (
-                ev.event === SseEventType.Error ||
-                ev.event === 'message.error' ||
-                ev.event === 'answer.failed'
-              ) {
-                try {
-                  const parsed = JSON.parse(ev.data) as { message?: string; errorCode?: string }
-                  setError(parsed.message ?? parsed.errorCode ?? 'Guide stream failed')
-                } catch {
-                  setError('Guide stream failed')
-                }
+              if (isSseFailedEvent(ev.event)) {
+                const parsed = parseSseJson(ev.data) as {
+                  message?: string
+                  errorCode?: string
+                } | null
+                setError(parsed?.message ?? parsed?.errorCode ?? 'Guide stream failed')
               }
             }
           },

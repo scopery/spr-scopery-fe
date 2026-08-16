@@ -45,6 +45,120 @@ export const SSE_TERMINAL_EVENTS = new Set<string>([
   'answer.cancelled',
 ])
 
+export const SSE_TOKEN_EVENTS = new Set<string>([
+  SseEventType.Token,
+  SseEventType.MessageDelta,
+  SseEventType.ContentDelta,
+  'answer.delta',
+])
+
+export const SSE_FAILED_EVENTS = new Set<string>([
+  SseEventType.Error,
+  SseEventType.MessageError,
+  SseEventType.TurnError,
+  'answer.failed',
+])
+
+export const SSE_COMPLETED_EVENTS = new Set<string>([
+  SseEventType.Completed,
+  SseEventType.MessageCompleted,
+  SseEventType.TurnCompleted,
+  'answer.completed',
+])
+
+export function isSseTokenEvent(event: string): boolean {
+  return SSE_TOKEN_EVENTS.has(event)
+}
+
+export function isSseFailedEvent(event: string): boolean {
+  return SSE_FAILED_EVENTS.has(event)
+}
+
+export function isSseCompletedEvent(event: string): boolean {
+  return SSE_COMPLETED_EVENTS.has(event)
+}
+
+export function isSseTerminalEvent(event: string): boolean {
+  return SSE_TERMINAL_EVENTS.has(event)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Parse SSE `data:` JSON. Spring `SseEmitter.event().data(preSerializedJson)`
+ * often double-encodes, so a first parse may yield another JSON string.
+ */
+export function parseSseJson(raw: string): unknown {
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  try {
+    let value: unknown = JSON.parse(trimmed)
+    if (typeof value === 'string') {
+      const inner = value.trim()
+      if (inner.startsWith('{') || inner.startsWith('[') || inner.startsWith('"')) {
+        try {
+          value = JSON.parse(inner)
+        } catch {
+          return value
+        }
+      }
+    }
+    return value
+  } catch {
+    return null
+  }
+}
+
+function coerceDeltaString(value: unknown): string | null {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  if (!isRecord(value)) return null
+  if (typeof value.content === 'string') return value.content
+  if (typeof value.text === 'string') return value.text
+  if (typeof value.delta === 'string') return value.delta
+  if (typeof value.token === 'string') return value.token
+  if (typeof value.chunk === 'string') return value.chunk
+  return null
+}
+
+/**
+ * Extract the visible token from an SSE payload.
+ * BE `answer.delta` sends `{ delta }`; Phase 42 contract uses `{ text }`.
+ * Never returns the raw JSON envelope — that was dumping garbage into chat/rewrite.
+ */
+export function extractSseTextDelta(raw: string): string {
+  const parsed = parseSseJson(raw)
+  if (parsed == null) return raw
+  if (typeof parsed === 'string') return parsed
+  if (!isRecord(parsed)) return ''
+  const candidates = [parsed.token, parsed.delta, parsed.text, parsed.content, parsed.chunk]
+  for (const candidate of candidates) {
+    const text = coerceDeltaString(candidate)
+    if (text != null) return text
+  }
+  return ''
+}
+
+/** Prefer the SSE `event:` field; fall back to type fields inside JSON. */
+export function resolveSseEventName(event: SseParsedEvent): string {
+  if (event.event && event.event !== 'message') return event.event
+  const parsed = parseSseJson(event.data)
+  if (!isRecord(parsed)) return event.event
+  const named = parsed.event ?? parsed.eventType ?? parsed.type
+  return typeof named === 'string' && named ? named : event.event
+}
+
+/** Prefix `NEXT_PUBLIC_SSE_BASE_URL` so Next's rewrite does not buffer the stream. */
+export function resolveSseUrl(streamUrl: string): string {
+  if (streamUrl.startsWith('http')) return streamUrl
+  const sseBase =
+    typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_SSE_BASE_URL ?? '') : ''
+  const path = streamUrl.startsWith('/') ? streamUrl : `/${streamUrl}`
+  return `${sseBase}${path}`
+}
+
 export interface SseParsedEvent {
   id?: string
   event: string
@@ -73,7 +187,7 @@ export interface SseClientOptions {
 
 export function parseSseChunk(buffer: string): { events: SseParsedEvent[]; rest: string } {
   const events: SseParsedEvent[] = []
-  const parts = buffer.split(/\n\n/)
+  const parts = buffer.split(/\r?\n\r?\n/)
   const rest = parts.pop() ?? ''
 
   for (const part of parts) {
@@ -88,7 +202,7 @@ export function parseSseChunk(buffer: string): { events: SseParsedEvent[]; rest:
     let data = ''
     let retry: number | undefined
 
-    for (const line of part.split('\n')) {
+    for (const line of part.split(/\r?\n/)) {
       if (line.startsWith('id:')) id = line.slice(3).trim()
       else if (line.startsWith('event:')) event = line.slice(6).trim()
       else if (line.startsWith('data:')) {
@@ -173,9 +287,10 @@ export function openSseStream(options: SseClientOptions): { cancel: () => void }
           const { events, rest } = parseSseChunk(buffer)
           buffer = rest
           for (const ev of events) {
-            if (ev.id) lastEventId = ev.id
-            if (SSE_TERMINAL_EVENTS.has(ev.event)) sawTerminal = true
-            options.onEvent(ev)
+            const resolved: SseParsedEvent = { ...ev, event: resolveSseEventName(ev) }
+            if (resolved.id) lastEventId = resolved.id
+            if (isSseTerminalEvent(resolved.event)) sawTerminal = true
+            options.onEvent(resolved)
           }
         }
 

@@ -2,9 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildAiAssistantHeaders } from '@/shared/lib/aiAssistantHeaders'
-import { openSseStream, SseEventType } from '@/shared/lib/sseClient'
+import {
+  extractSseTextDelta,
+  isSseTokenEvent,
+  openSseStream,
+  parseSseJson,
+  resolveSseUrl,
+  SseEventType,
+} from '@/shared/lib/sseClient'
 import { AiStreamUiState } from '../../domain/enums/ai-assistant.enum'
-import { AI_ASSISTANT_ENDPOINTS } from '../../infrastructure/api/endpoints'
 import * as api from '../../infrastructure/api/ai-assistant.api'
 import {
   applyCancelled,
@@ -30,23 +36,9 @@ import {
 const TOKEN_FLUSH_MS = 48
 const CANCEL_TIMEOUT_MS = 20_000
 
-function resolveStreamUrl(streamUrl: string): string {
-  if (streamUrl.startsWith('http')) return streamUrl
-  // Bypass Next.js dev proxy for SSE (dev proxy buffers streaming responses).
-  const sseBase =
-    typeof process !== 'undefined'
-      ? (process.env.NEXT_PUBLIC_SSE_BASE_URL ?? '')
-      : ''
-  const path = streamUrl.startsWith('/') ? streamUrl : `/${streamUrl}`
-  return `${sseBase}${path}`
-}
-
 function parseJsonSafe<T>(raw: string): T | null {
-  try {
-    return JSON.parse(raw) as T
-  } catch {
-    return null
-  }
+  const parsed = parseSseJson(raw)
+  return parsed == null ? null : (parsed as T)
 }
 
 export interface UseAiMessageStreamResult {
@@ -194,20 +186,10 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
           // Token events: call queueToken OUTSIDE setStreamState updater to
           // avoid React Concurrent Mode invoking the updater multiple times
           // and double-appending the token to the buffer.
-          if (
-            ev.event === SseEventType.Token ||
-            ev.event === 'message.delta' ||
-            ev.event === 'content.delta' ||
-            ev.event === 'answer.delta'
-          ) {
+          if (isSseTokenEvent(ev.event)) {
             if (!shouldIgnoreDuplicateEvent(stateRef.current, ev.id)) {
-              const parsed = parseJsonSafe<{
-                token?: string
-                delta?: string
-                text?: string
-              }>(ev.data)
-              const token = parsed?.token ?? parsed?.delta ?? parsed?.text ?? ev.data
-              queueToken(token)
+              const token = extractSseTextDelta(ev.data)
+              if (token) queueToken(token)
             }
             setStreamState((prev) => {
               if (shouldIgnoreDuplicateEvent(prev, ev.id)) return prev
@@ -369,9 +351,7 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
       args.onUserAccepted?.(result.userMessageId)
 
       const streamId = result.assistantMessageId ?? result.messageId
-      const streamUrl =
-        result.streamUrl ??
-        (streamId ? AI_ASSISTANT_ENDPOINTS.messageStream(streamId) : null)
+      const streamUrl = api.resolveMessageStreamUrl(result)
 
       setStreamState((prev) => ({
         ...prev,
@@ -385,7 +365,7 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
       }
 
       // Start replay from sequence 0 so events already persisted before connect are replayed
-      connect(resolveStreamUrl(streamUrl), '0')
+      connect(resolveSseUrl(streamUrl), '0')
     },
     [resetStream, connect, handleTerminal]
   )

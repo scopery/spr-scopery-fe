@@ -11,10 +11,16 @@ import { Bold, Check, Code2, Italic, Link2, Loader2, Sparkles, Underline, X } fr
 import { Button } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { TextHighlightToolbarControl } from './TextHighlightPlugin'
-import { openSseStream, SseEventType } from '@/shared/lib/sseClient'
+import {
+  extractSseTextDelta,
+  isSseCompletedEvent,
+  isSseFailedEvent,
+  isSseTokenEvent,
+  openSseStream,
+  resolveSseUrl,
+} from '@/shared/lib/sseClient'
 import { buildAiAssistantHeaders } from '@/shared/lib/aiAssistantHeaders'
 import * as aiApi from '@/modules/ai-assistant/infrastructure/api/ai-assistant.api'
-import { AI_ASSISTANT_ENDPOINTS } from '@/modules/ai-assistant/infrastructure/api/endpoints'
 
 // ─── Formatting buttons ───────────────────────────────────────────────────────
 
@@ -50,12 +56,6 @@ function MarkButton({
 type AiPhase = 'input' | 'loading' | 'review' | 'error'
 type FloatingRect = ReturnType<typeof getDOMSelectionBoundingClientRect>
 
-function resolveStreamUrl(url: string): string {
-  if (url.startsWith('http')) return url
-  const base =
-    typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_SSE_BASE_URL ?? '') : ''
-  return `${base}${url.startsWith('/') ? url : `/${url}`}`
-}
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -183,51 +183,27 @@ export function EditorFloatingToolbar() {
         `Return ONLY the rewritten text — no explanations, no prefixes, no surrounding quotes.`
 
       const result = await aiApi.createMessage(conv.id, { content: prompt })
-      const rawStreamUrl =
-        result.streamUrl ??
-        (result.messageId ? AI_ASSISTANT_ENDPOINTS.messageStream(result.messageId) : null)
+      const rawStreamUrl = aiApi.resolveMessageStreamUrl(result)
 
       if (!rawStreamUrl) throw new Error('No stream URL')
 
       let accumulated = ''
 
       const { cancel } = openSseStream({
-        url: resolveStreamUrl(rawStreamUrl),
+        url: resolveSseUrl(rawStreamUrl),
         headers: buildAiAssistantHeaders(),
         onEvent: (ev) => {
-          const isToken =
-            ev.event === SseEventType.Token ||
-            ev.event === SseEventType.MessageDelta ||
-            ev.event === SseEventType.ContentDelta ||
-            ev.event === 'answer.delta'
-
-          if (isToken) {
-            let token = ev.data
-            try {
-              const parsed = JSON.parse(ev.data) as { token?: string; delta?: string; text?: string }
-              token = parsed.token ?? parsed.delta ?? parsed.text ?? ev.data
-            } catch { /* raw text */ }
-            accumulated += token
+          if (isSseTokenEvent(ev.event)) {
+            accumulated += extractSseTextDelta(ev.data)
             setStreamingPreview(accumulated)
           }
 
-          const isDone =
-            ev.event === SseEventType.Completed ||
-            ev.event === SseEventType.MessageCompleted ||
-            ev.event === SseEventType.TurnCompleted ||
-            ev.event === 'answer.completed'
-
-          if (isDone) {
+          if (isSseCompletedEvent(ev.event)) {
             setSuggestion(accumulated)
             setAiPhase('review')
           }
 
-          const isErr =
-            ev.event === SseEventType.Error ||
-            ev.event === SseEventType.MessageError ||
-            ev.event === 'answer.failed'
-
-          if (isErr) {
+          if (isSseFailedEvent(ev.event)) {
             setAiError('AI could not generate a suggestion.')
             setAiPhase('error')
           }
