@@ -40,6 +40,11 @@ export interface ScreenSpecExcelHeader {
   screenIdText: string
   screenNameText: string
   grouped: boolean
+  author: string
+  createdDate: string
+  version: string
+  updatedBy: string
+  updatedDate: string
 }
 
 export interface ScreenSpecExcelRevisionRow {
@@ -191,9 +196,27 @@ export function modeVisibleMark(field: ScreenFullSpecField, modeCode: string): s
 }
 
 export function fieldRequiredMark(field: ScreenFullSpecField): string {
-  const create = field.modeConfigs.find((c) => String(c.modeCode) === ScreenModeCode.Create)
-  if (create) return create.isRequired ? MODE_VISIBLE_MARK : ''
-  return field.required ? MODE_VISIBLE_MARK : ''
+  if (field.modeConfigs.some((c) => c.isRequired)) return MODE_VISIBLE_MARK
+  if (field.required) return MODE_VISIBLE_MARK
+  if (field.validations.some((v) => String(v.ruleTypeCode).toUpperCase() === 'REQUIRED')) {
+    return MODE_VISIBLE_MARK
+  }
+  return ''
+}
+
+export function fieldLengthValue(field: ScreenFullSpecField): string {
+  if (field.maxLength != null) return String(field.maxLength)
+  if (field.dataField?.maxLength != null) return String(field.dataField.maxLength)
+  const rule = field.validations.find((v) => String(v.ruleTypeCode).toUpperCase() === 'MAX_LENGTH')
+  if (!rule) return ''
+  const params = rule.ruleParamJson
+  if (params && typeof params === 'object' && !Array.isArray(params)) {
+    const rec = params as Record<string, unknown>
+    const n = rec.maxLength ?? rec.max_length ?? rec.max ?? rec.value
+    if (n != null && n !== '') return String(n)
+  }
+  if (typeof params === 'number' || (typeof params === 'string' && params.trim())) return String(params)
+  return ''
 }
 
 export function fieldDefaultValue(field: ScreenFullSpecField): string {
@@ -231,6 +254,33 @@ function emptyModeMarks(modeCodes: string[]): Record<string, string> {
   return Object.fromEntries(modeCodes.map((code) => [code, '']))
 }
 
+function formatAuditDate(value: string | null | undefined): string {
+  if (!value) return ''
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  return trimmed.includes('T') ? trimmed.slice(0, 10) : trimmed
+}
+
+function headerAuditFromDoc(doc: ScreenSpecDocFullSpec): Pick<
+  ScreenSpecExcelHeader,
+  'author' | 'createdDate' | 'version' | 'updatedBy' | 'updatedDate'
+> {
+  const revisions = sortByOrder(doc.revisions)
+  const byDate = [...doc.revisions].sort((a, b) =>
+    (a.changedAt ?? '').localeCompare(b.changedAt ?? '')
+  )
+  const first = byDate.find((r) => r.changedAt) ?? revisions[0]
+  const last = [...byDate].reverse().find((r) => r.changedAt) ?? revisions[revisions.length - 1]
+  const latestVersion = [...revisions].reverse().find((r) => r.revisionNo)?.revisionNo ?? last?.revisionNo ?? ''
+  return {
+    author: doc.createdByName ?? first?.personInCharge ?? '',
+    createdDate: formatAuditDate(doc.createdAt ?? first?.changedAt),
+    version: latestVersion,
+    updatedBy: doc.updatedByName ?? last?.personInCharge ?? '',
+    updatedDate: formatAuditDate(doc.updatedAt ?? last?.changedAt),
+  }
+}
+
 export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): ScreenSpecWorkbookModel {
   const groupedEntries = sortByOrder(doc.screens)
   const screens = groupedEntries.map((entry) => entry.screen)
@@ -248,6 +298,7 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
     screenIdText: grouped ? doc.documentCode : (screens[0]?.code ?? doc.documentCode),
     screenNameText: grouped ? doc.documentName : (screens[0]?.name ?? doc.documentName),
     grouped,
+    ...headerAuditFromDoc(doc),
   }
 
   const revisions = sortByOrder(doc.revisions).map((rev) => ({
@@ -481,7 +532,7 @@ function toDefineFieldRow(
     physicalName: field.fieldKey,
     type: fieldTypeLabel(field),
     required: fieldRequiredMark(field),
-    length: field.maxLength != null ? String(field.maxLength) : '',
+    length: fieldLengthValue(field),
     modeMarks,
     defaultValue: fieldDefaultValue(field),
     table: fieldTableName(field),

@@ -81,19 +81,25 @@ export function mapScreenSpecDoc(raw: unknown): ScreenSpecDoc {
     overview: str(r.overview),
     figmaUrl: str(r.figmaUrl ?? r.figma_url),
     status: String(r.status ?? 'ACTIVE'),
+    createdAt: str(r.createdAt ?? r.created_at),
+    updatedAt: str(r.updatedAt ?? r.updated_at),
+    createdByName: str(
+      r.createdByName ?? r.created_by_name ?? r.author ?? r.createdBy ?? r.created_by
+    ),
+    updatedByName: str(r.updatedByName ?? r.updated_by_name ?? r.updatedBy ?? r.updated_by),
     screens: Array.isArray(screensRaw) ? screensRaw.map(mapScreenRef) : undefined,
   }
 }
 
 function mapScreenRef(raw: unknown): ScreenSpecDocScreenRef {
   const r = asRecord(raw)
-  const screen = asRecord(r.screen)
+  const screen = asRecord(r.screen ?? r.registryScreen ?? r.registry_screen)
   return {
     screenId: String(r.screenId ?? r.screen_id ?? screen.id ?? ''),
     displayOrder: num(r.displayOrder ?? r.display_order),
     note: str(r.note),
-    code: str(r.code ?? screen.code),
-    name: str(r.name ?? screen.name),
+    code: str(r.code ?? r.screenCode ?? r.screen_code ?? screen.code),
+    name: str(r.name ?? r.screenName ?? r.screen_name ?? screen.name),
     routePath: str(r.routePath ?? r.route_path ?? screen.routePath ?? screen.route_path),
   }
 }

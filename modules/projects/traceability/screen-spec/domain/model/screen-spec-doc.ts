@@ -20,6 +20,10 @@ export interface ScreenSpecDoc {
   overview: string | null
   figmaUrl: string | null
   status: string
+  createdAt?: string | null
+  updatedAt?: string | null
+  createdByName?: string | null
+  updatedByName?: string | null
   screens?: ScreenSpecDocScreenRef[]
 }
 
@@ -135,6 +139,10 @@ export interface ScreenSpecDocFullSpec {
   overview: string | null
   figmaUrl: string | null
   status: string
+  createdAt?: string | null
+  updatedAt?: string | null
+  createdByName?: string | null
+  updatedByName?: string | null
   revisions: ScreenSpecDocRevision[]
   screens: ScreenSpecDocFullSpecScreen[]
 }

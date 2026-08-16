@@ -48,7 +48,7 @@ type ImportKind = 'modules' | 'screens' | 'apis' | 'components' | 'entities'
 const MAIN_TABS: { id: MainTab; label: string }[] = [
   { id: 'browse', label: 'Browse' },
   { id: 'structure', label: 'Structure' },
-  { id: 'spec-docs', label: 'Spec docs' },
+  { id: 'spec-docs', label: 'High Level Design' },
   { id: 'import', label: 'Import' },
 ]
 

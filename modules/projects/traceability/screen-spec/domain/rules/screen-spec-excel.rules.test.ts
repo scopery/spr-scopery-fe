@@ -196,6 +196,7 @@ describe('screen-spec-excel.rules', () => {
     expect(email?.field).toBe('Email')
     expect(email?.type).toBe('Textbox')
     expect(email?.required).toBe(MODE_VISIBLE_MARK)
+    expect(email?.length).toBe('255')
     expect(email?.modeMarks.CREATE).toBe(MODE_VISIBLE_MARK)
     expect(email?.modeMarks.VIEW).toBe('')
     expect(email?.table).toBe('users')
@@ -265,5 +266,101 @@ describe('screen-spec-excel.rules', () => {
     const model = buildScreenSpecWorkbookModel(wrapSingleScreenAsDocument(unbound))
     expect(model.databaseRows).toEqual([])
     expect(model.processRows.find((r) => r.label === 'Source')?.source).toBe('USER_MASTER')
+    expect(model.defineRows.find((r) => r.physicalName === 'q')?.length).toBe('64')
+  })
+
+  it('maps header audit from revisions and required from any mode', () => {
+    const searchOnly = screen({
+      id: 's4',
+      code: 'JOBS',
+      name: 'Jobs',
+      modes: [{ id: 'm9', screenId: 's4', modeCode: 'SEARCH', name: 'Search', displayOrder: 0, status: 'ACTIVE' }],
+      fields: [
+        {
+          id: 'f3',
+          sectionId: null,
+          fieldKey: 'keyword',
+          label: 'Keyword',
+          fieldType: 'INPUT',
+          description: null,
+          required: false,
+          displayOrder: 1,
+          maxLength: null,
+          remark: null,
+          componentId: null,
+          dataEntityFieldId: null,
+          componentFieldId: null,
+          component: null,
+          dataField: null,
+          modeConfigs: [
+            {
+              modeId: 'm9',
+              modeCode: 'SEARCH',
+              isVisible: true,
+              isRequired: true,
+              isReadonly: false,
+              defaultValue: null,
+              displayOrder: null,
+            },
+          ],
+          validations: [
+            {
+              id: 'v3',
+              modeId: null,
+              ruleTypeCode: 'MAX_LENGTH',
+              ruleParamJson: { maxLength: 80 },
+              conditionJson: null,
+              errorMessage: null,
+              remark: null,
+              displayOrder: 1,
+            },
+          ],
+        },
+      ],
+    })
+    const doc: ScreenSpecDocFullSpec = {
+      id: 'd2',
+      documentCode: 'SPEC-002',
+      documentName: 'Jobs',
+      projectName: 'Startupper',
+      systemName: 'Web',
+      phaseName: 'P1',
+      language: 'EN',
+      overview: null,
+      figmaUrl: null,
+      status: 'ACTIVE',
+      revisions: [
+        {
+          id: 'r1',
+          revisionNo: '1.0',
+          targetSheetName: 'Defines',
+          details: 'Init',
+          personInCharge: 'Nhi',
+          color: null,
+          changedAt: '2026-08-01T10:00:00Z',
+          displayOrder: 1,
+        },
+        {
+          id: 'r2',
+          revisionNo: '1.1',
+          targetSheetName: 'Defines',
+          details: 'Update',
+          personInCharge: 'Yen',
+          color: null,
+          changedAt: '2026-08-14',
+          displayOrder: 2,
+        },
+      ],
+      screens: [{ displayOrder: 1, note: null, screen: searchOnly }],
+    }
+    const model = buildScreenSpecWorkbookModel(doc)
+    expect(model.header.author).toBe('Nhi')
+    expect(model.header.createdDate).toBe('2026-08-01')
+    expect(model.header.version).toBe('1.1')
+    expect(model.header.updatedBy).toBe('Yen')
+    expect(model.header.updatedDate).toBe('2026-08-14')
+    const keyword = model.defineRows.find((r) => r.physicalName === 'keyword')
+    expect(keyword?.required).toBe(MODE_VISIBLE_MARK)
+    expect(keyword?.length).toBe('80')
   })
 })

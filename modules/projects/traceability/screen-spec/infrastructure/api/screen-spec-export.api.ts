@@ -8,6 +8,7 @@ import {
   getScreenFullSpec,
   getScreenSpecDoc,
   getScreenSpecDocFullSpec,
+  listSpecDocRevisions,
   mapFullSpecField,
   mapScreenFullSpec,
 } from './spec-doc.api'
@@ -66,6 +67,7 @@ function sectionFromList(section: RegistryScreenSection) {
 function needsFieldEnrichment(field: ScreenFullSpecField): boolean {
   if (field.modeConfigs.length === 0) return true
   if (field.dataEntityFieldId && !field.dataField) return true
+  if (field.maxLength == null) return true
   return false
 }
 
@@ -102,6 +104,8 @@ async function loadFieldForExport(
       (validations.items.length ? validations.items : field.validations),
     component: detail?.component ?? field.component,
     dataField: detail?.dataField ?? field.dataField,
+    maxLength: detail?.maxLength ?? fallback?.maxLength ?? field.maxLength,
+    required: detail?.required ?? fallback?.required ?? field.required,
   }
 }
 
@@ -162,17 +166,24 @@ export async function loadScreenSpecDocFullSpecForExport(
     }))
   }
 
-  const screens = await Promise.all(
-    entries.map(async (entry) => {
-      const screenId = entry.screen.id || entry.screenId || ''
-      if (!screenId) return entry
-      return {
-        ...entry,
-        screenId,
-        screen: await loadScreenFullSpecForExport(workspaceId, screenId, entry.screen),
-      }
-    })
-  )
+  const [screens, revisions] = await Promise.all([
+    Promise.all(
+      entries.map(async (entry) => {
+        const screenId = entry.screen.id || entry.screenId || ''
+        if (!screenId) return entry
+        return {
+          ...entry,
+          screenId,
+          screen: await loadScreenFullSpecForExport(workspaceId, screenId, entry.screen),
+        }
+      })
+    ),
+    doc.revisions.length > 0
+      ? Promise.resolve(doc.revisions)
+      : listSpecDocRevisions(workspaceId, docId)
+          .then((res) => res.items)
+          .catch(() => doc.revisions),
+  ])
 
-  return { ...doc, screens }
+  return { ...doc, screens, revisions }
 }

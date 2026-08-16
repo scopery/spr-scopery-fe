@@ -77,7 +77,7 @@ export const SCREEN_SPEC_WORKFLOW_STEPS = [
   'On Browse, spec catalog first: entity Columns, component fields, option source, and component APIs. Bind a component onto a screen section to copy those fields.',
   'Select a screen. Add Modes and Sections, bind components or add Fields. Configure a field to link component/column and add validations.',
   'Fill Mode matrix, then Processes and Events.',
-  'To load many screens at once, use Import → Screens (Excel = shell, JSON = full spec). Then export from the inspector or Spec docs.',
+  'To load many screens at once, use Import → Screens (Excel = shell, JSON = full spec). Then export from the inspector or High Level Design.',
 ]
 
 export const SPEC_DOC_WORKFLOW_STEPS = [
