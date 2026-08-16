@@ -149,6 +149,8 @@ export function mapComponentDetail(raw: unknown): ApplicationComponentDetail {
     sourceValueColumn: str(r.sourceValueColumn ?? r.source_value_column),
     sourceLabelColumn: str(r.sourceLabelColumn ?? r.source_label_column),
     sourceFilterJson: Array.isArray(filter) ? (filter as ApplicationComponentDetail['sourceFilterJson']) : null,
+    screenshotUrl: str(r.screenshotUrl ?? r.screenshot_url),
+    screenshotObjectKey: str(r.screenshotObjectKey ?? r.screenshot_object_key),
     status: str(r.status) ?? undefined,
   }
 }
@@ -167,9 +169,10 @@ export function mapScreenMode(raw: unknown): ScreenMode {
 
 function mapModeConfig(raw: unknown): ScreenFieldModeConfig {
   const r = asRecord(raw)
+  const mode = modeFromRaw(r)
   return {
-    modeId: String(r.modeId ?? r.mode_id ?? ''),
-    modeCode: str(r.modeCode ?? r.mode_code) ?? undefined,
+    modeId: mode.modeId ?? '',
+    modeCode: mode.modeCode ?? undefined,
     isVisible: bool(r.isVisible ?? r.is_visible, true),
     isRequired: bool(r.isRequired ?? r.is_required),
     isReadonly: bool(r.isReadonly ?? r.is_readonly),

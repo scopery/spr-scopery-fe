@@ -9,6 +9,7 @@ import { useDataEntityFields } from '../hooks/useDataEntityFields'
 import { ComponentFieldsPanel } from './ComponentFieldsPanel'
 import { ComponentApisPanel, type SpecCatalogApi } from './ComponentApisPanel'
 import { SpecTabBar } from './SpecTabBar'
+import { ComponentScreenshotUpload } from './SpecImageUpload'
 import { ScreenStructureEditor } from '../../../ui/ScreenStructureEditor'
 
 export interface SpecCatalogEntity {
@@ -105,6 +106,11 @@ export function ComponentSpecPanel({
           {error}
         </Typography>
       ) : null}
+      <ComponentScreenshotUpload
+        workspaceId={workspaceId}
+        componentId={componentId}
+        initialUrl={component?.screenshotUrl}
+      />
       <SpecTabBar
         label="Component spec"
         value={tab}

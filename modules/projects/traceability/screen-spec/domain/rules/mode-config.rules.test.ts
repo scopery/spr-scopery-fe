@@ -12,7 +12,7 @@ describe('mode-config.rules', () => {
     expect(draft.isVisible).toBe(true)
   })
 
-  it('omits inherit default rows from replace payload', () => {
+  it('sends every mode row on replace so hidden / required overrides are not dropped', () => {
     const drafts: ModeConfigDraft[] = [
       {
         modeId: 'm1',
@@ -32,10 +32,10 @@ describe('mode-config.rules', () => {
       },
     ]
     const payload = buildModeConfigReplacePayload(drafts, true)
-    expect(payload.modeConfigs).toHaveLength(1)
-    expect(payload.modeConfigs[0].modeId).toBe('m2')
-    expect(payload.modeConfigs[0].isRequired).toBe(false)
-    expect(payload.modeConfigs[0].isVisible).toBe(false)
+    expect(payload.modeConfigs).toHaveLength(2)
+    expect(payload.modeConfigs[1].modeId).toBe('m2')
+    expect(payload.modeConfigs[1].isRequired).toBe(false)
+    expect(payload.modeConfigs[1].isVisible).toBe(false)
   })
 
   it('materializes all modes when every draft is omissible so payload is not empty', () => {

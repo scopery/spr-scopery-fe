@@ -28,6 +28,8 @@ export interface RegistryScreen {
   code: string
   name: string
   routePath?: string | null
+  mockupUrl?: string | null
+  mockupObjectKey?: string | null
   status: string
   createdAt: string
 }
@@ -84,6 +86,8 @@ export interface RegistryAppComponent {
   name: string
   description?: string | null
   componentType?: string | null
+  screenshotUrl?: string | null
+  screenshotObjectKey?: string | null
   status: string
   createdAt: string
 }

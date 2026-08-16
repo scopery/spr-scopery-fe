@@ -137,6 +137,8 @@ export interface ApplicationComponentDetail {
   sourceValueColumn: string | null
   sourceLabelColumn: string | null
   sourceFilterJson: ComponentSourceFilter[] | null
+  screenshotUrl?: string | null
+  screenshotObjectKey?: string | null
   status?: string
 }
 

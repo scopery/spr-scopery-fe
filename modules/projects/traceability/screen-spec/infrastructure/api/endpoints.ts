@@ -80,6 +80,15 @@ export const SCREEN_SPEC_ENDPOINTS = {
   screenSpecDocFullSpec: (workspaceId: string, docId: string) =>
     apiPath(`/workspaces/${workspaceId}/screen-spec-docs/${docId}/full-spec`),
 
+  screenMockupUploadUrl: (workspaceId: string, screenId: string) =>
+    apiPath(`/workspaces/${workspaceId}/screens/${screenId}/mockup/upload-url`),
+  screenMockupConfirm: (workspaceId: string, screenId: string) =>
+    apiPath(`/workspaces/${workspaceId}/screens/${screenId}/mockup/confirm`),
+  componentScreenshotUploadUrl: (workspaceId: string, componentId: string) =>
+    apiPath(`/workspaces/${workspaceId}/application-components/${componentId}/screenshot/upload-url`),
+  componentScreenshotConfirm: (workspaceId: string, componentId: string) =>
+    apiPath(`/workspaces/${workspaceId}/application-components/${componentId}/screenshot/confirm`),
+
   screensImportFull: (workspaceId: string, applicationId: string) =>
     apiPath(`/workspaces/${workspaceId}/applications/${applicationId}/screens/import-full`),
   componentsImportFull: (workspaceId: string, applicationId: string) =>

@@ -30,6 +30,7 @@ import { ScreenValidationsPanel } from '../screen-spec/presentation/ui/ScreenVal
 import { useScreenValidations } from '../screen-spec/presentation/hooks/useFieldValidations'
 import { ScreenSectionBindComponentModal } from '../screen-spec/presentation/ui/ScreenSectionBindComponentModal'
 import { ScreenLinkedComponentsPanel } from '../screen-spec/presentation/ui/ScreenLinkedComponentsPanel'
+import { ScreenMockupUpload } from '../screen-spec/presentation/ui/SpecImageUpload'
 import { useScreenComponents } from '../screen-spec/presentation/hooks/useScreenComponents'
 import type { SpecCatalogEntity } from '../screen-spec/presentation/ui/ComponentSpecPanel'
 
@@ -219,6 +220,11 @@ export function ScreenDetailPanel({
     return map
   }, [linkedComponents])
 
+  const linkedComponentIds = useMemo(
+    () => new Set(linkedComponents.map((l) => l.componentId)),
+    [linkedComponents]
+  )
+
   const sectionCols = useMemo(
     () => [
       ...SECTION_BASE_COLS,
@@ -228,14 +234,16 @@ export function ScreenDetailPanel({
         createOnly: true,
         options: [
           { value: '', label: 'None' },
-          ...components.map((c) => ({
-            value: c.id,
-            label: `${c.code} · ${c.name}`,
-          })),
+          ...components
+            .filter((c) => !linkedComponentIds.has(c.id))
+            .map((c) => ({
+              value: c.id,
+              label: `${c.code} · ${c.name}`,
+            })),
         ],
       },
     ],
-    [components]
+    [components, linkedComponentIds]
   )
 
   const sectionItems = useMemo(
@@ -328,6 +336,12 @@ export function ScreenDetailPanel({
           </Button>
         </div>
       ) : null}
+
+      <ScreenMockupUpload
+        workspaceId={workspaceId}
+        screenId={screen.id}
+        initialUrl={screen.mockupUrl}
+      />
 
       <div
         className="flex flex-wrap gap-1 border-b border-neutral-200"

@@ -133,7 +133,41 @@ export async function downloadFromPresignedUrl(
   }
 }
 
+export interface PresignedObjectTicket {
+  uploadUrl: string
+  objectKey: string
+  expiresAt?: string
+}
+
+/**
+ * Shared 3-step object upload: request a signed URL, PUT the file to storage, then confirm.
+ * Callers only supply the two BE steps — MinIO PUT stays here.
+ */
+export async function uploadViaPresignedObject<TResult>(params: {
+  file: Blob | File
+  contentType?: string
+  requestUploadUrl: (contentType: string) => Promise<PresignedObjectTicket>
+  confirmUpload: (objectKey: string) => Promise<TResult>
+  onProgress?: (percent: number) => void
+  signal?: AbortSignal
+}): Promise<TResult> {
+  const contentType =
+    params.contentType ||
+    (params.file instanceof File && params.file.type) ||
+    'application/octet-stream'
+  const ticket = await params.requestUploadUrl(contentType)
+  await uploadToPresignedUrl({
+    uploadUrl: ticket.uploadUrl,
+    file: params.file,
+    contentType,
+    onProgress: params.onProgress,
+    signal: params.signal,
+  })
+  return params.confirmUpload(ticket.objectKey)
+}
+
 export const presignedFileTransfer = {
   upload: uploadToPresignedUrl,
   download: downloadFromPresignedUrl,
+  uploadObject: uploadViaPresignedObject,
 }

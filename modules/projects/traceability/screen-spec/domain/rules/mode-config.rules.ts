@@ -9,6 +9,17 @@ export function isModeActive(status: string | null | undefined): boolean {
   return (status ?? 'ACTIVE').toUpperCase() === 'ACTIVE'
 }
 
+export function findModeConfig(
+  configs: ScreenFieldModeConfig[] | undefined,
+  mode: { id: string; modeCode?: string | null }
+): ScreenFieldModeConfig | undefined {
+  if (!configs?.length) return undefined
+  return (
+    configs.find((c) => c.modeId && c.modeId === mode.id) ??
+    configs.find((c) => c.modeCode && c.modeCode === mode.modeCode)
+  )
+}
+
 export function draftFromModeConfig(
   modeId: string,
   config: ScreenFieldModeConfig | undefined
@@ -68,12 +79,10 @@ function toInput(draft: ModeConfigDraft, fieldRequired: boolean | null | undefin
   }
 }
 
-/** Replace-all payload. Empty is invalid (400) — materialize all modes if every draft is omissible. */
+/** Replace-all payload. Always send every mode so BE cannot drop a row and fall back to defaults. */
 export function buildModeConfigReplacePayload(
   drafts: ModeConfigDraft[],
   fieldRequired: boolean | null | undefined
 ): ReplaceFieldModeConfigsBody {
-  const included = drafts.filter((d) => !isOmissibleModeDraft(d)).map((d) => toInput(d, fieldRequired))
-  if (included.length > 0) return { modeConfigs: included }
   return { modeConfigs: drafts.map((d) => toInput(d, fieldRequired)) }
 }

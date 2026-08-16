@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObjec
 import { Button, Checkbox, Modal, Select, Typography } from '@/shared/ui'
 import { RequiredOverride } from '../../domain/enums/screen-spec.enum'
 import { ScreenSpecMessages } from '../../domain/messages/screen-spec.messages'
-import { draftFromModeConfig } from '../../domain/rules/mode-config.rules'
+import { draftFromModeConfig, findModeConfig } from '../../domain/rules/mode-config.rules'
 import { useScreenFieldSpec } from '../hooks/useScreenFieldSpec'
 import type { ModeConfigDraft, ScreenFieldModeConfig, ScreenMode } from '../../domain/model/screen-spec'
 import type { RegistryScreenField } from '../../../model/application-registry'
@@ -33,7 +33,7 @@ function draftsFromDetail(
   modes: ScreenMode[],
   configs: ScreenFieldModeConfig[] | undefined
 ): ModeConfigDraft[] {
-  return modes.map((mode) => draftFromModeConfig(mode.id, configs?.find((c) => c.modeId === mode.id)))
+  return modes.map((mode) => draftFromModeConfig(mode.id, findModeConfig(configs, mode)))
 }
 
 function MatrixViewRow({
@@ -117,13 +117,13 @@ function MatrixEditRow({
   const save = useCallback(async () => {
     setRowError(null)
     try {
-      await saveModeConfigs(drafts, field.required)
+      await saveModeConfigs(drafts, detail?.required ?? field.required)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to save'
       setRowError(message)
       throw err
     }
-  }, [drafts, field.required, saveModeConfigs])
+  }, [detail?.required, drafts, field.required, saveModeConfigs])
 
   useEffect(() => {
     onState(field.id, { dirty, save, error: rowError })
@@ -273,6 +273,7 @@ export function ScreenModeMatrixPanel({
   const [open, setOpen] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [viewEpoch, setViewEpoch] = useState(0)
   const saveRef = useRef<(() => Promise<void>) | null>(null)
 
   if (active.length === 0) {
@@ -304,7 +305,7 @@ export function ScreenModeMatrixPanel({
           <tbody>
             {fields.map((field) => (
               <MatrixViewRow
-                key={field.id}
+                key={`${field.id}-${viewEpoch}`}
                 workspaceId={workspaceId}
                 screenId={screenId}
                 field={field}
@@ -329,6 +330,7 @@ export function ScreenModeMatrixPanel({
                 setSaving(true)
                 try {
                   await saveRef.current()
+                  setViewEpoch((n) => n + 1)
                   setOpen(false)
                 } finally {
                   setSaving(false)

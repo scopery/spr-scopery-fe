@@ -205,16 +205,22 @@ export function ScreenStructureEditor({
     setSelectedId(items[0]?.id ?? null)
   }, [items, selectedId])
 
+  const prevAddOpenRef = useRef(false)
   useEffect(() => {
-    if (!addOpen) return
+    const wasOpen = prevAddOpenRef.current
+    prevAddOpenRef.current = addOpen
+    if (!addOpen || wasOpen) return
     setDrafts([{ id: newDraftId(), values: emptyValues(columns) }])
     setFormError(null)
     setPasteHint(false)
     setSubmitting(false)
   }, [addOpen, columns])
 
+  const prevSingleOpenRef = useRef(false)
   useEffect(() => {
-    if (!singleOpen) return
+    const wasOpen = prevSingleOpenRef.current
+    prevSingleOpenRef.current = singleOpen
+    if (!singleOpen || wasOpen) return
     setSingleValues(emptyValues(columns))
     setFormError(null)
     setSubmitting(false)

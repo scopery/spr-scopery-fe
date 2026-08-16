@@ -26,8 +26,14 @@ export function useScreenFieldSpec(
     setLoading(true)
     setError(null)
     try {
-      const next = await api.getScreenFieldDetail(workspaceId, screenId, fieldId)
-      setField(next)
+      const [next, configs] = await Promise.all([
+        api.getScreenFieldDetail(workspaceId, screenId, fieldId),
+        api.listFieldModeConfigs(workspaceId, screenId, fieldId).catch(() => ({ items: [] })),
+      ])
+      setField({
+        ...next,
+        modeConfigs: configs.items.length > 0 ? configs.items : next.modeConfigs,
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load field')
       setField(null)

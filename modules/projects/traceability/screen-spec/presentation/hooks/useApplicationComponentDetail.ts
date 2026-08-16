@@ -57,6 +57,8 @@ export function useApplicationComponentDetail(
         sourceValueColumn: null,
         sourceLabelColumn: null,
         sourceFilterJson: null,
+        screenshotUrl: null,
+        screenshotObjectKey: null,
       })
       setOptions([])
       setError(err instanceof ApiError && err.status === 404 ? null : err instanceof Error ? err.message : null)
