@@ -90,6 +90,17 @@ export interface ScreenSpecExcelOutlineRow {
   screenCode: string
 }
 
+export interface ScreenSpecExcelEventRow {
+  kind: 'screen' | 'event'
+  title: string
+  content: string
+  trigger: string
+  triggerField: string
+  condition: string
+  navigateTo: string
+  screenCode: string
+}
+
 export interface ScreenSpecExcelValidationRow {
   screenCode: string
   field: string
@@ -114,7 +125,7 @@ export interface ScreenSpecWorkbookModel {
   layoutScreens: ScreenSpecExcelLayoutRow[]
   defineRows: ScreenSpecExcelDefineRow[]
   processRows: ScreenSpecExcelOutlineRow[]
-  eventRows: ScreenSpecExcelOutlineRow[]
+  eventRows: ScreenSpecExcelEventRow[]
   validationRows: ScreenSpecExcelValidationRow[]
   databaseRows: ScreenSpecExcelDatabaseRow[]
 }
@@ -220,10 +231,7 @@ export function fieldLengthValue(field: ScreenFullSpecField): string {
 }
 
 export function fieldDefaultValue(field: ScreenFullSpecField): string {
-  const create = field.modeConfigs.find((c) => String(c.modeCode) === ScreenModeCode.Create)
-  if (create?.defaultValue) return create.defaultValue
-  const first = field.modeConfigs.find((c) => c.defaultValue)
-  return first?.defaultValue ?? ''
+  return field.modeConfigs.find((c) => c.defaultValue)?.defaultValue ?? ''
 }
 
 export function fieldTableName(field: ScreenFullSpecField): string {
@@ -322,7 +330,7 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
 
   const defineRows: ScreenSpecExcelDefineRow[] = []
   const processRows: ScreenSpecExcelOutlineRow[] = []
-  const eventRows: ScreenSpecExcelOutlineRow[] = []
+  const eventRows: ScreenSpecExcelEventRow[] = []
   const validationRows: ScreenSpecExcelValidationRow[] = []
   const tableAttrs = new Map<string, Set<string>>()
 
@@ -339,7 +347,7 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
     if (grouped) {
       defineRows.push(emptyGroupDefineRow('screen', `${screen.code} ${screen.name}`.trim(), screen.code, modeCodes))
       processRows.push(emptyOutlineRow('screen', `${screen.code} ${screen.name}`.trim(), screen.code))
-      eventRows.push(emptyOutlineRow('screen', `${screen.code} ${screen.name}`.trim(), screen.code))
+      eventRows.push(emptyEventGroupRow(`${screen.code} ${screen.name}`.trim(), screen.code))
     }
 
     const sections = sortByOrder(screen.sections)
@@ -406,50 +414,14 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
     }
 
     for (const item of sortByOrder(screen.eventItems)) {
-      eventRows.push(emptyOutlineRow('heading', item.title, screen.code))
       eventRows.push({
-        kind: 'detail',
-        label: 'Precondition',
-        detail: '',
-        source: '',
+        kind: 'event',
+        title: item.title,
+        content: item.content ?? '',
+        trigger: item.triggerActionCode ?? '',
+        triggerField: eventTriggerFieldLabel(item.triggerFieldId, fields),
         condition: item.conditionNote ?? '',
-        extra: '',
-        screenCode: screen.code,
-      })
-      eventRows.push({
-        kind: 'detail',
-        label: 'Action',
-        detail: item.triggerActionCode ?? '',
-        source: '',
-        condition: '',
-        extra: '',
-        screenCode: screen.code,
-      })
-      eventRows.push({
-        kind: 'detail',
-        label: 'Rule',
-        detail: item.content ?? '',
-        source: '',
-        condition: '',
-        extra: '',
-        screenCode: screen.code,
-      })
-      eventRows.push({
-        kind: 'detail',
-        label: 'Result',
-        detail: [item.targetScreenId, item.targetModeCode].filter(Boolean).join(' / '),
-        source: '',
-        condition: '',
-        extra: item.targetModeCode ?? '',
-        screenCode: screen.code,
-      })
-      eventRows.push({
-        kind: 'detail',
-        label: 'Empty result',
-        detail: '',
-        source: '',
-        condition: '',
-        extra: '',
+        navigateTo: eventNavigateToLabel(item.targetScreenId, screens),
         screenCode: screen.code,
       })
     }
@@ -513,6 +485,39 @@ function emptyOutlineRow(
     extra: '',
     screenCode,
   }
+}
+
+function emptyEventGroupRow(title: string, screenCode: string): ScreenSpecExcelEventRow {
+  return {
+    kind: 'screen',
+    title,
+    content: '',
+    trigger: '',
+    triggerField: '',
+    condition: '',
+    navigateTo: '',
+    screenCode,
+  }
+}
+
+export function eventTriggerFieldLabel(
+  triggerFieldId: string | null | undefined,
+  fields: Array<{ id: string; fieldKey: string; label: string }>
+): string {
+  if (!triggerFieldId) return ''
+  const field = fields.find((f) => f.id === triggerFieldId)
+  if (!field) return ''
+  return field.label ? `${field.fieldKey} · ${field.label}` : field.fieldKey
+}
+
+export function eventNavigateToLabel(
+  targetScreenId: string | null | undefined,
+  screens: Array<{ id: string; code: string; name: string }>
+): string {
+  if (!targetScreenId) return ''
+  const target = screens.find((s) => s.id === targetScreenId)
+  if (!target) return ''
+  return `${target.code} · ${target.name}`
 }
 
 function toDefineFieldRow(

@@ -1,13 +1,39 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+  type ReactNode,
+} from 'react'
+import { ChevronDown } from 'lucide-react'
 import { Button, Checkbox, Input, Modal, Select, Typography } from '@/shared/ui'
+import { cn } from '@/utils/cn'
 import { RequiredOverride } from '../../domain/enums/screen-spec.enum'
 import { ScreenSpecMessages } from '../../domain/messages/screen-spec.messages'
 import { draftFromModeConfig, findModeConfig } from '../../domain/rules/mode-config.rules'
+import {
+  UNGROUPED_COMPONENT_KEY,
+  groupFieldsByComponent,
+  shouldShowComponentGroups,
+} from '../../domain/rules/field-groups.rules'
 import { useScreenFieldSpec } from '../hooks/useScreenFieldSpec'
 import type { ModeConfigDraft, ScreenFieldModeConfig, ScreenMode } from '../../domain/model/screen-spec'
 import type { RegistryScreenField } from '../../../model/application-registry'
+import type { SpecCatalogComponent } from './FieldSpecDrawer'
+
+function componentGroupLabel(group: {
+  key: string
+  component: { code: string; name: string } | null
+}): string {
+  if (group.component) return `${group.component.code} · ${group.component.name}`
+  if (group.key !== UNGROUPED_COMPONENT_KEY) return 'Linked component'
+  return 'No component'
+}
 
 const REQUIRED_OPTIONS = [
   { value: RequiredOverride.Inherit, label: 'Inherit' },
@@ -210,11 +236,82 @@ function MatrixTableHead({ modes }: { modes: ScreenMode[] }) {
   )
 }
 
+function MatrixFieldGroups({
+  fields,
+  components,
+  componentIdBySectionId,
+  colSpan,
+  renderRow,
+}: {
+  fields: RegistryScreenField[]
+  components: SpecCatalogComponent[]
+  componentIdBySectionId?: Record<string, string>
+  colSpan: number
+  renderRow: (field: RegistryScreenField) => ReactNode
+}) {
+  const groups = useMemo(
+    () => groupFieldsByComponent(fields, components, componentIdBySectionId),
+    [componentIdBySectionId, components, fields]
+  )
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
+  const showGroups = shouldShowComponentGroups(groups)
+
+  if (!showGroups) {
+    return <tbody>{fields.map((field) => renderRow(field))}</tbody>
+  }
+
+  return (
+    <tbody>
+      {groups.map((group) => {
+        const open = !collapsed.has(group.key)
+        return (
+          <Fragment key={group.key}>
+            <tr>
+              <td colSpan={colSpan} className="sticky left-0 bg-neutral-50 px-2 py-1.5">
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 text-left"
+                  aria-expanded={open}
+                  onClick={() =>
+                    setCollapsed((prev) => {
+                      const next = new Set(prev)
+                      if (next.has(group.key)) next.delete(group.key)
+                      else next.add(group.key)
+                      return next
+                    })
+                  }
+                >
+                  <ChevronDown
+                    size={14}
+                    className={cn(
+                      'shrink-0 text-neutral-500 transition-transform',
+                      !open && '-rotate-90'
+                    )}
+                  />
+                  <Typography variant="small" className="font-medium">
+                    {componentGroupLabel(group)}
+                  </Typography>
+                  <Typography variant="caption" tone="muted">
+                    {group.fields.length}
+                  </Typography>
+                </button>
+              </td>
+            </tr>
+            {open ? group.fields.map((field) => renderRow(field)) : null}
+          </Fragment>
+        )
+      })}
+    </tbody>
+  )
+}
+
 function ModeMatrixEditor({
   workspaceId,
   screenId,
   fields,
   modes,
+  components,
+  componentIdBySectionId,
   onDirtyChange,
   saveRef,
 }: {
@@ -222,6 +319,8 @@ function ModeMatrixEditor({
   screenId: string
   fields: RegistryScreenField[]
   modes: ScreenMode[]
+  components: SpecCatalogComponent[]
+  componentIdBySectionId?: Record<string, string>
   onDirtyChange: (dirty: boolean) => void
   saveRef: MutableRefObject<(() => Promise<void>) | null>
 }) {
@@ -253,8 +352,12 @@ function ModeMatrixEditor({
     <div className="overflow-x-auto">
       <table className="w-full min-w-[32rem] border-collapse text-left">
         <MatrixTableHead modes={modes} />
-        <tbody>
-          {fields.map((field) => (
+        <MatrixFieldGroups
+          fields={fields}
+          components={components}
+          componentIdBySectionId={componentIdBySectionId}
+          colSpan={1 + modes.length}
+          renderRow={(field) => (
             <MatrixEditRow
               key={field.id}
               workspaceId={workspaceId}
@@ -263,8 +366,8 @@ function ModeMatrixEditor({
               modes={modes}
               onState={onState}
             />
-          ))}
-        </tbody>
+          )}
+        />
       </table>
     </div>
   )
@@ -275,11 +378,15 @@ export function ScreenModeMatrixPanel({
   screenId,
   fields,
   modes,
+  components = [],
+  componentIdBySectionId,
 }: {
   workspaceId: string
   screenId: string
   fields: RegistryScreenField[]
   modes: ScreenMode[]
+  components?: SpecCatalogComponent[]
+  componentIdBySectionId?: Record<string, string>
 }) {
   const active = useMemo(() => modes, [modes])
   const [open, setOpen] = useState(false)
@@ -314,8 +421,12 @@ export function ScreenModeMatrixPanel({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[32rem] border-collapse text-left">
           <MatrixTableHead modes={active} />
-          <tbody>
-            {fields.map((field) => (
+          <MatrixFieldGroups
+            fields={fields}
+            components={components}
+            componentIdBySectionId={componentIdBySectionId}
+            colSpan={1 + active.length}
+            renderRow={(field) => (
               <MatrixViewRow
                 key={`${field.id}-${viewEpoch}`}
                 workspaceId={workspaceId}
@@ -323,8 +434,8 @@ export function ScreenModeMatrixPanel({
                 field={field}
                 modes={active}
               />
-            ))}
-          </tbody>
+            )}
+          />
         </table>
       </div>
       <Modal
@@ -360,6 +471,8 @@ export function ScreenModeMatrixPanel({
           screenId={screenId}
           fields={fields}
           modes={active}
+          components={components}
+          componentIdBySectionId={componentIdBySectionId}
           onDirtyChange={setDirty}
           saveRef={saveRef}
         />

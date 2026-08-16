@@ -325,13 +325,13 @@ export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
       name: 'Event',
       path: 'items[].eventItems[]',
       description:
-        'User or system action. Excel Event sheet: title = heading, content = Get (required), trigger / navigate as outline rows.',
+        'User or system action. Excel Event sheet columns: Title, Content, Trigger, Trigger field, Condition, Navigate to.',
       fields: [
         {
           name: 'content',
           required: true,
           type: 'string',
-          description: 'What the event does (Excel Get). Required by the API.',
+          description: 'What the event does (Excel Content). Required by the API.',
         },
         {
           name: 'title',

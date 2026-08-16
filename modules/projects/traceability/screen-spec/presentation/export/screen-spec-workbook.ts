@@ -435,8 +435,28 @@ function addProcesses(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
 function addEvents(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   const sheet = wb.addWorksheet(SCREEN_SPEC_EXCEL_SHEETS.event)
   const start = writeMeta(sheet, model.header, THEME.event)
-  writeOutlineBlocks(sheet, start, model.eventRows, HEADER_LAST_COL, THEME.event)
-  applySheetColumns(sheet, [18, 22, 18, 28, 16, 18])
+  const headers = ['Title', 'Content', 'Trigger', 'Trigger field', 'Condition', 'Navigate to']
+  writeBanner(sheet, start, headers.length, 'Events', FILL.teal, WHITE_BOLD)
+  writeTableHeaderRow(sheet, start + 1, headers, THEME.event)
+  model.eventRows.forEach((row, i) => {
+    const r = start + 2 + i
+    if (row.kind === 'screen') {
+      writeBodyCells(sheet, r, [row.title, '', '', '', '', ''], FILL.beigeDark, BOLD)
+      sheet.mergeCells(r, 1, r, headers.length)
+      paint(sheet.getCell(r, 1), FILL.beigeDark, BOLD)
+      paintRange(sheet, r, 2, headers.length, FILL.beigeDark, BOLD)
+      return
+    }
+    writeBodyCells(sheet, r, [
+      row.title,
+      row.content,
+      row.trigger,
+      row.triggerField,
+      row.condition,
+      row.navigateTo,
+    ])
+  })
+  applySheetColumns(sheet, [24, 36, 14, 22, 22, 28])
 }
 
 function addValidation(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {

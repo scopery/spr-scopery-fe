@@ -87,13 +87,7 @@ export function buildModeConfigReplacePayload(
   return { modeConfigs: drafts.map((d) => toInput(d, fieldRequired)) }
 }
 
-export function fieldLevelDefaultValue(
-  configs: ScreenFieldModeConfig[] | undefined,
-  modes: Array<{ id: string; modeCode?: string | null }>
-): string {
-  const create = modes.find((mode) => String(mode.modeCode) === ScreenModeCode.Create)
-  const fromCreate = create ? findModeConfig(configs, create)?.defaultValue : null
-  if (fromCreate) return fromCreate
+export function fieldLevelDefaultValue(configs: ScreenFieldModeConfig[] | undefined): string {
   return configs?.find((config) => config.defaultValue)?.defaultValue ?? ''
 }
 

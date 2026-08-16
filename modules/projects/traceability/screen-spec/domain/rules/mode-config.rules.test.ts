@@ -114,10 +114,42 @@ describe('mode-config.rules', () => {
     expect(next[0].defaultValue).toBe('guest')
     expect(next[1].defaultValue).toBeNull()
     expect(
-      fieldLevelDefaultValue(
-        [{ modeId: 'm1', modeCode: 'CREATE', isVisible: true, isRequired: false, isReadonly: false, defaultValue: 'guest', displayOrder: null }],
-        [{ id: 'm1', modeCode: 'CREATE' }]
-      )
+      fieldLevelDefaultValue([
+        {
+          modeId: 'm1',
+          modeCode: 'CREATE',
+          isVisible: true,
+          isRequired: false,
+          isReadonly: false,
+          defaultValue: 'guest',
+          displayOrder: null,
+        },
+      ])
     ).toBe('guest')
+  })
+
+  it('reads the first mode default that has a value', () => {
+    expect(
+      fieldLevelDefaultValue([
+        {
+          modeId: 'm1',
+          modeCode: 'CREATE',
+          isVisible: true,
+          isRequired: false,
+          isReadonly: false,
+          defaultValue: null,
+          displayOrder: null,
+        },
+        {
+          modeId: 'm2',
+          modeCode: 'VIEW',
+          isVisible: true,
+          isRequired: false,
+          isReadonly: false,
+          defaultValue: 'shown',
+          displayOrder: null,
+        },
+      ])
+    ).toBe('shown')
   })
 })

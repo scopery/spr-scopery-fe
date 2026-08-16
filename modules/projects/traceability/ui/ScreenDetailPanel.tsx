@@ -226,6 +226,10 @@ export function ScreenDetailPanel({
     }
     return map
   }, [linkedComponents])
+  const sectionComponentIds = useMemo(
+    () => Object.fromEntries(componentBySectionId),
+    [componentBySectionId]
+  )
 
   const linkedComponentIds = useMemo(
     () => new Set(linkedComponents.map((l) => l.componentId)),
@@ -553,6 +557,8 @@ export function ScreenDetailPanel({
           screenId={screen.id}
           fields={fields}
           modes={activeModes}
+          components={components}
+          componentIdBySectionId={sectionComponentIds}
         />
       ) : null}
 

@@ -4,6 +4,7 @@ import {
   MODE_VISIBLE_MARK,
   buildScreenSpecWorkbookModel,
   collectDefineModeCodes,
+  fieldDefaultValue,
   wrapSingleScreenAsDocument,
 } from './screen-spec-excel.rules'
 
@@ -203,6 +204,43 @@ describe('screen-spec-excel.rules', () => {
     expect(model.defineRows.some((r) => r.kind === 'screen' && r.screenCode === 'LOGIN')).toBe(true)
   })
 
+  it('maps Event sheet rows to system fields', () => {
+    const withEvent = screen({
+      ...login,
+      eventItems: [
+        {
+          id: 'e1',
+          modeId: null,
+          triggerFieldId: 'f1',
+          triggerActionCode: 'CLICK',
+          title: 'Submit click',
+          content: 'Validate → POST → navigate',
+          conditionNote: 'form valid',
+          targetScreenId: 's2',
+          targetModeCode: 'VIEW',
+          displayOrder: 0,
+        },
+      ],
+    })
+    const profile = screen({ id: 's2', code: 'PROFILE', name: 'Profile' })
+    const model = buildScreenSpecWorkbookModel({
+      ...wrapSingleScreenAsDocument(withEvent),
+      screens: [
+        { displayOrder: 1, note: null, screen: withEvent },
+        { displayOrder: 2, note: null, screen: profile },
+      ],
+    })
+    const row = model.eventRows.find((r) => r.kind === 'event')
+    expect(row).toMatchObject({
+      title: 'Submit click',
+      content: 'Validate → POST → navigate',
+      trigger: 'CLICK',
+      triggerField: 'email · Email',
+      condition: 'form valid',
+      navigateTo: 'PROFILE · Profile',
+    })
+  })
+
   it('keeps required/max length off the Validation sheet and outlines processes', () => {
     const model = buildScreenSpecWorkbookModel(wrapSingleScreenAsDocument(login))
     expect(model.validationRows.map((r) => r.ruleType)).toEqual(['EMAIL'])
@@ -362,5 +400,16 @@ describe('screen-spec-excel.rules', () => {
     const keyword = model.defineRows.find((r) => r.physicalName === 'keyword')
     expect(keyword?.required).toBe(MODE_VISIBLE_MARK)
     expect(keyword?.length).toBe('80')
+  })
+
+  it('uses the first mode default that has a value', () => {
+    expect(
+      fieldDefaultValue({
+        modeConfigs: [
+          { modeCode: 'CREATE', defaultValue: null },
+          { modeCode: 'VIEW', defaultValue: 'shown' },
+        ],
+      } as ScreenFullSpec['fields'][number])
+    ).toBe('shown')
   })
 })

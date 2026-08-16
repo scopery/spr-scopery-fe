@@ -68,9 +68,9 @@ export function FieldSpecDrawer({
     if (!field) return
     setComponentId(field.componentId ?? 'none')
     setDataEntityFieldId(field.dataEntityFieldId ?? 'none')
-    setDefaultValue(fieldLevelDefaultValue(field.modeConfigs, modes))
+    setDefaultValue(fieldLevelDefaultValue(field.modeConfigs))
     setEntityId('none')
-  }, [field, modes])
+  }, [field])
 
   const fieldOptions = useMemo(
     () =>
