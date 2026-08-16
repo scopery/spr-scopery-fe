@@ -143,6 +143,8 @@ export interface ScreenSpecDocFullSpec {
   updatedAt?: string | null
   createdByName?: string | null
   updatedByName?: string | null
+  /** Catalog application name — used in the Excel filename 【App】Document. */
+  applicationName?: string | null
   revisions: ScreenSpecDocRevision[]
   screens: ScreenSpecDocFullSpecScreen[]
 }

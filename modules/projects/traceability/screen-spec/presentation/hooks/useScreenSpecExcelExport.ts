@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import { getApplication } from '../../../api/traceability.api'
 import { wrapSingleScreenAsDocument } from '../../domain/rules/screen-spec-excel.rules'
 import {
   loadScreenFullSpecForExport,
@@ -8,7 +9,23 @@ import {
 } from '../../infrastructure/api/screen-spec-export.api'
 import { downloadScreenSpecExcel } from '../export/download-screen-spec-excel'
 
-export function useScreenSpecExcelExport(workspaceId: string | null) {
+async function loadApplicationName(
+  workspaceId: string,
+  applicationId: string | null | undefined
+): Promise<string | null> {
+  if (!applicationId) return null
+  try {
+    const app = await getApplication(workspaceId, applicationId)
+    return app.name
+  } catch {
+    return null
+  }
+}
+
+export function useScreenSpecExcelExport(
+  workspaceId: string | null,
+  applicationId?: string | null
+) {
   const [exporting, setExporting] = useState(false)
 
   const exportDocument = useCallback(
@@ -16,27 +33,33 @@ export function useScreenSpecExcelExport(workspaceId: string | null) {
       if (!workspaceId) return
       setExporting(true)
       try {
-        const full = await loadScreenSpecDocFullSpecForExport(workspaceId, docId)
-        return await downloadScreenSpecExcel(full)
+        const [full, applicationName] = await Promise.all([
+          loadScreenSpecDocFullSpecForExport(workspaceId, docId),
+          loadApplicationName(workspaceId, applicationId),
+        ])
+        return await downloadScreenSpecExcel({ ...full, applicationName })
       } finally {
         setExporting(false)
       }
     },
-    [workspaceId]
+    [applicationId, workspaceId]
   )
 
   const exportScreen = useCallback(
-    async (screenId: string) => {
+    async (screenId: string, screenApplicationId?: string | null) => {
       if (!workspaceId) return
       setExporting(true)
       try {
-        const screen = await loadScreenFullSpecForExport(workspaceId, screenId)
-        return await downloadScreenSpecExcel(wrapSingleScreenAsDocument(screen))
+        const [screen, applicationName] = await Promise.all([
+          loadScreenFullSpecForExport(workspaceId, screenId),
+          loadApplicationName(workspaceId, screenApplicationId ?? applicationId),
+        ])
+        return await downloadScreenSpecExcel(wrapSingleScreenAsDocument(screen, { applicationName }))
       } finally {
         setExporting(false)
       }
     },
-    [workspaceId]
+    [applicationId, workspaceId]
   )
 
   return { exporting, exportDocument, exportScreen }

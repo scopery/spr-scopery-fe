@@ -100,9 +100,11 @@ function languageOptions(current: string | null | undefined) {
 export function ScreenSpecDocsPanel({
   workspaceId,
   screens,
+  applicationId = null,
 }: {
   workspaceId: string
   screens: CatalogScreen[]
+  applicationId?: string | null
 }) {
   const { items, projects, loading, error, createDoc, removeDoc } = useScreenSpecDocs(workspaceId)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -229,6 +231,7 @@ export function ScreenSpecDocsPanel({
         {selectedId ? (
           <ScreenSpecDocEditor
             workspaceId={workspaceId}
+            applicationId={applicationId}
             docId={selectedId}
             screens={screens}
             onDeleted={async () => {
@@ -325,11 +328,13 @@ export function ScreenSpecDocsPanel({
 
 function ScreenSpecDocEditor({
   workspaceId,
+  applicationId,
   docId,
   screens,
   onDeleted,
 }: {
   workspaceId: string
+  applicationId?: string | null
   docId: string
   screens: CatalogScreen[]
   onDeleted: () => Promise<void>
@@ -345,7 +350,7 @@ function ScreenSpecDocEditor({
     addRevision,
     removeRevision,
   } = useScreenSpecDocDetail(workspaceId, docId)
-  const { exporting, exportDocument } = useScreenSpecExcelExport(workspaceId)
+  const { exporting, exportDocument } = useScreenSpecExcelExport(workspaceId, applicationId)
   const [headerOpen, setHeaderOpen] = useState(false)
   const [headerDraft, setHeaderDraft] = useState<UpdateScreenSpecDocBody | null>(null)
   const [savingHeader, setSavingHeader] = useState(false)

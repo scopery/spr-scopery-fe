@@ -5,6 +5,7 @@ import {
   buildScreenSpecWorkbookModel,
   collectDefineModeCodes,
   fieldDefaultValue,
+  suggestScreenSpecExcelFilename,
   wrapSingleScreenAsDocument,
 } from './screen-spec-excel.rules'
 
@@ -160,6 +161,11 @@ describe('screen-spec-excel.rules', () => {
       'SEARCH',
       'DIALOG',
     ])
+  })
+
+  it('names the workbook file with the application', () => {
+    const doc = wrapSingleScreenAsDocument(login, { applicationName: 'Job Board' })
+    expect(suggestScreenSpecExcelFilename(doc)).toBe('【Job Board】Login.xlsx')
   })
 
   it('wraps a single screen as a one-screen document', () => {

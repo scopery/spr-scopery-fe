@@ -657,6 +657,7 @@ export function ApplicationWorkbenchView() {
               <ScreenSpecDocsPanel
                 workspaceId={workspaceId}
                 screens={screens.map((s) => ({ id: s.id, code: s.code, name: s.name }))}
+                applicationId={applicationId}
               />
             </div>
           ) : null}

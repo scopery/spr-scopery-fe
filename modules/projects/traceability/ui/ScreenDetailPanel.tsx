@@ -335,7 +335,7 @@ export function ScreenDetailPanel({
             loading={exporting}
             onClick={async () => {
               try {
-                const result = await exportScreen(screen.id)
+                const result = await exportScreen(screen.id, screen.applicationId)
                 if (result) toast.success(`Exported ${result.filename}`)
               } catch (err) {
                 toast.error(getProblemToastMessage(err))

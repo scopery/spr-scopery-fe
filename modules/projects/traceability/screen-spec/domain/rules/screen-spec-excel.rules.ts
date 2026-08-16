@@ -139,7 +139,20 @@ const COMPONENT_TYPE_LABELS: Record<string, string> = {
 
 export function wrapSingleScreenAsDocument(
   screen: ScreenFullSpec,
-  meta?: Partial<Pick<ScreenSpecDocFullSpec, 'documentCode' | 'documentName' | 'projectName' | 'systemName' | 'phaseName' | 'language' | 'overview' | 'figmaUrl'>>
+  meta?: Partial<
+    Pick<
+      ScreenSpecDocFullSpec,
+      | 'documentCode'
+      | 'documentName'
+      | 'projectName'
+      | 'systemName'
+      | 'applicationName'
+      | 'phaseName'
+      | 'language'
+      | 'overview'
+      | 'figmaUrl'
+    >
+  >
 ): ScreenSpecDocFullSpec {
   return {
     id: screen.id,
@@ -148,6 +161,7 @@ export function wrapSingleScreenAsDocument(
     documentName: meta?.documentName ?? screen.name,
     projectName: meta?.projectName ?? null,
     systemName: meta?.systemName ?? null,
+    applicationName: meta?.applicationName ?? null,
     phaseName: meta?.phaseName ?? null,
     language: meta?.language ?? 'EN',
     overview: meta?.overview ?? null,
@@ -528,7 +542,7 @@ function pushValidationRows(
 }
 
 export function suggestScreenSpecExcelFilename(doc: ScreenSpecDocFullSpec): string {
-  const project = (doc.projectName || 'Screen-Spec').replace(/[/\\?*[\]]/g, '-')
+  const app = (doc.applicationName || doc.systemName || 'Screen-Spec').replace(/[/\\?*[\]]/g, '-')
   const name = (doc.documentName || doc.documentCode).replace(/[/\\?*[\]]/g, '-')
-  return `【${project}】${name}.xlsx`.slice(0, 120)
+  return `【${app}】${name}.xlsx`.slice(0, 120)
 }
