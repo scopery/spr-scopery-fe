@@ -403,13 +403,24 @@ export function useCellTimeline(projectId: string | null) {
     const patches = draftApi.dirtyPatches()
     const rowById = new Map(allRows.map((r) => [r.id, r]))
     const baseById = new Map(baseRows.map((r) => [r.id, r]))
+    const patchedSourceIds = new Set(
+      patches
+        .map((p) => rowById.get(p.itemId))
+        .filter((row) => row?.kind === 'task' || row?.kind === 'milestone')
+        .map((row) => row?.sourceEntityId)
+        .filter((id): id is string => Boolean(id))
+    )
+    const containerHasTaskPatches = (rowId: string) =>
+      collectDescendantScheduledTasks(timelineTree, rowId).some((d) =>
+        patchedSourceIds.has(d.taskId)
+      )
     let skippedWbs = 0
     for (const p of patches) {
       const row = rowById.get(p.itemId)
       const base = baseById.get(p.itemId)
       const itemType = row?.itemType
       if (itemType === 'PHASE') {
-        if (base?.startDate) {
+        if (base?.startDate && !containerHasTaskPatches(p.itemId)) {
           await shiftDescendantTasks(p.itemId, base.startDate, p.startDate)
         }
         const phaseId = row?.sourceEntityId ?? p.sourceTaskId
@@ -424,7 +435,7 @@ export function useCellTimeline(projectId: string | null) {
         continue
       }
       if (itemType === 'PROJECT' && projectId) {
-        if (base?.startDate) {
+        if (base?.startDate && !containerHasTaskPatches(p.itemId)) {
           await shiftDescendantTasks(p.itemId, base.startDate, p.startDate)
         }
         await projectsApi.updateProject(projectId, {
@@ -434,7 +445,11 @@ export function useCellTimeline(projectId: string | null) {
         continue
       }
       if (itemType === 'WBS_NODE') {
-        if (base?.startDate && p.startDate !== base.startDate) {
+        if (
+          base?.startDate &&
+          p.startDate !== base.startDate &&
+          !containerHasTaskPatches(p.itemId)
+        ) {
           await shiftDescendantTasks(p.itemId, base.startDate, p.startDate)
         }
         if (row?.sourceEntityId) {
@@ -468,7 +483,18 @@ export function useCellTimeline(projectId: string | null) {
     await phasesHook.refetch({ silent: true })
     await wbsHook.refetch()
     return { skippedWbs }
-  }, [draftApi, gantt, tasksHook, phasesHook, wbsHook, allRows, baseRows, projectId, shiftDescendantTasks])
+  }, [
+    draftApi,
+    gantt,
+    tasksHook,
+    phasesHook,
+    wbsHook,
+    allRows,
+    baseRows,
+    projectId,
+    shiftDescendantTasks,
+    timelineTree,
+  ])
 
   const updateContainerDetails = useCallback(
     async (row: TimelineFlatRow, values: TimelineContainerEditValues) => {

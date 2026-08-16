@@ -53,12 +53,15 @@ import {
 } from '../../domain/rules/estimate-parse.rules'
 import {
   applyFillHandle,
+  buildShiftPatches,
+  collectSelectableSubtreeIds,
   defaultAnchorStart,
   parsePastedTaskLines,
   scheduleInParallel,
   scheduleSequentially,
-  selectTaskRowRange,
+  selectRowRange,
   shiftRangeByWorkingDays,
+  summarizeTimelineSelection,
   type FillScheduleMode,
 } from '../../domain/rules/timeline-bulk.rules'
 import {
@@ -249,9 +252,19 @@ export function CellTimelineView() {
     [tl.rows]
   )
 
+  const selectableRows = useMemo(
+    () => tl.rows.filter((r) => r.kind !== 'add'),
+    [tl.rows]
+  )
+
+  const selectedRows = useMemo(
+    () => tl.allRows.filter((r) => selectedIds.has(r.id)),
+    [tl.allRows, selectedIds]
+  )
+
   const selectedTasks = useMemo(
-    () => taskRows.filter((r) => selectedIds.has(r.id)),
-    [taskRows, selectedIds]
+    () => selectedRows.filter((r) => r.kind === 'task'),
+    [selectedRows]
   )
 
   const assigneePeople = useMemo(
@@ -398,22 +411,12 @@ export function CellTimelineView() {
   const selectRow = useCallback(
     (rowId: string, e?: { shiftKey?: boolean; metaKey?: boolean; ctrlKey?: boolean }) => {
       const row = tl.rows.find((r) => r.id === rowId)
-      if (!row) return
-
-      if (row.kind === 'phase') {
-        tl.setSelectedRowId(rowId)
-        return
-      }
-
-      if (row.kind !== 'task' && row.kind !== 'milestone') {
-        tl.setSelectedRowId(rowId)
-        return
-      }
+      if (!row || row.kind === 'add') return
 
       tl.setSelectedRowId(rowId)
 
       if (e?.shiftKey && anchorId) {
-        const range = selectTaskRowRange(taskRows, anchorId, rowId)
+        const range = selectRowRange(selectableRows, anchorId, rowId)
         setSelectedIds(new Set(range))
         return
       }
@@ -432,8 +435,45 @@ export function CellTimelineView() {
       setSelectedIds(new Set([rowId]))
       setAnchorId(rowId)
     },
-    [anchorId, taskRows, tl]
+    [anchorId, selectableRows, tl]
   )
+
+  const toggleCheck = useCallback(
+    (rowId: string, e?: { shiftKey?: boolean }) => {
+      if (e?.shiftKey && anchorId) {
+        selectRow(rowId, { shiftKey: true })
+        return
+      }
+      const subtree = collectSelectableSubtreeIds(tl.allRows, rowId)
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        const allOn = subtree.every((id) => next.has(id))
+        if (allOn) subtree.forEach((id) => next.delete(id))
+        else subtree.forEach((id) => next.add(id))
+        return next
+      })
+      setAnchorId(rowId)
+      tl.setSelectedRowId(rowId)
+    },
+    [anchorId, selectRow, tl]
+  )
+
+  const visibleSelectableIds = useMemo(
+    () => selectableRows.map((r) => r.id),
+    [selectableRows]
+  )
+  const allVisibleSelected =
+    visibleSelectableIds.length > 0 &&
+    visibleSelectableIds.every((id) => selectedIds.has(id))
+  const someVisibleSelected = visibleSelectableIds.some((id) => selectedIds.has(id))
+
+  const toggleSelectAllVisible = useCallback(() => {
+    if (allVisibleSelected) {
+      setSelectedIds(new Set())
+      return
+    }
+    setSelectedIds(new Set(visibleSelectableIds))
+  }, [allVisibleSelected, visibleSelectableIds])
 
   const previewRows = useMemo(() => {
     let rows = tl.rows
@@ -956,17 +996,21 @@ export function CellTimelineView() {
   )
 
   const bulkShift = (delta: number) => {
-    const patches = selectedTasks
-      .filter((r) => r.sourceEntityId && r.startDate && r.endDate)
-      .map((r) => {
-        const next = shiftRangeByWorkingDays(r.startDate!, r.endDate!, delta)
-        return {
-          itemId: r.id,
-          sourceTaskId: r.sourceEntityId!,
-          ...next,
-        }
-      })
+    const patches = buildShiftPatches(tl.allRows, selectedIds, delta)
+    if (patches.length === 0) {
+      toast.error('Select a scheduled phase, planning element, or task to shift')
+      return
+    }
     tl.draft.setSchedules(patches)
+    const containers = patches.filter((p) => {
+      const row = tl.allRows.find((r) => r.id === p.itemId)
+      return row?.kind === 'phase'
+    }).length
+    toast.success(
+      containers > 0
+        ? `Shifted ${patches.length} item${patches.length === 1 ? '' : 's'} (includes child tasks). Apply to save.`
+        : `Shifted ${patches.length} task${patches.length === 1 ? '' : 's'} (draft). Apply to save.`
+    )
   }
 
   const bulkSequential = () => {
@@ -1066,9 +1110,9 @@ export function CellTimelineView() {
   }
 
   const bulkCopyDates = () => {
-    const focus = selectedTasks.find((r) => r.startDate && r.endDate)
+    const focus = selectedRows.find((r) => r.startDate && r.endDate)
     if (!focus?.startDate || !focus.endDate) {
-      toast.error('Select a scheduled task to copy dates')
+      toast.error('Select a scheduled item to copy dates')
       return
     }
     setCopiedDates({ startDate: focus.startDate, endDate: focus.endDate })
@@ -1307,12 +1351,15 @@ export function CellTimelineView() {
         </Stack>
       )}
 
-      {selectedTasks.length > 0 && (
+      {selectedRows.length > 0 && (
         <div className="shrink-0">
           <TimelineBulkToolbar
-            selectedCount={selectedTasks.length}
+            selectedCount={selectedRows.length}
+            selectedLabel={summarizeTimelineSelection(selectedRows)}
             assigneePeople={assigneePeople}
             showAssign={assignableSelectedTasks.length > 0}
+            showLayoutActions={selectedTasks.length >= 2}
+            showArchive={selectedTasks.length > 0}
             currentAssignee={currentAssigneeSummary}
             onClear={() => setSelectedIds(new Set())}
             onAssign={(id) => void bulkAssign(id)}
@@ -1456,9 +1503,17 @@ export function CellTimelineView() {
               />
             </div>
             <div
-              className="min-w-0 shrink-0 truncate"
+              className="flex min-w-0 shrink-0 items-center gap-sm truncate"
               style={{ width: TIMELINE_LEFT_COLS.ITEM }}
             >
+              <Checkbox
+                size="sm"
+                checked={allVisibleSelected}
+                indeterminate={someVisibleSelected && !allVisibleSelected}
+                onChange={toggleSelectAllVisible}
+                aria-label="Select all visible items"
+                title="Select all visible phases, planning elements, and tasks"
+              />
               Item
             </div>
             <div
@@ -1497,9 +1552,8 @@ export function CellTimelineView() {
                 onHover={(h) => setHoverRowId(h ? row.id : null)}
                 onSelect={(e) => {
                   selectRow(row.id, e)
-                  if (canEditContainer(row)) openContainerEdit(row)
                 }}
-                onToggleCheck={() => selectRow(row.id, { metaKey: true })}
+                onToggleCheck={(e) => toggleCheck(row.id, e)}
                 onTogglePhase={() => tl.togglePhase(row.id)}
                 onEditDates={() => openContainerEdit(row)}
                 assigneeLabel={
@@ -2149,7 +2203,7 @@ function LeftRow({
   menuOpen: boolean
   onHover: (hover: boolean) => void
   onSelect: (e: { shiftKey?: boolean; metaKey?: boolean; ctrlKey?: boolean }) => void
-  onToggleCheck: () => void
+  onToggleCheck: (e?: { shiftKey?: boolean }) => void
   onTogglePhase: () => void
   onEditDates: () => void
   assigneeLabel: string | null
@@ -2276,8 +2330,22 @@ function LeftRow({
             onClick={(e) =>
               onSelect({ shiftKey: e.shiftKey, metaKey: e.metaKey, ctrlKey: e.ctrlKey })
             }
+            onDoubleClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              if (datesEditable) onEditDates()
+            }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') onSelect({})
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                if (datesEditable) onEditDates()
+                else onSelect({})
+                return
+              }
+              if (e.key === ' ') {
+                e.preventDefault()
+                onToggleCheck()
+              }
             }}
             className={cn(
               'group relative flex cursor-pointer items-stretch border-b border-neutral-100 bg-neutral-50/80 px-sm text-sm',
@@ -2309,30 +2377,49 @@ function LeftRow({
               </button>
             </div>
             <div
-              className="min-w-0 shrink-0 overflow-hidden py-xs"
+              className="flex min-w-0 shrink-0 items-start gap-sm overflow-hidden py-xs"
               style={{ width: TIMELINE_LEFT_COLS.ITEM, paddingLeft: row.depth * 16 }}
             >
               <div
-                className="font-semibold leading-snug text-neutral-900"
-                style={{
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  whiteSpace: 'normal',
-                }}
-                title={row.title}
+                className="flex shrink-0 items-center pt-0.5"
+                onClick={(e) => e.stopPropagation()}
+                onDoubleClick={(e) => e.stopPropagation()}
               >
-                {row.displayPrimary}
+                <Checkbox
+                  size="sm"
+                  checked={multiChecked}
+                  onChange={(e) =>
+                    onToggleCheck({
+                      shiftKey: (e.nativeEvent as MouseEvent).shiftKey,
+                    })
+                  }
+                  aria-label={`Select ${row.title}`}
+                  title="Select this item and its children"
+                />
               </div>
-              {metaBits.length > 0 && (
+              <div className="min-w-0 flex-1 overflow-hidden">
                 <div
-                  className="mt-0.5 truncate whitespace-nowrap text-[12px] leading-4 text-neutral-500"
-                  title={metaBits.join(' · ')}
+                  className="font-semibold leading-snug text-neutral-900"
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    whiteSpace: 'normal',
+                  }}
+                  title={row.title}
                 >
-                  {metaBits.join(' · ')}
+                  {row.displayPrimary}
                 </div>
-              )}
+                {metaBits.length > 0 && (
+                  <div
+                    className="mt-0.5 truncate whitespace-nowrap text-[12px] leading-4 text-neutral-500"
+                    title={metaBits.join(' · ')}
+                  >
+                    {metaBits.join(' · ')}
+                  </div>
+                )}
+              </div>
             </div>
             <div
               className="flex shrink-0 items-center truncate text-xs text-neutral-600"
@@ -2441,7 +2528,11 @@ function LeftRow({
         <Checkbox
           size="sm"
           checked={multiChecked}
-          onChange={() => onToggleCheck()}
+          onChange={(e) =>
+            onToggleCheck({
+              shiftKey: (e.nativeEvent as MouseEvent).shiftKey,
+            })
+          }
           aria-label={`Select ${row.title}`}
         />
       </div>

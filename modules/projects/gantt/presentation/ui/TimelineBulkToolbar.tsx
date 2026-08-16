@@ -20,9 +20,12 @@ export type CurrentAssigneeSummary = {
 
 type Props = {
   selectedCount: number
+  selectedLabel?: string
   assigneePeople: PersonIdentity[]
   /** Hide Assign when all selected tasks are done/closed. */
   showAssign?: boolean
+  showLayoutActions?: boolean
+  showArchive?: boolean
   currentAssignee?: CurrentAssigneeSummary
   onClear: () => void
   onAssign: (userId: string) => void
@@ -35,8 +38,11 @@ type Props = {
 
 export function TimelineBulkToolbar({
   selectedCount,
+  selectedLabel,
   assigneePeople,
   showAssign = true,
+  showLayoutActions = true,
+  showArchive = true,
   currentAssignee = { kind: 'none', person: null, ids: [] },
   onClear,
   onAssign,
@@ -65,36 +71,41 @@ export function TimelineBulkToolbar({
       className="relative z-20 flex-nowrap items-start overflow-visible border border-primary-200 bg-primary-50 px-md py-sm"
     >
       <Typography variant="caption" weight="medium" className="shrink-0 pt-2">
-        {selectedCount} task{selectedCount === 1 ? '' : 's'} selected
+        {selectedLabel ??
+          `${selectedCount} task${selectedCount === 1 ? '' : 's'} selected`}
       </Typography>
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-9 shrink-0"
-        disabled={selectedCount < 2}
-        title={
-          selectedCount < 2
-            ? 'Select 2+ tasks: place them one after another on working days'
-            : 'Place selected tasks one after another (back-to-back). Draft only — Apply to save.'
-        }
-        onClick={onSequential}
-      >
-        Schedule Sequentially
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-9 shrink-0"
-        disabled={selectedCount < 2}
-        title={
-          selectedCount < 2
-            ? 'Select 2+ tasks: start them all on the same day'
-            : 'Start all selected tasks on the same day (each keeps its own duration). Draft only — Apply to save.'
-        }
-        onClick={onParallel}
-      >
-        Schedule in Parallel
-      </Button>
+      {showLayoutActions && (
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 shrink-0"
+            disabled={selectedCount < 2}
+            title={
+              selectedCount < 2
+                ? 'Select 2+ tasks: place them one after another on working days'
+                : 'Place selected tasks one after another (back-to-back). Draft only — Apply to save.'
+            }
+            onClick={onSequential}
+          >
+            Schedule Sequentially
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 shrink-0"
+            disabled={selectedCount < 2}
+            title={
+              selectedCount < 2
+                ? 'Select 2+ tasks: start them all on the same day'
+                : 'Start all selected tasks on the same day (each keeps its own duration). Draft only — Apply to save.'
+            }
+            onClick={onParallel}
+          >
+            Schedule in Parallel
+          </Button>
+        </>
+      )}
       {showAssign && (
         <div ref={assignRef} className="relative shrink-0">
           <Button
@@ -151,6 +162,7 @@ export function TimelineBulkToolbar({
         variant="outline"
         size="sm"
         className="h-9 shrink-0 border-error bg-red-50 text-error hover:bg-red-100 hover:text-error"
+        title="Move selected phases, planning elements, and tasks earlier by 1 working day. Child tasks move with a selected container."
         onClick={() => onShift(-1)}
       >
         Shift −1d
@@ -159,6 +171,7 @@ export function TimelineBulkToolbar({
         variant="outline"
         size="sm"
         className="h-9 shrink-0 border-success bg-emerald-50 text-success hover:bg-emerald-100 hover:text-success"
+        title="Move selected phases, planning elements, and tasks later by 1 working day. Child tasks move with a selected container."
         onClick={() => onShift(1)}
       >
         Shift +1d
@@ -169,9 +182,11 @@ export function TimelineBulkToolbar({
       <Button variant="ghost" size="sm" className="h-9 shrink-0" onClick={onClear}>
         Clear
       </Button>
-      <Button variant="ghost" size="sm" className="h-9 shrink-0" onClick={onArchive}>
-        Archive
-      </Button>
+      {showArchive && (
+        <Button variant="ghost" size="sm" className="h-9 shrink-0" onClick={onArchive}>
+          Archive
+        </Button>
+      )}
     </Stack>
   )
 }

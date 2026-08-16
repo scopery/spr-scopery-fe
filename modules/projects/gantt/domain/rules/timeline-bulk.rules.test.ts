@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest'
 import type { TimelineFlatRow } from '../model/timeline'
 import {
   applyFillHandle,
+  buildShiftPatches,
+  collectSelectableSubtreeIds,
   parsePastedTaskLines,
   scheduleInParallel,
   scheduleSequentially,
   shiftRangeByWorkingDays,
+  summarizeTimelineSelection,
 } from './timeline-bulk.rules'
 
 function task(
@@ -76,6 +79,96 @@ describe('applyFillHandle', () => {
       startDate: '2026-08-03',
       endDate: '2026-08-05',
     })
+  })
+})
+
+describe('buildShiftPatches', () => {
+  it('shifts a selected phase and its scheduled descendants', () => {
+    const phase = task('phase', {
+      id: 'PHASE:1',
+      kind: 'phase',
+      itemType: 'PHASE',
+      sourceEntityId: 'phase-1',
+      depth: 0,
+      startDate: '2026-08-03',
+      endDate: '2026-08-07',
+    })
+    const child = task('a', {
+      depth: 1,
+      startDate: '2026-08-03',
+      endDate: '2026-08-04',
+    })
+    const sibling = task('b', {
+      id: 'PHASE:2',
+      kind: 'phase',
+      itemType: 'PHASE',
+      sourceEntityId: 'phase-2',
+      depth: 0,
+      startDate: '2026-08-10',
+      endDate: '2026-08-14',
+    })
+    const patches = buildShiftPatches([phase, child, sibling], ['PHASE:1'], 1)
+    expect(patches).toHaveLength(2)
+    expect(patches.find((p) => p.itemId === 'PHASE:1')).toMatchObject({
+      startDate: '2026-08-04',
+      endDate: '2026-08-10',
+    })
+    expect(patches.find((p) => p.itemId === 'a')).toMatchObject({
+      startDate: '2026-08-04',
+      endDate: '2026-08-05',
+    })
+  })
+
+  it('shifts a selected WBS node without moving an unrelated task', () => {
+    const wbs = task('wbs', {
+      id: 'WBS:1',
+      kind: 'phase',
+      itemType: 'WBS_NODE',
+      sourceEntityId: 'wbs-1',
+      depth: 1,
+      startDate: '2026-08-03',
+      endDate: '2026-08-06',
+    })
+    const child = task('a', {
+      depth: 2,
+      startDate: '2026-08-03',
+      endDate: '2026-08-04',
+    })
+    const other = task('b', {
+      depth: 1,
+      startDate: '2026-08-03',
+      endDate: '2026-08-04',
+    })
+    const patches = buildShiftPatches([wbs, child, other], ['WBS:1'], -1)
+    expect(patches.map((p) => p.itemId).sort()).toEqual(['WBS:1', 'a'])
+  })
+})
+
+describe('collectSelectableSubtreeIds', () => {
+  it('includes a phase and its children', () => {
+    const phase = task('phase', {
+      id: 'PHASE:1',
+      kind: 'phase',
+      itemType: 'PHASE',
+      depth: 0,
+    })
+    const child = task('a', { depth: 1 })
+    const other = task('b', { depth: 0, kind: 'phase', itemType: 'PHASE', id: 'PHASE:2' })
+    expect(collectSelectableSubtreeIds([phase, child, other], 'PHASE:1')).toEqual([
+      'PHASE:1',
+      'a',
+    ])
+  })
+})
+
+describe('summarizeTimelineSelection', () => {
+  it('names phases and tasks', () => {
+    expect(
+      summarizeTimelineSelection([
+        task('phase', { kind: 'phase', itemType: 'PHASE' }),
+        task('a'),
+      ])
+    ).toBe('1 phase · 1 task selected')
   })
 })
 
