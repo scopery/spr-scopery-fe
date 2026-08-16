@@ -274,13 +274,13 @@ export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
       name: 'Process',
       path: 'items[].processItems[]',
       description:
-        'Init / load outline. Excel: title = heading, content = Get (required), sourceTable = Table, conditionNote = Condition.',
+        'Init / load outline. Excel Process sheet keeps the outline style: title heading, then Title, Content, Source table, Condition, Field.',
       fields: [
         {
           name: 'content',
           required: true,
           type: 'string',
-          description: 'What happens (Excel Get). Required by the API.',
+          description: 'What happens (Excel Content). Required by the API.',
         },
         {
           name: 'title',
@@ -305,7 +305,7 @@ export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
           name: 'sourceTable',
           required: false,
           type: 'string',
-          description: 'Source table / entity name (Excel Table, Database sheet).',
+          description: 'Source table / entity name (Excel Source table).',
         },
         {
           name: 'conditionNote',
@@ -325,7 +325,7 @@ export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
       name: 'Event',
       path: 'items[].eventItems[]',
       description:
-        'User or system action. Excel Event sheet columns: Title, Content, Trigger, Trigger field, Condition, Navigate to.',
+        'User or system action. Excel Event sheet keeps the outline style: title heading, then Title, Content, Trigger, Trigger field, Condition, Navigate to.',
       fields: [
         {
           name: 'content',

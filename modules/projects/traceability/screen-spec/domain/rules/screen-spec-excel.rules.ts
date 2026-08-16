@@ -90,17 +90,6 @@ export interface ScreenSpecExcelOutlineRow {
   screenCode: string
 }
 
-export interface ScreenSpecExcelEventRow {
-  kind: 'screen' | 'event'
-  title: string
-  content: string
-  trigger: string
-  triggerField: string
-  condition: string
-  navigateTo: string
-  screenCode: string
-}
-
 export interface ScreenSpecExcelValidationRow {
   screenCode: string
   field: string
@@ -125,7 +114,7 @@ export interface ScreenSpecWorkbookModel {
   layoutScreens: ScreenSpecExcelLayoutRow[]
   defineRows: ScreenSpecExcelDefineRow[]
   processRows: ScreenSpecExcelOutlineRow[]
-  eventRows: ScreenSpecExcelEventRow[]
+  eventRows: ScreenSpecExcelOutlineRow[]
   validationRows: ScreenSpecExcelValidationRow[]
   databaseRows: ScreenSpecExcelDatabaseRow[]
 }
@@ -330,7 +319,7 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
 
   const defineRows: ScreenSpecExcelDefineRow[] = []
   const processRows: ScreenSpecExcelOutlineRow[] = []
-  const eventRows: ScreenSpecExcelEventRow[] = []
+  const eventRows: ScreenSpecExcelOutlineRow[] = []
   const validationRows: ScreenSpecExcelValidationRow[] = []
   const tableAttrs = new Map<string, Set<string>>()
 
@@ -347,7 +336,7 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
     if (grouped) {
       defineRows.push(emptyGroupDefineRow('screen', `${screen.code} ${screen.name}`.trim(), screen.code, modeCodes))
       processRows.push(emptyOutlineRow('screen', `${screen.code} ${screen.name}`.trim(), screen.code))
-      eventRows.push(emptyEventGroupRow(`${screen.code} ${screen.name}`.trim(), screen.code))
+      eventRows.push(emptyOutlineRow('screen', `${screen.code} ${screen.name}`.trim(), screen.code))
     }
 
     const sections = sortByOrder(screen.sections)
@@ -375,55 +364,27 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
 
     for (const item of sortByOrder(screen.processItems)) {
       processRows.push(emptyOutlineRow('heading', item.title, screen.code))
-      processRows.push({
-        kind: 'detail',
-        label: 'Get',
-        detail: item.content ?? '',
-        source: '',
-        condition: '',
-        extra: '',
-        screenCode: screen.code,
-      })
-      processRows.push({
-        kind: 'detail',
-        label: 'Source',
-        detail: '',
-        source: item.sourceTable ?? '',
-        condition: '',
-        extra: '',
-        screenCode: screen.code,
-      })
-      processRows.push({
-        kind: 'detail',
-        label: 'Filter',
-        detail: '',
-        source: '',
-        condition: item.conditionNote ?? '',
-        extra: '',
-        screenCode: screen.code,
-      })
-      processRows.push({
-        kind: 'detail',
-        label: 'Trigger',
-        detail: '',
-        source: '',
-        condition: '',
-        extra: '',
-        screenCode: screen.code,
-      })
+      processRows.push(outlineDetail('Title', item.title, screen.code))
+      processRows.push(outlineDetail('Content', item.content ?? '', screen.code))
+      processRows.push(outlineDetail('Source table', item.sourceTable ?? '', screen.code))
+      processRows.push(outlineDetail('Condition', item.conditionNote ?? '', screen.code))
+      processRows.push(
+        outlineDetail('Field', excelLinkedFieldLabel(item.targetFieldId, fields), screen.code)
+      )
     }
 
     for (const item of sortByOrder(screen.eventItems)) {
-      eventRows.push({
-        kind: 'event',
-        title: item.title,
-        content: item.content ?? '',
-        trigger: item.triggerActionCode ?? '',
-        triggerField: eventTriggerFieldLabel(item.triggerFieldId, fields),
-        condition: item.conditionNote ?? '',
-        navigateTo: eventNavigateToLabel(item.targetScreenId, screens),
-        screenCode: screen.code,
-      })
+      eventRows.push(emptyOutlineRow('heading', item.title, screen.code))
+      eventRows.push(outlineDetail('Title', item.title, screen.code))
+      eventRows.push(outlineDetail('Content', item.content ?? '', screen.code))
+      eventRows.push(outlineDetail('Trigger', item.triggerActionCode ?? '', screen.code))
+      eventRows.push(
+        outlineDetail('Trigger field', excelLinkedFieldLabel(item.triggerFieldId, fields), screen.code)
+      )
+      eventRows.push(outlineDetail('Condition', item.conditionNote ?? '', screen.code))
+      eventRows.push(
+        outlineDetail('Navigate to', eventNavigateToLabel(item.targetScreenId, screens), screen.code)
+      )
     }
   }
 
@@ -487,25 +448,24 @@ function emptyOutlineRow(
   }
 }
 
-function emptyEventGroupRow(title: string, screenCode: string): ScreenSpecExcelEventRow {
+function outlineDetail(label: string, value: string, screenCode: string): ScreenSpecExcelOutlineRow {
   return {
-    kind: 'screen',
-    title,
-    content: '',
-    trigger: '',
-    triggerField: '',
+    kind: 'detail',
+    label,
+    detail: value,
+    source: '',
     condition: '',
-    navigateTo: '',
+    extra: '',
     screenCode,
   }
 }
 
-export function eventTriggerFieldLabel(
-  triggerFieldId: string | null | undefined,
+export function excelLinkedFieldLabel(
+  fieldId: string | null | undefined,
   fields: Array<{ id: string; fieldKey: string; label: string }>
 ): string {
-  if (!triggerFieldId) return ''
-  const field = fields.find((f) => f.id === triggerFieldId)
+  if (!fieldId) return ''
+  const field = fields.find((f) => f.id === fieldId)
   if (!field) return ''
   return field.label ? `${field.fieldKey} · ${field.label}` : field.fieldKey
 }

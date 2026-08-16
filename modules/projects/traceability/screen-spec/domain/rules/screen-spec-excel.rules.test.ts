@@ -230,22 +230,52 @@ describe('screen-spec-excel.rules', () => {
         { displayOrder: 2, note: null, screen: profile },
       ],
     })
-    const row = model.eventRows.find((r) => r.kind === 'event')
-    expect(row).toMatchObject({
-      title: 'Submit click',
-      content: 'Validate → POST → navigate',
-      trigger: 'CLICK',
-      triggerField: 'email · Email',
-      condition: 'form valid',
-      navigateTo: 'PROFILE · Profile',
-    })
+    const eventBlock = model.eventRows.filter((r) => r.kind !== 'screen')
+    expect(eventBlock.map((r) => r.label)).toEqual([
+      'Submit click',
+      'Title',
+      'Content',
+      'Trigger',
+      'Trigger field',
+      'Condition',
+      'Navigate to',
+    ])
+    expect(eventBlock.filter((r) => r.kind === 'detail').map((r) => r.detail)).toEqual([
+      'Submit click',
+      'Validate → POST → navigate',
+      'CLICK',
+      'email · Email',
+      'form valid',
+      'PROFILE · Profile',
+    ])
   })
 
   it('keeps required/max length off the Validation sheet and outlines processes', () => {
     const model = buildScreenSpecWorkbookModel(wrapSingleScreenAsDocument(login))
     expect(model.validationRows.map((r) => r.ruleType)).toEqual(['EMAIL'])
-    expect(model.processRows.map((r) => r.kind)).toEqual(['heading', 'detail', 'detail', 'detail', 'detail'])
-    expect(model.processRows.map((r) => r.label)).toEqual(['1. Init', 'Get', 'Source', 'Filter', 'Trigger'])
+    expect(model.processRows.map((r) => r.kind)).toEqual([
+      'heading',
+      'detail',
+      'detail',
+      'detail',
+      'detail',
+      'detail',
+    ])
+    expect(model.processRows.map((r) => r.label)).toEqual([
+      '1. Init',
+      'Title',
+      'Content',
+      'Source table',
+      'Condition',
+      'Field',
+    ])
+    expect(model.processRows.filter((r) => r.kind === 'detail').map((r) => r.detail)).toEqual([
+      '1. Init',
+      'Load options',
+      'USER_MASTER',
+      'active = true',
+      '',
+    ])
     expect(model.databaseRows.map((r) => r.name)).toEqual(['users'])
     expect(model.databaseRows[0].attributes).toBe('email')
   })
@@ -303,7 +333,7 @@ describe('screen-spec-excel.rules', () => {
     })
     const model = buildScreenSpecWorkbookModel(wrapSingleScreenAsDocument(unbound))
     expect(model.databaseRows).toEqual([])
-    expect(model.processRows.find((r) => r.label === 'Source')?.source).toBe('USER_MASTER')
+    expect(model.processRows.find((r) => r.label === 'Source table')?.detail).toBe('USER_MASTER')
     expect(model.defineRows.find((r) => r.physicalName === 'q')?.length).toBe('64')
   })
 
