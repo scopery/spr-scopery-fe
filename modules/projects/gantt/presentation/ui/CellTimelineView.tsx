@@ -1551,7 +1551,20 @@ export function CellTimelineView() {
                 menuOpen={rowMenuId === row.id}
                 onHover={(h) => setHoverRowId(h ? row.id : null)}
                 onSelect={(e) => {
-                  selectRow(row.id, e)
+                  if (e.shiftKey || e.metaKey || e.ctrlKey) {
+                    selectRow(row.id, e)
+                    return
+                  }
+                  tl.setSelectedRowId(row.id)
+                  if (row.kind === 'task' || row.kind === 'milestone') {
+                    void openTaskDetail(row.sourceEntityId)
+                    return
+                  }
+                  if (row.itemType === 'PHASE') {
+                    openPhaseDrawer(row.id)
+                    return
+                  }
+                  if (canEditContainer(row)) openContainerEdit(row)
                 }}
                 onToggleCheck={(e) => toggleCheck(row.id, e)}
                 onTogglePhase={() => tl.togglePhase(row.id)}
@@ -2333,13 +2346,12 @@ function LeftRow({
             onDoubleClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
-              if (datesEditable) onEditDates()
+              onSelect({})
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault()
-                if (datesEditable) onEditDates()
-                else onSelect({})
+                onSelect({})
                 return
               }
               if (e.key === ' ') {
