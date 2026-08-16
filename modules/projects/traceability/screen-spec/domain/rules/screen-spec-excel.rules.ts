@@ -46,6 +46,7 @@ export interface ScreenSpecExcelRevisionRow {
   details: string
   personInCharge: string
   changedAt: string
+  color: string
 }
 
 export interface ScreenSpecExcelLayoutRow {
@@ -67,6 +68,8 @@ export interface ScreenSpecExcelDefineRow {
   modeMarks: Record<string, string>
   defaultValue: string
   table: string
+  columnAttribute: string
+  remark: string
   screenCode: string
 }
 
@@ -86,9 +89,15 @@ export interface ScreenSpecExcelValidationRow {
   physicalName: string
   ruleType: string
   params: string
-  mode: string
+  individualRule: string
   errorMessage: string
   remark: string
+}
+
+export interface ScreenSpecExcelDatabaseRow {
+  name: string
+  attributes: string
+  notes: string
 }
 
 export interface ScreenSpecWorkbookModel {
@@ -100,7 +109,7 @@ export interface ScreenSpecWorkbookModel {
   processRows: ScreenSpecExcelOutlineRow[]
   eventRows: ScreenSpecExcelOutlineRow[]
   validationRows: ScreenSpecExcelValidationRow[]
-  databaseTables: string[]
+  databaseRows: ScreenSpecExcelDatabaseRow[]
 }
 
 const COMPONENT_TYPE_LABELS: Record<string, string> = {
@@ -242,6 +251,7 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
     details: rev.details ?? '',
     personInCharge: rev.personInCharge ?? '',
     changedAt: rev.changedAt ?? '',
+    color: rev.color ?? '',
   }))
 
   const layoutScreens = groupedEntries.map((entry) => ({
@@ -258,42 +268,22 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
   const processRows: ScreenSpecExcelOutlineRow[] = []
   const eventRows: ScreenSpecExcelOutlineRow[] = []
   const validationRows: ScreenSpecExcelValidationRow[] = []
-  const tables = new Set<string>()
+  const tableAttrs = new Map<string, Set<string>>()
+
+  function rememberTable(name: string, attribute?: string) {
+    const key = name.trim()
+    if (!key) return
+    const attrs = tableAttrs.get(key) ?? new Set<string>()
+    if (attribute?.trim()) attrs.add(attribute.trim())
+    tableAttrs.set(key, attrs)
+  }
 
   for (const entry of groupedEntries) {
     const screen = entry.screen
     if (grouped) {
-      defineRows.push({
-        kind: 'screen',
-        no: '',
-        field: `${screen.code} ${screen.name}`.trim(),
-        physicalName: '',
-        type: '',
-        required: '',
-        length: '',
-        modeMarks: emptyModeMarks(modeCodes),
-        defaultValue: '',
-        table: '',
-        screenCode: screen.code,
-      })
-      processRows.push({
-        kind: 'screen',
-        label: `${screen.code} ${screen.name}`.trim(),
-        detail: '',
-        source: '',
-        condition: '',
-        extra: '',
-        screenCode: screen.code,
-      })
-      eventRows.push({
-        kind: 'screen',
-        label: `${screen.code} ${screen.name}`.trim(),
-        detail: '',
-        source: '',
-        condition: '',
-        extra: '',
-        screenCode: screen.code,
-      })
+      defineRows.push(emptyGroupDefineRow('screen', `${screen.code} ${screen.name}`.trim(), screen.code, modeCodes))
+      processRows.push(emptyOutlineRow('screen', `${screen.code} ${screen.name}`.trim(), screen.code))
+      eventRows.push(emptyOutlineRow('screen', `${screen.code} ${screen.name}`.trim(), screen.code))
     }
 
     const sections = sortByOrder(screen.sections)
@@ -301,25 +291,12 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
     let fieldNo = 0
 
     for (const section of sections) {
-      defineRows.push({
-        kind: 'section',
-        no: '',
-        field: section.name,
-        physicalName: '',
-        type: '',
-        required: '',
-        length: '',
-        modeMarks: emptyModeMarks(modeCodes),
-        defaultValue: '',
-        table: '',
-        screenCode: screen.code,
-      })
+      defineRows.push(emptyGroupDefineRow('section', section.name, screen.code, modeCodes))
       const sectionFields = fields.filter((f) => f.sectionId === section.id)
       for (const field of sectionFields) {
         fieldNo += 1
         defineRows.push(toDefineFieldRow(field, fieldNo, modeCodes, screen.code))
-        const table = fieldTableName(field)
-        if (table) tables.add(table)
+        rememberTable(fieldTableName(field), field.dataField?.columnName || field.fieldKey)
         pushValidationRows(validationRows, field, screen.code)
       }
     }
@@ -328,117 +305,108 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
     for (const field of unsectioned) {
       fieldNo += 1
       defineRows.push(toDefineFieldRow(field, fieldNo, modeCodes, screen.code))
-      const table = fieldTableName(field)
-      if (table) tables.add(table)
+      rememberTable(fieldTableName(field), field.dataField?.columnName || field.fieldKey)
       pushValidationRows(validationRows, field, screen.code)
     }
 
     for (const item of sortByOrder(screen.processItems)) {
+      processRows.push(emptyOutlineRow('heading', item.title, screen.code))
       processRows.push({
-        kind: 'heading',
-        label: item.title,
+        kind: 'detail',
+        label: 'Get',
+        detail: item.content ?? '',
+        source: '',
+        condition: '',
+        extra: '',
+        screenCode: screen.code,
+      })
+      processRows.push({
+        kind: 'detail',
+        label: 'Source',
+        detail: '',
+        source: item.sourceTable ?? '',
+        condition: '',
+        extra: '',
+        screenCode: screen.code,
+      })
+      processRows.push({
+        kind: 'detail',
+        label: 'Filter',
+        detail: '',
+        source: '',
+        condition: item.conditionNote ?? '',
+        extra: '',
+        screenCode: screen.code,
+      })
+      processRows.push({
+        kind: 'detail',
+        label: 'Trigger',
         detail: '',
         source: '',
         condition: '',
         extra: '',
         screenCode: screen.code,
       })
-      if (item.content) {
-        for (const line of item.content.split('\n').map((l) => l.trim()).filter(Boolean)) {
-          processRows.push({
-            kind: 'detail',
-            label: 'Get',
-            detail: line,
-            source: '',
-            condition: '',
-            extra: '',
-            screenCode: screen.code,
-          })
-        }
-      }
-      if (item.sourceTable) {
-        processRows.push({
-          kind: 'detail',
-          label: 'Table',
-          detail: '',
-          source: item.sourceTable,
-          condition: '',
-          extra: '',
-          screenCode: screen.code,
-        })
-        tables.add(item.sourceTable)
-      }
-      if (item.conditionNote) {
-        processRows.push({
-          kind: 'detail',
-          label: 'Condition',
-          detail: '',
-          source: '',
-          condition: item.conditionNote,
-          extra: '',
-          screenCode: screen.code,
-        })
-      }
+      if (item.sourceTable) rememberTable(item.sourceTable)
     }
 
     for (const item of sortByOrder(screen.eventItems)) {
+      eventRows.push(emptyOutlineRow('heading', item.title, screen.code))
       eventRows.push({
-        kind: 'heading',
-        label: item.title,
+        kind: 'detail',
+        label: 'Precondition',
+        detail: '',
+        source: '',
+        condition: item.conditionNote ?? '',
+        extra: '',
+        screenCode: screen.code,
+      })
+      eventRows.push({
+        kind: 'detail',
+        label: 'Action',
+        detail: item.triggerActionCode ?? '',
+        source: '',
+        condition: '',
+        extra: '',
+        screenCode: screen.code,
+      })
+      eventRows.push({
+        kind: 'detail',
+        label: 'Rule',
+        detail: item.content ?? '',
+        source: '',
+        condition: '',
+        extra: '',
+        screenCode: screen.code,
+      })
+      eventRows.push({
+        kind: 'detail',
+        label: 'Result',
+        detail: [item.targetScreenId, item.targetModeCode].filter(Boolean).join(' / '),
+        source: '',
+        condition: '',
+        extra: item.targetModeCode ?? '',
+        screenCode: screen.code,
+      })
+      eventRows.push({
+        kind: 'detail',
+        label: 'Empty result',
         detail: '',
         source: '',
         condition: '',
         extra: '',
         screenCode: screen.code,
       })
-      if (item.triggerActionCode) {
-        eventRows.push({
-          kind: 'detail',
-          label: 'Trigger',
-          detail: item.triggerActionCode,
-          source: '',
-          condition: '',
-          extra: '',
-          screenCode: screen.code,
-        })
-      }
-      if (item.content) {
-        for (const line of item.content.split('\n').map((l) => l.trim()).filter(Boolean)) {
-          eventRows.push({
-            kind: 'detail',
-            label: 'Get',
-            detail: line,
-            source: '',
-            condition: '',
-            extra: '',
-            screenCode: screen.code,
-          })
-        }
-      }
-      if (item.conditionNote) {
-        eventRows.push({
-          kind: 'detail',
-          label: 'Condition',
-          detail: '',
-          source: '',
-          condition: item.conditionNote,
-          extra: '',
-          screenCode: screen.code,
-        })
-      }
-      if (item.targetScreenId || item.targetModeCode) {
-        eventRows.push({
-          kind: 'detail',
-          label: 'Navigate',
-          detail: [item.targetScreenId, item.targetModeCode].filter(Boolean).join(' / '),
-          source: '',
-          condition: '',
-          extra: item.targetModeCode ?? '',
-          screenCode: screen.code,
-        })
-      }
     }
   }
+
+  const databaseRows = [...tableAttrs.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, attrs]) => ({
+      name,
+      attributes: [...attrs].sort().join(', '),
+      notes: '',
+    }))
 
   return {
     header,
@@ -449,7 +417,46 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
     processRows,
     eventRows,
     validationRows,
-    databaseTables: [...tables].sort(),
+    databaseRows,
+  }
+}
+
+function emptyGroupDefineRow(
+  kind: 'screen' | 'section',
+  field: string,
+  screenCode: string,
+  modeCodes: string[]
+): ScreenSpecExcelDefineRow {
+  return {
+    kind,
+    no: '',
+    field,
+    physicalName: '',
+    type: '',
+    required: '',
+    length: '',
+    modeMarks: emptyModeMarks(modeCodes),
+    defaultValue: '',
+    table: '',
+    columnAttribute: '',
+    remark: '',
+    screenCode,
+  }
+}
+
+function emptyOutlineRow(
+  kind: 'screen' | 'heading',
+  label: string,
+  screenCode: string
+): ScreenSpecExcelOutlineRow {
+  return {
+    kind,
+    label,
+    detail: '',
+    source: '',
+    condition: '',
+    extra: '',
+    screenCode,
   }
 }
 
@@ -467,13 +474,15 @@ function toDefineFieldRow(
     kind: 'field',
     no: String(no),
     field: field.label,
-    physicalName: field.dataField?.columnName || field.fieldKey,
+    physicalName: field.fieldKey,
     type: fieldTypeLabel(field),
     required: fieldRequiredMark(field),
     length: field.maxLength != null ? String(field.maxLength) : '',
     modeMarks,
     defaultValue: fieldDefaultValue(field),
     table: fieldTableName(field),
+    columnAttribute: field.dataField?.columnName ?? '',
+    remark: field.remark ?? '',
     screenCode,
   }
 }
@@ -491,7 +500,7 @@ function pushValidationRows(
       physicalName: field.fieldKey,
       ruleType: rule.ruleTypeCode,
       params: formatRuleParams(rule.ruleParamJson),
-      mode: rule.modeCode ?? '',
+      individualRule: formatRuleParams(rule.conditionJson),
       errorMessage: rule.errorMessage ?? '',
       remark: rule.remark ?? '',
     })

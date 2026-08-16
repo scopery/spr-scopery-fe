@@ -173,8 +173,9 @@ describe('screen-spec-excel.rules', () => {
   it('keeps required/max length off the Validation sheet and outlines processes', () => {
     const model = buildScreenSpecWorkbookModel(wrapSingleScreenAsDocument(login))
     expect(model.validationRows.map((r) => r.ruleType)).toEqual(['EMAIL'])
-    expect(model.processRows.map((r) => r.kind)).toEqual(['heading', 'detail', 'detail', 'detail'])
-    expect(model.processRows[0].label).toBe('1. Init')
-    expect(model.databaseTables).toEqual(['users'])
+    expect(model.processRows.map((r) => r.kind)).toEqual(['heading', 'detail', 'detail', 'detail', 'detail'])
+    expect(model.processRows.map((r) => r.label)).toEqual(['1. Init', 'Get', 'Source', 'Filter', 'Trigger'])
+    expect(model.databaseRows.map((r) => r.name)).toEqual(['users'])
+    expect(model.databaseRows[0].attributes).toBe('email')
   })
 })
