@@ -161,6 +161,7 @@ describe('screen-spec-excel.rules', () => {
     expect(model.header.grouped).toBe(true)
     expect(model.layoutScreens.map((r) => r.code)).toEqual(['LOGIN', 'PROFILE'])
     const email = model.defineRows.find((r) => r.physicalName === 'email')
+    expect(email?.field).toBe('Email')
     expect(email?.type).toBe('Textbox')
     expect(email?.required).toBe(MODE_VISIBLE_MARK)
     expect(email?.modeMarks.CREATE).toBe(MODE_VISIBLE_MARK)

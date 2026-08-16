@@ -47,10 +47,23 @@ function num(value: unknown): number | null {
 
 function list(value: unknown): unknown[] {
   if (Array.isArray(value)) return value
-  if (value && typeof value === 'object' && Array.isArray((value as { items?: unknown[] }).items)) {
-    return (value as { items: unknown[] }).items
+  if (value && typeof value === 'object') {
+    const rec = value as { items?: unknown[]; content?: unknown[]; data?: unknown }
+    if (Array.isArray(rec.items)) return rec.items
+    if (Array.isArray(rec.content)) return rec.content
+    if (Array.isArray(rec.data)) return rec.data
   }
   return []
+}
+
+function unwrapScreenPayload(raw: unknown): Record<string, unknown> {
+  const r = asRecord(raw)
+  const inner = r.screen ?? r.fullSpec ?? r.full_spec ?? r.spec
+  if (inner && typeof inner === 'object') {
+    const nested = asRecord(inner)
+    if (nested.id || nested.code || nested.fields || nested.sections) return nested
+  }
+  return r
 }
 
 export function mapScreenSpecDoc(raw: unknown): ScreenSpecDoc {
@@ -110,12 +123,15 @@ function mapSection(raw: unknown): ScreenFullSpecSection {
   }
 }
 
-function mapFullSpecField(raw: unknown): ScreenFullSpecField {
+export function mapFullSpecField(raw: unknown): ScreenFullSpecField {
   const r = asRecord(raw)
   const base = mapScreenFieldDetail(raw)
   const componentRaw = r.component
-  const dataFieldRaw = r.dataField ?? r.data_field
+  const dataFieldRaw = r.dataField ?? r.data_field ?? r.dataEntityField ?? r.data_entity_field
   const dataFieldRec = asRecord(dataFieldRaw)
+  const entity = asRecord(
+    dataFieldRec.dataEntity ?? dataFieldRec.data_entity ?? dataFieldRec.entity ?? r.dataEntity ?? r.data_entity
+  )
   const componentRec = asRecord(componentRaw)
   const optionsRaw = componentRec.options
   return {
@@ -130,37 +146,53 @@ function mapFullSpecField(raw: unknown): ScreenFullSpecField {
       ? {
           ...mapDataEntityField(dataFieldRaw),
           tableName: str(
-            dataFieldRec.tableName ?? dataFieldRec.table_name ?? dataFieldRec.entityName ?? dataFieldRec.entity_name
+            dataFieldRec.tableName ??
+              dataFieldRec.table_name ??
+              entity.tableName ??
+              entity.table_name ??
+              entity.code
           ),
-          entityName: str(dataFieldRec.entityName ?? dataFieldRec.entity_name),
+          entityName: str(
+            dataFieldRec.entityName ?? dataFieldRec.entity_name ?? entity.name ?? entity.code
+          ),
         }
       : null,
   }
 }
 
 export function mapScreenFullSpec(raw: unknown): ScreenFullSpec {
-  const r = asRecord(raw)
+  const r = unwrapScreenPayload(raw)
+  const id = String(r.id ?? r.screenId ?? r.screen_id ?? '')
   return {
-    id: String(r.id ?? ''),
+    id,
     code: String(r.code ?? ''),
     name: String(r.name ?? ''),
     routePath: str(r.routePath ?? r.route_path),
     status: String(r.status ?? 'ACTIVE'),
-    modes: list(r.modes).map(mapScreenMode),
-    sections: list(r.sections).map(mapSection),
-    fields: list(r.fields).map(mapFullSpecField),
-    processItems: list(r.processItems ?? r.process_items).map(mapProcessItem),
-    eventItems: list(r.eventItems ?? r.event_items).map(mapEventItem),
+    modes: list(r.modes ?? r.screenModes ?? r.screen_modes).map(mapScreenMode),
+    sections: list(r.sections ?? r.screenSections ?? r.screen_sections).map(mapSection),
+    fields: list(r.fields ?? r.screenFields ?? r.screen_fields).map(mapFullSpecField),
+    processItems: list(r.processItems ?? r.process_items ?? r.processes).map(mapProcessItem),
+    eventItems: list(r.eventItems ?? r.event_items ?? r.events).map(mapEventItem),
   }
 }
 
 function mapDocFullSpecScreen(raw: unknown): ScreenSpecDocFullSpecScreen {
   const r = asRecord(raw)
-  const screenRaw = r.screen ?? r
+  const nested = r.screen ?? r.fullSpec ?? r.full_spec
+  const screen = mapScreenFullSpec(nested ?? r)
+  const screenId = String(r.screenId ?? r.screen_id ?? screen.id ?? '')
   return {
+    screenId: screenId || undefined,
     displayOrder: num(r.displayOrder ?? r.display_order),
     note: str(r.note),
-    screen: mapScreenFullSpec(screenRaw),
+    screen: {
+      ...screen,
+      id: screen.id || screenId,
+      code: screen.code || String(r.code ?? ''),
+      name: screen.name || String(r.name ?? ''),
+      routePath: screen.routePath ?? str(r.routePath ?? r.route_path),
+    },
   }
 }
 

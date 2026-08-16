@@ -467,7 +467,7 @@ function toDefineFieldRow(
     kind: 'field',
     no: String(no),
     field: field.label,
-    physicalName: field.fieldKey,
+    physicalName: field.dataField?.columnName || field.fieldKey,
     type: fieldTypeLabel(field),
     required: fieldRequiredMark(field),
     length: field.maxLength != null ? String(field.maxLength) : '',

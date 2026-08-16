@@ -2,7 +2,10 @@
 
 import { useCallback, useState } from 'react'
 import { wrapSingleScreenAsDocument } from '../../domain/rules/screen-spec-excel.rules'
-import * as api from '../../infrastructure/api/spec-doc.api'
+import {
+  loadScreenFullSpecForExport,
+  loadScreenSpecDocFullSpecForExport,
+} from '../../infrastructure/api/screen-spec-export.api'
 import { downloadScreenSpecExcel } from '../export/download-screen-spec-excel'
 
 export function useScreenSpecExcelExport(workspaceId: string | null) {
@@ -13,7 +16,7 @@ export function useScreenSpecExcelExport(workspaceId: string | null) {
       if (!workspaceId) return
       setExporting(true)
       try {
-        const full = await api.getScreenSpecDocFullSpec(workspaceId, docId)
+        const full = await loadScreenSpecDocFullSpecForExport(workspaceId, docId)
         return await downloadScreenSpecExcel(full)
       } finally {
         setExporting(false)
@@ -27,7 +30,7 @@ export function useScreenSpecExcelExport(workspaceId: string | null) {
       if (!workspaceId) return
       setExporting(true)
       try {
-        const screen = await api.getScreenFullSpec(workspaceId, screenId)
+        const screen = await loadScreenFullSpecForExport(workspaceId, screenId)
         return await downloadScreenSpecExcel(wrapSingleScreenAsDocument(screen))
       } finally {
         setExporting(false)

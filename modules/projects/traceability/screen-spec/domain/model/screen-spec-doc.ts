@@ -117,6 +117,7 @@ export interface ScreenFullSpec {
 }
 
 export interface ScreenSpecDocFullSpecScreen {
+  screenId?: string
   displayOrder: number | null
   note: string | null
   screen: ScreenFullSpec
