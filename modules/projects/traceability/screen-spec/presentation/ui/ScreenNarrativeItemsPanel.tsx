@@ -56,10 +56,8 @@ export function ScreenProcessItemsPanel({
   modes: ScreenMode[]
   fields: RegistryScreenField[]
 }) {
-  const { items, loading, error, createItem, updateItem, removeItem } = useScreenProcessItems(
-    workspaceId,
-    screenId
-  )
+  const { items, loading, error, createItem, updateItem, removeItem, reorderItems } =
+    useScreenProcessItems(workspaceId, screenId)
   const columns = useMemo(
     () => [
       { key: 'title', label: 'Title', required: true, placeholder: '1. Data load' },
@@ -94,6 +92,7 @@ export function ScreenProcessItemsPanel({
         editTitle="Edit processes"
         itemLabel="process"
         layout="masterDetail"
+        onReorder={reorderItems}
         onCreate={async (values) => {
           await createItem({
             title: values.title.trim(),
@@ -133,10 +132,8 @@ export function ScreenEventItemsPanel({
   fields: RegistryScreenField[]
   screens: Array<{ id: string; code: string; name: string }>
 }) {
-  const { items, loading, error, createItem, updateItem, removeItem } = useScreenEventItems(
-    workspaceId,
-    screenId
-  )
+  const { items, loading, error, createItem, updateItem, removeItem, reorderItems } =
+    useScreenEventItems(workspaceId, screenId)
   const columns = useMemo(
     () => [
       { key: 'title', label: 'Title', required: true, placeholder: 'Submit click' },
@@ -190,6 +187,7 @@ export function ScreenEventItemsPanel({
         editTitle="Edit events"
         itemLabel="event"
         layout="masterDetail"
+        onReorder={reorderItems}
         onCreate={async (values) => {
           await createItem({
             title: values.title.trim(),

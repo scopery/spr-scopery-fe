@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ChevronDown, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react'
+import { moveOrderedId } from '../screen-spec/domain/rules/display-order.rules'
 import {
   Button,
   ConfirmDialog,
@@ -66,6 +67,8 @@ interface ScreenStructureEditorProps {
   ) => Promise<{ failed?: Array<{ index: number; message: string }> } | void>
   onUpdate: (id: string, values: Record<string, string>) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  /** Persist a new display order after drag-and-drop in the master list. */
+  onReorder?: (orderedIds: string[]) => Promise<void>
   /** Select on the left, view the selected item on the right. Add / Edit stay as buttons. */
   layout?: 'list' | 'masterDetail'
 }
@@ -161,6 +164,7 @@ export function ScreenStructureEditor({
   onCreateMany,
   onUpdate,
   onDelete,
+  onReorder,
   layout = 'list',
 }: ScreenStructureEditorProps) {
   const hasEnumColumns = useMemo(() => columns.some((c) => (c.options?.length ?? 0) > 0), [columns])
@@ -183,6 +187,9 @@ export function ScreenStructureEditor({
   const [pasteHint, setPasteHint] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null)
   const [viewOpen, setViewOpen] = useState(false)
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [dropId, setDropId] = useState<string | null>(null)
+  const [reordering, setReordering] = useState(false)
 
   useEffect(() => {
     if (!addMenuOpen) return
@@ -247,6 +254,28 @@ export function ScreenStructureEditor({
   const dirtyCount = useMemo(() => rows.filter((r) => r.dirty).length, [rows])
   const selectedItem = items.find((item) => item.id === selectedId) ?? null
   const selectedRow = rows.find((row) => row.id === selectedId) ?? null
+  const canReorder = Boolean(onReorder) && items.length > 1 && !reordering
+
+  const handleDropOn = async (toId: string) => {
+    if (!onReorder || !dragId || dragId === toId) {
+      setDragId(null)
+      setDropId(null)
+      return
+    }
+    const next = moveOrderedId(
+      items.map((item) => item.id),
+      dragId,
+      toId
+    )
+    setDragId(null)
+    setDropId(null)
+    setReordering(true)
+    try {
+      await onReorder(next)
+    } finally {
+      setReordering(false)
+    }
+  }
 
   const updateDraftCell = (id: string, key: string, value: string) => {
     setRows((prev) =>
@@ -575,14 +604,57 @@ export function ScreenStructureEditor({
               {items.map((item, index) => {
                 const active = selectedId === item.id
                 const secondary = secondaryLabel(item, columns)
+                const isDropTarget = dropId === item.id && dragId !== item.id
                 return (
-                  <li key={item.id}>
+                  <li
+                    key={item.id}
+                    onDragOver={(e) => {
+                      if (!canReorder || !dragId || dragId === item.id) return
+                      e.preventDefault()
+                      e.dataTransfer.dropEffect = 'move'
+                      setDropId(item.id)
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      void handleDropOn(item.id)
+                    }}
+                  >
                     <div
                       className={cn(
                         'flex items-start gap-2 px-3 py-2.5',
-                        active ? 'bg-neutral-50' : 'hover:bg-neutral-50'
+                        active ? 'bg-neutral-50' : 'hover:bg-neutral-50',
+                        isDropTarget && 'border-t-2 border-neutral-400',
+                        dragId === item.id && 'opacity-50'
                       )}
                     >
+                      {onReorder ? (
+                        <button
+                          type="button"
+                          draggable={canReorder}
+                          aria-label={`Reorder ${itemLabel}`}
+                          title="Drag to reorder"
+                          className={cn(
+                            'mt-0.5 shrink-0 text-neutral-400 hover:text-neutral-700',
+                            canReorder ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
+                          )}
+                          onClick={(e) => e.stopPropagation()}
+                          onDragStart={(e) => {
+                            if (!canReorder) {
+                              e.preventDefault()
+                              return
+                            }
+                            e.dataTransfer.effectAllowed = 'move'
+                            e.dataTransfer.setData('text/plain', item.id)
+                            setDragId(item.id)
+                          }}
+                          onDragEnd={() => {
+                            setDragId(null)
+                            setDropId(null)
+                          }}
+                        >
+                          <GripVertical size={14} />
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         onClick={() => setSelectedId(item.id)}
