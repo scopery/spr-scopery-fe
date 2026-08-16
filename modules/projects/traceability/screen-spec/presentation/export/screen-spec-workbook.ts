@@ -9,45 +9,71 @@ import {
 } from '../../domain/rules/screen-spec-excel.rules'
 import type { ScreenSpecDocFullSpec } from '../../domain/model/screen-spec-doc'
 
-const FONT: Partial<ExcelJS.Font> = { name: 'Century Gothic', size: 10 }
-const HEADER_FONT: Partial<ExcelJS.Font> = {
-  name: 'Century Gothic',
-  size: 10,
-  bold: true,
-  color: { argb: 'FF1F2937' },
-}
+const FONT_NAME = 'Calibri'
+const FONT: Partial<ExcelJS.Font> = { name: FONT_NAME, size: 11, color: { argb: 'FF000000' } }
+const BOLD: Partial<ExcelJS.Font> = { ...FONT, bold: true }
 const TITLE_FONT: Partial<ExcelJS.Font> = {
-  name: 'Century Gothic',
+  name: FONT_NAME,
   size: 14,
   bold: true,
-  color: { argb: 'FF111827' },
+  color: { argb: 'FFFFFFFF' },
+}
+
+const NAVY_FILL: ExcelJS.Fill = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FF1F4E79' },
+}
+const LIGHT_BLUE_FILL: ExcelJS.Fill = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FFBDD7EE' },
 }
 const GROUP_FILL: ExcelJS.Fill = {
   type: 'pattern',
   pattern: 'solid',
-  fgColor: { argb: 'FFE5E7EB' },
+  fgColor: { argb: 'FF9DC3E6' },
 }
 const SECTION_FILL: ExcelJS.Fill = {
   type: 'pattern',
   pattern: 'solid',
-  fgColor: { argb: 'FFF3F4F6' },
-}
-const COL_HEADER_FILL: ExcelJS.Fill = {
-  type: 'pattern',
-  pattern: 'solid',
-  fgColor: { argb: 'FFD1D5DB' },
-}
-const THIN: Partial<ExcelJS.Borders> = {
-  top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
-  left: { style: 'thin', color: { argb: 'FFD1D5DB' } },
-  bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } },
-  right: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+  fgColor: { argb: 'FFDDEBF7' },
 }
 
-function writeMeta(sheet: ExcelJS.Worksheet, header: ScreenSpecExcelHeader): number {
-  sheet.getCell('A1').value = header.documentName
-  sheet.getCell('A1').font = TITLE_FONT
-  sheet.mergeCells('A1:F1')
+const BLACK: Partial<ExcelJS.Borders> = {
+  top: { style: 'thin', color: { argb: 'FF000000' } },
+  left: { style: 'thin', color: { argb: 'FF000000' } },
+  bottom: { style: 'thin', color: { argb: 'FF000000' } },
+  right: { style: 'thin', color: { argb: 'FF000000' } },
+}
+
+const MIN_ROW_HEIGHT = 20
+const TABLE_START_ROW = 12
+const EMPTY_HISTORY_ROWS = 8
+
+function paint(cell: ExcelJS.Cell, fill?: ExcelJS.Fill, font: Partial<ExcelJS.Font> = FONT) {
+  cell.font = font
+  cell.border = BLACK
+  cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true }
+  if (fill) cell.fill = fill
+}
+
+function ensureRowHeight(row: ExcelJS.Row) {
+  if (!row.height || row.height < MIN_ROW_HEIGHT) row.height = MIN_ROW_HEIGHT
+}
+
+function writeMeta(sheet: ExcelJS.Worksheet, header: ScreenSpecExcelHeader, colCount: number): number {
+  const lastCol = Math.max(colCount, 5)
+  const title = header.grouped
+    ? header.documentName
+    : `Screen: ${header.screenNameText || header.documentName}`
+
+  sheet.mergeCells(1, 1, 1, lastCol)
+  const titleCell = sheet.getCell(1, 1)
+  titleCell.value = title
+  paint(titleCell, NAVY_FILL, TITLE_FONT)
+  for (let c = 2; c <= lastCol; c++) paint(sheet.getCell(1, c), NAVY_FILL, TITLE_FONT)
+  ensureRowHeight(sheet.getRow(1))
 
   const rows: Array<[string, string]> = [
     ['Document code', header.documentCode],
@@ -62,52 +88,65 @@ function writeMeta(sheet: ExcelJS.Worksheet, header: ScreenSpecExcelHeader): num
   ]
   rows.forEach((pair, i) => {
     const r = i + 2
-    sheet.getCell(`A${r}`).value = pair[0]
-    sheet.getCell(`A${r}`).font = HEADER_FONT
-    sheet.getCell(`B${r}`).value = pair[1]
-    sheet.mergeCells(`B${r}:F${r}`)
+    sheet.mergeCells(r, 2, r, lastCol)
+    const label = sheet.getCell(r, 1)
+    label.value = pair[0]
+    paint(label, LIGHT_BLUE_FILL, BOLD)
+    const value = sheet.getCell(r, 2)
+    value.value = pair[1]
+    paint(value)
+    for (let c = 3; c <= lastCol; c++) paint(sheet.getCell(r, c))
+    ensureRowHeight(sheet.getRow(r))
   })
-  return 12
+
+  return TABLE_START_ROW
 }
 
 function styleHeaderRow(sheet: ExcelJS.Worksheet, rowNumber: number, colCount: number) {
   const row = sheet.getRow(rowNumber)
-  row.font = HEADER_FONT
-  row.height = 20
+  ensureRowHeight(row)
   for (let c = 1; c <= colCount; c++) {
     const cell = row.getCell(c)
-    cell.fill = COL_HEADER_FILL
-    cell.border = THIN
-    cell.alignment = { vertical: 'middle', wrapText: true }
+    paint(cell, LIGHT_BLUE_FILL, BOLD)
   }
 }
 
-function applyBodyFont(sheet: ExcelJS.Worksheet) {
-  sheet.eachRow((row) => {
-    row.font = { ...FONT, ...(row.font ?? {}) }
+function styleBodyRow(sheet: ExcelJS.Worksheet, rowNumber: number, colCount: number, fill?: ExcelJS.Fill) {
+  const row = sheet.getRow(rowNumber)
+  ensureRowHeight(row)
+  for (let c = 1; c <= colCount; c++) {
+    paint(row.getCell(c), fill)
+  }
+}
+
+function writeHeaderCells(sheet: ExcelJS.Worksheet, rowNumber: number, headers: string[]) {
+  headers.forEach((h, i) => {
+    sheet.getCell(rowNumber, i + 1).value = h
   })
+  styleHeaderRow(sheet, rowNumber, headers.length)
 }
 
 function addChangeHistory(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   const sheet = wb.addWorksheet(SCREEN_SPEC_EXCEL_SHEETS.changeHistory)
-  const start = writeMeta(sheet, model.header)
   const headers = ['Rev', 'Sheet', 'Details', 'Person', 'Date']
-  headers.forEach((h, i) => {
-    sheet.getCell(start, i + 1).value = h
-  })
-  styleHeaderRow(sheet, start, headers.length)
-  model.revisions.forEach((rev, i) => {
+  const start = writeMeta(sheet, model.header, headers.length)
+  writeHeaderCells(sheet, start, headers)
+  const bodyCount = Math.max(model.revisions.length, EMPTY_HISTORY_ROWS)
+  for (let i = 0; i < bodyCount; i++) {
     const r = start + 1 + i
-    sheet.getRow(r).values = [
-      undefined,
-      rev.revisionNo,
-      rev.targetSheetName,
-      rev.details,
-      rev.personInCharge,
-      rev.changedAt,
-    ]
-    for (let c = 1; c <= headers.length; c++) sheet.getCell(r, c).border = THIN
-  })
+    const rev = model.revisions[i]
+    if (rev) {
+      sheet.getRow(r).values = [
+        undefined,
+        rev.revisionNo,
+        rev.targetSheetName,
+        rev.details,
+        rev.personInCharge,
+        rev.changedAt,
+      ]
+    }
+    styleBodyRow(sheet, r, headers.length)
+  }
   sheet.columns = [
     { width: 12 },
     { width: 16 },
@@ -115,29 +154,23 @@ function addChangeHistory(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) 
     { width: 18 },
     { width: 14 },
   ]
-  applyBodyFont(sheet)
 }
 
 function addLayout(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   const sheet = wb.addWorksheet(SCREEN_SPEC_EXCEL_SHEETS.layout)
-  const start = writeMeta(sheet, model.header)
   const headers = ['Code', 'Name', 'Route', 'Modes', 'Note']
-  headers.forEach((h, i) => {
-    sheet.getCell(start, i + 1).value = h
-  })
-  styleHeaderRow(sheet, start, headers.length)
+  const start = writeMeta(sheet, model.header, headers.length)
+  writeHeaderCells(sheet, start, headers)
   model.layoutScreens.forEach((row, i) => {
     const r = start + 1 + i
     sheet.getRow(r).values = [undefined, row.code, row.name, row.routePath, row.modes, row.note]
-    for (let c = 1; c <= headers.length; c++) sheet.getCell(r, c).border = THIN
+    styleBodyRow(sheet, r, headers.length)
   })
   sheet.columns = [{ width: 16 }, { width: 32 }, { width: 28 }, { width: 28 }, { width: 24 }]
-  applyBodyFont(sheet)
 }
 
 function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   const sheet = wb.addWorksheet(SCREEN_SPEC_EXCEL_SHEETS.defines)
-  const start = writeMeta(sheet, model.header)
   const modeHeaders = model.modeCodes.map(defineModeColumnLabel)
   const headers = [
     'No',
@@ -151,10 +184,8 @@ function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
     'Table',
     ...(model.header.grouped ? ['Screen'] : []),
   ]
-  headers.forEach((h, i) => {
-    sheet.getCell(start, i + 1).value = h
-  })
-  styleHeaderRow(sheet, start, headers.length)
+  const start = writeMeta(sheet, model.header, headers.length)
+  writeHeaderCells(sheet, start, headers)
 
   model.defineRows.forEach((row, i) => {
     const r = start + 1 + i
@@ -172,14 +203,11 @@ function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
     if (model.header.grouped) values.push(row.screenCode)
     values.forEach((v, c) => {
       sheet.getCell(r, c + 1).value = v
-      sheet.getCell(r, c + 1).border = THIN
     })
-    if (row.kind === 'screen') {
-      for (let c = 1; c <= headers.length; c++) sheet.getCell(r, c).fill = GROUP_FILL
-      sheet.getCell(r, 2).font = HEADER_FONT
-    }
-    if (row.kind === 'section') {
-      for (let c = 1; c <= headers.length; c++) sheet.getCell(r, c).fill = SECTION_FILL
+    const fill = row.kind === 'screen' ? GROUP_FILL : row.kind === 'section' ? SECTION_FILL : undefined
+    styleBodyRow(sheet, r, headers.length, fill)
+    if (row.kind === 'screen' || row.kind === 'section') {
+      sheet.getCell(r, 2).font = BOLD
     }
   })
 
@@ -195,7 +223,6 @@ function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
     { width: 18 },
     ...(model.header.grouped ? [{ width: 14 }] : []),
   ]
-  applyBodyFont(sheet)
 }
 
 function addOutlineSheet(
@@ -206,39 +233,35 @@ function addOutlineSheet(
   extraHeader: string
 ) {
   const sheet = wb.addWorksheet(name)
-  const start = writeMeta(sheet, model.header)
   const headers = ['Item', 'Detail', 'Source / Table', 'Condition', extraHeader]
-  headers.forEach((h, i) => {
-    sheet.getCell(start, i + 1).value = h
-  })
-  styleHeaderRow(sheet, start, headers.length)
+  const start = writeMeta(sheet, model.header, headers.length)
+  writeHeaderCells(sheet, start, headers)
   rows.forEach((row, i) => {
     const r = start + 1 + i
-    const values = [row.label, row.detail, row.source, row.condition, row.extra || (model.header.grouped ? row.screenCode : '')]
+    const values = [
+      row.label,
+      row.detail,
+      row.source,
+      row.condition,
+      row.extra || (model.header.grouped ? row.screenCode : ''),
+    ]
     values.forEach((v, c) => {
       sheet.getCell(r, c + 1).value = v
-      sheet.getCell(r, c + 1).border = THIN
     })
-    if (row.kind === 'screen') {
-      for (let c = 1; c <= headers.length; c++) sheet.getCell(r, c).fill = GROUP_FILL
-      sheet.getCell(r, 1).font = HEADER_FONT
-    }
-    if (row.kind === 'heading') {
-      sheet.getCell(r, 1).font = HEADER_FONT
+    const fill = row.kind === 'screen' ? GROUP_FILL : undefined
+    styleBodyRow(sheet, r, headers.length, fill)
+    if (row.kind === 'screen' || row.kind === 'heading') {
+      sheet.getCell(r, 1).font = BOLD
     }
   })
   sheet.columns = [{ width: 28 }, { width: 48 }, { width: 22 }, { width: 28 }, { width: 16 }]
-  applyBodyFont(sheet)
 }
 
 function addValidation(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   const sheet = wb.addWorksheet(SCREEN_SPEC_EXCEL_SHEETS.validation)
-  const start = writeMeta(sheet, model.header)
   const headers = ['Screen', 'Field', 'Physical name', 'Rule', 'Params', 'Mode', 'Error message', 'Remark']
-  headers.forEach((h, i) => {
-    sheet.getCell(start, i + 1).value = h
-  })
-  styleHeaderRow(sheet, start, headers.length)
+  const start = writeMeta(sheet, model.header, headers.length)
+  writeHeaderCells(sheet, start, headers)
   model.validationRows.forEach((row, i) => {
     const r = start + 1 + i
     const values = [
@@ -253,8 +276,8 @@ function addValidation(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
     ]
     values.forEach((v, c) => {
       sheet.getCell(r, c + 1).value = v
-      sheet.getCell(r, c + 1).border = THIN
     })
+    styleBodyRow(sheet, r, headers.length)
   })
   sheet.columns = [
     { width: 14 },
@@ -266,21 +289,19 @@ function addValidation(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
     { width: 36 },
     { width: 20 },
   ]
-  applyBodyFont(sheet)
 }
 
 function addDatabase(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   const sheet = wb.addWorksheet(SCREEN_SPEC_EXCEL_SHEETS.database)
-  const start = writeMeta(sheet, model.header)
-  sheet.getCell(start, 1).value = 'Table'
-  styleHeaderRow(sheet, start, 1)
+  const headers = ['Table']
+  const start = writeMeta(sheet, model.header, 5)
+  writeHeaderCells(sheet, start, headers)
   model.databaseTables.forEach((name, i) => {
     const r = start + 1 + i
     sheet.getCell(r, 1).value = name
-    sheet.getCell(r, 1).border = THIN
+    styleBodyRow(sheet, r, headers.length)
   })
   sheet.columns = [{ width: 32 }]
-  applyBodyFont(sheet)
 }
 
 export async function buildScreenSpecExcelWorkbook(doc: ScreenSpecDocFullSpec): Promise<ExcelJS.Workbook> {
