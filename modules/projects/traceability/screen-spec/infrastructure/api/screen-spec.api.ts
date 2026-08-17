@@ -1,4 +1,4 @@
-import { apiClient } from '@/shared/lib/apiClient'
+import { apiClient, type ApiRequestInit } from '@/shared/lib/apiClient'
 import {
   assertBulkItemCount,
   BulkJobStatus,
@@ -625,9 +625,14 @@ export async function createFieldValidation(
   workspaceId: string,
   screenId: string,
   fieldId: string,
-  body: CreateFieldValidationBody
+  body: CreateFieldValidationBody,
+  init?: ApiRequestInit
 ): Promise<ScreenFieldValidation> {
-  const res = await apiClient.post<unknown>(EP.fieldValidations(workspaceId, screenId, fieldId), body)
+  const res = await apiClient.post<unknown>(
+    EP.fieldValidations(workspaceId, screenId, fieldId),
+    body,
+    init
+  )
   return mapValidation(res)
 }
 

@@ -58,7 +58,7 @@ export const SCREEN_STRUCTURE_TAB_HINTS: Record<
   matrix:
     'Read-only table here. Edit matrix opens the full table; one Save writes every changed field. Visible fields get 〇 on Defines.',
   validations:
-    'Pick a field, then a rule. Edit / Delete sit on that rule. View full and Add open a compact modal.',
+    'Pick a field, then a rule. Import JSON adds many rules at once (one POST each). Edit / Delete sit on that rule. View full and Add open a compact modal.',
   processes:
     'Pick a process to preview it. Edit / Delete sit on that process. View full opens a compact modal.',
   events:

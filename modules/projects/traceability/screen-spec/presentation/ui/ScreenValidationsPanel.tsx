@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { PageSkeleton, Typography } from '@/shared/ui'
+import { Button, PageSkeleton, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
-import { useScreenValidations } from '../hooks/useFieldValidations'
+import { useScreenValidations, useValidationRuleTypes } from '../hooks/useFieldValidations'
 import { FieldValidationsEditor } from './FieldValidationsEditor'
+import { FieldValidationJsonImportModal } from './FieldValidationJsonImportModal'
 import type { ScreenMode } from '../../domain/model/screen-spec'
 import type { RegistryScreenField } from '../../../model/application-registry'
 
@@ -23,7 +24,17 @@ export function ScreenValidationsPanel({
 }) {
   const fieldIds = useMemo(() => fields.map((f) => f.id), [fields])
   const { items, loading, error, refetch } = useScreenValidations(workspaceId, screenId, fieldIds)
+  const { items: ruleTypes } = useValidationRuleTypes(workspaceId)
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(fields[0]?.id ?? null)
+  const [importOpen, setImportOpen] = useState(false)
+  const importRefs = useMemo(
+    () => ({
+      fields: fields.map((field) => ({ id: field.id, fieldKey: field.fieldKey })),
+      modes: modes.map((mode) => ({ id: mode.id, modeCode: mode.modeCode })),
+      ruleTypes: ruleTypes.map((type) => ({ id: type.id, code: type.code })),
+    }),
+    [fields, modes, ruleTypes]
+  )
 
   useEffect(() => {
     if (selectedFieldId && fields.some((f) => f.id === selectedFieldId)) return
@@ -50,6 +61,14 @@ export function ScreenValidationsPanel({
 
   return (
     <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <Typography variant="caption" tone="muted">
+          Add a rule on the selected field, or import JSON for many fields at once.
+        </Typography>
+        <Button size="sm" variant="secondary" onClick={() => setImportOpen(true)}>
+          Import JSON
+        </Button>
+      </div>
       {loading && items.length === 0 ? <PageSkeleton variant="list" /> : null}
       {error ? (
         <Typography tone="error" variant="small">
@@ -112,6 +131,17 @@ export function ScreenValidationsPanel({
           )}
         </div>
       </div>
+      <FieldValidationJsonImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        workspaceId={workspaceId}
+        screenId={screenId}
+        refs={importRefs}
+        onImported={() => {
+          void refetch()
+          onChanged?.()
+        }}
+      />
     </div>
   )
 }
