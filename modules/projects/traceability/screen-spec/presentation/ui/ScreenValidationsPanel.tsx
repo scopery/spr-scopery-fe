@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Input, PageSkeleton, Typography } from '@/shared/ui'
+import { Pencil } from 'lucide-react'
+import { Button, Input, Modal, PageSkeleton, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { useScreenValidations, useValidationRuleTypes } from '../hooks/useFieldValidations'
 import { FieldValidationsEditor } from './FieldValidationsEditor'
@@ -27,6 +28,7 @@ export function ScreenValidationsPanel({
   const { items: ruleTypes } = useValidationRuleTypes(workspaceId)
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(fields[0]?.id ?? null)
   const [importOpen, setImportOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const [fieldQuery, setFieldQuery] = useState('')
   const importRefs = useMemo(
     () => ({
@@ -60,6 +62,10 @@ export function ScreenValidationsPanel({
   }, [items])
 
   const selectedField = fields.find((f) => f.id === selectedFieldId) ?? null
+  const handleChanged = () => {
+    void refetch()
+    onChanged?.()
+  }
 
   if (fields.length === 0) {
     return (
@@ -71,18 +77,20 @@ export function ScreenValidationsPanel({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <Input
-          size="sm"
-          fullWidth
-          type="search"
-          value={fieldQuery}
-          onChange={(e) => setFieldQuery(e.target.value)}
-          placeholder="Search field"
-          aria-label="Search field"
-        />
-        <Button size="sm" variant="secondary" className="shrink-0" onClick={() => setImportOpen(true)}>
+      <div className="flex items-center justify-end gap-2">
+        <Button size="sm" variant="secondary" onClick={() => setImportOpen(true)}>
           Import JSON
+        </Button>
+        <Button
+          size="sm"
+          variant="primary"
+          icon={<Pencil size={14} />}
+          onClick={() => {
+            setFieldQuery('')
+            setEditOpen(true)
+          }}
+        >
+          Edit
         </Button>
       </div>
       {loading && items.length === 0 ? <PageSkeleton variant="list" /> : null}
@@ -91,79 +99,115 @@ export function ScreenValidationsPanel({
           {error}
         </Typography>
       ) : null}
-      <div className="flex max-h-[min(28rem,55vh)] min-h-0 min-w-0 border border-neutral-200">
-        <aside className="w-52 shrink-0 overflow-y-auto border-r border-neutral-200">
-          <ul className="divide-y divide-neutral-100">
-            {filteredFields.length === 0 ? (
-              <li className="px-3 py-2.5">
-                <Typography variant="caption" tone="muted">
-                  No fields match this search.
+      <ul className="divide-y divide-neutral-100 border border-neutral-200">
+        {fields.map((field) => {
+          const count = countByField.get(field.id) ?? 0
+          return (
+            <li key={field.id} className="flex items-start justify-between gap-2 px-3 py-2.5">
+              <span className="min-w-0">
+                <Typography variant="small">{field.fieldKey}</Typography>
+                <Typography variant="caption" tone="muted" className="block truncate">
+                  {field.label}
                 </Typography>
-              </li>
-            ) : null}
-            {filteredFields.map((field) => {
-              const count = countByField.get(field.id) ?? 0
-              const active = selectedFieldId === field.id
-              return (
-                <li key={field.id}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedFieldId(field.id)}
-                    className={cn(
-                      'flex w-full items-start justify-between gap-2 px-3 py-2.5 text-left',
-                      active ? 'bg-neutral-50' : 'hover:bg-neutral-50'
-                    )}
-                  >
-                    <span className="min-w-0">
-                      <Typography variant="small">{field.fieldKey}</Typography>
-                      <Typography variant="caption" tone="muted" className="block truncate">
-                        {field.label}
-                      </Typography>
-                    </span>
-                    <span
-                      className={cn(
-                        'shrink-0 px-1.5 py-0.5 text-[11px]',
-                        count > 0 ? 'bg-primary/10 text-primary' : 'bg-neutral-100 text-neutral-400'
-                      )}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </aside>
-        <div className="min-w-0 flex-1 overflow-y-auto p-md">
-          {selectedField ? (
-            <FieldValidationsEditor
-              key={selectedField.id}
-              workspaceId={workspaceId}
-              screenId={screenId}
-              fieldId={selectedField.id}
-              modes={modes}
-              onChanged={() => {
-                void refetch()
-                onChanged?.()
-              }}
-            />
-          ) : (
-            <Typography variant="small" tone="muted">
-              Select a field to review rules.
-            </Typography>
-          )}
+              </span>
+              <span
+                className={cn(
+                  'shrink-0 px-1.5 py-0.5 text-[11px]',
+                  count > 0 ? 'bg-primary/10 text-primary' : 'bg-neutral-100 text-neutral-400'
+                )}
+              >
+                {count}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+      <Modal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="Edit validations"
+        size="2xl"
+        actions={[{ label: 'Close', onClick: () => setEditOpen(false), variant: 'ghost' }]}
+      >
+        <div className="space-y-3">
+          <Input
+            size="sm"
+            fullWidth
+            type="search"
+            value={fieldQuery}
+            onChange={(e) => setFieldQuery(e.target.value)}
+            placeholder="Search field"
+            aria-label="Search field"
+          />
+          <div className="flex max-h-[min(28rem,55vh)] min-h-0 min-w-0 border border-neutral-200">
+            <aside className="w-52 shrink-0 overflow-y-auto border-r border-neutral-200">
+              <ul className="divide-y divide-neutral-100">
+                {filteredFields.length === 0 ? (
+                  <li className="px-3 py-2.5">
+                    <Typography variant="caption" tone="muted">
+                      No fields match this search.
+                    </Typography>
+                  </li>
+                ) : null}
+                {filteredFields.map((field) => {
+                  const count = countByField.get(field.id) ?? 0
+                  const active = selectedFieldId === field.id
+                  return (
+                    <li key={field.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFieldId(field.id)}
+                        className={cn(
+                          'flex w-full items-start justify-between gap-2 px-3 py-2.5 text-left',
+                          active ? 'bg-neutral-50' : 'hover:bg-neutral-50'
+                        )}
+                      >
+                        <span className="min-w-0">
+                          <Typography variant="small">{field.fieldKey}</Typography>
+                          <Typography variant="caption" tone="muted" className="block truncate">
+                            {field.label}
+                          </Typography>
+                        </span>
+                        <span
+                          className={cn(
+                            'shrink-0 px-1.5 py-0.5 text-[11px]',
+                            count > 0 ? 'bg-primary/10 text-primary' : 'bg-neutral-100 text-neutral-400'
+                          )}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </aside>
+            <div className="min-w-0 flex-1 overflow-y-auto p-md">
+              {selectedField ? (
+                <FieldValidationsEditor
+                  key={selectedField.id}
+                  workspaceId={workspaceId}
+                  screenId={screenId}
+                  fieldId={selectedField.id}
+                  modes={modes}
+                  onChanged={handleChanged}
+                />
+              ) : (
+                <Typography variant="small" tone="muted">
+                  Select a field to review rules.
+                </Typography>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      </Modal>
       <FieldValidationJsonImportModal
         open={importOpen}
         onClose={() => setImportOpen(false)}
         workspaceId={workspaceId}
         screenId={screenId}
         refs={importRefs}
-        onImported={() => {
-          void refetch()
-          onChanged?.()
-        }}
+        onImported={handleChanged}
       />
     </div>
   )
