@@ -22,7 +22,6 @@ import type {
   UpdateRegistryAppModuleBody,
   UpdateRegistryDataEntityBody,
   UpdateCommunicationSpecBody,
-  UpdateRegistryApplicationBody,
   UpdateRegistryScreenBody,
 } from '../model/application-registry'
 
@@ -108,15 +107,6 @@ export function useApplicationWorkbench(
       await load({ silent: true })
     },
     [load]
-  )
-
-  const updateApplication = useCallback(
-    async (body: UpdateRegistryApplicationBody) => {
-      if (!workspaceId || !applicationId) return
-      await api.updateApplication(workspaceId, applicationId, body)
-      await load({ silent: true })
-    },
-    [workspaceId, applicationId, load]
   )
 
   const createModule = useCallback(
@@ -302,7 +292,6 @@ export function useApplicationWorkbench(
     loading,
     error,
     refetch: load,
-    updateApplication,
     createModule,
     updateModule,
     removeModule,

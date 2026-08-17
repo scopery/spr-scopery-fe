@@ -94,6 +94,7 @@ export interface ScreenSpecExcelValidationRow {
   screenCode: string
   field: string
   physicalName: string
+  mode: string
   ruleType: string
   params: string
   individualRule: string
@@ -249,12 +250,79 @@ export function fieldLinkedDataSource(field: ScreenFullSpecField): string {
 
 export function formatRuleParams(value: unknown): string {
   if (value == null || value === '') return ''
-  if (typeof value === 'string') return value
-  try {
-    return JSON.stringify(value)
-  } catch {
-    return String(value)
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return ''
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      try {
+        return formatRuleParams(JSON.parse(trimmed) as unknown)
+      } catch {
+        return trimmed
+      }
+    }
+    return trimmed
   }
+  if (Array.isArray(value)) return value.map(String).filter(Boolean).join(', ')
+  if (typeof value === 'object') {
+    const parts = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v != null && v !== '')
+      .map(([key, v]) => `${key}=${Array.isArray(v) ? v.map(String).join(',') : String(v)}`)
+    return parts.join('; ')
+  }
+  return String(value)
+}
+
+export function formatValidationCondition(value: unknown): string {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const rec = value as Record<string, unknown>
+    const fieldKey = typeof rec.fieldKey === 'string' ? rec.fieldKey.trim() : ''
+    const op = typeof rec.op === 'string' ? rec.op.trim() : ''
+    const raw = rec.value
+    const rhs = raw == null || raw === '' ? '' : String(raw)
+    if (fieldKey || op || rhs) return [fieldKey, op, rhs].filter(Boolean).join(' ')
+  }
+  return formatRuleParams(value)
+}
+
+export function validationRuleTypeCode(rule: { ruleTypeCode?: string | null }): string {
+  return String(rule.ruleTypeCode ?? '').trim().toUpperCase()
+}
+
+export function isDefinesCoveredValidation(rule: { ruleTypeCode?: string | null }): boolean {
+  return DEFINES_COVERED_RULE_CODES.has(validationRuleTypeCode(rule))
+}
+
+export function pickValidationsWithRuleCodes<T extends { ruleTypeCode: string }>(
+  ...lists: T[][]
+): T[] {
+  const withCode = lists.find((list) => list.some((item) => item.ruleTypeCode.trim()))
+  if (withCode) return withCode
+  return lists.find((list) => list.length > 0) ?? []
+}
+
+export function resolveValidationRuleCodes<T extends { ruleTypeId?: string; ruleTypeCode: string }>(
+  validations: T[],
+  types: Array<{ id: string; code: string }>
+): T[] {
+  if (types.length === 0) return validations
+  const byId = new Map(types.map((type) => [type.id, type.code]))
+  return validations.map((rule) => {
+    if (rule.ruleTypeCode.trim()) return rule
+    const code = rule.ruleTypeId ? byId.get(rule.ruleTypeId) : undefined
+    return code ? { ...rule, ruleTypeCode: code } : rule
+  })
+}
+
+function validationModeLabel(
+  rule: { modeId: string | null; modeCode?: string | null },
+  modes: Array<{ id: string; modeCode: string }>
+): string {
+  if (rule.modeCode?.trim()) return rule.modeCode.trim().toUpperCase()
+  if (rule.modeId) {
+    const match = modes.find((mode) => mode.id === rule.modeId)
+    if (match) return String(match.modeCode).toUpperCase()
+  }
+  return 'All'
 }
 
 function sortByOrder<T extends { displayOrder: number | null }>(items: T[]): T[] {
@@ -364,7 +432,7 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
         fieldNo += 1
         defineRows.push(toDefineFieldRow(field, fieldNo, modeCodes, screen.code))
         rememberTable(fieldLinkedDataSource(field), field.dataField?.columnName || field.fieldKey)
-        pushValidationRows(validationRows, field, screen.code)
+        pushValidationRows(validationRows, field, screen.code, screen.modes)
       }
     }
 
@@ -373,7 +441,7 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
       fieldNo += 1
       defineRows.push(toDefineFieldRow(field, fieldNo, modeCodes, screen.code))
       rememberTable(fieldLinkedDataSource(field), field.dataField?.columnName || field.fieldKey)
-      pushValidationRows(validationRows, field, screen.code)
+      pushValidationRows(validationRows, field, screen.code, screen.modes)
     }
 
     for (const item of sortByOrder(screen.processItems)) {
@@ -524,17 +592,21 @@ function toDefineFieldRow(
 function pushValidationRows(
   rows: ScreenSpecExcelValidationRow[],
   field: ScreenFullSpecField,
-  screenCode: string
+  screenCode: string,
+  modes: Array<{ id: string; modeCode: string }>
 ) {
   for (const rule of sortByOrder(field.validations)) {
-    if (DEFINES_COVERED_RULE_CODES.has(rule.ruleTypeCode)) continue
+    if (isDefinesCoveredValidation(rule)) continue
+    const ruleType = validationRuleTypeCode(rule)
+    if (!ruleType) continue
     rows.push({
       screenCode,
       field: field.label,
       physicalName: field.fieldKey,
-      ruleType: rule.ruleTypeCode,
+      mode: validationModeLabel(rule, modes),
+      ruleType,
       params: formatRuleParams(rule.ruleParamJson),
-      individualRule: formatRuleParams(rule.conditionJson),
+      individualRule: formatValidationCondition(rule.conditionJson),
       errorMessage: rule.errorMessage ?? '',
       remark: rule.remark ?? '',
     })

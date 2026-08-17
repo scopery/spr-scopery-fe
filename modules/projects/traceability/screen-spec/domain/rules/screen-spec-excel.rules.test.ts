@@ -5,6 +5,10 @@ import {
   buildScreenSpecWorkbookModel,
   collectDefineModeCodes,
   fieldDefaultValue,
+  formatRuleParams,
+  formatValidationCondition,
+  pickValidationsWithRuleCodes,
+  resolveValidationRuleCodes,
   suggestScreenSpecExcelFilename,
   wrapSingleScreenAsDocument,
 } from './screen-spec-excel.rules'
@@ -259,6 +263,13 @@ describe('screen-spec-excel.rules', () => {
   it('keeps required/max length off the Validation sheet and outlines processes', () => {
     const model = buildScreenSpecWorkbookModel(wrapSingleScreenAsDocument(login))
     expect(model.validationRows.map((r) => r.ruleType)).toEqual(['EMAIL'])
+    expect(model.validationRows[0]).toMatchObject({
+      field: 'Email',
+      physicalName: 'email',
+      mode: 'All',
+      ruleType: 'EMAIL',
+      errorMessage: 'invalid email',
+    })
     expect(model.processRows.map((r) => r.kind)).toEqual([
       'heading',
       'detail',
@@ -447,5 +458,92 @@ describe('screen-spec-excel.rules', () => {
         ],
       } as ScreenFullSpec['fields'][number])
     ).toBe('shown')
+  })
+
+  it('resolves validation rule codes from ruleTypeId and prefers coded lists', () => {
+    const listed = [
+      {
+        id: 'v1',
+        modeId: null,
+        ruleTypeId: 'rt-email',
+        ruleTypeCode: '',
+        ruleParamJson: { pattern: '.+@.+\\..+' },
+        conditionJson: { fieldKey: 'status', op: '=', value: 'NEW' },
+        errorMessage: null,
+        remark: null,
+        displayOrder: 1,
+      },
+    ]
+    const resolved = resolveValidationRuleCodes(listed, [{ id: 'rt-email', code: 'EMAIL' }])
+    expect(resolved[0].ruleTypeCode).toBe('EMAIL')
+    expect(pickValidationsWithRuleCodes([], listed, resolved)).toEqual(resolved)
+    expect(formatRuleParams(resolved[0].ruleParamJson)).toBe('pattern=.+@.+\\..+')
+    expect(formatValidationCondition(resolved[0].conditionJson)).toBe('status = NEW')
+  })
+
+  it('maps mode-scoped extra rules and skips max_length regardless of case', () => {
+    const scoped = screen({
+      id: 's5',
+      code: 'FORM',
+      name: 'Form',
+      modes: [{ id: 'm1', screenId: 's5', modeCode: 'CREATE', name: 'Create', displayOrder: 0, status: 'ACTIVE' }],
+      fields: [
+        {
+          id: 'f5',
+          sectionId: null,
+          fieldKey: 'phone',
+          label: 'Phone',
+          fieldType: 'INPUT',
+          description: null,
+          required: false,
+          displayOrder: 1,
+          maxLength: null,
+          remark: null,
+          componentId: null,
+          dataEntityFieldId: null,
+          componentFieldId: null,
+          component: null,
+          dataField: null,
+          modeConfigs: [],
+          validations: [
+            {
+              id: 'v-max',
+              modeId: 'm1',
+              ruleTypeCode: 'max_length',
+              ruleParamJson: { maxLength: 20 },
+              conditionJson: null,
+              errorMessage: null,
+              remark: null,
+              displayOrder: 1,
+            },
+            {
+              id: 'v-regex',
+              modeId: 'm1',
+              ruleTypeCode: 'regex',
+              ruleParamJson: { pattern: '^\\d+$' },
+              conditionJson: null,
+              errorMessage: 'digits only',
+              remark: null,
+              displayOrder: 2,
+            },
+          ],
+        },
+      ],
+    })
+    const model = buildScreenSpecWorkbookModel(wrapSingleScreenAsDocument(scoped))
+    expect(model.validationRows).toEqual([
+      {
+        screenCode: 'FORM',
+        field: 'Phone',
+        physicalName: 'phone',
+        mode: 'CREATE',
+        ruleType: 'REGEX',
+        params: 'pattern=^\\d+$',
+        individualRule: '',
+        errorMessage: 'digits only',
+        remark: '',
+      },
+    ])
+    expect(model.defineRows.find((r) => r.physicalName === 'phone')?.length).toBe('20')
   })
 })

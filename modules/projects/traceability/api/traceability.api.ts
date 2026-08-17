@@ -7,7 +7,6 @@ import type {
   CreateRegistryAppComponentBody,
   CreateRegistryAppModuleBody,
   CreateRegistryApplicationBody,
-  UpdateRegistryApplicationBody,
   CreateRegistryDataEntityBody,
   CreateCommunicationSpecBody,
   CreateRegistryScreenActionBody,
@@ -471,17 +470,6 @@ export async function createApplication(
   body: CreateRegistryApplicationBody
 ): Promise<RegistryApplication> {
   return apiClient.post(TRACEABILITY_ENDPOINTS.applications(workspaceId), body)
-}
-
-export async function updateApplication(
-  workspaceId: string,
-  applicationId: string,
-  body: UpdateRegistryApplicationBody
-): Promise<RegistryApplication> {
-  return apiClient.put(
-    TRACEABILITY_ENDPOINTS.application(workspaceId, applicationId),
-    body
-  )
 }
 
 export async function listAppModules(

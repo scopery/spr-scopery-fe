@@ -3,26 +3,21 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Pencil, Plus, Search } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { Button, Input, Modal, PageSkeleton, Stack, Typography } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
 import { ROUTES } from '@/constants/routes'
 import { useApplicationRegistry } from '../hooks/useTraceability'
-import type { RegistryApplication } from '../model/application-registry'
 
 export function ApplicationRegistryView() {
   const { workspaceId } = useParams<{ workspaceId: string }>()
-  const { items, loading, error, create, update } = useApplicationRegistry(workspaceId)
+  const { items, loading, error, create } = useApplicationRegistry(workspaceId)
   const [query, setQuery] = useState('')
   const [addOpen, setAddOpen] = useState(false)
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
-  const [renameApp, setRenameApp] = useState<RegistryApplication | null>(null)
-  const [renameName, setRenameName] = useState('')
-  const [renaming, setRenaming] = useState(false)
-  const [renameError, setRenameError] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -41,35 +36,6 @@ export function ApplicationRegistryView() {
     setName('')
     setCode('')
     setFormError(null)
-  }
-
-  const openRename = (app: RegistryApplication) => {
-    setRenameApp(app)
-    setRenameName(app.name)
-    setRenameError(null)
-  }
-
-  const closeRename = () => {
-    setRenameApp(null)
-    setRenameName('')
-    setRenameError(null)
-  }
-
-  const canRename =
-    Boolean(renameApp && renameName.trim() && renameName.trim() !== renameApp.name) && !renaming
-
-  const handleRename = () => {
-    if (!renameApp || !canRename) return
-    setRenameError(null)
-    setRenaming(true)
-    void update(renameApp.id, renameName.trim())
-      .then(() => {
-        closeRename()
-      })
-      .catch((err: unknown) => {
-        setRenameError(err instanceof Error ? err.message : 'Failed to update application name')
-      })
-      .finally(() => setRenaming(false))
   }
 
   const handleCreate = () => {
@@ -146,10 +112,10 @@ export function ApplicationRegistryView() {
           ) : (
             <ul className="divide-y divide-neutral-100">
               {filtered.map((app, index) => (
-                <li key={app.id} className="flex items-start gap-1 hover:bg-neutral-50">
+                <li key={app.id}>
                   <Link
                     href={`${ROUTES.workspace.applications(workspaceId)}/${app.id}`}
-                    className="flex min-w-0 flex-1 items-start gap-3 px-3 py-2.5"
+                    className="flex items-start gap-3 px-3 py-2.5 hover:bg-neutral-50"
                   >
                     <span className="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400">
                       {index + 1}
@@ -161,15 +127,6 @@ export function ApplicationRegistryView() {
                       </div>
                     </div>
                   </Link>
-                  <button
-                    type="button"
-                    onClick={() => openRename(app)}
-                    className="mt-1.5 mr-2 inline-flex h-8 w-8 shrink-0 items-center justify-center text-neutral-500 hover:text-neutral-900"
-                    aria-label={`Edit ${app.name}`}
-                    title="Edit name"
-                  >
-                    <Pencil size={14} strokeWidth={1.75} />
-                  </button>
                 </li>
               ))}
             </ul>
@@ -216,44 +173,6 @@ export function ApplicationRegistryView() {
           {formError ? (
             <Typography tone="error" variant="small">
               {formError}
-            </Typography>
-          ) : null}
-        </Stack>
-      </Modal>
-
-      <Modal
-        open={Boolean(renameApp)}
-        onClose={closeRename}
-        title="Edit application name"
-        size="md"
-        actions={[
-          { label: 'Cancel', onClick: closeRename, variant: 'ghost' },
-          {
-            label: renaming ? 'Saving…' : 'Save',
-            onClick: handleRename,
-            variant: 'primary',
-            disabled: !canRename,
-            loading: renaming,
-          },
-        ]}
-      >
-        <Stack direction="vertical" spacing="md">
-          {renameApp ? (
-            <Typography variant="small" tone="muted">
-              Code stays {renameApp.code}.
-            </Typography>
-          ) : null}
-          <Input
-            value={renameName}
-            onChange={(e) => setRenameName(e.target.value)}
-            placeholder="Name"
-            aria-label="Application name"
-            fullWidth
-            required
-          />
-          {renameError ? (
-            <Typography tone="error" variant="small">
-              {renameError}
             </Typography>
           ) : null}
         </Stack>

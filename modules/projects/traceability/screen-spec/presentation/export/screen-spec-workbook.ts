@@ -442,17 +442,18 @@ function addEvents(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
 function addValidation(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   const sheet = wb.addWorksheet(SCREEN_SPEC_EXCEL_SHEETS.validation)
   const start = writeMeta(sheet, model.header, THEME.validation)
-  sheet.mergeCells(start, 1, start, 8)
+  sheet.mergeCells(start, 1, start, 9)
   const note = sheet.getCell(start, 1)
   note.value = VALIDATION_NOTE
   paint(note, FILL.white, NOTE_FONT)
-  paintRange(sheet, start, 2, 8, FILL.white, NOTE_FONT)
+  paintRange(sheet, start, 2, 9, FILL.white, NOTE_FONT)
   ensureRowHeight(sheet.getRow(start), 32)
 
   const headers = [
     'No',
     'Field',
     'Physical name',
+    'Mode',
     'Validation Rule',
     'Param',
     'Individual rule',
@@ -465,6 +466,7 @@ function addValidation(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
       String(i + 1),
       row.field,
       row.physicalName,
+      row.mode,
       row.ruleType,
       row.params,
       row.individualRule,
@@ -472,7 +474,7 @@ function addValidation(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
       row.remark,
     ])
   })
-  applySheetColumns(sheet, [8, 24, 20, 18, 22, 24, 36, 20])
+  applySheetColumns(sheet, [8, 24, 20, 12, 18, 22, 24, 36, 20])
 }
 
 function addDatabase(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {

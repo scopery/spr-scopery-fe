@@ -13,12 +13,17 @@ import {
   mapScreenFullSpec,
 } from './spec-doc.api'
 import {
+  pickValidationsWithRuleCodes,
+  resolveValidationRuleCodes,
+} from '../../domain/rules/screen-spec-excel.rules'
+import {
   getScreenFieldDetail,
   listEventItems,
   listFieldModeConfigs,
   listFieldValidations,
   listProcessItems,
   listScreenModes,
+  listValidationRuleTypes,
 } from './screen-spec.api'
 
 function mergeModesByCode(fromSpec: ScreenMode[], fromList: ScreenMode[]): ScreenMode[] {
@@ -71,20 +76,25 @@ function needsFieldEnrichment(field: ScreenFullSpecField): boolean {
   return false
 }
 
+function validationsNeedLoad(field: ScreenFullSpecField): boolean {
+  return field.validations.length === 0 || field.validations.every((rule) => !rule.ruleTypeCode.trim())
+}
+
 async function loadFieldForExport(
   workspaceId: string,
   screenId: string,
   field: ScreenFullSpecField
 ): Promise<ScreenFullSpecField> {
-  if (!needsFieldEnrichment(field)) return field
+  const loadValidations = validationsNeedLoad(field)
+  if (!needsFieldEnrichment(field) && !loadValidations) return field
   const [detailRaw, configs, validations] = await Promise.all([
     apiClient.get<unknown>(EP.screenField(workspaceId, screenId, field.id)).catch(() => null),
     field.modeConfigs.length > 0
       ? Promise.resolve({ items: field.modeConfigs })
       : listFieldModeConfigs(workspaceId, screenId, field.id).catch(() => ({ items: [] })),
-    field.validations.length > 0
-      ? Promise.resolve({ items: field.validations })
-      : listFieldValidations(workspaceId, screenId, field.id).catch(() => ({ items: [] })),
+    loadValidations
+      ? listFieldValidations(workspaceId, screenId, field.id).catch(() => ({ items: [] }))
+      : Promise.resolve({ items: field.validations }),
   ])
   const detail = detailRaw ? mapFullSpecField(detailRaw) : null
   const fallback = await (detail
@@ -99,9 +109,11 @@ async function loadFieldForExport(
     modeConfigs:
       (detail?.modeConfigs.length ? detail.modeConfigs : null) ??
       (configs.items.length ? configs.items : field.modeConfigs),
-    validations:
-      (detail?.validations.length ? detail.validations : null) ??
-      (validations.items.length ? validations.items : field.validations),
+    validations: pickValidationsWithRuleCodes(
+      field.validations,
+      detail?.validations ?? [],
+      validations.items
+    ),
     component: detail?.component ?? field.component,
     dataField: detail?.dataField ?? field.dataField,
     maxLength: detail?.maxLength ?? fallback?.maxLength ?? field.maxLength,
@@ -137,11 +149,18 @@ export async function loadScreenFullSpecForExport(
   }
 
   if (merged.fields.length === 0) return merged
-  return {
-    ...merged,
-    fields: await Promise.all(
+  const [fields, ruleTypes] = await Promise.all([
+    Promise.all(
       merged.fields.map((field) => loadFieldForExport(workspaceId, merged.id || screenId, field))
     ),
+    listValidationRuleTypes(workspaceId).catch(() => ({ items: [] })),
+  ])
+  return {
+    ...merged,
+    fields: fields.map((field) => ({
+      ...field,
+      validations: resolveValidationRuleCodes(field.validations, ruleTypes.items),
+    })),
   }
 }
 

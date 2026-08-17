@@ -203,12 +203,13 @@ function modeFromRaw(raw: Record<string, unknown>): { modeId: string | null; mod
 function mapValidation(raw: unknown): ScreenFieldValidation {
   const r = asRecord(raw)
   const mode = modeFromRaw(r)
+  const ruleType = asRecord(r.ruleType ?? r.rule_type ?? r.validationRuleType ?? r.validation_rule_type)
   return {
     id: String(r.id ?? ''),
     modeId: mode.modeId,
     modeCode: mode.modeCode,
-    ruleTypeId: str(r.ruleTypeId ?? r.rule_type_id) ?? undefined,
-    ruleTypeCode: String(r.ruleTypeCode ?? r.rule_type_code ?? ''),
+    ruleTypeId: str(r.ruleTypeId ?? r.rule_type_id ?? ruleType.id) ?? undefined,
+    ruleTypeCode: String(r.ruleTypeCode ?? r.rule_type_code ?? ruleType.code ?? ''),
     ruleParamJson: parseJsonish(r.ruleParamJson ?? r.rule_param_json),
     conditionJson: parseJsonish(r.conditionJson ?? r.condition_json),
     errorMessage: str(r.errorMessage ?? r.error_message),
