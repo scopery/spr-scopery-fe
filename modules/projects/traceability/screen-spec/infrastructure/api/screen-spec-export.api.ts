@@ -149,7 +149,7 @@ export async function loadScreenFullSpecForExport(
   }
 
   if (merged.fields.length === 0) return merged
-  const [fields, ruleTypes] = await Promise.all([
+  const [enrichedFields, ruleTypes] = await Promise.all([
     Promise.all(
       merged.fields.map((field) => loadFieldForExport(workspaceId, merged.id || screenId, field))
     ),
@@ -157,7 +157,7 @@ export async function loadScreenFullSpecForExport(
   ])
   return {
     ...merged,
-    fields: fields.map((field) => ({
+    fields: enrichedFields.map((field) => ({
       ...field,
       validations: resolveValidationRuleCodes(field.validations, ruleTypes.items),
     })),

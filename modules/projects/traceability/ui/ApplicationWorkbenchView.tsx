@@ -32,6 +32,7 @@ import { NodeDetailInspector, type NodeEditPayload } from './NodeDetailInspector
 import { SimpleExcelImportPanel } from './SimpleExcelImportPanel'
 import { OverallStructurePanel } from './OverallStructurePanel'
 import { ScreenSpecDocsPanel } from '../screen-spec/presentation/ui/ScreenSpecDocsPanel'
+import { ApiSpecExportPanel } from './ApiSpecExportPanel'
 import { ScreenFullSpecJsonImportPanel } from '../screen-spec/presentation/ui/ScreenFullSpecJsonImportPanel'
 import { importFullComponents, importFullDataEntities, importFullScreens } from '../screen-spec'
 import {
@@ -42,13 +43,14 @@ import {
   SCREEN_IMPORT_SPEC,
 } from '../lib/excelImportSpecs'
 
-type MainTab = 'browse' | 'structure' | 'spec-docs' | 'import'
+type MainTab = 'browse' | 'structure' | 'spec-docs' | 'export-apis' | 'import'
 type ImportKind = 'modules' | 'screens' | 'apis' | 'components' | 'entities'
 
 const MAIN_TABS: { id: MainTab; label: string }[] = [
   { id: 'browse', label: 'Browse' },
   { id: 'structure', label: 'Structure' },
   { id: 'spec-docs', label: 'High Level Design' },
+  { id: 'export-apis', label: 'Export APIs' },
   { id: 'import', label: 'Import' },
 ]
 
@@ -658,6 +660,17 @@ export function ApplicationWorkbenchView() {
                 workspaceId={workspaceId}
                 screens={screens.map((s) => ({ id: s.id, code: s.code, name: s.name }))}
                 applicationId={applicationId}
+              />
+            </div>
+          ) : null}
+
+          {tab === 'export-apis' ? (
+            <div className="h-full min-h-0 overflow-hidden">
+              <ApiSpecExportPanel
+                workspaceId={workspaceId}
+                applicationId={applicationId}
+                applicationName={application.name}
+                endpoints={apiEndpoints}
               />
             </div>
           ) : null}

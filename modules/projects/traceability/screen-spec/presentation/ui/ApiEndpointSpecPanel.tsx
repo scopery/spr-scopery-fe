@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Button, Input, PageSkeleton, Stack, Textarea, Typography } from '@/shared/ui'
+import { Button, PageSkeleton, Stack, Textarea, Typography } from '@/shared/ui'
+import { tryFormatJson } from '../../../model/api-spec-excel.rules'
 import {
   API_PARAM_LOCATION_SELECT_OPTIONS,
   type ApiRequestParam,
@@ -32,6 +33,7 @@ export function ApiEndpointSpecPanel({
   const [description, setDescription] = useState('')
   const [params, setParams] = useState<ApiRequestParam[]>([])
   const [schema, setSchema] = useState('')
+  const [schemaError, setSchemaError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -40,6 +42,7 @@ export function ApiEndpointSpecPanel({
     setDescription(endpoint.description ?? '')
     setParams(endpoint.requestParams ?? [])
     setSchema(endpoint.responseSchemaJson ?? '')
+    setSchemaError(null)
     setFormError(null)
   }, [endpoint])
 
@@ -94,9 +97,9 @@ export function ApiEndpointSpecPanel({
             <Typography variant="caption" tone="muted" className="mb-1 block">
               Description
             </Typography>
-            <Input
-              fullWidth
+            <Textarea
               size="sm"
+              rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Returns a paginated user list"
@@ -168,14 +171,37 @@ export function ApiEndpointSpecPanel({
             }}
           />
           <div>
-            <Typography variant="caption" tone="muted" className="mb-1 block">
-              Response schema
-            </Typography>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <Typography variant="caption" tone="muted">
+                Response schema
+              </Typography>
+              <Button
+                size="sm"
+                variant="ghost"
+                type="button"
+                onClick={() => {
+                  const next = tryFormatJson(schema)
+                  if (!next.ok) {
+                    setSchemaError(next.message)
+                    return
+                  }
+                  setSchemaError(null)
+                  setSchema(next.value)
+                }}
+              >
+                Format JSON
+              </Button>
+            </div>
             <Textarea
               value={schema}
-              onChange={(e) => setSchema(e.target.value)}
+              onChange={(e) => {
+                setSchema(e.target.value)
+                if (schemaError) setSchemaError(null)
+              }}
               placeholder='{"data":[{"id":"string"}]}'
-              rows={6}
+              rows={8}
+              error={schemaError ?? undefined}
+              className="font-mono text-xs"
             />
           </div>
           {formError ? (
