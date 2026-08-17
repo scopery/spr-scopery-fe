@@ -216,12 +216,7 @@ export function modeVisibleMark(field: ScreenFullSpecField, modeCode: string): s
 }
 
 export function fieldRequiredMark(field: ScreenFullSpecField): string {
-  if (field.modeConfigs.some((c) => c.isRequired)) return MODE_VISIBLE_MARK
-  if (field.required) return MODE_VISIBLE_MARK
-  if (field.validations.some((v) => String(v.ruleTypeCode).toUpperCase() === 'REQUIRED')) {
-    return MODE_VISIBLE_MARK
-  }
-  return ''
+  return field.required ? MODE_VISIBLE_MARK : ''
 }
 
 export function fieldReadonlyMark(field: ScreenFullSpecField): string {

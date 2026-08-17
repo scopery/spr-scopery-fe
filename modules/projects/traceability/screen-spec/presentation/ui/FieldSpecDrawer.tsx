@@ -4,7 +4,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { Input, Modal, Select, Stack, Typography } from '@/shared/ui'
 import { useDataEntityFields } from '../hooks/useDataEntityFields'
 import { useScreenFieldSpec } from '../hooks/useScreenFieldSpec'
-import { applyDefaultValueToDrafts, draftFromModeConfig, fieldLevelDefaultValue, findModeConfig } from '../../domain/rules/mode-config.rules'
+import {
+  applyDefaultValueToDrafts,
+  draftFromModeConfig,
+  fieldLevelDefaultValue,
+  findModeConfig,
+  inheritRequiredOnDrafts,
+} from '../../domain/rules/mode-config.rules'
 import { FieldValidationsEditor } from './FieldValidationsEditor'
 import { SpecTabBar } from './SpecTabBar'
 import type { ScreenMode } from '../../domain/model/screen-spec'
@@ -104,7 +110,9 @@ export function FieldSpecDrawer({
           draftFromModeConfig(mode.id, findModeConfig(field.modeConfigs, mode))
         )
         await saveModeConfigs(
-          applyDefaultValueToDrafts(drafts, modes, defaultValue.trim() || null),
+          inheritRequiredOnDrafts(
+            applyDefaultValueToDrafts(drafts, modes, defaultValue.trim() || null)
+          ),
           field.required
         )
       }

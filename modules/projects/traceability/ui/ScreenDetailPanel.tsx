@@ -10,7 +10,9 @@ import { useScreenDetail } from '../hooks/useScreenDetail'
 import { ScreenStructureEditor } from './ScreenStructureEditor'
 import type { StructureItemGroup } from './StructureGroupBlocks'
 import {
+  fieldComponentGroupHeading,
   fieldComponentGroupLabel,
+  fieldSectionGroupHeading,
   fieldSectionGroupLabel,
   groupFieldsByComponent,
   groupFieldsBySection,
@@ -299,19 +301,31 @@ export function ScreenDetailPanel({
       sectionComponentIds
     )
     if (shouldShowSectionGroups(sectionGroups)) {
-      return sectionGroups.map((group) => ({
-        key: group.key,
-        label: fieldSectionGroupLabel(group),
-        itemIds: group.fields.map((field) => field.id),
-      }))
+      return sectionGroups.map((group) => {
+        const heading = fieldSectionGroupHeading(group)
+        return {
+          key: group.key,
+          label: fieldSectionGroupLabel(group),
+          code: heading.code,
+          title: heading.title,
+          subtitle: heading.subtitle,
+          itemIds: group.fields.map((field) => field.id),
+        }
+      })
     }
     const componentGroups = groupFieldsByComponent(fields, catalog, sectionComponentIds)
     if (!shouldShowComponentGroups(componentGroups)) return undefined
-    return componentGroups.map((group) => ({
-      key: group.key,
-      label: fieldComponentGroupLabel(group),
-      itemIds: group.fields.map((field) => field.id),
-    }))
+    return componentGroups.map((group) => {
+      const heading = fieldComponentGroupHeading(group)
+      return {
+        key: group.key,
+        label: fieldComponentGroupLabel(group),
+        code: heading.code,
+        title: heading.title,
+        subtitle: heading.subtitle,
+        itemIds: group.fields.map((field) => field.id),
+      }
+    })
   }, [components, fields, sectionComponentIds, sections])
 
   const modeItems = useMemo(

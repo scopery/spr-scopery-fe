@@ -91,6 +91,10 @@ export function fieldLevelDefaultValue(configs: ScreenFieldModeConfig[] | undefi
   return configs?.find((config) => config.defaultValue)?.defaultValue ?? ''
 }
 
+export function inheritRequiredOnDrafts(drafts: ModeConfigDraft[]): ModeConfigDraft[] {
+  return drafts.map((draft) => ({ ...draft, required: RequiredOverride.Inherit }))
+}
+
 export function applyDefaultValueToDrafts(
   drafts: ModeConfigDraft[],
   modes: Array<{ id: string; modeCode?: string | null }>,

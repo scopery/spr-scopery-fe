@@ -6,6 +6,7 @@ import {
   draftFromModeConfig,
   effectiveRequired,
   fieldLevelDefaultValue,
+  inheritRequiredOnDrafts,
 } from './mode-config.rules'
 import type { ModeConfigDraft, ScreenFieldModeConfig } from '../model/screen-spec'
 
@@ -16,6 +17,22 @@ describe('mode-config.rules', () => {
     const draft = draftFromModeConfig('m1', undefined)
     expect(draft.required).toBe(RequiredOverride.Inherit)
     expect(draft.isVisible).toBe(true)
+  })
+
+  it('forces inherit so matrix save writes field.required', () => {
+    const drafts = inheritRequiredOnDrafts([
+      {
+        modeId: 'm1',
+        isVisible: true,
+        required: RequiredOverride.Required,
+        isReadonly: false,
+        defaultValue: null,
+        displayOrder: null,
+      },
+    ])
+    expect(drafts[0].required).toBe(RequiredOverride.Inherit)
+    expect(buildModeConfigReplacePayload(drafts, false).modeConfigs[0].isRequired).toBe(false)
+    expect(buildModeConfigReplacePayload(drafts, true).modeConfigs[0].isRequired).toBe(true)
   })
 
   it('sends every mode row on replace so hidden / required overrides are not dropped', () => {

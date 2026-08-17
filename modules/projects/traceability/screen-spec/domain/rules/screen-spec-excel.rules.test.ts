@@ -6,6 +6,7 @@ import {
   buildScreenSpecWorkbookModel,
   collectDefineModeCodes,
   fieldDefaultValue,
+  fieldRequiredMark,
   formatRuleParams,
   formatValidationCondition,
   pickValidationsWithRuleCodes,
@@ -396,7 +397,7 @@ describe('screen-spec-excel.rules', () => {
     expect(model.defineRows.find((r) => r.physicalName === 'q')?.length).toBe('64')
   })
 
-  it('maps header audit from revisions and required from any mode', () => {
+  it('maps header audit from revisions', () => {
     const searchOnly = screen({
       id: 's4',
       code: 'JOBS',
@@ -487,8 +488,23 @@ describe('screen-spec-excel.rules', () => {
     expect(model.header.updatedBy).toBe('Yen')
     expect(model.header.updatedDate).toBe('2026-08-14')
     const keyword = model.defineRows.find((r) => r.physicalName === 'keyword')
-    expect(keyword?.required).toBe(MODE_VISIBLE_MARK)
+    expect(keyword?.required).toBe('')
     expect(keyword?.length).toBe('80')
+  })
+
+  it('marks Required from the field flag, not mode matrix', () => {
+    expect(
+      fieldRequiredMark({
+        required: true,
+        modeConfigs: [{ modeCode: 'CREATE', isRequired: false }],
+      } as ScreenFullSpec['fields'][number])
+    ).toBe(MODE_VISIBLE_MARK)
+    expect(
+      fieldRequiredMark({
+        required: false,
+        modeConfigs: [{ modeCode: 'CREATE', isRequired: true }],
+      } as ScreenFullSpec['fields'][number])
+    ).toBe('')
   })
 
   it('uses the first mode default that has a value', () => {

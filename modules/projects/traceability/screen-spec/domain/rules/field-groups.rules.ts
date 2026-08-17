@@ -142,6 +142,40 @@ export function fieldSectionGroupLabel(group: {
   return 'No section'
 }
 
+export interface FieldGroupHeadingModel {
+  code: string | null
+  title: string
+  subtitle: string | null
+}
+
+export function fieldSectionGroupHeading(group: {
+  section: FieldSectionRef | null
+  component: FieldComponentRef | null
+}): FieldGroupHeadingModel {
+  if (group.section && group.component) {
+    return {
+      code: group.component.code,
+      title: group.section.name,
+      subtitle: group.component.name,
+    }
+  }
+  if (group.section) return { code: null, title: group.section.name, subtitle: null }
+  return { code: null, title: 'No section', subtitle: null }
+}
+
+export function fieldComponentGroupHeading(group: {
+  key: string
+  component: FieldComponentRef | null
+}): FieldGroupHeadingModel {
+  if (group.component) {
+    return { code: group.component.code, title: group.component.name, subtitle: null }
+  }
+  if (group.key !== UNGROUPED_COMPONENT_KEY) {
+    return { code: null, title: 'Linked component', subtitle: null }
+  }
+  return { code: null, title: 'No component', subtitle: null }
+}
+
 export function filterFieldComponentGroups<
   T extends {
     fieldKey: string

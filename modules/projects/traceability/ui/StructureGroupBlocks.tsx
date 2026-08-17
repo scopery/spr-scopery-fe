@@ -4,10 +4,14 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
+import { FieldGroupHeading } from './FieldGroupHeading'
 
 export interface StructureItemGroup {
   key: string
   label: string
+  code?: string | null
+  title?: string
+  subtitle?: string | null
   itemIds: string[]
 }
 
@@ -61,7 +65,7 @@ export function StructureGroupBlocks<T extends { id: string }>({
           <div key={block.group.key}>
             <button
               type="button"
-              className="flex w-full items-center gap-1.5 bg-neutral-50 px-3 py-2 text-left"
+              className="flex w-full items-start gap-1.5 bg-neutral-50 px-3 py-2 text-left"
               aria-expanded={open}
               onClick={() =>
                 setCollapsed((prev) => {
@@ -75,14 +79,16 @@ export function StructureGroupBlocks<T extends { id: string }>({
               <ChevronDown
                 size={14}
                 className={cn(
-                  'shrink-0 text-neutral-500 transition-transform',
+                  'mt-1 shrink-0 text-neutral-500 transition-transform',
                   !open && '-rotate-90'
                 )}
               />
               <span className="min-w-0 flex-1">
-                <Typography variant="small" className="font-medium">
-                  {block.group.label}
-                </Typography>
+                <FieldGroupHeading
+                  code={block.group.code}
+                  title={block.group.title ?? block.group.label}
+                  subtitle={block.group.subtitle}
+                />
               </span>
               <Typography variant="caption" tone="muted">
                 {block.items.length}

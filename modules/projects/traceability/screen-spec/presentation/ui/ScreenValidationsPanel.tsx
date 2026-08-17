@@ -5,11 +5,13 @@ import { ChevronDown, Pencil } from 'lucide-react'
 import { Button, Input, Modal, PageSkeleton, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import {
+  fieldComponentGroupHeading,
   fieldComponentGroupLabel,
   filterFieldComponentGroups,
   groupFieldsByComponent,
   shouldShowComponentGroups,
 } from '../../domain/rules/field-groups.rules'
+import { FieldGroupHeading } from '../../../ui/FieldGroupHeading'
 import { useScreenValidations, useValidationRuleTypes } from '../hooks/useFieldValidations'
 import { FieldValidationsEditor } from './FieldValidationsEditor'
 import { FieldValidationJsonImportModal } from './FieldValidationJsonImportModal'
@@ -94,7 +96,7 @@ function ValidationFieldGroups({
           <li key={group.key}>
             <button
               type="button"
-              className="flex w-full items-center gap-1.5 bg-neutral-50 px-3 py-2 text-left"
+              className="flex w-full items-start gap-1.5 bg-neutral-50 px-3 py-2 text-left"
               aria-expanded={open}
               onClick={() =>
                 setCollapsed((prev) => {
@@ -108,14 +110,12 @@ function ValidationFieldGroups({
               <ChevronDown
                 size={14}
                 className={cn(
-                  'shrink-0 text-neutral-500 transition-transform',
+                  'mt-1 shrink-0 text-neutral-500 transition-transform',
                   !open && '-rotate-90'
                 )}
               />
               <span className="min-w-0 flex-1">
-                <Typography variant="small" className="font-medium">
-                  {fieldComponentGroupLabel(group)}
-                </Typography>
+                <FieldGroupHeading {...fieldComponentGroupHeading(group)} />
               </span>
               <Typography variant="caption" tone="muted">
                 {group.fields.length}

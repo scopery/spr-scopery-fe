@@ -11,47 +11,29 @@ import {
   type ReactNode,
 } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { Button, Checkbox, Input, Modal, Select, Typography } from '@/shared/ui'
+import { Button, Checkbox, Input, Modal, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
-import { RequiredOverride } from '../../domain/enums/screen-spec.enum'
 import { ScreenSpecMessages } from '../../domain/messages/screen-spec.messages'
-import { draftFromModeConfig, findModeConfig } from '../../domain/rules/mode-config.rules'
 import {
-  UNGROUPED_COMPONENT_KEY,
+  draftFromModeConfig,
+  findModeConfig,
+  inheritRequiredOnDrafts,
+} from '../../domain/rules/mode-config.rules'
+import {
+  fieldComponentGroupHeading,
   groupFieldsByComponent,
   shouldShowComponentGroups,
 } from '../../domain/rules/field-groups.rules'
+import { FieldGroupHeading } from '../../../ui/FieldGroupHeading'
 import { useScreenFieldSpec } from '../hooks/useScreenFieldSpec'
 import type { ModeConfigDraft, ScreenFieldModeConfig, ScreenMode } from '../../domain/model/screen-spec'
 import type { RegistryScreenField } from '../../../model/application-registry'
 import type { SpecCatalogComponent } from './FieldSpecDrawer'
 
-function componentGroupLabel(group: {
-  key: string
-  component: { code: string; name: string } | null
-}): string {
-  if (group.component) return `${group.component.code} · ${group.component.name}`
-  if (group.key !== UNGROUPED_COMPONENT_KEY) return 'Linked component'
-  return 'No component'
-}
-
-const REQUIRED_OPTIONS = [
-  { value: RequiredOverride.Inherit, label: 'Inherit' },
-  { value: RequiredOverride.Required, label: 'Required' },
-  { value: RequiredOverride.Optional, label: 'Not required' },
-]
-
-function requiredLabel(value: ModeConfigDraft['required']): string {
-  if (value === RequiredOverride.Required) return 'Required'
-  if (value === RequiredOverride.Optional) return 'Not required'
-  return 'Inherit'
-}
-
 function modeSummary(draft: ModeConfigDraft): string {
   return [
     draft.isVisible ? 'Visible' : 'Hidden',
     draft.isReadonly ? 'Readonly' : 'Editable',
-    requiredLabel(draft.required),
     draft.defaultValue ? `Default ${draft.defaultValue}` : null,
   ]
     .filter(Boolean)
@@ -120,13 +102,6 @@ function ModeControlStack({
         />
         Readonly
       </label>
-      <Select
-        size="sm"
-        className="w-full"
-        value={draft.required}
-        onValueChange={(v: string) => onChange({ required: v as ModeConfigDraft['required'] })}
-        options={REQUIRED_OPTIONS}
-      />
       <Input
         size="sm"
         fullWidth
@@ -225,7 +200,6 @@ function MatrixEditRow({
     return (
       draft.isVisible !== orig.isVisible ||
       draft.isReadonly !== orig.isReadonly ||
-      draft.required !== orig.required ||
       (draft.defaultValue ?? '') !== (orig.defaultValue ?? '')
     )
   })
@@ -237,7 +211,10 @@ function MatrixEditRow({
   const save = useCallback(async () => {
     setRowError(null)
     try {
-      await saveModeConfigs(drafts, detail?.required ?? field.required)
+      await saveModeConfigs(
+        inheritRequiredOnDrafts(drafts),
+        detail?.required ?? field.required
+      )
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to save'
       setRowError(message)
@@ -323,7 +300,7 @@ function MatrixFieldGroups({
               <td colSpan={colSpan} className="sticky left-0 border-b border-neutral-200 bg-neutral-50 px-3 py-1.5">
                 <button
                   type="button"
-                  className="flex items-center gap-1.5 text-left"
+                  className="flex items-start gap-1.5 text-left"
                   aria-expanded={open}
                   onClick={() =>
                     setCollapsed((prev) => {
@@ -337,13 +314,14 @@ function MatrixFieldGroups({
                   <ChevronDown
                     size={14}
                     className={cn(
-                      'shrink-0 text-neutral-500 transition-transform',
+                      'mt-1 shrink-0 text-neutral-500 transition-transform',
                       !open && '-rotate-90'
                     )}
                   />
-                  <Typography variant="small" className="font-medium">
-                    {componentGroupLabel(group)}
-                  </Typography>
+                  <FieldGroupHeading
+                    className="min-w-0 flex-1"
+                    {...fieldComponentGroupHeading(group)}
+                  />
                   <Typography variant="caption" tone="muted">
                     {group.fields.length}
                   </Typography>
