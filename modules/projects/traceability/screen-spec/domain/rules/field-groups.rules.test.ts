@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   UNGROUPED_COMPONENT_KEY,
+  filterFieldComponentGroups,
   groupFieldsByComponent,
   shouldShowComponentGroups,
 } from './field-groups.rules'
@@ -45,5 +46,35 @@ describe('groupFieldsByComponent', () => {
     expect(groups[0].key).toBe('c1')
     expect(groups[0].component?.code).toBe('TXT')
     expect(shouldShowComponentGroups(groups)).toBe(true)
+  })
+})
+
+describe('filterFieldComponentGroups', () => {
+  const groups = [
+    {
+      key: 'c1',
+      component: { id: 'c1', code: 'TXT', name: 'Text' },
+      fields: [
+        { fieldKey: 'email', label: 'Email' },
+        { fieldKey: 'name', label: 'Full name' },
+      ],
+    },
+    {
+      key: UNGROUPED_COMPONENT_KEY,
+      component: null,
+      fields: [{ fieldKey: 'note', label: 'Note' }],
+    },
+  ]
+
+  it('keeps the whole group when the component name matches', () => {
+    const next = filterFieldComponentGroups(groups, 'txt')
+    expect(next).toHaveLength(1)
+    expect(next[0].fields).toHaveLength(2)
+  })
+
+  it('keeps only matching fields when the query is a field key', () => {
+    const next = filterFieldComponentGroups(groups, 'email')
+    expect(next).toHaveLength(1)
+    expect(next[0].fields.map((f) => f.fieldKey)).toEqual(['email'])
   })
 })

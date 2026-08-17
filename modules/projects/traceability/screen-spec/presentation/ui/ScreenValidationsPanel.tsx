@@ -1,26 +1,150 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil } from 'lucide-react'
+import { ChevronDown, Pencil } from 'lucide-react'
 import { Button, Input, Modal, PageSkeleton, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
+import {
+  fieldComponentGroupLabel,
+  filterFieldComponentGroups,
+  groupFieldsByComponent,
+  shouldShowComponentGroups,
+} from '../../domain/rules/field-groups.rules'
 import { useScreenValidations, useValidationRuleTypes } from '../hooks/useFieldValidations'
 import { FieldValidationsEditor } from './FieldValidationsEditor'
 import { FieldValidationJsonImportModal } from './FieldValidationJsonImportModal'
 import type { ScreenMode } from '../../domain/model/screen-spec'
 import type { RegistryScreenField } from '../../../model/application-registry'
+import type { SpecCatalogComponent } from './FieldSpecDrawer'
+
+function RuleCount({ count }: { count: number }) {
+  return (
+    <span
+      className={cn(
+        'shrink-0 px-1.5 py-0.5 text-[11px]',
+        count > 0 ? 'bg-primary/10 text-primary' : 'bg-neutral-100 text-neutral-400'
+      )}
+    >
+      {count}
+    </span>
+  )
+}
+
+function ValidationFieldGroups({
+  groups,
+  countByField,
+  selectedFieldId,
+  onSelect,
+}: {
+  groups: ReturnType<typeof groupFieldsByComponent<RegistryScreenField>>
+  countByField: Map<string, number>
+  selectedFieldId?: string | null
+  onSelect?: (fieldId: string) => void
+}) {
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
+  const showGroups = shouldShowComponentGroups(groups)
+
+  const fieldRow = (field: RegistryScreenField) => {
+    const count = countByField.get(field.id) ?? 0
+    const active = selectedFieldId === field.id
+    const body = (
+      <>
+        <span className="min-w-0">
+          <Typography variant="small">{field.fieldKey}</Typography>
+          <Typography variant="caption" tone="muted" className="block truncate">
+            {field.label}
+          </Typography>
+        </span>
+        <RuleCount count={count} />
+      </>
+    )
+    if (!onSelect) {
+      return (
+        <li key={field.id} className="flex items-start justify-between gap-2 px-3 py-2.5">
+          {body}
+        </li>
+      )
+    }
+    return (
+      <li key={field.id}>
+        <button
+          type="button"
+          onClick={() => onSelect(field.id)}
+          className={cn(
+            'flex w-full items-start justify-between gap-2 px-3 py-2.5 text-left',
+            active ? 'bg-neutral-50' : 'hover:bg-neutral-50'
+          )}
+        >
+          {body}
+        </button>
+      </li>
+    )
+  }
+
+  if (!showGroups) {
+    return <ul className="divide-y divide-neutral-100">{groups.flatMap((g) => g.fields).map(fieldRow)}</ul>
+  }
+
+  return (
+    <ul className="divide-y divide-neutral-100">
+      {groups.map((group) => {
+        const open = !collapsed.has(group.key)
+        const ruleCount = group.fields.reduce((sum, field) => sum + (countByField.get(field.id) ?? 0), 0)
+        return (
+          <li key={group.key}>
+            <button
+              type="button"
+              className="flex w-full items-center gap-1.5 bg-neutral-50 px-3 py-2 text-left"
+              aria-expanded={open}
+              onClick={() =>
+                setCollapsed((prev) => {
+                  const next = new Set(prev)
+                  if (next.has(group.key)) next.delete(group.key)
+                  else next.add(group.key)
+                  return next
+                })
+              }
+            >
+              <ChevronDown
+                size={14}
+                className={cn(
+                  'shrink-0 text-neutral-500 transition-transform',
+                  !open && '-rotate-90'
+                )}
+              />
+              <span className="min-w-0 flex-1">
+                <Typography variant="small" className="font-medium">
+                  {fieldComponentGroupLabel(group)}
+                </Typography>
+              </span>
+              <Typography variant="caption" tone="muted">
+                {group.fields.length}
+              </Typography>
+              <RuleCount count={ruleCount} />
+            </button>
+            {open ? <ul className="divide-y divide-neutral-100">{group.fields.map(fieldRow)}</ul> : null}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
 
 export function ScreenValidationsPanel({
   workspaceId,
   screenId,
   modes,
   fields,
+  components = [],
+  componentIdBySectionId,
   onChanged,
 }: {
   workspaceId: string
   screenId: string
   modes: ScreenMode[]
   fields: RegistryScreenField[]
+  components?: SpecCatalogComponent[]
+  componentIdBySectionId?: Record<string, string>
   onChanged?: () => void
 }) {
   const fieldIds = useMemo(() => fields.map((f) => f.id), [fields])
@@ -39,19 +163,23 @@ export function ScreenValidationsPanel({
     [fields, modes, ruleTypes]
   )
 
-  const filteredFields = useMemo(() => {
-    const q = fieldQuery.trim().toLowerCase()
-    if (!q) return fields
-    return fields.filter(
-      (field) =>
-        field.fieldKey.toLowerCase().includes(q) || field.label.toLowerCase().includes(q)
-    )
-  }, [fields, fieldQuery])
+  const groups = useMemo(
+    () => groupFieldsByComponent(fields, components, componentIdBySectionId),
+    [componentIdBySectionId, components, fields]
+  )
+  const visibleGroups = useMemo(
+    () => filterFieldComponentGroups(groups, fieldQuery),
+    [fieldQuery, groups]
+  )
+  const visibleFields = useMemo(
+    () => visibleGroups.flatMap((group) => group.fields),
+    [visibleGroups]
+  )
 
   useEffect(() => {
-    if (selectedFieldId && filteredFields.some((f) => f.id === selectedFieldId)) return
-    setSelectedFieldId(filteredFields[0]?.id ?? null)
-  }, [filteredFields, selectedFieldId])
+    if (selectedFieldId && visibleFields.some((f) => f.id === selectedFieldId)) return
+    setSelectedFieldId(visibleFields[0]?.id ?? null)
+  }, [selectedFieldId, visibleFields])
 
   const countByField = useMemo(() => {
     const map = new Map<string, number>()
@@ -99,29 +227,9 @@ export function ScreenValidationsPanel({
           {error}
         </Typography>
       ) : null}
-      <ul className="divide-y divide-neutral-100 border border-neutral-200">
-        {fields.map((field) => {
-          const count = countByField.get(field.id) ?? 0
-          return (
-            <li key={field.id} className="flex items-start justify-between gap-2 px-3 py-2.5">
-              <span className="min-w-0">
-                <Typography variant="small">{field.fieldKey}</Typography>
-                <Typography variant="caption" tone="muted" className="block truncate">
-                  {field.label}
-                </Typography>
-              </span>
-              <span
-                className={cn(
-                  'shrink-0 px-1.5 py-0.5 text-[11px]',
-                  count > 0 ? 'bg-primary/10 text-primary' : 'bg-neutral-100 text-neutral-400'
-                )}
-              >
-                {count}
-              </span>
-            </li>
-          )
-        })}
-      </ul>
+      <div className="border border-neutral-200">
+        <ValidationFieldGroups groups={groups} countByField={countByField} />
+      </div>
       <Modal
         open={editOpen}
         onClose={() => setEditOpen(false)}
@@ -136,51 +244,23 @@ export function ScreenValidationsPanel({
             type="search"
             value={fieldQuery}
             onChange={(e) => setFieldQuery(e.target.value)}
-            placeholder="Search field"
-            aria-label="Search field"
+            placeholder="Search field or component"
+            aria-label="Search field or component"
           />
           <div className="flex max-h-[min(28rem,55vh)] min-h-0 min-w-0 border border-neutral-200">
-            <aside className="w-52 shrink-0 overflow-y-auto border-r border-neutral-200">
-              <ul className="divide-y divide-neutral-100">
-                {filteredFields.length === 0 ? (
-                  <li className="px-3 py-2.5">
-                    <Typography variant="caption" tone="muted">
-                      No fields match this search.
-                    </Typography>
-                  </li>
-                ) : null}
-                {filteredFields.map((field) => {
-                  const count = countByField.get(field.id) ?? 0
-                  const active = selectedFieldId === field.id
-                  return (
-                    <li key={field.id}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedFieldId(field.id)}
-                        className={cn(
-                          'flex w-full items-start justify-between gap-2 px-3 py-2.5 text-left',
-                          active ? 'bg-neutral-50' : 'hover:bg-neutral-50'
-                        )}
-                      >
-                        <span className="min-w-0">
-                          <Typography variant="small">{field.fieldKey}</Typography>
-                          <Typography variant="caption" tone="muted" className="block truncate">
-                            {field.label}
-                          </Typography>
-                        </span>
-                        <span
-                          className={cn(
-                            'shrink-0 px-1.5 py-0.5 text-[11px]',
-                            count > 0 ? 'bg-primary/10 text-primary' : 'bg-neutral-100 text-neutral-400'
-                          )}
-                        >
-                          {count}
-                        </span>
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
+            <aside className="w-56 shrink-0 overflow-y-auto border-r border-neutral-200">
+              {visibleFields.length === 0 ? (
+                <Typography variant="caption" tone="muted" className="block px-3 py-2.5">
+                  No fields match this search.
+                </Typography>
+              ) : (
+                <ValidationFieldGroups
+                  groups={visibleGroups}
+                  countByField={countByField}
+                  selectedFieldId={selectedFieldId}
+                  onSelect={setSelectedFieldId}
+                />
+              )}
             </aside>
             <div className="min-w-0 flex-1 overflow-y-auto p-md">
               {selectedField ? (

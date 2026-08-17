@@ -214,6 +214,12 @@ describe('screen-spec-excel.rules', () => {
     expect(email?.modeMarks.VIEW).toBe('')
     expect(email?.table).toBe('users')
     expect(model.defineRows.some((r) => r.kind === 'screen' && r.screenCode === 'LOGIN')).toBe(true)
+    expect(model.validationRows[0]).toMatchObject({
+      kind: 'screen',
+      field: 'LOGIN Login',
+      screenCode: 'LOGIN',
+    })
+    expect(model.validationRows[1]).toMatchObject({ kind: 'section', field: 'Main' })
   })
 
   it('maps Event sheet rows to system fields', () => {
@@ -264,8 +270,15 @@ describe('screen-spec-excel.rules', () => {
 
   it('maps every field validation onto the Validation sheet and outlines processes', () => {
     const model = buildScreenSpecWorkbookModel(wrapSingleScreenAsDocument(login))
-    expect(model.validationRows.map((r) => r.ruleType)).toEqual(['MAX_LENGTH', 'EMAIL'])
-    expect(model.validationRows[1]).toMatchObject({
+    expect(model.validationRows.map((r) => r.kind)).toEqual(['section', 'rule', 'rule'])
+    expect(model.validationRows[0].field).toBe('Main')
+    expect(model.validationRows.filter((r) => r.kind === 'rule').map((r) => r.ruleType)).toEqual([
+      'MAX_LENGTH',
+      'EMAIL',
+    ])
+    expect(model.validationRows[2]).toMatchObject({
+      kind: 'rule',
+      no: '2',
       field: 'Email',
       physicalName: 'email',
       mode: 'All',
@@ -535,6 +548,8 @@ describe('screen-spec-excel.rules', () => {
     const model = buildScreenSpecWorkbookModel(wrapSingleScreenAsDocument(scoped))
     expect(model.validationRows.map((r) => r.ruleType)).toEqual(['MAX_LENGTH', 'REGEX'])
     expect(model.validationRows[1]).toEqual({
+      kind: 'rule',
+      no: '2',
       screenCode: 'FORM',
       field: 'Phone',
       physicalName: 'phone',

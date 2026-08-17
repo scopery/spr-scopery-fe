@@ -34,6 +34,8 @@ const FILL = {
   grey: solid('FF595959'),
   labelGrey: solid('FFD9D9D9'),
   labelBlue: solid('FFD6E3F0'),
+  metaLabel: solid('FFE2F0F4'),
+  layoutHeader: solid('FFE7E6E6'),
   navy: solid('FF1F4E79'),
   maroon: solid('FF800000'),
   lavender: solid('FFCCC0DA'),
@@ -103,12 +105,12 @@ const THEME = {
     tableHeaderFont: WHITE_BOLD,
   },
   layout: {
-    sidebar: FILL.grey,
-    label: FILL.labelGrey,
+    sidebar: FILL.teal,
+    label: FILL.metaLabel,
     value: FILL.white,
-    tableHeader: FILL.teal,
-    tableHeaderFont: WHITE_BOLD,
-    banner: FILL.teal,
+    tableHeader: FILL.layoutHeader,
+    tableHeaderFont: BOLD,
+    banner: FILL.layoutHeader,
   },
 } as const satisfies Record<string, SheetTheme>
 
@@ -157,6 +159,10 @@ function paintRange(
   for (let c = from; c <= to; c++) paint(sheet.getCell(row, c), fill, font, alignment)
 }
 
+function freezeThrough(sheet: ExcelJS.Worksheet, lastFrozenRow: number) {
+  sheet.views = [{ state: 'frozen', ySplit: lastFrozenRow, showGridLines: false }]
+}
+
 function writeLabelValuePair(
   sheet: ExcelJS.Worksheet,
   row: number,
@@ -168,7 +174,7 @@ function writeLabelValuePair(
 ) {
   const labelCell = sheet.getCell(row, labelCol)
   labelCell.value = label
-  paint(labelCell, theme.label, BOLD)
+  paint(labelCell, FILL.metaLabel, BOLD)
   const valueCell = sheet.getCell(row, valueCol)
   valueCell.value = value
   paint(valueCell, theme.value)
@@ -178,10 +184,10 @@ function writeMeta(sheet: ExcelJS.Worksheet, header: ScreenSpecExcelHeader, them
   sheet.mergeCells(2, 1, 6, 2)
   const common = sheet.getCell(2, 1)
   common.value = 'Common Information'
-  paint(common, theme.sidebar, WHITE_BOLD, { vertical: 'top' })
-  paintRange(sheet, 2, 2, 2, theme.sidebar, WHITE_BOLD, { vertical: 'top' })
+  paint(common, FILL.teal, WHITE_BOLD, { vertical: 'top' })
+  paintRange(sheet, 2, 2, 2, FILL.teal, WHITE_BOLD, { vertical: 'top' })
   for (let r = 3; r <= 6; r++) {
-    paintRange(sheet, r, 1, 2, theme.sidebar, WHITE_BOLD, { vertical: 'top' })
+    paintRange(sheet, r, 1, 2, FILL.teal, WHITE_BOLD, { vertical: 'top' })
     ensureRowHeight(sheet.getRow(r))
   }
   ensureRowHeight(sheet.getRow(2))
@@ -206,9 +212,9 @@ function writeMeta(sheet: ExcelJS.Worksheet, header: ScreenSpecExcelHeader, them
   sheet.mergeCells(7, 1, 9, 2)
   const screenInfo = sheet.getCell(7, 1)
   screenInfo.value = 'Screen Information'
-  paint(screenInfo, theme.sidebar, WHITE_BOLD, { vertical: 'top' })
-  paintRange(sheet, 7, 2, 2, theme.sidebar, WHITE_BOLD, { vertical: 'top' })
-  for (let r = 8; r <= 9; r++) paintRange(sheet, r, 1, 2, theme.sidebar, WHITE_BOLD, { vertical: 'top' })
+  paint(screenInfo, FILL.teal, WHITE_BOLD, { vertical: 'top' })
+  paintRange(sheet, 7, 2, 2, FILL.teal, WHITE_BOLD, { vertical: 'top' })
+  for (let r = 8; r <= 9; r++) paintRange(sheet, r, 1, 2, FILL.teal, WHITE_BOLD, { vertical: 'top' })
 
   writeLabelValuePair(sheet, 7, 3, 4, 'Screen ID', header.screenIdText, theme)
   writeLabelValuePair(sheet, 8, 3, 4, 'Screen Name', header.screenNameText, theme)
@@ -222,7 +228,7 @@ function writeMeta(sheet: ExcelJS.Worksheet, header: ScreenSpecExcelHeader, them
   ensureRowHeight(sheet.getRow(8))
   ensureRowHeight(sheet.getRow(9), header.overview ? 36 : MIN_ROW_HEIGHT)
 
-  sheet.views = [{ state: 'frozen', ySplit: 10, showGridLines: false }]
+  freezeThrough(sheet, 10)
   return 11
 }
 
@@ -348,7 +354,7 @@ function addChangeHistory(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) 
 function addLayout(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   const sheet = wb.addWorksheet(SCREEN_SPEC_EXCEL_SHEETS.layout)
   const start = writeMeta(sheet, model.header, THEME.layout)
-  writeBanner(sheet, start, HEADER_LAST_COL, 'Figma / UI Reference', THEME.layout.banner ?? FILL.teal, WHITE_BOLD)
+  writeBanner(sheet, start, HEADER_LAST_COL, 'Figma / UI Reference', THEME.layout.banner ?? FILL.layoutHeader, BOLD)
   sheet.mergeCells(start + 1, 1, start + 1, HEADER_LAST_COL)
   const url = sheet.getCell(start + 1, 1)
   url.value = model.header.figmaUrl
@@ -385,6 +391,7 @@ function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   ]
   writeBanner(sheet, start, headers.length, 'Field Data', THEME.defines.banner ?? FILL.orange, WHITE_BOLD)
   writeTableHeaderRow(sheet, start + 1, headers, THEME.defines)
+  freezeThrough(sheet, start + 1)
 
   model.defineRows.forEach((row, i) => {
     const r = start + 2 + i
@@ -464,18 +471,33 @@ function addValidation(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
     'Remark',
   ]
   writeTableHeaderRow(sheet, start + 1, headers, THEME.validation)
+  freezeThrough(sheet, start + 1)
   model.validationRows.forEach((row, i) => {
-    writeBodyCells(sheet, start + 2 + i, [
-      String(i + 1),
-      row.field,
-      row.physicalName,
-      row.mode,
-      row.ruleType,
-      row.params,
-      row.individualRule,
-      row.errorMessage,
-      row.remark,
-    ])
+    const r = start + 2 + i
+    const fill = row.kind === 'screen' ? FILL.beigeDark : row.kind === 'section' ? FILL.beige : FILL.white
+    const font = row.kind === 'rule' ? FONT : BOLD
+    writeBodyCells(
+      sheet,
+      r,
+      [
+        row.no,
+        row.field,
+        row.physicalName,
+        row.mode,
+        row.ruleType,
+        row.params,
+        row.individualRule,
+        row.errorMessage,
+        row.remark,
+      ],
+      fill,
+      font
+    )
+    if (row.kind !== 'rule') {
+      sheet.mergeCells(r, 2, r, headers.length)
+      paint(sheet.getCell(r, 2), fill, BOLD)
+      paintRange(sheet, r, 3, headers.length, fill, BOLD)
+    }
   })
   applySheetColumns(sheet, [8, 24, 20, 12, 18, 22, 24, 36, 20])
 }

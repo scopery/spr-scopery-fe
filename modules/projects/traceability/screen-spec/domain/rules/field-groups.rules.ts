@@ -55,3 +55,28 @@ export function shouldShowComponentGroups(
 ): boolean {
   return groups.length > 1 || groups[0]?.key !== UNGROUPED_COMPONENT_KEY
 }
+
+export function fieldComponentGroupLabel(group: {
+  key: string
+  component: FieldComponentRef | null
+}): string {
+  if (group.component) return `${group.component.code} · ${group.component.name}`
+  if (group.key !== UNGROUPED_COMPONENT_KEY) return 'Linked component'
+  return 'No component'
+}
+
+export function filterFieldComponentGroups<
+  T extends { fieldKey: string; label: string },
+>(groups: FieldComponentGroup<T>[], query: string): FieldComponentGroup<T>[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return groups
+  return groups.flatMap((group) => {
+    const groupHit = fieldComponentGroupLabel(group).toLowerCase().includes(q)
+    if (groupHit) return [group]
+    const fields = group.fields.filter(
+      (field) =>
+        field.fieldKey.toLowerCase().includes(q) || field.label.toLowerCase().includes(q)
+    )
+    return fields.length > 0 ? [{ ...group, fields }] : []
+  })
+}

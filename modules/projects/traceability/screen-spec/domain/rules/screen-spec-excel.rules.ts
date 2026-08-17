@@ -94,6 +94,8 @@ export interface ScreenSpecExcelOutlineRow {
 }
 
 export interface ScreenSpecExcelValidationRow {
+  kind: 'screen' | 'section' | 'rule'
+  no: string
   screenCode: string
   field: string
   physicalName: string
@@ -444,24 +446,51 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
     const sections = sortByOrder(screen.sections)
     const fields = sortByOrder(screen.fields)
     let fieldNo = 0
+    let validationNo = 0
+    const screenHasValidations = fields.some((f) => f.validations.length > 0)
+    if (grouped && screenHasValidations) {
+      validationRows.push(
+        emptyGroupValidationRow('screen', `${screen.code} ${screen.name}`.trim(), screen.code)
+      )
+    }
 
     for (const section of sections) {
       defineRows.push(emptyGroupDefineRow('section', section.name, screen.code, modeCodes))
       const sectionFields = fields.filter((f) => f.sectionId === section.id)
+      const sectionValidated = sectionFields.filter((f) => f.validations.length > 0)
+      if (sectionValidated.length > 0) {
+        validationRows.push(emptyGroupValidationRow('section', section.name, screen.code))
+      }
       for (const field of sectionFields) {
         fieldNo += 1
         defineRows.push(toDefineFieldRow(field, fieldNo, modeCodes, screen.code))
         rememberTable(fieldLinkedDataSource(field), field.dataField?.columnName || field.fieldKey)
-        pushValidationRows(validationRows, field, screen.code, screen.modes)
+        validationNo = pushValidationRows(
+          validationRows,
+          field,
+          screen.code,
+          screen.modes,
+          validationNo
+        )
       }
     }
 
     const unsectioned = fields.filter((f) => !f.sectionId || !sections.some((s) => s.id === f.sectionId))
+    const unsectionedValidated = unsectioned.filter((f) => f.validations.length > 0)
+    if (unsectionedValidated.length > 0 && sections.length > 0) {
+      validationRows.push(emptyGroupValidationRow('section', 'No section', screen.code))
+    }
     for (const field of unsectioned) {
       fieldNo += 1
       defineRows.push(toDefineFieldRow(field, fieldNo, modeCodes, screen.code))
       rememberTable(fieldLinkedDataSource(field), field.dataField?.columnName || field.fieldKey)
-      pushValidationRows(validationRows, field, screen.code, screen.modes)
+      validationNo = pushValidationRows(
+        validationRows,
+        field,
+        screen.code,
+        screen.modes,
+        validationNo
+      )
     }
 
     for (const item of sortByOrder(screen.processItems)) {
@@ -532,6 +561,26 @@ function emptyGroupDefineRow(
     columnAttribute: '',
     remark: '',
     screenCode,
+  }
+}
+
+function emptyGroupValidationRow(
+  kind: 'screen' | 'section',
+  field: string,
+  screenCode: string
+): ScreenSpecExcelValidationRow {
+  return {
+    kind,
+    no: '',
+    screenCode,
+    field,
+    physicalName: '',
+    mode: '',
+    ruleType: '',
+    params: '',
+    individualRule: '',
+    errorMessage: '',
+    remark: '',
   }
 }
 
@@ -615,11 +664,16 @@ function pushValidationRows(
   rows: ScreenSpecExcelValidationRow[],
   field: ScreenFullSpecField,
   screenCode: string,
-  modes: Array<{ id: string; modeCode: string }>
-) {
+  modes: Array<{ id: string; modeCode: string }>,
+  startNo: number
+): number {
+  let no = startNo
   for (const rule of sortByOrder(field.validations)) {
+    no += 1
     const ruleType = validationRuleTypeCode(rule) || 'RULE'
     rows.push({
+      kind: 'rule',
+      no: String(no),
       screenCode,
       field: field.label,
       physicalName: field.fieldKey,
@@ -631,6 +685,7 @@ function pushValidationRows(
       remark: rule.remark ?? '',
     })
   }
+  return no
 }
 
 export function suggestScreenSpecExcelFilename(doc: ScreenSpecDocFullSpec): string {

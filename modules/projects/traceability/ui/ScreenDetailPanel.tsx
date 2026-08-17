@@ -563,6 +563,8 @@ export function ScreenDetailPanel({
           screenId={screen.id}
           modes={activeModes}
           fields={fields}
+          components={components}
+          componentIdBySectionId={sectionComponentIds}
           onChanged={() => void refetchValidations()}
         />
       ) : null}
