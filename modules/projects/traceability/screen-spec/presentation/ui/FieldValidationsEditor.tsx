@@ -10,7 +10,7 @@ import {
   parseParamSchema,
 } from '../../domain/rules/validation-params.rules'
 import { useFieldValidations, useValidationRuleTypes } from '../hooks/useFieldValidations'
-import type { ScreenFieldValidation, ScreenMode } from '../../domain/model/screen-spec'
+import type { ScreenFieldValidation, ScreenMode, ValidationRuleType } from '../../domain/model/screen-spec'
 
 function modeLabel(rule: ScreenFieldValidation, modes: ScreenMode[]): string {
   if (rule.modeId) {
@@ -23,6 +23,12 @@ function modeLabel(rule: ScreenFieldValidation, modes: ScreenMode[]): string {
     return rule.modeCode
   }
   return 'All modes'
+}
+
+function ruleTypeLabel(rule: ScreenFieldValidation, types: ValidationRuleType[]): string {
+  if (rule.ruleTypeCode.trim()) return rule.ruleTypeCode
+  const match = types.find((type) => type.id === rule.ruleTypeId)
+  return match?.code || match?.name || 'Rule'
 }
 
 function ruleSummary(rule: ScreenFieldValidation, modes: ScreenMode[]): string {
@@ -266,7 +272,7 @@ export function FieldValidationsEditor({
         <Typography variant="caption" tone="muted" className="mb-1.5 block">
           Rule
         </Typography>
-        <Typography variant="small">{selectedRule.ruleTypeCode || 'Rule'}</Typography>
+        <Typography variant="small">{ruleTypeLabel(selectedRule, ruleTypes)}</Typography>
       </div>
       <div>
         <Typography variant="caption" tone="muted" className="mb-1.5 block">
@@ -350,7 +356,7 @@ export function FieldValidationsEditor({
                       {index + 1}
                     </span>
                     <span className="min-w-0">
-                      <Typography variant="small">{rule.ruleTypeCode || 'Rule'}</Typography>
+                      <Typography variant="small">{ruleTypeLabel(rule, ruleTypes)}</Typography>
                       <Typography variant="caption" tone="muted" className="block truncate">
                         {ruleSummary(rule, modes)}
                       </Typography>
@@ -377,7 +383,7 @@ export function FieldValidationsEditor({
       {selectedRule ? (
         <div className="space-y-2 border-t border-neutral-100 pt-3">
           <Typography variant="small" className="line-clamp-2">
-            {selectedRule.errorMessage || selectedRule.ruleTypeCode || 'Rule'}
+            {selectedRule.errorMessage || ruleTypeLabel(selectedRule, ruleTypes)}
           </Typography>
           <Typography variant="caption" tone="muted">
             {modeLabel(selectedRule, modes)}

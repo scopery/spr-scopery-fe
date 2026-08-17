@@ -260,10 +260,10 @@ describe('screen-spec-excel.rules', () => {
     ])
   })
 
-  it('keeps required/max length off the Validation sheet and outlines processes', () => {
+  it('maps every field validation onto the Validation sheet and outlines processes', () => {
     const model = buildScreenSpecWorkbookModel(wrapSingleScreenAsDocument(login))
-    expect(model.validationRows.map((r) => r.ruleType)).toEqual(['EMAIL'])
-    expect(model.validationRows[0]).toMatchObject({
+    expect(model.validationRows.map((r) => r.ruleType)).toEqual(['MAX_LENGTH', 'EMAIL'])
+    expect(model.validationRows[1]).toMatchObject({
       field: 'Email',
       physicalName: 'email',
       mode: 'All',
@@ -531,19 +531,18 @@ describe('screen-spec-excel.rules', () => {
       ],
     })
     const model = buildScreenSpecWorkbookModel(wrapSingleScreenAsDocument(scoped))
-    expect(model.validationRows).toEqual([
-      {
-        screenCode: 'FORM',
-        field: 'Phone',
-        physicalName: 'phone',
-        mode: 'CREATE',
-        ruleType: 'REGEX',
-        params: 'pattern=^\\d+$',
-        individualRule: '',
-        errorMessage: 'digits only',
-        remark: '',
-      },
-    ])
+    expect(model.validationRows.map((r) => r.ruleType)).toEqual(['MAX_LENGTH', 'REGEX'])
+    expect(model.validationRows[1]).toEqual({
+      screenCode: 'FORM',
+      field: 'Phone',
+      physicalName: 'phone',
+      mode: 'CREATE',
+      ruleType: 'REGEX',
+      params: 'pattern=^\\d+$',
+      individualRule: '',
+      errorMessage: 'digits only',
+      remark: '',
+    })
     expect(model.defineRows.find((r) => r.physicalName === 'phone')?.length).toBe('20')
   })
 })

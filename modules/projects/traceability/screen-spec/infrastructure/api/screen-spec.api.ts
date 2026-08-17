@@ -242,7 +242,15 @@ export function mapScreenFieldDetail(raw: unknown): ScreenFieldDetail {
       : Array.isArray(r.mode_configs)
         ? (r.mode_configs as unknown[]).map(mapModeConfig)
         : [],
-    validations: Array.isArray(r.validations) ? (r.validations as unknown[]).map(mapValidation) : [],
+    validations: Array.isArray(r.validations)
+      ? (r.validations as unknown[]).map(mapValidation)
+      : Array.isArray(r.fieldValidations)
+        ? (r.fieldValidations as unknown[]).map(mapValidation)
+        : Array.isArray(r.field_validations)
+          ? (r.field_validations as unknown[]).map(mapValidation)
+          : Array.isArray(r.validationRules)
+            ? (r.validationRules as unknown[]).map(mapValidation)
+            : [],
   }
 }
 

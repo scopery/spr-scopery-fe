@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError, getErrorCode } from '@/shared/lib/api-types'
 import * as api from '../../infrastructure/api/screen-spec.api'
 import { ScreenSpecMessages } from '../../domain/messages/screen-spec.messages'
+import { resolveValidationRuleCodes } from '../../domain/rules/screen-spec-excel.rules'
 import type {
   CreateFieldValidationBody,
   ScreenFieldValidation,
@@ -59,8 +60,11 @@ export function useFieldValidations(
     setLoading(true)
     setError(null)
     try {
-      const res = await api.listFieldValidations(workspaceId, screenId, fieldId)
-      setItems(res.items)
+      const [res, types] = await Promise.all([
+        api.listFieldValidations(workspaceId, screenId, fieldId),
+        api.listValidationRuleTypes(workspaceId).catch(() => ({ items: [] })),
+      ])
+      setItems(resolveValidationRuleCodes(res.items, types.items))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load validations')
       setItems([])
@@ -139,10 +143,14 @@ export function useScreenValidations(
     setLoading(true)
     setError(null)
     try {
+      const types = await api.listValidationRuleTypes(workspaceId).catch(() => ({ items: [] }))
       const groups = await Promise.all(
         ids.map(async (fieldId) => {
           const res = await api.listFieldValidations(workspaceId, screenId, fieldId)
-          return res.items.map((rule) => ({ ...rule, fieldId }))
+          return resolveValidationRuleCodes(res.items, types.items).map((rule) => ({
+            ...rule,
+            fieldId,
+          }))
         })
       )
       setItems(groups.flat())

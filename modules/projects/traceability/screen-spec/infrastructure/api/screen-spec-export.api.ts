@@ -69,32 +69,17 @@ function sectionFromList(section: RegistryScreenSection) {
   }
 }
 
-function needsFieldEnrichment(field: ScreenFullSpecField): boolean {
-  if (field.modeConfigs.length === 0) return true
-  if (field.dataEntityFieldId && !field.dataField) return true
-  if (field.maxLength == null) return true
-  return false
-}
-
-function validationsNeedLoad(field: ScreenFullSpecField): boolean {
-  return field.validations.length === 0 || field.validations.every((rule) => !rule.ruleTypeCode.trim())
-}
-
 async function loadFieldForExport(
   workspaceId: string,
   screenId: string,
   field: ScreenFullSpecField
 ): Promise<ScreenFullSpecField> {
-  const loadValidations = validationsNeedLoad(field)
-  if (!needsFieldEnrichment(field) && !loadValidations) return field
   const [detailRaw, configs, validations] = await Promise.all([
     apiClient.get<unknown>(EP.screenField(workspaceId, screenId, field.id)).catch(() => null),
     field.modeConfigs.length > 0
       ? Promise.resolve({ items: field.modeConfigs })
       : listFieldModeConfigs(workspaceId, screenId, field.id).catch(() => ({ items: [] })),
-    loadValidations
-      ? listFieldValidations(workspaceId, screenId, field.id).catch(() => ({ items: [] }))
-      : Promise.resolve({ items: field.validations }),
+    listFieldValidations(workspaceId, screenId, field.id).catch(() => ({ items: [] })),
   ])
   const detail = detailRaw ? mapFullSpecField(detailRaw) : null
   const fallback = await (detail

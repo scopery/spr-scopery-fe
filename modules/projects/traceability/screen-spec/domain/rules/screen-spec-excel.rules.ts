@@ -292,12 +292,25 @@ export function isDefinesCoveredValidation(rule: { ruleTypeCode?: string | null 
   return DEFINES_COVERED_RULE_CODES.has(validationRuleTypeCode(rule))
 }
 
-export function pickValidationsWithRuleCodes<T extends { ruleTypeCode: string }>(
-  ...lists: T[][]
-): T[] {
-  const withCode = lists.find((list) => list.some((item) => item.ruleTypeCode.trim()))
-  if (withCode) return withCode
-  return lists.find((list) => list.length > 0) ?? []
+export function pickValidationsWithRuleCodes<
+  T extends { ruleTypeCode: string; ruleTypeId?: string; errorMessage?: string | null },
+>(...lists: T[][]): T[] {
+  let best: T[] = []
+  let bestScore = -1
+  for (const list of lists) {
+    if (list.length === 0) continue
+    let score = list.length
+    for (const item of list) {
+      if (item.ruleTypeCode.trim()) score += 10
+      if (item.ruleTypeId) score += 3
+      if (item.errorMessage) score += 1
+    }
+    if (score > bestScore) {
+      best = list
+      bestScore = score
+    }
+  }
+  return best
 }
 
 export function resolveValidationRuleCodes<T extends { ruleTypeId?: string; ruleTypeCode: string }>(
@@ -596,9 +609,7 @@ function pushValidationRows(
   modes: Array<{ id: string; modeCode: string }>
 ) {
   for (const rule of sortByOrder(field.validations)) {
-    if (isDefinesCoveredValidation(rule)) continue
-    const ruleType = validationRuleTypeCode(rule)
-    if (!ruleType) continue
+    const ruleType = validationRuleTypeCode(rule) || 'RULE'
     rows.push({
       screenCode,
       field: field.label,

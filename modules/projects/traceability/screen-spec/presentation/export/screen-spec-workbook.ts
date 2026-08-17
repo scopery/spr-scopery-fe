@@ -123,7 +123,7 @@ const MIN_ROW_HEIGHT = 20
 const HEADER_LAST_COL = 6
 const EMPTY_HISTORY_ROWS = 8
 const VALIDATION_NOTE =
-  'Note: Required and Max Length are specified on the Defines sheet. List only additional business validation rules here.'
+  'All field validation rules, including Required and Max Length. Defines still shows Required / Length as a summary.'
 
 function paint(
   cell: ExcelJS.Cell,
