@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   UNGROUPED_COMPONENT_KEY,
   UNGROUPED_SECTION_KEY,
+  fieldComponentGroupHeading,
+  fieldSectionGroupHeading,
   fieldSectionGroupLabel,
   filterFieldComponentGroups,
   groupFieldsByComponent,
@@ -84,6 +86,16 @@ describe('groupFieldsBySection', () => {
       { s1: 'c1' }
     )
     expect(fieldSectionGroupLabel(groups[0])).toBe('Main form · USR · User form')
+    expect(fieldSectionGroupHeading(groups[0])).toEqual({
+      code: 'USR',
+      title: 'Main form',
+      subtitle: 'User form',
+    })
+    expect(fieldComponentGroupHeading({ key: 'c1', component: components[0] })).toEqual({
+      code: 'USR',
+      title: 'User form',
+      subtitle: null,
+    })
   })
 
   it('hides grouping when every field is unsectioned', () => {
