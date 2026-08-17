@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button, Modal, Typography } from '@/shared/ui'
 import { SCREEN_MEDIA_CONTENT_TYPES } from '../../domain/rules/screen-media.rules'
 import {
@@ -25,6 +25,10 @@ export function SpecImageUpload({
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
+
+  useEffect(() => {
+    setPreviewOpen(false)
+  }, [imageUrl])
 
   return (
     <div className="space-y-2">

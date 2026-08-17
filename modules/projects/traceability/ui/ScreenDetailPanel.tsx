@@ -348,6 +348,7 @@ export function ScreenDetailPanel({
       ) : null}
 
       <ScreenMockupUpload
+        key={screen.id}
         workspaceId={workspaceId}
         screenId={screen.id}
         initialUrl={screen.mockupUrl}

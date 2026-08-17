@@ -9,7 +9,7 @@ export function useScreenMockupUpload(
   screenId: string,
   initialUrl?: string | null
 ) {
-  const { upload, ...state } = useSpecImageUpload(initialUrl)
+  const { upload, ...state } = useSpecImageUpload(initialUrl, screenId)
   const onFile = useCallback(
     (file: File) => {
       void upload(file, async (next, onProgress) => {
@@ -27,7 +27,7 @@ export function useComponentScreenshotUpload(
   componentId: string,
   initialUrl?: string | null
 ) {
-  const { upload, ...state } = useSpecImageUpload(initialUrl)
+  const { upload, ...state } = useSpecImageUpload(initialUrl, componentId)
   const onFile = useCallback(
     (file: File) => {
       void upload(file, async (next, onProgress) => {

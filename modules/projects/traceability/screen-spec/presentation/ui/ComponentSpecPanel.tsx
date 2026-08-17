@@ -107,6 +107,7 @@ export function ComponentSpecPanel({
         </Typography>
       ) : null}
       <ComponentScreenshotUpload
+        key={componentId}
         workspaceId={workspaceId}
         componentId={componentId}
         initialUrl={component?.screenshotUrl}
