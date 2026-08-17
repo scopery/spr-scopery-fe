@@ -110,7 +110,7 @@ function newDraftId(): string {
 }
 
 const PRIMARY_KEYS = new Set(['title', 'name', 'label'])
-const DESCRIPTION_KEYS = new Set(['description', 'note', 'content', 'conditionNote'])
+const DESCRIPTION_KEYS = new Set(['description', 'note', 'content', 'conditionNote', 'remark'])
 /** Codes stay quiet in the list — shown as meta, not the headline. */
 const META_KEYS = new Set([
   'code',

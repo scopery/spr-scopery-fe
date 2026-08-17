@@ -113,7 +113,7 @@ const FIELD_COLS = [
   },
   { key: 'required', label: 'Required', options: ['false', 'true'] as const },
   { key: 'defaultValue', label: 'Default', placeholder: 'Optional', createOnly: true },
-  { key: 'remark', label: 'Remark', placeholder: 'Optional' },
+  { key: 'remark', label: 'Remark', placeholder: 'Optional', multiline: true },
 ]
 
 const MODE_COLS = [
@@ -284,7 +284,7 @@ export function ScreenDetailPanel({
           label: f.label,
           fieldType: f.fieldType,
           required: f.required ? 'true' : 'false',
-          remark: '',
+          remark: f.remark ?? '',
         },
       })),
     [fields]

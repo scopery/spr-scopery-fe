@@ -23,7 +23,7 @@ const COLS = [
   { key: 'required', label: 'Required', options: ['false', 'true'] as const },
   { key: 'maxLength', label: 'Max length', placeholder: '100' },
   { key: 'defaultValue', label: 'Default', placeholder: 'Optional' },
-  { key: 'remark', label: 'Remark', placeholder: 'Optional' },
+  { key: 'remark', label: 'Remark', placeholder: 'Optional', multiline: true },
 ]
 
 function toComponentFieldBody(values: Record<string, string>) {

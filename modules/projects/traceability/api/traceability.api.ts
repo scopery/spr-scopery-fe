@@ -927,6 +927,7 @@ function mapRegistryScreenField(raw: unknown): RegistryScreenField {
       dataEntityFieldId == null || dataEntityFieldId === '' ? null : String(dataEntityFieldId),
     componentFieldId:
       componentFieldId == null || componentFieldId === '' ? null : String(componentFieldId),
+    remark: r.remark == null ? null : String(r.remark),
   }
 }
 

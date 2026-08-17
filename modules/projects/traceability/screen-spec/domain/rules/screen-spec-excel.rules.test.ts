@@ -268,6 +268,33 @@ describe('screen-spec-excel.rules', () => {
     ])
   })
 
+  it('keeps line breaks in Content, Condition, and Remark', () => {
+    const multiline = screen({
+      ...login,
+      fields: login.fields.map((field) => ({
+        ...field,
+        remark: 'Line 1\nLine 2',
+      })),
+      processItems: [
+        {
+          id: 'p1',
+          modeId: null,
+          title: '1. Init',
+          content: 'Load A\nLoad B',
+          sourceTable: 'USER_MASTER',
+          conditionNote: 'active\nAND enabled',
+          targetFieldId: null,
+          displayOrder: 1,
+        },
+      ],
+    })
+    const model = buildScreenSpecWorkbookModel(wrapSingleScreenAsDocument(multiline))
+    const processDetails = model.processRows.filter((r) => r.kind === 'detail')
+    expect(processDetails.find((r) => r.label === 'Content')?.detail).toBe('Load A\nLoad B')
+    expect(processDetails.find((r) => r.label === 'Condition')?.detail).toBe('active\nAND enabled')
+    expect(model.defineRows.find((r) => r.kind === 'field')?.remark).toBe('Line 1\nLine 2')
+  })
+
   it('maps every field validation onto the Validation sheet and outlines processes', () => {
     const model = buildScreenSpecWorkbookModel(wrapSingleScreenAsDocument(login))
     expect(model.validationRows.map((r) => r.kind)).toEqual(['section', 'rule', 'rule'])

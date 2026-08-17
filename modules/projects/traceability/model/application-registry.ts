@@ -188,6 +188,7 @@ export interface RegistryScreenField {
   dataEntityFieldId?: string | null
   /** Set when this field was copied from a component field via bind-component. */
   componentFieldId?: string | null
+  remark?: string | null
 }
 
 export interface RegistryScreenAction {

@@ -122,6 +122,8 @@ const BLACK: Partial<ExcelJS.Borders> = {
 }
 
 const MIN_ROW_HEIGHT = 20
+const LINE_HEIGHT = 15
+const MAX_ROW_HEIGHT = 140
 const HEADER_LAST_COL = 6
 const EMPTY_HISTORY_ROWS = 8
 const VALIDATION_NOTE =
@@ -136,11 +138,30 @@ function paint(
   cell.font = font
   cell.border = BLACK
   cell.alignment = {
-    vertical: alignment?.vertical ?? 'middle',
+    vertical: alignment?.vertical ?? 'top',
     horizontal: alignment?.horizontal ?? 'left',
     wrapText: true,
   }
   if (fill) cell.fill = fill
+}
+
+function excelMultiline(value: string | number): string | number {
+  if (typeof value !== 'string') return value
+  return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+}
+
+function heightForText(text: string, colWidth: number): number {
+  const lines = text.split('\n').reduce((sum, line) => {
+    return sum + Math.max(1, Math.ceil(line.length / Math.max(colWidth, 8)))
+  }, 0)
+  return Math.min(MAX_ROW_HEIGHT, Math.max(MIN_ROW_HEIGHT, lines * LINE_HEIGHT))
+}
+
+function heightForValues(values: Array<string | number>, colWidths?: number[]): number {
+  return values.reduce<number>((max, value, i) => {
+    if (typeof value !== 'string' || !value) return max
+    return Math.max(max, heightForText(value, colWidths?.[i] ?? 28))
+  }, MIN_ROW_HEIGHT)
 }
 
 function ensureRowHeight(row: ExcelJS.Row, min = MIN_ROW_HEIGHT) {
@@ -176,7 +197,7 @@ function writeLabelValuePair(
   labelCell.value = label
   paint(labelCell, FILL.metaLabel, BOLD)
   const valueCell = sheet.getCell(row, valueCol)
-  valueCell.value = value
+  valueCell.value = excelMultiline(value)
   paint(valueCell, theme.value)
 }
 
@@ -236,7 +257,7 @@ function writeTableHeaderRow(sheet: ExcelJS.Worksheet, rowNumber: number, header
   headers.forEach((h, i) => {
     const cell = sheet.getCell(rowNumber, i + 1)
     cell.value = h
-    paint(cell, theme.tableHeader, theme.tableHeaderFont, { horizontal: 'center' })
+    paint(cell, theme.tableHeader, theme.tableHeaderFont, { horizontal: 'center', vertical: 'middle' })
   })
   ensureRowHeight(sheet.getRow(rowNumber))
 }
@@ -262,14 +283,19 @@ function writeBodyCells(
   rowNumber: number,
   values: Array<string | number>,
   fill?: ExcelJS.Fill,
-  font: Partial<ExcelJS.Font> = FONT
+  font: Partial<ExcelJS.Font> = FONT,
+  colWidths?: number[]
 ) {
-  values.forEach((v, i) => {
+  const normalized = values.map(excelMultiline)
+  normalized.forEach((v, i) => {
     const cell = sheet.getCell(rowNumber, i + 1)
     cell.value = v
-    paint(cell, fill ?? FILL.white, font, { horizontal: i === 0 && values.length > 4 ? 'center' : 'left' })
+    paint(cell, fill ?? FILL.white, font, {
+      horizontal: i === 0 && values.length > 4 ? 'center' : 'left',
+      vertical: 'top',
+    })
   })
-  ensureRowHeight(sheet.getRow(rowNumber))
+  ensureRowHeight(sheet.getRow(rowNumber), heightForValues(normalized, colWidths))
 }
 
 function numberedHeading(label: string, index: number): string {
@@ -310,10 +336,14 @@ function writeOutlineBlocks(
     paint(labelCell, outlineLabel, BOLD)
     sheet.mergeCells(r, 2, r, lastCol)
     const valueCell = sheet.getCell(r, 2)
-    valueCell.value = outlineValue(row)
-    paint(valueCell, FILL.white)
-    paintRange(sheet, r, 3, lastCol, FILL.white)
-    ensureRowHeight(sheet.getRow(r), outlineValue(row).includes('\n') ? 36 : MIN_ROW_HEIGHT)
+    const value = excelMultiline(outlineValue(row))
+    valueCell.value = value
+    paint(valueCell, FILL.white, FONT, { vertical: 'top' })
+    paintRange(sheet, r, 3, lastCol, FILL.white, FONT, { vertical: 'top' })
+    ensureRowHeight(
+      sheet.getRow(r),
+      typeof value === 'string' ? heightForText(value, 48) : MIN_ROW_HEIGHT
+    )
     r += 1
     const next = rows[i + 1]
     if (!next || next.kind !== 'detail') {
@@ -392,6 +422,20 @@ function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   writeBanner(sheet, start, headers.length, 'Field Data', THEME.defines.banner ?? FILL.orange, WHITE_BOLD)
   writeTableHeaderRow(sheet, start + 1, headers, THEME.defines)
   freezeThrough(sheet, start + 1)
+  const defineWidths = [
+    8,
+    28,
+    20,
+    14,
+    12,
+    12,
+    10,
+    ...model.modeCodes.map(() => 12),
+    16,
+    18,
+    20,
+    24,
+  ]
 
   model.defineRows.forEach((row, i) => {
     const r = start + 2 + i
@@ -411,7 +455,7 @@ function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
     ]
     const fill = row.kind === 'screen' ? FILL.beigeDark : row.kind === 'section' ? FILL.beige : FILL.white
     const font = row.kind === 'field' ? FONT : BOLD
-    writeBodyCells(sheet, r, values, fill, font)
+    writeBodyCells(sheet, r, values, fill, font, defineWidths)
     if (row.kind !== 'field') {
       sheet.mergeCells(r, 2, r, headers.length)
       paint(sheet.getCell(r, 2), fill, BOLD)
@@ -419,20 +463,7 @@ function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
     }
   })
 
-  applySheetColumns(sheet, [
-    8,
-    28,
-    20,
-    14,
-    12,
-    12,
-    10,
-    ...model.modeCodes.map(() => 12),
-    16,
-    18,
-    20,
-    24,
-  ])
+  applySheetColumns(sheet, defineWidths)
 }
 
 function addProcesses(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
@@ -472,6 +503,7 @@ function addValidation(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   ]
   writeTableHeaderRow(sheet, start + 1, headers, THEME.validation)
   freezeThrough(sheet, start + 1)
+  const validationWidths = [8, 24, 20, 12, 18, 22, 24, 36, 20]
   model.validationRows.forEach((row, i) => {
     const r = start + 2 + i
     const fill = row.kind === 'screen' ? FILL.beigeDark : row.kind === 'section' ? FILL.beige : FILL.white
@@ -491,7 +523,8 @@ function addValidation(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
         row.remark,
       ],
       fill,
-      font
+      font,
+      validationWidths
     )
     if (row.kind !== 'rule') {
       sheet.mergeCells(r, 2, r, headers.length)
@@ -499,7 +532,7 @@ function addValidation(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
       paintRange(sheet, r, 3, headers.length, fill, BOLD)
     }
   })
-  applySheetColumns(sheet, [8, 24, 20, 12, 18, 22, 24, 36, 20])
+  applySheetColumns(sheet, validationWidths)
 }
 
 function addDatabase(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {

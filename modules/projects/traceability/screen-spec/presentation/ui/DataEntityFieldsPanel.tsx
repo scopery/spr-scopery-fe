@@ -22,7 +22,7 @@ const COLS = [
   { key: 'maxLength', label: 'Max length', placeholder: '255' },
   { key: 'isNullable', label: 'Nullable', options: ['true', 'false'] as const },
   { key: 'isUnique', label: 'Unique', options: ['true', 'false'] as const },
-  { key: 'remark', label: 'Remark', placeholder: 'Optional' },
+  { key: 'remark', label: 'Remark', placeholder: 'Optional', multiline: true },
 ]
 
 function parseBool(value: string, fallback: boolean): boolean {
