@@ -66,7 +66,12 @@ export function fieldComponentGroupLabel(group: {
 }
 
 export function filterFieldComponentGroups<
-  T extends { fieldKey: string; label: string },
+  T extends {
+    fieldKey: string
+    label: string
+    componentId?: string | null
+    sectionId?: string | null
+  },
 >(groups: FieldComponentGroup<T>[], query: string): FieldComponentGroup<T>[] {
   const q = query.trim().toLowerCase()
   if (!q) return groups

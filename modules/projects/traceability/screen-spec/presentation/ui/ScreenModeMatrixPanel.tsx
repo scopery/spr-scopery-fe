@@ -65,6 +65,103 @@ function draftsFromDetail(
   return modes.map((mode) => draftFromModeConfig(mode.id, findModeConfig(configs, mode)))
 }
 
+function FieldNameCell({
+  field,
+  error,
+}: {
+  field: RegistryScreenField
+  error?: string | null
+}) {
+  return (
+    <td className="sticky left-0 w-[28%] max-w-[12rem] bg-white px-3 py-2.5 align-top">
+      <Typography variant="small" weight="medium" className="block leading-5">
+        {field.label}
+      </Typography>
+      <Typography variant="caption" className="block text-[11px] leading-4 text-neutral-400">
+        {field.fieldKey}
+      </Typography>
+      {error ? (
+        <Typography variant="caption" className="text-error">
+          {error}
+        </Typography>
+      ) : null}
+    </td>
+  )
+}
+
+function ModeControlStack({
+  draft,
+  mode,
+  onChange,
+}: {
+  draft: ModeConfigDraft
+  mode: ScreenMode
+  onChange: (patch: Partial<ModeConfigDraft>) => void
+}) {
+  return (
+    <div className="w-[10.5rem] space-y-1.5">
+      <label className="grid grid-cols-[1.25rem_1fr] items-center gap-x-1.5 text-xs text-neutral-700">
+        <Checkbox
+          size="md"
+          className="gap-0"
+          checked={draft.isVisible}
+          onChange={() => onChange({ isVisible: !draft.isVisible })}
+          aria-label={`Visible · ${mode.name}`}
+        />
+        Visible
+      </label>
+      <label className="grid grid-cols-[1.25rem_1fr] items-center gap-x-1.5 text-xs text-neutral-700">
+        <Checkbox
+          size="md"
+          className="gap-0"
+          checked={draft.isReadonly}
+          onChange={() => onChange({ isReadonly: !draft.isReadonly })}
+          aria-label={`Readonly · ${mode.name}`}
+        />
+        Readonly
+      </label>
+      <Select
+        size="sm"
+        className="w-full"
+        value={draft.required}
+        onValueChange={(v: string) => onChange({ required: v as ModeConfigDraft['required'] })}
+        options={REQUIRED_OPTIONS}
+      />
+      <Input
+        size="sm"
+        fullWidth
+        value={draft.defaultValue ?? ''}
+        onChange={(e) => onChange({ defaultValue: e.target.value || null })}
+        placeholder="Default"
+        aria-label={`Default · ${mode.name}`}
+      />
+    </div>
+  )
+}
+
+function MatrixTable({
+  modes,
+  children,
+}: {
+  modes: ScreenMode[]
+  children: ReactNode
+}) {
+  const modeWidth = `${72 / Math.max(modes.length, 1)}%`
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full max-w-3xl table-fixed border-collapse text-left">
+        <colgroup>
+          <col style={{ width: '28%' }} />
+          {modes.map((mode) => (
+            <col key={mode.id} style={{ width: modeWidth }} />
+          ))}
+        </colgroup>
+        {children}
+      </table>
+    </div>
+  )
+}
+
 function MatrixViewRow({
   workspaceId,
   screenId,
@@ -80,19 +177,12 @@ function MatrixViewRow({
   const drafts = draftsFromDetail(modes, detail?.modeConfigs)
 
   return (
-    <tr className="border-t border-neutral-200">
-      <td className="sticky left-0 bg-white px-2 py-2 align-top">
-        <Typography variant="small" className="font-medium">
-          {field.label}
-        </Typography>
-        <Typography variant="caption" tone="muted">
-          {field.fieldKey}
-        </Typography>
-      </td>
+    <tr className="border-b border-neutral-200">
+      <FieldNameCell field={field} />
       {modes.map((mode, index) => {
         const draft = drafts[index]
         return (
-          <td key={mode.id} className="min-w-[9.5rem] px-2 py-2 align-top">
+          <td key={mode.id} className="px-3.5 py-2.5 align-top">
             <Typography variant="caption" tone="muted">
               {draft ? modeSummary(draft) : '—'}
             </Typography>
@@ -160,56 +250,17 @@ function MatrixEditRow({
   }, [dirty, field.id, onState, rowError, save])
 
   return (
-    <tr className="border-t border-neutral-200">
-      <td className="sticky left-0 bg-white px-2 py-2 align-top">
-        <Typography variant="small" className="font-medium">
-          {field.label}
-        </Typography>
-        <Typography variant="caption" tone="muted">
-          {field.fieldKey}
-        </Typography>
-        {rowError ? (
-          <Typography variant="caption" className="text-error">
-            {rowError}
-          </Typography>
-        ) : null}
-      </td>
+    <tr className="border-b border-neutral-200">
+      <FieldNameCell field={field} error={rowError} />
       {modes.map((mode) => {
         const draft = drafts.find((d) => d.modeId === mode.id)
-        if (!draft) return <td key={mode.id} className="px-2 py-2" />
+        if (!draft) return <td key={mode.id} className="px-3.5 py-2.5" />
         return (
-          <td key={mode.id} className="min-w-[9.5rem] px-2 py-2 align-top">
-            <label className="mb-1 flex items-center gap-2 text-xs text-neutral-700">
-              <Checkbox
-                size="sm"
-                checked={draft.isVisible}
-                onChange={() => updateDraft(mode.id, { isVisible: !draft.isVisible })}
-              />
-              Visible
-            </label>
-            <label className="mb-1 flex items-center gap-2 text-xs text-neutral-700">
-              <Checkbox
-                size="sm"
-                checked={draft.isReadonly}
-                onChange={() => updateDraft(mode.id, { isReadonly: !draft.isReadonly })}
-              />
-              Readonly
-            </label>
-            <Select
-              size="sm"
-              value={draft.required}
-              onValueChange={(v: string) =>
-                updateDraft(mode.id, { required: v as ModeConfigDraft['required'] })
-              }
-              options={REQUIRED_OPTIONS}
-            />
-            <Input
-              size="sm"
-              className="mt-1"
-              value={draft.defaultValue ?? ''}
-              onChange={(e) => updateDraft(mode.id, { defaultValue: e.target.value || null })}
-              placeholder="Default"
-              aria-label={`Default · ${mode.name}`}
+          <td key={mode.id} className="px-3.5 py-2.5 align-top">
+            <ModeControlStack
+              draft={draft}
+              mode={mode}
+              onChange={(patch) => updateDraft(mode.id, patch)}
             />
           </td>
         )
@@ -222,13 +273,15 @@ function MatrixTableHead({ modes }: { modes: ScreenMode[] }) {
   return (
     <thead>
       <tr className="border-b border-neutral-200">
-        <th className="sticky left-0 bg-white px-2 py-2 text-xs font-medium text-neutral-500">
+        <th className="sticky left-0 bg-white px-3 py-2 text-left text-xs font-semibold text-neutral-800">
           Field
         </th>
         {modes.map((mode) => (
-          <th key={mode.id} className="px-2 py-2 text-xs font-medium text-neutral-500">
-            {mode.name}
-            <span className="block font-normal text-neutral-400">{mode.modeCode}</span>
+          <th key={mode.id} className="px-3.5 py-2 text-left">
+            <span className="block text-sm font-semibold uppercase tracking-wide text-neutral-900">
+              {mode.modeCode}
+            </span>
+            <span className="block text-[11px] font-medium text-neutral-500">{mode.name}</span>
           </th>
         ))}
       </tr>
@@ -267,7 +320,7 @@ function MatrixFieldGroups({
         return (
           <Fragment key={group.key}>
             <tr>
-              <td colSpan={colSpan} className="sticky left-0 bg-neutral-50 px-2 py-1.5">
+              <td colSpan={colSpan} className="sticky left-0 border-b border-neutral-200 bg-neutral-50 px-3 py-1.5">
                 <button
                   type="button"
                   className="flex items-center gap-1.5 text-left"
@@ -349,27 +402,25 @@ function ModeMatrixEditor({
   }, [saveRef])
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[32rem] border-collapse text-left">
-        <MatrixTableHead modes={modes} />
-        <MatrixFieldGroups
-          fields={fields}
-          components={components}
-          componentIdBySectionId={componentIdBySectionId}
-          colSpan={1 + modes.length}
-          renderRow={(field) => (
-            <MatrixEditRow
-              key={field.id}
-              workspaceId={workspaceId}
-              screenId={screenId}
-              field={field}
-              modes={modes}
-              onState={onState}
-            />
-          )}
-        />
-      </table>
-    </div>
+    <MatrixTable modes={modes}>
+      <MatrixTableHead modes={modes} />
+      <MatrixFieldGroups
+        fields={fields}
+        components={components}
+        componentIdBySectionId={componentIdBySectionId}
+        colSpan={1 + modes.length}
+        renderRow={(field) => (
+          <MatrixEditRow
+            key={field.id}
+            workspaceId={workspaceId}
+            screenId={screenId}
+            field={field}
+            modes={modes}
+            onState={onState}
+          />
+        )}
+      />
+    </MatrixTable>
   )
 }
 
@@ -418,26 +469,24 @@ export function ScreenModeMatrixPanel({
           Edit matrix
         </Button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[32rem] border-collapse text-left">
-          <MatrixTableHead modes={active} />
-          <MatrixFieldGroups
-            fields={fields}
-            components={components}
-            componentIdBySectionId={componentIdBySectionId}
-            colSpan={1 + active.length}
-            renderRow={(field) => (
-              <MatrixViewRow
-                key={`${field.id}-${viewEpoch}`}
-                workspaceId={workspaceId}
-                screenId={screenId}
-                field={field}
-                modes={active}
-              />
-            )}
-          />
-        </table>
-      </div>
+      <MatrixTable modes={active}>
+        <MatrixTableHead modes={active} />
+        <MatrixFieldGroups
+          fields={fields}
+          components={components}
+          componentIdBySectionId={componentIdBySectionId}
+          colSpan={1 + active.length}
+          renderRow={(field) => (
+            <MatrixViewRow
+              key={`${field.id}-${viewEpoch}`}
+              workspaceId={workspaceId}
+              screenId={screenId}
+              field={field}
+              modes={active}
+            />
+          )}
+        />
+      </MatrixTable>
       <Modal
         open={open}
         onClose={() => setOpen(false)}
