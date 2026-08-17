@@ -223,5 +223,14 @@ export function useApplicationRegistry(workspaceId: string | null) {
     [workspaceId, load]
   )
 
-  return { items, loading, error, refetch: load, create }
+  const update = useCallback(
+    async (applicationId: string, name: string) => {
+      if (!workspaceId) return
+      await api.updateApplication(workspaceId, applicationId, { name })
+      await load()
+    },
+    [workspaceId, load]
+  )
+
+  return { items, loading, error, refetch: load, create, update }
 }

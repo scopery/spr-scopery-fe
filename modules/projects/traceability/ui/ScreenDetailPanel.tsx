@@ -103,7 +103,6 @@ const FIELD_COLS = [
     options: SCREEN_FIELD_TYPE_OPTIONS,
   },
   { key: 'required', label: 'Required', options: ['false', 'true'] as const },
-  { key: 'maxLength', label: 'Max length', placeholder: '255' },
   { key: 'defaultValue', label: 'Default', placeholder: 'Optional', createOnly: true },
   { key: 'remark', label: 'Remark', placeholder: 'Optional' },
 ]
@@ -120,13 +119,11 @@ const MODE_COLS = [
 ]
 
 function toScreenFieldBody(values: Record<string, string>) {
-  const max = values.maxLength.trim()
   return {
     fieldKey: values.fieldKey.trim(),
     label: values.label.trim(),
     fieldType: values.fieldType.trim() || 'TEXT',
     required: values.required === 'true',
-    maxLength: max ? Number(max) : null,
     remark: values.remark.trim() || null,
   }
 }
@@ -278,7 +275,6 @@ export function ScreenDetailPanel({
           label: f.label,
           fieldType: f.fieldType,
           required: f.required ? 'true' : 'false',
-          maxLength: '',
           remark: '',
         },
       })),
@@ -455,12 +451,10 @@ export function ScreenDetailPanel({
             }}
             onCreateMany={async (rows) => createFieldsBulk(rows.map(toScreenFieldBody))}
             onUpdate={async (id, values) => {
-              const max = values.maxLength.trim()
               await updateField(id, {
                 label: values.label.trim(),
                 fieldType: values.fieldType.trim() || 'TEXT',
                 required: values.required === 'true',
-                maxLength: max ? Number(max) : null,
                 remark: values.remark.trim() || null,
               })
             }}

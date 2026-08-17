@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
+import { Pencil } from 'lucide-react'
+import { Button, Input, PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { ROUTES } from '@/constants/routes'
@@ -76,6 +77,7 @@ export function ApplicationWorkbenchView() {
     loading,
     error,
     refetch,
+    updateApplication,
     createModule,
     updateModule,
     removeModule,
@@ -99,6 +101,14 @@ export function ApplicationWorkbenchView() {
   const [tab, setTab] = useState<MainTab>('browse')
   const [importKind, setImportKind] = useState<ImportKind>('modules')
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+  const [savingName, setSavingName] = useState(false)
+
+  useEffect(() => {
+    setEditingName(false)
+    setNameDraft(application?.name ?? '')
+  }, [application?.id, application?.name])
   const { items: relatedFunctionNodes } = useApplicationRelatedFunctions(
     workspaceId,
     applicationId,
@@ -388,6 +398,30 @@ export function ApplicationWorkbenchView() {
     await refetch({ silent: true })
   }
 
+  const cancelEditName = () => {
+    setNameDraft(application?.name ?? '')
+    setEditingName(false)
+  }
+
+  const saveApplicationName = async () => {
+    if (!application) return
+    const next = nameDraft.trim()
+    if (!next) return
+    if (next === application.name) {
+      setEditingName(false)
+      return
+    }
+    setSavingName(true)
+    try {
+      await updateApplication({ name: next })
+      setEditingName(false)
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    } finally {
+      setSavingName(false)
+    }
+  }
+
   const handleDeleteNode = async (node: BrowseCatalogNode) => {
     const relations = await refetchStructureRelations()
     await deleteNode(node, relations)
@@ -412,9 +446,50 @@ export function ApplicationWorkbenchView() {
 
           <div className="mt-1 flex flex-wrap items-baseline justify-between gap-2 border-b border-neutral-200 pb-2">
             <div className="min-w-0">
-              <Typography as="h1" size="md" weight="medium" className="truncate">
-                {application.name}
-              </Typography>
+              {editingName ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void saveApplicationName()
+                      if (e.key === 'Escape') cancelEditName()
+                    }}
+                    aria-label="Application name"
+                    disabled={savingName}
+                    className="max-w-sm"
+                  />
+                  <Button
+                    size="sm"
+                    disabled={!nameDraft.trim() || savingName}
+                    loading={savingName}
+                    onClick={() => void saveApplicationName()}
+                  >
+                    Save
+                  </Button>
+                  <Button size="sm" variant="ghost" disabled={savingName} onClick={cancelEditName}>
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex min-w-0 items-center gap-1">
+                  <Typography as="h1" size="md" weight="medium" className="truncate">
+                    {application.name}
+                  </Typography>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNameDraft(application.name)
+                      setEditingName(true)
+                    }}
+                    className="inline-flex h-7 w-7 shrink-0 items-center justify-center text-neutral-500 hover:text-neutral-900"
+                    aria-label="Edit application name"
+                    title="Edit name"
+                  >
+                    <Pencil size={14} strokeWidth={1.75} />
+                  </button>
+                </div>
+              )}
               <Typography variant="caption" tone="muted" className="mt-0.5">
                 {application.code}
                 {catalogNodes.length
