@@ -70,6 +70,7 @@ export const SCREEN_IMPORT_WORKFLOW_STEPS = [
   'Excel (this tab, first block): code, name, optional routePath only. Creates empty screens. Use when you will spec fields later in Browse.',
   'JSON full spec (this tab, below): one job of up to 200 screens with modes, fields, validations, processes, and events.',
   'Before JSON: create components on Browse if you will set componentCode. Put a project UUID in Default project ID, or on every JSON item.',
+  'Validations go on each field as fields[].validations[], not on the screen. Each rule needs a workspace ruleTypeCode (EMAIL, MAX_LENGTH, REGEX, …). See the format guide entity Validation and the sample JSON.',
   'Paste { "items": [ ... ] }. Copy the format guide if an agent is filling the JSON. After submit, wait for per-screen success/failure (retry failed only if needed).',
 ]
 

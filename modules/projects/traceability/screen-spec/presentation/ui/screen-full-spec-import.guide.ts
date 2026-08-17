@@ -30,6 +30,7 @@ export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
   notes: [
     'Payload shape: { "items": [ Screen, ... ] }. A bare array is also accepted. Each Screen is one catalog screen plus nested spec objects listed below.',
     'How to import: (1) Create components (fields / API links) on Browse first if fields use componentCode. (2) Select a project, or set projectId on every Screen. (3) Paste JSON. (4) Submit — 202 job; this page polls per-screen success/failure.',
+    'How to add validations: there is no screen-level validations array. On each Field, add validations[] (see entity Validation). Each rule needs ruleTypeCode that already exists in the workspace (Admin / validation rule types). Example: { "ruleTypeCode": "EMAIL", "errorMessage": "Invalid email" }. Add MAX_LENGTH with ruleParamJson { "maxLength": 255 }. Omit modeCode to apply on every mode, or set modeCode to limit one mode.',
     'Max 200 screens per job. Duplicate screen code in the same file is rejected on the client.',
     'Do not send UUIDs for fields, modes, processes, or events. Keys are codes and fieldKey strings. There is no sections array — only fields[].',
     'Do not send componentFieldId. Bind a component to a section on Browse to copy fields; the API sets that id. componentCode only links an existing catalog component. Component → API roles are not in this payload.',
@@ -71,7 +72,8 @@ export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
       name: 'fields',
       required: false,
       type: 'Field[]',
-      description: 'Controls on the screen. Nested entity: Field (contains ModeConfig[] and Validation[]).',
+      description:
+        'Controls on the screen. Nested entity: Field. Put validations[] on each field — not on the Screen root.',
     },
     {
       name: 'processItems',
@@ -118,7 +120,7 @@ export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
       name: 'Field',
       path: 'items[].fields[]',
       description:
-        'One control. fieldKey is the stable id used by processItems.targetFieldKey and eventItems.triggerFieldKey. Nested: modeConfigs[], validations[].',
+        'One control. fieldKey is the stable id used by processItems.targetFieldKey and eventItems.triggerFieldKey. To add a validation, put it in this field’s validations[] — see entity Validation.',
       fields: [
         {
           name: 'fieldKey',
@@ -174,7 +176,7 @@ export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
           required: false,
           type: 'Validation[]',
           description:
-            'Extra rules beyond required/maxLength (those two also live on Defines). Nested entity: Validation.',
+            'How to add a rule: append an object here, not on the Screen. Minimum: { "ruleTypeCode": "EMAIL" }. Optional: modeCode, ruleParamJson, errorMessage, remark, displayOrder. Nested entity: Validation.',
         },
       ],
     },
@@ -227,14 +229,14 @@ export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
       name: 'Validation',
       path: 'items[].fields[].validations[]',
       description:
-        'Rule on a field. REQUIRED and MAX_LENGTH also map to Defines; EMAIL, REGEX, etc. go to the Validation sheet.',
+        'How to add: fields[].validations.push({ ruleTypeCode, ... }). One object = one rule on that field. Create the rule type in the workspace first, then use its code. REQUIRED / MAX_LENGTH also fill Defines; EMAIL, REGEX, MIN_LENGTH, etc. go to the Validation sheet.',
       fields: [
         {
           name: 'ruleTypeCode',
           required: true,
           type: 'string',
           description:
-            'Workspace validation-rule-type code, e.g. REQUIRED, MAX_LENGTH, EMAIL, REGEX, MIN_LENGTH. Must already exist in the workspace.',
+            'Workspace validation-rule-type code. Common: REQUIRED, MAX_LENGTH, MIN_LENGTH, EMAIL, REGEX. Must already exist — unknown codes fail the import job.',
         },
         {
           name: 'modeCode',
@@ -247,7 +249,8 @@ export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
           name: 'ruleParamJson',
           required: false,
           type: 'string | object',
-          description: 'Rule params, e.g. {"maxLength":255} or {"pattern":"^\\\\d+$"}.',
+          description:
+            'Params for the rule type. MAX_LENGTH / MIN_LENGTH: { "maxLength": 255 } or { "minLength": 8 }. REGEX: { "pattern": "^\\\\d+$" }. EMAIL / REQUIRED: omit or null.',
         },
         {
           name: 'conditionJson',
@@ -429,9 +432,13 @@ export const SCREEN_FULL_SPEC_IMPORT_GUIDE: BulkImportFormatGuide = {
               {
                 ruleTypeCode: 'EMAIL',
                 errorMessage: 'Invalid email',
-                ruleParamJson: null,
-                conditionJson: null,
                 displayOrder: 0,
+              },
+              {
+                ruleTypeCode: 'MAX_LENGTH',
+                ruleParamJson: { maxLength: 255 },
+                errorMessage: 'Email is too long',
+                displayOrder: 1,
               },
             ],
           },
