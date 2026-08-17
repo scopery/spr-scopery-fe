@@ -1,7 +1,7 @@
 import React from 'react'
 import * as SelectPrimitive from '@radix-ui/react-select'
 import { cn } from '@/utils/cn'
-import { ChevronDown, Check } from 'lucide-react'
+import { ChevronDown, ChevronUp, Check } from 'lucide-react'
 import { uiControl, uiDropdownPanel } from '../../styles/ui-surface'
 import type { SelectProps, SelectSize } from './Select.types'
 
@@ -126,8 +126,12 @@ export const Select = React.forwardRef(
               )}
               position="popper"
               sideOffset={4}
+              collisionPadding={12}
             >
-              <SelectPrimitive.Viewport className="p-1">
+              <SelectPrimitive.ScrollUpButton className="flex h-6 items-center justify-center text-neutral-500">
+                <ChevronUp size={14} />
+              </SelectPrimitive.ScrollUpButton>
+              <SelectPrimitive.Viewport className="max-h-[min(20rem,var(--radix-select-content-available-height))] overflow-y-auto p-1">
                 {options.map((option) => {
                   const itemValue = toItemValue(option.value)
                   return (
@@ -152,6 +156,9 @@ export const Select = React.forwardRef(
                   )
                 })}
               </SelectPrimitive.Viewport>
+              <SelectPrimitive.ScrollDownButton className="flex h-6 items-center justify-center text-neutral-500">
+                <ChevronDown size={14} />
+              </SelectPrimitive.ScrollDownButton>
             </SelectPrimitive.Content>
           </SelectPrimitive.Portal>
         </SelectPrimitive.Root>

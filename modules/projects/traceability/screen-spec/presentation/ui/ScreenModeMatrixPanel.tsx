@@ -2,7 +2,6 @@
 
 import {
   Fragment,
-  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -14,18 +13,14 @@ import { ChevronDown } from 'lucide-react'
 import { Button, Checkbox, Input, Modal, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { ScreenSpecMessages } from '../../domain/messages/screen-spec.messages'
-import {
-  draftFromModeConfig,
-  findModeConfig,
-  inheritRequiredOnDrafts,
-} from '../../domain/rules/mode-config.rules'
+import { draftFromModeConfig, findModeConfig } from '../../domain/rules/mode-config.rules'
 import {
   fieldComponentGroupHeading,
   groupFieldsByComponent,
   shouldShowComponentGroups,
 } from '../../domain/rules/field-groups.rules'
 import { FieldGroupHeading } from '../../../ui/FieldGroupHeading'
-import { useScreenFieldSpec } from '../hooks/useScreenFieldSpec'
+import { useFieldModeConfigs } from '../hooks/useFieldModeConfigs'
 import type { ModeConfigDraft, ScreenFieldModeConfig, ScreenMode } from '../../domain/model/screen-spec'
 import type { RegistryScreenField } from '../../../model/application-registry'
 import type { SpecCatalogComponent } from './FieldSpecDrawer'
@@ -138,18 +133,15 @@ function MatrixTable({
 }
 
 function MatrixViewRow({
-  workspaceId,
-  screenId,
   field,
   modes,
+  configs,
 }: {
-  workspaceId: string
-  screenId: string
   field: RegistryScreenField
   modes: ScreenMode[]
+  configs: ScreenFieldModeConfig[] | undefined
 }) {
-  const { field: detail } = useScreenFieldSpec(workspaceId, screenId, field.id)
-  const drafts = draftsFromDetail(modes, detail?.modeConfigs)
+  const drafts = draftsFromDetail(modes, configs)
 
   return (
     <tr className="border-b border-neutral-200">
@@ -168,33 +160,8 @@ function MatrixViewRow({
   )
 }
 
-function MatrixEditRow({
-  workspaceId,
-  screenId,
-  field,
-  modes,
-  onState,
-}: {
-  workspaceId: string
-  screenId: string
-  field: RegistryScreenField
-  modes: ScreenMode[]
-  onState: (fieldId: string, state: { dirty: boolean; save: () => Promise<void>; error: string | null }) => void
-}) {
-  const { field: detail, saveModeConfigs } = useScreenFieldSpec(workspaceId, screenId, field.id)
-  const [drafts, setDrafts] = useState<ModeConfigDraft[]>([])
-  const [rowError, setRowError] = useState<string | null>(null)
-  const baseline = useMemo(
-    () => draftsFromDetail(modes, detail?.modeConfigs),
-    [detail, modes]
-  )
-
-  useEffect(() => {
-    setDrafts(baseline)
-    setRowError(null)
-  }, [baseline])
-
-  const dirty = drafts.some((draft, index) => {
+function isDraftDirty(drafts: ModeConfigDraft[], baseline: ModeConfigDraft[]): boolean {
+  return drafts.some((draft, index) => {
     const orig = baseline[index]
     if (!orig) return true
     return (
@@ -203,32 +170,24 @@ function MatrixEditRow({
       (draft.defaultValue ?? '') !== (orig.defaultValue ?? '')
     )
   })
+}
 
-  const updateDraft = (modeId: string, patch: Partial<ModeConfigDraft>) => {
-    setDrafts((prev) => prev.map((d) => (d.modeId === modeId ? { ...d, ...patch } : d)))
-  }
-
-  const save = useCallback(async () => {
-    setRowError(null)
-    try {
-      await saveModeConfigs(
-        inheritRequiredOnDrafts(drafts),
-        detail?.required ?? field.required
-      )
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to save'
-      setRowError(message)
-      throw err
-    }
-  }, [detail?.required, drafts, field.required, saveModeConfigs])
-
-  useEffect(() => {
-    onState(field.id, { dirty, save, error: rowError })
-  }, [dirty, field.id, onState, rowError, save])
-
+function MatrixEditRow({
+  field,
+  modes,
+  drafts,
+  error,
+  onChange,
+}: {
+  field: RegistryScreenField
+  modes: ScreenMode[]
+  drafts: ModeConfigDraft[]
+  error?: string | null
+  onChange: (modeId: string, patch: Partial<ModeConfigDraft>) => void
+}) {
   return (
     <tr className="border-b border-neutral-200">
-      <FieldNameCell field={field} error={rowError} />
+      <FieldNameCell field={field} error={error} />
       {modes.map((mode) => {
         const draft = drafts.find((d) => d.modeId === mode.id)
         if (!draft) return <td key={mode.id} className="px-3.5 py-2.5" />
@@ -237,7 +196,7 @@ function MatrixEditRow({
             <ModeControlStack
               draft={draft}
               mode={mode}
-              onChange={(patch) => updateDraft(mode.id, patch)}
+              onChange={(patch) => onChange(mode.id, patch)}
             />
           </td>
         )
@@ -337,47 +296,78 @@ function MatrixFieldGroups({
 }
 
 function ModeMatrixEditor({
-  workspaceId,
-  screenId,
   fields,
   modes,
   components,
   componentIdBySectionId,
+  byFieldId,
   onDirtyChange,
   saveRef,
+  saveFieldConfigs,
 }: {
-  workspaceId: string
-  screenId: string
   fields: RegistryScreenField[]
   modes: ScreenMode[]
   components: SpecCatalogComponent[]
   componentIdBySectionId?: Record<string, string>
+  byFieldId: Record<string, ScreenFieldModeConfig[]>
   onDirtyChange: (dirty: boolean) => void
   saveRef: MutableRefObject<(() => Promise<void>) | null>
+  saveFieldConfigs: (
+    fieldId: string,
+    drafts: ModeConfigDraft[],
+    fieldRequired: boolean | null | undefined
+  ) => Promise<void>
 }) {
-  const rowState = useRef(
-    new Map<string, { dirty: boolean; save: () => Promise<void>; error: string | null }>()
-  )
+  const [draftsByField, setDraftsByField] = useState<Record<string, ModeConfigDraft[]>>({})
+  const [errors, setErrors] = useState<Record<string, string | null>>({})
 
-  const onState = useCallback(
-    (fieldId: string, state: { dirty: boolean; save: () => Promise<void>; error: string | null }) => {
-      rowState.current.set(fieldId, state)
-      onDirtyChange([...rowState.current.values()].some((row) => row.dirty))
-    },
-    [onDirtyChange]
-  )
+  useEffect(() => {
+    setDraftsByField((prev) => {
+      const next = { ...prev }
+      for (const field of fields) {
+        if (!(field.id in byFieldId)) continue
+        const baseline = draftsFromDetail(modes, byFieldId[field.id])
+        const current = prev[field.id]
+        if (!current || !isDraftDirty(current, baseline)) {
+          next[field.id] = baseline
+        }
+      }
+      return next
+    })
+  }, [byFieldId, fields, modes])
+
+  const dirtyIds = useMemo(() => {
+    return fields
+      .filter((field) =>
+        isDraftDirty(draftsByField[field.id] ?? [], draftsFromDetail(modes, byFieldId[field.id]))
+      )
+      .map((field) => field.id)
+  }, [byFieldId, draftsByField, fields, modes])
+
+  useEffect(() => {
+    onDirtyChange(dirtyIds.length > 0)
+  }, [dirtyIds, onDirtyChange])
 
   useEffect(() => {
     saveRef.current = async () => {
-      const dirtyRows = [...rowState.current.values()].filter((row) => row.dirty)
-      for (const row of dirtyRows) {
-        await row.save()
+      for (const field of fields) {
+        if (!dirtyIds.includes(field.id)) continue
+        const drafts = draftsByField[field.id]
+        if (!drafts) continue
+        try {
+          await saveFieldConfigs(field.id, drafts, field.required)
+          setErrors((prev) => ({ ...prev, [field.id]: null }))
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Failed to save'
+          setErrors((prev) => ({ ...prev, [field.id]: message }))
+          throw err
+        }
       }
     }
     return () => {
       saveRef.current = null
     }
-  }, [saveRef])
+  }, [dirtyIds, draftsByField, fields, saveFieldConfigs, saveRef])
 
   return (
     <MatrixTable modes={modes}>
@@ -390,11 +380,18 @@ function ModeMatrixEditor({
         renderRow={(field) => (
           <MatrixEditRow
             key={field.id}
-            workspaceId={workspaceId}
-            screenId={screenId}
             field={field}
             modes={modes}
-            onState={onState}
+            drafts={draftsByField[field.id] ?? draftsFromDetail(modes, byFieldId[field.id])}
+            error={errors[field.id]}
+            onChange={(modeId, patch) =>
+              setDraftsByField((prev) => ({
+                ...prev,
+                [field.id]: (prev[field.id] ?? draftsFromDetail(modes, byFieldId[field.id])).map(
+                  (draft) => (draft.modeId === modeId ? { ...draft, ...patch } : draft)
+                ),
+              }))
+            }
           />
         )}
       />
@@ -417,14 +414,14 @@ export function ScreenModeMatrixPanel({
   components?: SpecCatalogComponent[]
   componentIdBySectionId?: Record<string, string>
 }) {
-  const active = useMemo(() => modes, [modes])
+  const fieldIds = useMemo(() => fields.map((field) => field.id), [fields])
+  const { byFieldId, saveFieldConfigs } = useFieldModeConfigs(workspaceId, screenId, fieldIds)
   const [open, setOpen] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [viewEpoch, setViewEpoch] = useState(0)
   const saveRef = useRef<(() => Promise<void>) | null>(null)
 
-  if (active.length === 0) {
+  if (modes.length === 0) {
     return (
       <Typography variant="small" tone="muted">
         {ScreenSpecMessages.ADD_MODE_FIRST}
@@ -447,20 +444,19 @@ export function ScreenModeMatrixPanel({
           Edit matrix
         </Button>
       </div>
-      <MatrixTable modes={active}>
-        <MatrixTableHead modes={active} />
+      <MatrixTable modes={modes}>
+        <MatrixTableHead modes={modes} />
         <MatrixFieldGroups
           fields={fields}
           components={components}
           componentIdBySectionId={componentIdBySectionId}
-          colSpan={1 + active.length}
+          colSpan={1 + modes.length}
           renderRow={(field) => (
             <MatrixViewRow
-              key={`${field.id}-${viewEpoch}`}
-              workspaceId={workspaceId}
-              screenId={screenId}
+              key={field.id}
               field={field}
-              modes={active}
+              modes={modes}
+              configs={byFieldId[field.id]}
             />
           )}
         />
@@ -480,7 +476,6 @@ export function ScreenModeMatrixPanel({
                 setSaving(true)
                 try {
                   await saveRef.current()
-                  setViewEpoch((n) => n + 1)
                   setOpen(false)
                 } finally {
                   setSaving(false)
@@ -494,14 +489,14 @@ export function ScreenModeMatrixPanel({
         ]}
       >
         <ModeMatrixEditor
-          workspaceId={workspaceId}
-          screenId={screenId}
           fields={fields}
-          modes={active}
+          modes={modes}
           components={components}
           componentIdBySectionId={componentIdBySectionId}
+          byFieldId={byFieldId}
           onDirtyChange={setDirty}
           saveRef={saveRef}
+          saveFieldConfigs={saveFieldConfigs}
         />
       </Modal>
     </div>

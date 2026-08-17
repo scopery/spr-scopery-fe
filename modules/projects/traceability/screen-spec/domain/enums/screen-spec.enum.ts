@@ -78,23 +78,41 @@ export const RequiredOverride = {
 export type RequiredOverride = (typeof RequiredOverride)[keyof typeof RequiredOverride]
 
 export const ScreenFieldType = {
+  Input: 'INPUT',
   Text: 'TEXT',
+  Textarea: 'TEXTAREA',
   Number: 'NUMBER',
   Date: 'DATE',
+  Datepicker: 'DATEPICKER',
   Boolean: 'BOOLEAN',
+  Checkbox: 'CHECKBOX',
+  Radio: 'RADIO',
+  Select: 'SELECT',
+  Dropdown: 'DROPDOWN',
+  Button: 'BUTTON',
+  Label: 'LABEL',
+  Hidden: 'HIDDEN',
   Url: 'URL',
-  Input: 'INPUT',
   Password: 'PASSWORD',
 } as const
 export type ScreenFieldType = (typeof ScreenFieldType)[keyof typeof ScreenFieldType]
 
 export const SCREEN_FIELD_TYPE_OPTIONS: ScreenFieldType[] = [
+  ScreenFieldType.Input,
   ScreenFieldType.Text,
+  ScreenFieldType.Textarea,
   ScreenFieldType.Number,
   ScreenFieldType.Date,
+  ScreenFieldType.Datepicker,
   ScreenFieldType.Boolean,
+  ScreenFieldType.Checkbox,
+  ScreenFieldType.Radio,
+  ScreenFieldType.Select,
+  ScreenFieldType.Dropdown,
+  ScreenFieldType.Button,
+  ScreenFieldType.Label,
+  ScreenFieldType.Hidden,
   ScreenFieldType.Url,
-  ScreenFieldType.Input,
   ScreenFieldType.Password,
 ]
 
