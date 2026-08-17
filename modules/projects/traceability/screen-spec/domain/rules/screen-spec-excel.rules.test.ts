@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ScreenFullSpec, ScreenSpecDocFullSpec } from '../model/screen-spec-doc'
 import {
+  FIELD_READONLY_MARK,
   MODE_VISIBLE_MARK,
   buildScreenSpecWorkbookModel,
   collectDefineModeCodes,
@@ -207,6 +208,7 @@ describe('screen-spec-excel.rules', () => {
     expect(email?.field).toBe('Email')
     expect(email?.type).toBe('Textbox')
     expect(email?.required).toBe(MODE_VISIBLE_MARK)
+    expect(email?.readonly).toBe(FIELD_READONLY_MARK)
     expect(email?.length).toBe('255')
     expect(email?.modeMarks.CREATE).toBe(MODE_VISIBLE_MARK)
     expect(email?.modeMarks.VIEW).toBe('')

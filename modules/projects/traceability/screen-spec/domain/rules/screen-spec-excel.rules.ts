@@ -27,6 +27,8 @@ const OPTIONAL_DEFINE_MODE_CODES = [ScreenModeCode.Search, ScreenModeCode.Dialog
 export const DEFINES_COVERED_RULE_CODES = new Set(['REQUIRED', 'MAX_LENGTH'])
 
 export const MODE_VISIBLE_MARK = '〇'
+/** Distinct from 〇 so Required / mode visibility stay scannable. */
+export const FIELD_READONLY_MARK = '●'
 
 export interface ScreenSpecExcelHeader {
   documentCode: string
@@ -71,6 +73,7 @@ export interface ScreenSpecExcelDefineRow {
   physicalName: string
   type: string
   required: string
+  readonly: string
   length: string
   modeMarks: Record<string, string>
   defaultValue: string
@@ -217,6 +220,10 @@ export function fieldRequiredMark(field: ScreenFullSpecField): string {
     return MODE_VISIBLE_MARK
   }
   return ''
+}
+
+export function fieldReadonlyMark(field: ScreenFullSpecField): string {
+  return field.modeConfigs.some((c) => c.isReadonly) ? FIELD_READONLY_MARK : ''
 }
 
 export function fieldLengthValue(field: ScreenFullSpecField): string {
@@ -517,6 +524,7 @@ function emptyGroupDefineRow(
     physicalName: '',
     type: '',
     required: '',
+    readonly: '',
     length: '',
     modeMarks: emptyModeMarks(modeCodes),
     defaultValue: '',
@@ -592,6 +600,7 @@ function toDefineFieldRow(
     physicalName: field.fieldKey,
     type: fieldTypeLabel(field),
     required: fieldRequiredMark(field),
+    readonly: fieldReadonlyMark(field),
     length: fieldLengthValue(field),
     modeMarks,
     defaultValue: fieldDefaultValue(field),
