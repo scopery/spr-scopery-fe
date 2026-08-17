@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   UNGROUPED_COMPONENT_KEY,
+  UNGROUPED_SECTION_KEY,
+  fieldSectionGroupLabel,
   filterFieldComponentGroups,
   groupFieldsByComponent,
+  groupFieldsBySection,
   shouldShowComponentGroups,
+  shouldShowSectionGroups,
 } from './field-groups.rules'
 
 describe('groupFieldsByComponent', () => {
@@ -46,6 +50,49 @@ describe('groupFieldsByComponent', () => {
     expect(groups[0].key).toBe('c1')
     expect(groups[0].component?.code).toBe('TXT')
     expect(shouldShowComponentGroups(groups)).toBe(true)
+  })
+})
+
+describe('groupFieldsBySection', () => {
+  const sections = [
+    { id: 's1', name: 'Main form' },
+    { id: 's2', name: 'Search' },
+  ]
+  const components = [{ id: 'c1', code: 'USR', name: 'User form' }]
+
+  it('follows section order and skips empty sections', () => {
+    const groups = groupFieldsBySection(
+      [
+        { id: 'f2', sectionId: 's2' },
+        { id: 'f1', sectionId: 's1' },
+        { id: 'f3', sectionId: null },
+      ],
+      sections,
+      components
+    )
+    expect(groups.map((g) => g.key)).toEqual(['s1', 's2', UNGROUPED_SECTION_KEY])
+    expect(groups[0].fields.map((f) => f.id)).toEqual(['f1'])
+    expect(groups[2].fields.map((f) => f.id)).toEqual(['f3'])
+    expect(shouldShowSectionGroups(groups)).toBe(true)
+  })
+
+  it('attaches the bound component to the section label', () => {
+    const groups = groupFieldsBySection(
+      [{ id: 'f1', sectionId: 's1', componentId: null }],
+      sections,
+      components,
+      { s1: 'c1' }
+    )
+    expect(fieldSectionGroupLabel(groups[0])).toBe('Main form · USR · User form')
+  })
+
+  it('hides grouping when every field is unsectioned', () => {
+    const groups = groupFieldsBySection(
+      [{ id: 'f1', sectionId: null }],
+      sections,
+      components
+    )
+    expect(shouldShowSectionGroups(groups)).toBe(false)
   })
 })
 

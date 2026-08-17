@@ -12,10 +12,12 @@ import {
   Modal,
   Select,
   Stack,
+  Textarea,
   Typography,
 } from '@/shared/ui'
 import { ApiError } from '@/shared/lib/api-types'
 import { cn } from '@/utils/cn'
+import { StructureGroupBlocks, type StructureItemGroup } from './StructureGroupBlocks'
 
 export type StructureOption = string | { value: string; label: string }
 
@@ -32,6 +34,8 @@ export interface StructureColumn {
   createOptions?: readonly StructureOption[]
   /** Shown on Add only — not in the Edit form (e.g. bind a component when creating a section). */
   createOnly?: boolean
+  /** Multi-line text (condition, content). */
+  multiline?: boolean
 }
 
 function optionValue(option: StructureOption): string {
@@ -71,6 +75,8 @@ interface ScreenStructureEditorProps {
   onReorder?: (orderedIds: string[]) => Promise<void>
   /** Select on the left, view the selected item on the right. Add / Edit stay as buttons. */
   layout?: 'list' | 'masterDetail'
+  /** Accordion headers in the list / edit sidebar (e.g. fields by section). */
+  itemGroups?: StructureItemGroup[]
 }
 
 interface DraftRow {
@@ -104,7 +110,7 @@ function newDraftId(): string {
 }
 
 const PRIMARY_KEYS = new Set(['title', 'name', 'label'])
-const DESCRIPTION_KEYS = new Set(['description', 'note', 'content'])
+const DESCRIPTION_KEYS = new Set(['description', 'note', 'content', 'conditionNote'])
 /** Codes stay quiet in the list — shown as meta, not the headline. */
 const META_KEYS = new Set([
   'code',
@@ -166,6 +172,7 @@ export function ScreenStructureEditor({
   onDelete,
   onReorder,
   layout = 'list',
+  itemGroups,
 }: ScreenStructureEditorProps) {
   const hasEnumColumns = useMemo(() => columns.some((c) => (c.options?.length ?? 0) > 0), [columns])
   const [rows, setRows] = useState<EditRow[]>([])
@@ -512,6 +519,21 @@ export function ScreenStructureEditor({
         />
       )
     }
+    if (col.multiline) {
+      return (
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={col.placeholder}
+          aria-label={opts?.['aria-label']}
+          fullWidth={fill}
+          size={opts?.size === 'sm' ? 'sm' : 'md'}
+          disabled={opts?.disabled}
+          rows={3}
+          resize="vertical"
+        />
+      )
+    }
     return (
       <Input
         value={value}
@@ -524,6 +546,173 @@ export function ScreenStructureEditor({
       />
     )
   }
+
+  const renderMasterItems = (list: StructureItem[], startIndex: number) => (
+    <ul className="divide-y divide-neutral-100">
+      {list.map((item, offset) => {
+        const index = startIndex + offset
+        const active = selectedId === item.id
+        const secondary = secondaryLabel(item, columns)
+        const isDropTarget = dropId === item.id && dragId !== item.id
+        return (
+          <li
+            key={item.id}
+            onDragOver={(e) => {
+              if (!canReorder || !dragId || dragId === item.id) return
+              e.preventDefault()
+              e.dataTransfer.dropEffect = 'move'
+              setDropId(item.id)
+            }}
+            onDrop={(e) => {
+              e.preventDefault()
+              void handleDropOn(item.id)
+            }}
+          >
+            <div
+              className={cn(
+                'flex items-start gap-2 px-3 py-2.5',
+                active ? 'bg-neutral-50' : 'hover:bg-neutral-50',
+                isDropTarget && 'border-t-2 border-neutral-400',
+                dragId === item.id && 'opacity-50'
+              )}
+            >
+              {onReorder ? (
+                <button
+                  type="button"
+                  draggable={canReorder}
+                  aria-label={`Reorder ${itemLabel}`}
+                  title="Drag to reorder"
+                  className={cn(
+                    'mt-0.5 shrink-0 text-neutral-400 hover:text-neutral-700',
+                    canReorder ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
+                  )}
+                  onClick={(e) => e.stopPropagation()}
+                  onDragStart={(e) => {
+                    if (!canReorder) {
+                      e.preventDefault()
+                      return
+                    }
+                    e.dataTransfer.effectAllowed = 'move'
+                    e.dataTransfer.setData('text/plain', item.id)
+                    setDragId(item.id)
+                  }}
+                  onDragEnd={() => {
+                    setDragId(null)
+                    setDropId(null)
+                  }}
+                >
+                  <GripVertical size={14} />
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setSelectedId(item.id)}
+                className="flex min-w-0 flex-1 items-start gap-3 text-left"
+              >
+                <span className="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400">
+                  {index + 1}
+                </span>
+                <span className="min-w-0">
+                  <Typography variant="small" className="block truncate">
+                    {primaryLabel(item, columns)}
+                  </Typography>
+                  {secondary ? (
+                    <Typography variant="caption" tone="muted" className="block truncate">
+                      {secondary}
+                    </Typography>
+                  ) : null}
+                </span>
+              </button>
+              <Button
+                size="sm"
+                variant="ghost"
+                iconOnly
+                icon={<Pencil size={14} />}
+                aria-label={`Edit ${itemLabel}`}
+                onClick={() => {
+                  setSelectedId(item.id)
+                  setEditOpen(true)
+                }}
+              />
+            </div>
+          </li>
+        )
+      })}
+    </ul>
+  )
+
+  const renderListItems = (list: StructureItem[], startIndex: number) => (
+    <ol className="divide-y divide-neutral-100">
+      {list.map((item, offset) => {
+        const index = startIndex + offset
+        const secondary = secondaryLabel(item, columns)
+        const meta = metaLabel(item, columns)
+        return (
+          <li key={item.id} className="flex gap-3 px-3 py-2.5">
+            <span className="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400">
+              {index + 1}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="whitespace-pre-wrap break-words text-sm font-medium text-neutral-900">
+                {primaryLabel(item, columns)}
+              </div>
+              {secondary ? (
+                <div className="mt-0.5 whitespace-pre-wrap break-words text-xs text-neutral-600">
+                  {secondary}
+                </div>
+              ) : null}
+              {meta ? (
+                <div className="mt-0.5 whitespace-pre-wrap break-words text-xs text-neutral-400">
+                  {meta}
+                </div>
+              ) : null}
+              {renderRowStatus ? <div className="mt-1.5">{renderRowStatus(item)}</div> : null}
+            </div>
+            {renderRowAction ? (
+              <div className="shrink-0 self-start">{renderRowAction(item)}</div>
+            ) : null}
+          </li>
+        )
+      })}
+    </ol>
+  )
+
+  const renderEditNav = (list: EditRow[], startIndex: number) => (
+    <ul className="divide-y divide-neutral-100">
+      {list.map((row, offset) => {
+        const index = startIndex + offset
+        const active = selectedId === row.id
+        return (
+          <li key={row.id}>
+            <button
+              type="button"
+              onClick={() => setSelectedId(row.id)}
+              className={cn(
+                'flex w-full items-start gap-2 px-3 py-2.5 text-left',
+                active ? 'bg-neutral-50' : 'hover:bg-neutral-50'
+              )}
+            >
+              <span className="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400">
+                {index + 1}
+              </span>
+              <span className="min-w-0 flex-1">
+                <Typography variant="small" className="block truncate">
+                  {primaryLabel(row, columns)}
+                </Typography>
+                {row.dirty ? (
+                  <Typography variant="caption" tone="muted">
+                    Unsaved
+                  </Typography>
+                ) : null}
+              </span>
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
+
+  const grouped = Boolean(itemGroups?.length)
 
   return (
     <Stack direction="vertical" spacing="sm">
@@ -600,96 +789,15 @@ export function ScreenStructureEditor({
       ) : layout === 'masterDetail' ? (
         <div className="flex max-h-[min(28rem,55vh)] min-h-0 min-w-0 border border-neutral-200">
           <aside className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-            <ul className="divide-y divide-neutral-100">
-              {items.map((item, index) => {
-                const active = selectedId === item.id
-                const secondary = secondaryLabel(item, columns)
-                const isDropTarget = dropId === item.id && dragId !== item.id
-                return (
-                  <li
-                    key={item.id}
-                    onDragOver={(e) => {
-                      if (!canReorder || !dragId || dragId === item.id) return
-                      e.preventDefault()
-                      e.dataTransfer.dropEffect = 'move'
-                      setDropId(item.id)
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault()
-                      void handleDropOn(item.id)
-                    }}
-                  >
-                    <div
-                      className={cn(
-                        'flex items-start gap-2 px-3 py-2.5',
-                        active ? 'bg-neutral-50' : 'hover:bg-neutral-50',
-                        isDropTarget && 'border-t-2 border-neutral-400',
-                        dragId === item.id && 'opacity-50'
-                      )}
-                    >
-                      {onReorder ? (
-                        <button
-                          type="button"
-                          draggable={canReorder}
-                          aria-label={`Reorder ${itemLabel}`}
-                          title="Drag to reorder"
-                          className={cn(
-                            'mt-0.5 shrink-0 text-neutral-400 hover:text-neutral-700',
-                            canReorder ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
-                          )}
-                          onClick={(e) => e.stopPropagation()}
-                          onDragStart={(e) => {
-                            if (!canReorder) {
-                              e.preventDefault()
-                              return
-                            }
-                            e.dataTransfer.effectAllowed = 'move'
-                            e.dataTransfer.setData('text/plain', item.id)
-                            setDragId(item.id)
-                          }}
-                          onDragEnd={() => {
-                            setDragId(null)
-                            setDropId(null)
-                          }}
-                        >
-                          <GripVertical size={14} />
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedId(item.id)}
-                        className="flex min-w-0 flex-1 items-start gap-3 text-left"
-                      >
-                        <span className="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400">
-                          {index + 1}
-                        </span>
-                        <span className="min-w-0">
-                          <Typography variant="small" className="block truncate">
-                            {primaryLabel(item, columns)}
-                          </Typography>
-                          {secondary ? (
-                            <Typography variant="caption" tone="muted" className="block truncate">
-                              {secondary}
-                            </Typography>
-                          ) : null}
-                        </span>
-                      </button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        iconOnly
-                        icon={<Pencil size={14} />}
-                        aria-label={`Edit ${itemLabel}`}
-                        onClick={() => {
-                          setSelectedId(item.id)
-                          setEditOpen(true)
-                        }}
-                      />
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
+            {grouped && itemGroups ? (
+              <StructureGroupBlocks
+                items={items}
+                groups={itemGroups}
+                renderItems={renderMasterItems}
+              />
+            ) : (
+              renderMasterItems(items, 0)
+            )}
           </aside>
           <div className="w-56 shrink-0 self-start overflow-y-auto border-l border-neutral-200 p-md">
             {selectedItem ? (
@@ -733,38 +841,11 @@ export function ScreenStructureEditor({
           </div>
         </div>
       ) : (
-        <ol className="divide-y divide-neutral-100">
-          {items.map((item, index) => {
-            const secondary = secondaryLabel(item, columns)
-            const meta = metaLabel(item, columns)
-            return (
-              <li key={item.id} className="flex gap-3 py-2.5">
-                <span className="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400">
-                  {index + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="whitespace-pre-wrap break-words text-sm font-medium text-neutral-900">
-                    {primaryLabel(item, columns)}
-                  </div>
-                  {secondary ? (
-                    <div className="mt-0.5 whitespace-pre-wrap break-words text-xs text-neutral-600">
-                      {secondary}
-                    </div>
-                  ) : null}
-                  {meta ? (
-                    <div className="mt-0.5 whitespace-pre-wrap break-words text-xs text-neutral-400">
-                      {meta}
-                    </div>
-                  ) : null}
-                  {renderRowStatus ? <div className="mt-1.5">{renderRowStatus(item)}</div> : null}
-                </div>
-                {renderRowAction ? (
-                  <div className="shrink-0 self-start">{renderRowAction(item)}</div>
-                ) : null}
-              </li>
-            )
-          })}
-        </ol>
+        grouped && itemGroups ? (
+          <StructureGroupBlocks items={items} groups={itemGroups} renderItems={renderListItems} />
+        ) : (
+          renderListItems(items, 0)
+        )
       )}
 
       <Modal
@@ -788,7 +869,7 @@ export function ScreenStructureEditor({
                       variant="small"
                       className={cn(
                         'break-words',
-                        DESCRIPTION_KEYS.has(col.key) && 'whitespace-pre-wrap'
+                        (col.multiline || DESCRIPTION_KEYS.has(col.key)) && 'whitespace-pre-wrap'
                       )}
                     >
                       {text}
@@ -829,41 +910,15 @@ export function ScreenStructureEditor({
             : []),
         ]}
       >
-        <div className="flex min-h-[min(32rem,65vh)] border border-neutral-200">
-          <aside className="w-56 shrink-0 overflow-y-auto border-r border-neutral-200">
-            <ul className="divide-y divide-neutral-100">
-              {rows.map((row, index) => {
-                const active = selectedId === row.id
-                return (
-                  <li key={row.id}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(row.id)}
-                      className={cn(
-                        'flex w-full items-start gap-2 px-3 py-2.5 text-left',
-                        active ? 'bg-neutral-50' : 'hover:bg-neutral-50'
-                      )}
-                    >
-                      <span className="w-5 shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400">
-                        {index + 1}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <Typography variant="small" className="block truncate">
-                          {primaryLabel(row, columns)}
-                        </Typography>
-                        {row.dirty ? (
-                          <Typography variant="caption" tone="muted">
-                            Unsaved
-                          </Typography>
-                        ) : null}
-                      </span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
+        <div className="flex h-[min(36rem,calc(90vh-12rem))] min-h-0 overflow-hidden border border-neutral-200">
+          <aside className="flex h-full min-h-0 w-56 shrink-0 flex-col overflow-y-auto border-r border-neutral-200">
+            {grouped && itemGroups ? (
+              <StructureGroupBlocks items={rows} groups={itemGroups} renderItems={renderEditNav} />
+            ) : (
+              renderEditNav(rows, 0)
+            )}
           </aside>
-          <div className="min-w-0 flex-1 overflow-y-auto p-md">
+          <div className="h-full min-h-0 min-w-0 flex-1 overflow-y-auto p-md">
             {selectedRow ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">

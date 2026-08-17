@@ -8,6 +8,15 @@ import { cn } from '@/utils/cn'
 import type { RegistryScreen } from '../model/application-registry'
 import { useScreenDetail } from '../hooks/useScreenDetail'
 import { ScreenStructureEditor } from './ScreenStructureEditor'
+import type { StructureItemGroup } from './StructureGroupBlocks'
+import {
+  fieldComponentGroupLabel,
+  fieldSectionGroupLabel,
+  groupFieldsByComponent,
+  groupFieldsBySection,
+  shouldShowComponentGroups,
+  shouldShowSectionGroups,
+} from '../screen-spec/domain/rules/field-groups.rules'
 import {
   SCREEN_FIELD_TYPE_OPTIONS,
   SCREEN_MODE_CODE_OPTIONS,
@@ -281,6 +290,30 @@ export function ScreenDetailPanel({
     [fields]
   )
 
+  const fieldGroups = useMemo((): StructureItemGroup[] | undefined => {
+    const catalog = components.map((c) => ({ id: c.id, code: c.code, name: c.name }))
+    const sectionGroups = groupFieldsBySection(
+      fields,
+      sections.map((s) => ({ id: s.id, name: s.name })),
+      catalog,
+      sectionComponentIds
+    )
+    if (shouldShowSectionGroups(sectionGroups)) {
+      return sectionGroups.map((group) => ({
+        key: group.key,
+        label: fieldSectionGroupLabel(group),
+        itemIds: group.fields.map((field) => field.id),
+      }))
+    }
+    const componentGroups = groupFieldsByComponent(fields, catalog, sectionComponentIds)
+    if (!shouldShowComponentGroups(componentGroups)) return undefined
+    return componentGroups.map((group) => ({
+      key: group.key,
+      label: fieldComponentGroupLabel(group),
+      itemIds: group.fields.map((field) => field.id),
+    }))
+  }, [components, fields, sectionComponentIds, sections])
+
   const modeItems = useMemo(
     () =>
       modes.map((m) => ({
@@ -438,6 +471,7 @@ export function ScreenDetailPanel({
           <ScreenStructureEditor
             columns={FIELD_COLS}
             items={fieldItems}
+            itemGroups={fieldGroups}
             emptyLabel="No fields yet."
             addTitle="Add fields"
             editTitle="Edit fields"

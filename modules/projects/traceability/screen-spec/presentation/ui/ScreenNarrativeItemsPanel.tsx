@@ -61,9 +61,9 @@ export function ScreenProcessItemsPanel({
   const columns = useMemo(
     () => [
       { key: 'title', label: 'Title', required: true, placeholder: '1. Data load' },
-      { key: 'content', label: 'Content', placeholder: 'What happens' },
+      { key: 'content', label: 'Content', placeholder: 'What happens', multiline: true },
       { key: 'sourceTable', label: 'Source table', placeholder: 'USER_MASTER' },
-      { key: 'conditionNote', label: 'Condition', placeholder: 'Optional' },
+      { key: 'conditionNote', label: 'Condition', placeholder: 'Optional', multiline: true },
       { key: 'modeId', label: 'Mode', options: modeOptions(modes) },
       { key: 'targetFieldId', label: 'Field', options: fieldOptions(fields) },
     ],
@@ -137,7 +137,7 @@ export function ScreenEventItemsPanel({
   const columns = useMemo(
     () => [
       { key: 'title', label: 'Title', required: true, placeholder: 'Submit click' },
-      { key: 'content', label: 'Content', placeholder: 'Validate → POST → navigate' },
+      { key: 'content', label: 'Content', placeholder: 'Validate → POST → navigate', multiline: true },
       {
         key: 'triggerActionCode',
         label: 'Trigger',
@@ -145,7 +145,7 @@ export function ScreenEventItemsPanel({
       },
       { key: 'triggerFieldId', label: 'Trigger field', options: fieldOptions(fields) },
       { key: 'modeId', label: 'Mode', options: modeOptions(modes) },
-      { key: 'conditionNote', label: 'Condition', placeholder: 'Optional' },
+      { key: 'conditionNote', label: 'Condition', placeholder: 'Optional', multiline: true },
       {
         key: 'targetScreenId',
         label: 'Navigate to',
