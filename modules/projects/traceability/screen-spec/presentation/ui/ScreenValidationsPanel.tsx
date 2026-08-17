@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Button, PageSkeleton, Typography } from '@/shared/ui'
+import { Button, Input, PageSkeleton, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { useScreenValidations, useValidationRuleTypes } from '../hooks/useFieldValidations'
 import { FieldValidationsEditor } from './FieldValidationsEditor'
@@ -27,6 +27,7 @@ export function ScreenValidationsPanel({
   const { items: ruleTypes } = useValidationRuleTypes(workspaceId)
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(fields[0]?.id ?? null)
   const [importOpen, setImportOpen] = useState(false)
+  const [fieldQuery, setFieldQuery] = useState('')
   const importRefs = useMemo(
     () => ({
       fields: fields.map((field) => ({ id: field.id, fieldKey: field.fieldKey })),
@@ -36,10 +37,19 @@ export function ScreenValidationsPanel({
     [fields, modes, ruleTypes]
   )
 
+  const filteredFields = useMemo(() => {
+    const q = fieldQuery.trim().toLowerCase()
+    if (!q) return fields
+    return fields.filter(
+      (field) =>
+        field.fieldKey.toLowerCase().includes(q) || field.label.toLowerCase().includes(q)
+    )
+  }, [fields, fieldQuery])
+
   useEffect(() => {
-    if (selectedFieldId && fields.some((f) => f.id === selectedFieldId)) return
-    setSelectedFieldId(fields[0]?.id ?? null)
-  }, [fields, selectedFieldId])
+    if (selectedFieldId && filteredFields.some((f) => f.id === selectedFieldId)) return
+    setSelectedFieldId(filteredFields[0]?.id ?? null)
+  }, [filteredFields, selectedFieldId])
 
   const countByField = useMemo(() => {
     const map = new Map<string, number>()
@@ -61,11 +71,17 @@ export function ScreenValidationsPanel({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <Typography variant="caption" tone="muted">
-          Add a rule on the selected field, or import JSON for many fields at once.
-        </Typography>
-        <Button size="sm" variant="secondary" onClick={() => setImportOpen(true)}>
+      <div className="flex items-center gap-2">
+        <Input
+          size="sm"
+          fullWidth
+          type="search"
+          value={fieldQuery}
+          onChange={(e) => setFieldQuery(e.target.value)}
+          placeholder="Search field"
+          aria-label="Search field"
+        />
+        <Button size="sm" variant="secondary" className="shrink-0" onClick={() => setImportOpen(true)}>
           Import JSON
         </Button>
       </div>
@@ -78,7 +94,14 @@ export function ScreenValidationsPanel({
       <div className="flex max-h-[min(28rem,55vh)] min-h-0 min-w-0 border border-neutral-200">
         <aside className="w-52 shrink-0 overflow-y-auto border-r border-neutral-200">
           <ul className="divide-y divide-neutral-100">
-            {fields.map((field) => {
+            {filteredFields.length === 0 ? (
+              <li className="px-3 py-2.5">
+                <Typography variant="caption" tone="muted">
+                  No fields match this search.
+                </Typography>
+              </li>
+            ) : null}
+            {filteredFields.map((field) => {
               const count = countByField.get(field.id) ?? 0
               const active = selectedFieldId === field.id
               return (

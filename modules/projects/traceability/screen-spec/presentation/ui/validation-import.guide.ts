@@ -22,11 +22,9 @@ const SYSTEM_RULE_CODES = [
 ] as const
 
 export function buildFieldValidationImportGuide(live?: {
-  fieldKeys?: string[]
   ruleTypeCodes?: string[]
   modeCodes?: string[]
 }): BulkImportFormatGuide {
-  const fieldKeys = (live?.fieldKeys ?? []).filter(Boolean)
   const ruleTypeCodes = (live?.ruleTypeCodes ?? []).filter(Boolean)
   const modeCodes = (live?.modeCodes ?? []).filter(Boolean)
   const modeEnum = modeCodes.length > 0 ? modeCodes : MODE_CODES
@@ -36,16 +34,12 @@ export function buildFieldValidationImportGuide(live?: {
     maxItems: FIELD_VALIDATION_IMPORT_MAX_ITEMS,
     notes: [
       'Payload shape: { "items": [ Rule, ... ] }. A bare array is also accepted. Each item is one rule on one existing field of this screen.',
-      'How to import: (1) Fields and modes must already exist on this screen. (2) ruleTypeCode must already exist in the workspace (see Rule types under the paste box, or Admin). (3) Paste JSON. (4) Submit — FE POSTs one create per item. Failed items are listed; successful ones stay.',
+      'How to import: (1) Fields and modes must already exist on this screen. (2) ruleTypeCode must already exist in the workspace (Admin / validation rule types). (3) Copy field keys from the small Fields on this screen row if needed. (4) Paste JSON. (5) Submit — FE POSTs one create per item. Failed items are listed; successful ones stay.',
       'Do not send UUIDs (fieldId, ruleTypeId, modeId). Keys are fieldKey, ruleTypeCode, and optional modeCode.',
       'There is no screen-level validations array. Repeat fieldKey for several rules on the same field.',
       'Existing rules are not deleted or updated — this only creates new ones. Duplicate EMAIL_FORMAT on the same field is allowed if the API accepts it.',
-      fieldKeys.length
-        ? `fieldKey on this screen: ${fieldKeys.join(', ')}.`
-        : 'fieldKey must match a field on this screen. The dialog lists current keys.',
-      ruleTypeCodes.length
-        ? `ruleTypeCode in this workspace: ${ruleTypeCodes.join(', ')}.`
-        : 'ruleTypeCode must match a workspace validation-rule-type. System-seeded codes are listed on Rule type below.',
+      'fieldKey must match a field on this screen. Copy the key list from Fields on this screen — do not invent keys.',
+      'ruleTypeCode must match a workspace validation-rule-type. System-seeded codes are listed on Rule type below.',
       modeCodes.length
         ? `modeCode on this screen: ${modeCodes.join(', ')}. Omit modeCode to apply on all modes.`
         : 'modeCode is optional. If set, it must be a mode on this screen.',
@@ -57,9 +51,8 @@ export function buildFieldValidationImportGuide(live?: {
         name: 'fieldKey',
         required: true,
         type: 'string',
-        enumValues: fieldKeys.length ? fieldKeys : undefined,
-        enumNotes: fieldKeys.length ? 'Must be a field on this screen.' : undefined,
-        description: 'Existing field on this screen, e.g. email. Not a UUID.',
+        description:
+          'Existing field on this screen, e.g. email. Not a UUID. Copy keys from Fields on this screen.',
       },
       {
         name: 'ruleTypeCode',

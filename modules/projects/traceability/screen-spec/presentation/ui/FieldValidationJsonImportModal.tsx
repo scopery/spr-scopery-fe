@@ -1,8 +1,9 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { Check, Copy } from 'lucide-react'
 import { toast } from 'sonner'
-import { JsonImportModal, Typography } from '@/shared/ui'
+import { Button, JsonImportModal, Typography } from '@/shared/ui'
 import { formatJsonImportIssues } from '@/shared/lib/jsonImportValidation'
 import { FIELD_VALIDATION_IMPORT_MAX_ITEMS } from '../../domain/model/validation-import'
 import type { FieldValidationImportRefs } from '../../domain/model/validation-import'
@@ -12,6 +13,40 @@ import {
 } from '../../domain/rules/validation-import.validation'
 import { useFieldValidationJsonImport } from '../hooks/useFieldValidationJsonImport'
 import { buildFieldValidationImportGuide } from './validation-import.guide'
+
+function CopyFieldKeysRow({ fieldKeys }: { fieldKeys: string[] }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(async () => {
+    if (fieldKeys.length === 0) return
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(fieldKeys, null, 2))
+      setCopied(true)
+      toast.success('Field keys copied')
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.error('Could not copy field keys')
+    }
+  }, [fieldKeys])
+
+  return (
+    <div className="flex items-center justify-between gap-2 border border-neutral-200 bg-neutral-50 px-3 py-2">
+      <Typography variant="caption" tone="muted">
+        Fields on this screen{fieldKeys.length ? ` · ${fieldKeys.length}` : ''}
+      </Typography>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        disabled={fieldKeys.length === 0}
+        onClick={() => void handleCopy()}
+        icon={copied ? <Check size={14} /> : <Copy size={14} />}
+      >
+        {copied ? 'Copied' : 'Copy'}
+      </Button>
+    </div>
+  )
+}
 
 export function FieldValidationJsonImportModal({
   open,
@@ -35,11 +70,10 @@ export function FieldValidationJsonImportModal({
   const guide = useMemo(
     () =>
       buildFieldValidationImportGuide({
-        fieldKeys,
         ruleTypeCodes: ruleCodes,
         modeCodes,
       }),
-    [fieldKeys, ruleCodes, modeCodes]
+    [ruleCodes, modeCodes]
   )
 
   return (
@@ -49,18 +83,9 @@ export function FieldValidationJsonImportModal({
       title="JSON import — Validations"
       size="xl"
       guide={guide}
-      description="Paste rules for fields on this screen. Open the format guide for field rules, system ruleTypeCode values, and ruleParamJson examples. Client checks keys first, then POSTs one rule at a time."
+      description="Paste rules for fields on this screen. Copy field keys if you need them. Client checks keys first, then POSTs one rule at a time."
       maxItems={FIELD_VALIDATION_IMPORT_MAX_ITEMS}
-      extra={
-        <div className="space-y-1">
-          <Typography variant="caption" tone="muted">
-            Fields on this screen: {fieldKeys.length ? fieldKeys.join(', ') : 'none yet'}
-          </Typography>
-          <Typography variant="caption" tone="muted">
-            Rule types: {ruleCodes.length ? ruleCodes.join(', ') : 'none loaded'}
-          </Typography>
-        </div>
-      }
+      extra={<CopyFieldKeysRow fieldKeys={fieldKeys} />}
       validate={(raw) => {
         const shape = validateFieldValidationJsonImport(raw)
         if (!shape.ok) return shape
