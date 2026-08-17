@@ -133,6 +133,7 @@ const COMPONENT_TYPE_LABELS: Record<string, string> = {
   CHECKBOX: 'Checkbox',
   SELECT: 'Dropdown',
   DROPDOWN: 'Dropdown',
+  MULTI_SELECT: 'Multi-select',
   BUTTON: 'Button',
   DATE: 'Date',
   DATEPICKER: 'Date',

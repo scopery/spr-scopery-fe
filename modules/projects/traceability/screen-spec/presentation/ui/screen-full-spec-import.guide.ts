@@ -17,6 +17,7 @@ const FIELD_TYPES = [
   'RADIO',
   'SELECT',
   'DROPDOWN',
+  'MULTI_SELECT',
   'BUTTON',
   'LABEL',
   'HIDDEN',
