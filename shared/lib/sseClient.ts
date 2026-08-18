@@ -163,27 +163,22 @@ export function resolveSseEventName(event: SseParsedEvent): string {
 }
 
 /**
- * Resolve the browser URL for an SSE path.
- * Prefer `NEXT_PUBLIC_SSE_BASE_URL` (direct BE). Otherwise pipe through `/api/sse/*`
- * so Next's `/api/:path*` rewrite does not buffer the stream.
+ * Always keep SSE same-origin via `/api/sse/*`.
+ * Never send the browser to the BE host — that host often has a bad TLS cert
+ * (e.g. sslip.io) while REST still works through the Next proxy.
  */
 export function resolveSseUrl(streamUrl: string): string {
-  const sseBase =
-    typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_SSE_BASE_URL ?? '') : ''
-  if (streamUrl.startsWith('http')) {
-    if (sseBase) return streamUrl
+  let path = streamUrl.trim()
+  if (path.startsWith('http://') || path.startsWith('https://')) {
     try {
-      const parsed = new URL(streamUrl)
-      if (parsed.pathname.startsWith('/api/')) {
-        return `/api/sse/${parsed.pathname.slice('/api/'.length)}${parsed.search}`
-      }
+      const parsed = new URL(path)
+      path = `${parsed.pathname}${parsed.search}`
     } catch {
-      return streamUrl
+      return path
     }
-    return streamUrl
   }
-  const path = streamUrl.startsWith('/') ? streamUrl : `/${streamUrl}`
-  if (sseBase) return `${sseBase}${path}`
+  if (!path.startsWith('/')) path = `/${path}`
+  if (path.startsWith('/api/sse/')) return path
   if (path.startsWith('/api/')) return `/api/sse/${path.slice('/api/'.length)}`
   return path
 }

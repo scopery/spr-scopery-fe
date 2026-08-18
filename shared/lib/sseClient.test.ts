@@ -97,6 +97,12 @@ describe('resolveSseUrl', () => {
       '/api/sse/v1/ai-assistant/messages/1/stream'
     )
   })
+
+  it('does not send the browser to a BE host with a bad TLS cert', () => {
+    expect(
+      resolveSseUrl('https://136-85-104-51.sslip.io/api/v1/ai-assistant/messages/abc/stream')
+    ).toBe('/api/sse/v1/ai-assistant/messages/abc/stream')
+  })
 })
 
 describe('resolveSseEventName', () => {
