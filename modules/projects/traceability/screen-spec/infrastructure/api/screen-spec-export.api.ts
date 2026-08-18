@@ -1,5 +1,5 @@
 import { apiClient } from '@/shared/lib/apiClient'
-import { listScreenFields, listScreenSections } from '../../../api/traceability.api'
+import { listScreenFields, listScreenSections, listScreens } from '../../../api/traceability.api'
 import type { RegistryScreenField, RegistryScreenSection } from '../../../model/application-registry'
 import type { ScreenMode } from '../../domain/model/screen-spec'
 import type { ScreenFullSpec, ScreenFullSpecField, ScreenSpecDocFullSpec } from '../../domain/model/screen-spec-doc'
@@ -103,6 +103,23 @@ async function loadFieldForExport(
     dataField: detail?.dataField ?? field.dataField,
     maxLength: detail?.maxLength ?? fallback?.maxLength ?? field.maxLength,
     required: detail?.required ?? fallback?.required ?? field.required,
+  }
+}
+
+export async function loadExportScreenCatalog(
+  workspaceId: string,
+  applicationId: string | null | undefined
+): Promise<Array<{ id: string; code: string; name: string }>> {
+  if (!applicationId) return []
+  try {
+    const res = await listScreens(workspaceId, applicationId)
+    return res.items.map((screen) => ({
+      id: screen.id,
+      code: screen.code,
+      name: screen.name,
+    }))
+  } catch {
+    return []
   }
 }
 

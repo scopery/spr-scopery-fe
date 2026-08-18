@@ -265,8 +265,34 @@ describe('screen-spec-excel.rules', () => {
       'CLICK',
       'email · Email',
       'form valid',
-      'PROFILE · Profile',
+      'PROFILE · Profile · VIEW',
     ])
+  })
+
+  it('resolves Navigate to from the application catalog when the target is outside the document', () => {
+    const withEvent = screen({
+      ...login,
+      eventItems: [
+        {
+          id: 'e1',
+          modeId: null,
+          triggerFieldId: null,
+          triggerActionCode: 'CLICK',
+          title: 'Go profile',
+          content: 'Navigate',
+          conditionNote: null,
+          targetScreenId: 's2',
+          targetModeCode: 'EDIT',
+          displayOrder: 0,
+        },
+      ],
+    })
+    const model = buildScreenSpecWorkbookModel({
+      ...wrapSingleScreenAsDocument(withEvent),
+      screenCatalog: [{ id: 's2', code: 'PROFILE', name: 'Profile' }],
+    })
+    const navigate = model.eventRows.find((r) => r.label === 'Navigate to')
+    expect(navigate?.detail).toBe('PROFILE · Profile · EDIT')
   })
 
   it('keeps line breaks in Content, Condition, and Remark', () => {

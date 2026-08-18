@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Button, PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
+import { Button, PageSkeleton, SearchableSelect, Select, Stack, Typography } from '@/shared/ui'
 import { OptionSourceType } from '../../domain/enums/screen-spec.enum'
 import { ScreenSpecMessages } from '../../domain/messages/screen-spec.messages'
 import { useApplicationComponentDetail } from '../hooks/useApplicationComponentDetail'
@@ -151,7 +151,7 @@ export function ComponentSpecPanel({
                   Create a data entity first, then map value and label columns.
                 </Typography>
               ) : (
-                <Select
+                <SearchableSelect
                   value={sourceEntityId}
                   onValueChange={setSourceEntityId}
                   options={entities.map((e) => ({
@@ -159,20 +159,23 @@ export function ComponentSpecPanel({
                     label: `${e.code} · ${e.name}`,
                   }))}
                   placeholder="Source entity"
+                  searchPlaceholder="Search entity…"
                 />
               )}
-              <Select
+              <SearchableSelect
                 value={valueCol}
                 onValueChange={setValueCol}
                 options={columnOptions}
                 placeholder="Value column"
+                searchPlaceholder="Search column…"
                 disabled={!sourceEntityId}
               />
-              <Select
+              <SearchableSelect
                 value={labelCol}
                 onValueChange={setLabelCol}
                 options={columnOptions}
                 placeholder="Label column"
+                searchPlaceholder="Search column…"
                 disabled={!sourceEntityId}
               />
             </Stack>

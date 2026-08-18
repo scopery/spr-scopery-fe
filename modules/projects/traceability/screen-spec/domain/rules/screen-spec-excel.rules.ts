@@ -381,6 +381,7 @@ function headerAuditFromDoc(doc: ScreenSpecDocFullSpec): Pick<
 export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): ScreenSpecWorkbookModel {
   const groupedEntries = sortByOrder(doc.screens)
   const screens = groupedEntries.map((entry) => entry.screen)
+  const navigateScreens = mergeNavigateScreens(screens, doc.screenCatalog)
   const grouped = screens.length > 1
   const modeCodes = collectDefineModeCodes(screens)
   const header: ScreenSpecExcelHeader = {
@@ -509,9 +510,7 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
         outlineDetail('Trigger field', excelLinkedFieldLabel(item.triggerFieldId, fields), screen.code)
       )
       eventRows.push(outlineDetail('Condition', item.conditionNote ?? '', screen.code))
-      eventRows.push(
-        outlineDetail('Navigate to', eventNavigateToLabel(item.targetScreenId, screens), screen.code)
-      )
+      eventRows.push(outlineDetail('Navigate to', eventNavigateToLabel(item, navigateScreens), screen.code))
     }
   }
 
@@ -618,14 +617,36 @@ export function excelLinkedFieldLabel(
   return field.label ? `${field.fieldKey} · ${field.label}` : field.fieldKey
 }
 
+function mergeNavigateScreens(
+  screens: Array<{ id: string; code: string; name: string }>,
+  catalog?: Array<{ id: string; code: string; name: string }>
+): Array<{ id: string; code: string; name: string }> {
+  const byId = new Map<string, { id: string; code: string; name: string }>()
+  for (const screen of [...(catalog ?? []), ...screens]) {
+    if (!screen.id) continue
+    byId.set(screen.id, { id: screen.id, code: screen.code, name: screen.name })
+  }
+  return [...byId.values()]
+}
+
 export function eventNavigateToLabel(
-  targetScreenId: string | null | undefined,
+  item: {
+    targetScreenId?: string | null
+    targetScreenCode?: string | null
+    targetScreenName?: string | null
+    targetModeCode?: string | null
+  },
   screens: Array<{ id: string; code: string; name: string }>
 ): string {
-  if (!targetScreenId) return ''
-  const target = screens.find((s) => s.id === targetScreenId)
-  if (!target) return ''
-  return `${target.code} · ${target.name}`
+  const target = item.targetScreenId
+    ? screens.find((s) => s.id === item.targetScreenId)
+    : undefined
+  const code = (target?.code || item.targetScreenCode || '').trim()
+  const name = (target?.name || item.targetScreenName || '').trim()
+  const screenLabel = code && name ? `${code} · ${name}` : name || code
+  const mode = (item.targetModeCode || '').trim()
+  if (screenLabel && mode) return `${screenLabel} · ${mode}`
+  return screenLabel || mode
 }
 
 function toDefineFieldRow(

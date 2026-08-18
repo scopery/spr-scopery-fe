@@ -65,7 +65,7 @@ export function ScreenProcessItemsPanel({
       { key: 'sourceTable', label: 'Source table', placeholder: 'USER_MASTER' },
       { key: 'conditionNote', label: 'Condition', placeholder: 'Optional', multiline: true },
       { key: 'modeId', label: 'Mode', options: modeOptions(modes) },
-      { key: 'targetFieldId', label: 'Field', options: fieldOptions(fields) },
+      { key: 'targetFieldId', label: 'Field', options: fieldOptions(fields), searchable: true },
     ],
     [modes, fields]
   )
@@ -143,7 +143,7 @@ export function ScreenEventItemsPanel({
         label: 'Trigger',
         options: TRIGGER_ACTION_CODE_OPTIONS,
       },
-      { key: 'triggerFieldId', label: 'Trigger field', options: fieldOptions(fields) },
+      { key: 'triggerFieldId', label: 'Trigger field', options: fieldOptions(fields), searchable: true },
       { key: 'modeId', label: 'Mode', options: modeOptions(modes) },
       { key: 'conditionNote', label: 'Condition', placeholder: 'Optional', multiline: true },
       {
@@ -153,6 +153,7 @@ export function ScreenEventItemsPanel({
           { value: NONE, label: 'No screen' },
           ...screens.map((s) => ({ value: s.id, label: `${s.code} · ${s.name}` })),
         ],
+        searchable: true,
       },
       {
         key: 'targetModeCode',

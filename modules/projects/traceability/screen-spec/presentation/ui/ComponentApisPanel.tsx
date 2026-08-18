@@ -57,6 +57,7 @@ export function ComponentApisPanel({
               label: 'API',
               required: true,
               options: apiOptions,
+              searchable: true,
               lockedOnExisting: true,
             },
             {

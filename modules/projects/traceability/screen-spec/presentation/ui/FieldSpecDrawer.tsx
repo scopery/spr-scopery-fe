@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Input, Modal, Select, Stack, Typography } from '@/shared/ui'
+import { Input, Modal, SearchableSelect, Stack, Typography } from '@/shared/ui'
 import { useDataEntityFields } from '../hooks/useDataEntityFields'
 import { useScreenFieldSpec } from '../hooks/useScreenFieldSpec'
 import {
@@ -182,7 +182,7 @@ export function FieldSpecDrawer({
                 <Typography variant="caption" tone="muted" className="mb-1 block">
                   Component
                 </Typography>
-                <Select
+                <SearchableSelect
                   value={componentId}
                   onValueChange={setComponentId}
                   options={[
@@ -190,15 +190,16 @@ export function FieldSpecDrawer({
                     ...components.map((c) => ({ value: c.id, label: `${c.code} · ${c.name}` })),
                   ]}
                   placeholder="Component"
+                  searchPlaceholder="Search component…"
                 />
               </div>
               <div>
                 <Typography variant="caption" tone="muted" className="mb-1 block">
                   Data entity
                 </Typography>
-                <Select
+                <SearchableSelect
                   value={entityId}
-                  onValueChange={(id: string) => {
+                  onValueChange={(id) => {
                     setEntityId(id)
                     setDataEntityFieldId('none')
                   }}
@@ -207,6 +208,7 @@ export function FieldSpecDrawer({
                     ...entities.map((e) => ({ value: e.id, label: `${e.code} · ${e.name}` })),
                   ]}
                   placeholder="Data entity"
+                  searchPlaceholder="Search entity…"
                 />
               </div>
               <div>
@@ -224,11 +226,12 @@ export function FieldSpecDrawer({
                 <Typography variant="caption" tone="muted" className="mb-1 block">
                   Data column
                 </Typography>
-                <Select
+                <SearchableSelect
                   value={dataEntityFieldId}
                   onValueChange={setDataEntityFieldId}
                   options={[{ value: 'none', label: 'Not linked' }, ...fieldOptions]}
                   placeholder="Data column"
+                  searchPlaceholder="Search column…"
                   disabled={!entityId || entityId === 'none'}
                 />
               </div>

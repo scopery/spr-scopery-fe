@@ -10,6 +10,7 @@ import {
   Divider,
   Input,
   Modal,
+  SearchableSelect,
   Select,
   Stack,
   Textarea,
@@ -30,6 +31,8 @@ export interface StructureColumn {
   lockedOnExisting?: boolean
   /** When set, field is an enum — enables Single add mode with a Select. */
   options?: readonly StructureOption[]
+  /** Combobox: type to filter a long option list (fields, screens, catalog). */
+  searchable?: boolean
   /** Add-form choices only. Display still uses `options` so already-selected values keep their labels. */
   createOptions?: readonly StructureOption[]
   /** Shown on Add only — not in the Edit form (e.g. bind a component when creating a section). */
@@ -508,14 +511,30 @@ export function ScreenStructureEditor({
       const known = new Set(base.map((o) => o.value))
       const options =
         value && !known.has(value) ? [{ value, label: value }, ...base] : base
+      const controlClass = fill ? 'w-full' : 'min-w-[200px]'
+      const selected = value || optionValue(choices[0])
+      if (col.searchable) {
+        return (
+          <SearchableSelect
+            options={options}
+            value={selected}
+            onValueChange={onChange}
+            disabled={opts?.disabled}
+            size={opts?.size ?? 'md'}
+            placeholder={col.placeholder ?? col.label}
+            searchPlaceholder={`Search ${col.label.toLowerCase()}…`}
+            className={controlClass}
+          />
+        )
+      }
       return (
         <Select
           options={options}
-          value={value || optionValue(choices[0])}
+          value={selected}
           onValueChange={onChange}
           disabled={opts?.disabled}
           size={opts?.size ?? 'md'}
-          className={fill ? 'w-full' : 'min-w-[200px]'}
+          className={controlClass}
         />
       )
     }

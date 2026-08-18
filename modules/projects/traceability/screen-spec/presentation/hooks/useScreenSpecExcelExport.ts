@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react'
 import { getApplication } from '../../../api/traceability.api'
 import { wrapSingleScreenAsDocument } from '../../domain/rules/screen-spec-excel.rules'
 import {
+  loadExportScreenCatalog,
   loadScreenFullSpecForExport,
   loadScreenSpecDocFullSpecForExport,
 } from '../../infrastructure/api/screen-spec-export.api'
@@ -33,11 +34,12 @@ export function useScreenSpecExcelExport(
       if (!workspaceId) return
       setExporting(true)
       try {
-        const [full, applicationName] = await Promise.all([
+        const [full, applicationName, screenCatalog] = await Promise.all([
           loadScreenSpecDocFullSpecForExport(workspaceId, docId),
           loadApplicationName(workspaceId, applicationId),
+          loadExportScreenCatalog(workspaceId, applicationId),
         ])
-        return await downloadScreenSpecExcel({ ...full, applicationName })
+        return await downloadScreenSpecExcel({ ...full, applicationName, screenCatalog })
       } finally {
         setExporting(false)
       }
@@ -50,11 +52,16 @@ export function useScreenSpecExcelExport(
       if (!workspaceId) return
       setExporting(true)
       try {
-        const [screen, applicationName] = await Promise.all([
+        const appId = screenApplicationId ?? applicationId
+        const [screen, applicationName, screenCatalog] = await Promise.all([
           loadScreenFullSpecForExport(workspaceId, screenId),
-          loadApplicationName(workspaceId, screenApplicationId ?? applicationId),
+          loadApplicationName(workspaceId, appId),
+          loadExportScreenCatalog(workspaceId, appId),
         ])
-        return await downloadScreenSpecExcel(wrapSingleScreenAsDocument(screen, { applicationName }))
+        return await downloadScreenSpecExcel({
+          ...wrapSingleScreenAsDocument(screen, { applicationName }),
+          screenCatalog,
+        })
       } finally {
         setExporting(false)
       }

@@ -256,6 +256,7 @@ export function ScreenDetailPanel({
         label: 'Component',
         createOnly: true,
         options: [{ value: '', label: 'None' }, ...catalogOptions],
+        searchable: true,
         createOptions: [
           { value: '', label: 'None' },
           ...catalogOptions.filter((c) => !linkedComponentIds.has(c.value)),

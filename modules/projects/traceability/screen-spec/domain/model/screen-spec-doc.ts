@@ -145,6 +145,8 @@ export interface ScreenSpecDocFullSpec {
   updatedByName?: string | null
   /** Catalog application name — used in the Excel filename 【App】Document. */
   applicationName?: string | null
+  /** Workspace screens used to resolve Event → Navigate to (may be outside this document). */
+  screenCatalog?: Array<{ id: string; code: string; name: string }>
   revisions: ScreenSpecDocRevision[]
   screens: ScreenSpecDocFullSpecScreen[]
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Modal, Select, Typography } from '@/shared/ui'
+import { Modal, SearchableSelect, Typography } from '@/shared/ui'
 
 export function ScreenSectionBindComponentModal({
   open,
@@ -55,7 +55,7 @@ export function ScreenSectionBindComponentModal({
             Create a catalog component and add fields on it first.
           </Typography>
         ) : (
-          <Select
+          <SearchableSelect
             value={componentId}
             onValueChange={setComponentId}
             options={components.map((c) => ({
@@ -63,6 +63,7 @@ export function ScreenSectionBindComponentModal({
               label: `${c.code} · ${c.name}`,
             }))}
             placeholder="Component"
+            searchPlaceholder="Search component…"
           />
         )}
         {error ? (

@@ -688,6 +688,7 @@ export function mapProcessItem(raw: unknown): ScreenProcessItem {
 export function mapEventItem(raw: unknown): ScreenEventItem {
   const r = asRecord(raw)
   const mode = modeFromRaw(r)
+  const target = asRecord(r.targetScreen ?? r.target_screen ?? r.target)
   return {
     id: String(r.id ?? ''),
     screenId: str(r.screenId ?? r.screen_id) ?? undefined,
@@ -698,7 +699,9 @@ export function mapEventItem(raw: unknown): ScreenEventItem {
     title: String(r.title ?? ''),
     content: str(r.content),
     conditionNote: str(r.conditionNote ?? r.condition_note),
-    targetScreenId: str(r.targetScreenId ?? r.target_screen_id),
+    targetScreenId: str(r.targetScreenId ?? r.target_screen_id ?? target.id),
+    targetScreenCode: str(r.targetScreenCode ?? r.target_screen_code ?? target.code),
+    targetScreenName: str(r.targetScreenName ?? r.target_screen_name ?? target.name),
     targetModeCode: str(r.targetModeCode ?? r.target_mode_code),
     displayOrder: num(r.displayOrder ?? r.display_order),
   }

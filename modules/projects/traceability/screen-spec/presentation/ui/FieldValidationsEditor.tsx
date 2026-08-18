@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { Button, Input, Modal, Select, Stack, Typography } from '@/shared/ui'
+import { Button, Input, Modal, SearchableSelect, Select, Stack, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import {
   coerceRuleParamJson,
@@ -184,11 +184,12 @@ export function FieldValidationsEditor({
         <Typography variant="caption" tone="muted" className="mb-1.5 block">
           Rule type
         </Typography>
-        <Select
+        <SearchableSelect
           value={ruleTypeId || undefined}
           onValueChange={onRuleTypeChange}
           options={ruleTypes.map((t) => ({ value: t.id, label: `${t.code} · ${t.name}` }))}
           placeholder={typesLoading ? 'Loading rules…' : 'Choose a rule'}
+          searchPlaceholder="Search rule…"
           disabled={typesLoading || ruleTypes.length === 0}
         />
         {!typesLoading && ruleTypes.length === 0 ? (

@@ -339,6 +339,8 @@ export interface ScreenEventItem {
   content: string | null
   conditionNote: string | null
   targetScreenId: string | null
+  targetScreenCode?: string | null
+  targetScreenName?: string | null
   targetModeCode: string | null
   displayOrder: number | null
 }
