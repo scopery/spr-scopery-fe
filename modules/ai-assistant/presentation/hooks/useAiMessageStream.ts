@@ -214,6 +214,10 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
               if (parsed?.status) next = applyStatusChanged(next, parsed.status)
               if (parsed?.status === 'CANCELLED') {
                 queueMicrotask(() => handleTerminal(applyCancelled(next)))
+              } else if (parsed?.status === 'COMPLETED') {
+                queueMicrotask(() => handleTerminal(applyCompleted(next)))
+              } else if (parsed?.status === 'FAILED' || parsed?.status === 'BLOCKED') {
+                queueMicrotask(() => handleTerminal(applyFailed(next, 'Generation failed')))
               }
               return next
             }
@@ -303,12 +307,55 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
             handleTerminal(applyCancelled(current))
             return
           }
-          // Mid-stream end without terminal — openSseStream already retried;
-          // if we still land here, offer manual retry.
+          const messageId = current.assistantMessageId
+          if (messageId) {
+            void api
+              .getMessage(messageId)
+              .then((msg) => {
+                const latest = stateRef.current
+                if (isTerminalUiState(latest.uiState)) return
+                const status = String(msg.status ?? '').toUpperCase()
+                const text = latest.streamingText || msg.content || ''
+                if (status === 'COMPLETED' || text.trim()) {
+                  handleTerminal(applyCompleted({ ...latest, streamingText: text }))
+                  return
+                }
+                if (status === 'FAILED' || status === 'BLOCKED') {
+                  handleTerminal(applyFailed(latest, 'Generation failed'))
+                  return
+                }
+                if (status === 'CANCELLED') {
+                  handleTerminal(applyCancelled(latest))
+                  return
+                }
+                setStreamState((prev) => applyReconnectExhausted(prev))
+                const cb = onTerminalRef.current
+                if (cb) {
+                  onTerminalRef.current = null
+                  cb()
+                }
+              })
+              .catch(() => {
+                const latest = stateRef.current
+                if (isTerminalUiState(latest.uiState)) return
+                if (latest.streamingText.trim()) {
+                  handleTerminal(applyCompleted(latest))
+                  return
+                }
+                setStreamState((prev) => applyReconnectExhausted(prev))
+                const cb = onTerminalRef.current
+                if (cb) {
+                  onTerminalRef.current = null
+                  cb()
+                }
+              })
+            return
+          }
+          if (current.streamingText.trim()) {
+            handleTerminal(applyCompleted(current))
+            return
+          }
           setStreamState((prev) => applyReconnectExhausted(prev))
-          // Always fire the onTerminal callback even on SSE failure so the caller
-          // can reload messages. The AI turn may have completed in the backend
-          // while the SSE connection was dropping/retrying.
           const cb = onTerminalRef.current
           if (cb) {
             onTerminalRef.current = null

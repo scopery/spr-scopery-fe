@@ -78,8 +78,20 @@ export function isSseCompletedEvent(event: string): boolean {
   return SSE_COMPLETED_EVENTS.has(event)
 }
 
-export function isSseTerminalEvent(event: string): boolean {
-  return SSE_TERMINAL_EVENTS.has(event)
+const SSE_TERMINAL_STATUSES = new Set(['COMPLETED', 'FAILED', 'CANCELLED', 'BLOCKED'])
+
+/** STATUS_CHANGED with a finished status is terminal even without a COMPLETED frame. */
+export function isSseTerminalStatus(status: string | null | undefined): boolean {
+  if (!status) return false
+  return SSE_TERMINAL_STATUSES.has(status.trim().toUpperCase())
+}
+
+export function isSseTerminalEvent(event: string, data?: string): boolean {
+  if (SSE_TERMINAL_EVENTS.has(event)) return true
+  if (event !== SseEventType.StatusChanged) return false
+  const parsed = parseSseJson(data ?? '')
+  if (!isRecord(parsed) || typeof parsed.status !== 'string') return false
+  return isSseTerminalStatus(parsed.status)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -150,13 +162,19 @@ export function resolveSseEventName(event: SseParsedEvent): string {
   return typeof named === 'string' && named ? named : event.event
 }
 
-/** Prefix `NEXT_PUBLIC_SSE_BASE_URL` so Next's rewrite does not buffer the stream. */
+/**
+ * Resolve the browser URL for an SSE path.
+ * Prefer `NEXT_PUBLIC_SSE_BASE_URL` (direct BE). Otherwise pipe through `/api/sse/*`
+ * so Next's `/api/:path*` rewrite does not buffer the stream.
+ */
 export function resolveSseUrl(streamUrl: string): string {
   if (streamUrl.startsWith('http')) return streamUrl
   const sseBase =
     typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_SSE_BASE_URL ?? '') : ''
   const path = streamUrl.startsWith('/') ? streamUrl : `/${streamUrl}`
-  return `${sseBase}${path}`
+  if (sseBase) return `${sseBase}${path}`
+  if (path.startsWith('/api/')) return `/api/sse/${path.slice('/api/'.length)}`
+  return path
 }
 
 export interface SseParsedEvent {
@@ -289,7 +307,7 @@ export function openSseStream(options: SseClientOptions): { cancel: () => void }
           for (const ev of events) {
             const resolved: SseParsedEvent = { ...ev, event: resolveSseEventName(ev) }
             if (resolved.id) lastEventId = resolved.id
-            if (isSseTerminalEvent(resolved.event)) sawTerminal = true
+            if (isSseTerminalEvent(resolved.event, resolved.data)) sawTerminal = true
             options.onEvent(resolved)
           }
         }
@@ -313,8 +331,8 @@ export function openSseStream(options: SseClientOptions): { cancel: () => void }
           options.onDone?.()
           return
         }
-        options.onError?.(err)
         if (reconnects >= maxReconnects) {
+          options.onError?.(err)
           options.onDone?.()
           return
         }

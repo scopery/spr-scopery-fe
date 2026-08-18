@@ -131,6 +131,7 @@ export function EditorAiEditPopup() {
       const { cancel } = openSseStream({
         url: resolveSseUrl(rawStreamUrl),
         headers: buildAiAssistantHeaders(),
+        initialLastEventId: '0',
         onEvent: (ev) => {
           if (isSseTokenEvent(ev.event)) {
             accumulated += extractSseTextDelta(ev.data)
@@ -148,13 +149,13 @@ export function EditorAiEditPopup() {
           }
         },
         onDone: () => {
-          // SSE closed without explicit terminal event — treat as done
-          setSuggestion(accumulated)
-          setPhase((prev) => (prev === 'loading' ? 'review' : prev))
-        },
-        onError: () => {
+          if (accumulated.trim()) {
+            setSuggestion(accumulated)
+            setPhase((prev) => (prev === 'loading' || prev === 'error' ? 'review' : prev))
+            return
+          }
           setError('Connection error. Please try again.')
-          setPhase('error')
+          setPhase((prev) => (prev === 'review' ? prev : 'error'))
         },
       })
 

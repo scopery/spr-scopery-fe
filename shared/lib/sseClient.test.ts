@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   extractSseTextDelta,
+  isSseTerminalEvent,
   openSseStream,
   parseSseChunk,
   parseSseJson,
   resolveSseEventName,
+  resolveSseUrl,
   SseEventType,
 } from '@/shared/lib/sseClient'
 
@@ -72,6 +74,22 @@ describe('extractSseTextDelta', () => {
 
   it('does not dump the JSON envelope when no token field exists', () => {
     expect(extractSseTextDelta('{"messageId":"m1","sequence":1}')).toBe('')
+  })
+})
+
+describe('isSseTerminalEvent', () => {
+  it('treats STATUS_CHANGED COMPLETED as terminal', () => {
+    expect(isSseTerminalEvent('STATUS_CHANGED', '{"status":"COMPLETED"}')).toBe(true)
+    expect(isSseTerminalEvent('STATUS_CHANGED', '{"status":"GENERATING"}')).toBe(false)
+    expect(isSseTerminalEvent('TOKEN', '{"token":"x"}')).toBe(false)
+  })
+})
+
+describe('resolveSseUrl', () => {
+  it('pipes same-origin API streams through the SSE BFF', () => {
+    expect(resolveSseUrl('/api/v1/ai-assistant/messages/1/stream')).toBe(
+      '/api/sse/v1/ai-assistant/messages/1/stream'
+    )
   })
 })
 
@@ -255,6 +273,47 @@ describe('openSseStream', () => {
 
     expect(names).toEqual(['answer.delta', 'answer.delta', 'answer.completed'])
     expect(tokens.join('')).toBe('Hello world')
+    vi.unstubAllGlobals()
+  })
+
+  it('does not surface onError on the first mid-stream drop', async () => {
+    const fetchMock = vi.fn()
+    let call = 0
+    fetchMock.mockImplementation(async () => {
+      call += 1
+      if (call === 1) throw new Error('network drop')
+      const chunks = ['id: 1\nevent: COMPLETED\ndata: {}\n\n']
+      let i = 0
+      return {
+        ok: true,
+        body: {
+          getReader: () => ({
+            read: async () => {
+              if (i >= chunks.length) return { done: true, value: undefined }
+              const value = new TextEncoder().encode(chunks[i++])
+              return { done: false, value }
+            },
+          }),
+        },
+      }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const errors: unknown[] = []
+    await new Promise<void>((resolve, reject) => {
+      openSseStream({
+        url: '/api/v1/ai-assistant/messages/1/stream',
+        onEvent: () => undefined,
+        onError: (err) => errors.push(err),
+        onDone: () => resolve(),
+        maxReconnects: 2,
+        reconnectDelayMs: 1,
+      })
+      setTimeout(() => reject(new Error('SSE transient error test timed out')), 3000)
+    })
+
+    expect(errors).toHaveLength(0)
+    expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(2)
     vi.unstubAllGlobals()
   })
 })

@@ -131,7 +131,7 @@ export function useContextualGuide(args: {
               const token = extractSseTextDelta(ev.data)
               if (token) setStreamingText((prev) => prev + token)
             }
-            if (isSseTerminalEvent(ev.event)) {
+            if (isSseTerminalEvent(ev.event, ev.data)) {
               clearTimeout(noResponseTimer)
               setStreaming(false)
               if (isSseFailedEvent(ev.event)) {

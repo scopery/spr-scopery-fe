@@ -192,6 +192,7 @@ export function EditorFloatingToolbar() {
       const { cancel } = openSseStream({
         url: resolveSseUrl(rawStreamUrl),
         headers: buildAiAssistantHeaders(),
+        initialLastEventId: '0',
         onEvent: (ev) => {
           if (isSseTokenEvent(ev.event)) {
             accumulated += extractSseTextDelta(ev.data)
@@ -209,12 +210,13 @@ export function EditorFloatingToolbar() {
           }
         },
         onDone: () => {
-          setSuggestion(accumulated)
-          setAiPhase((prev) => (prev === 'loading' ? 'review' : prev))
-        },
-        onError: () => {
+          if (accumulated.trim()) {
+            setSuggestion(accumulated)
+            setAiPhase((prev) => (prev === 'loading' || prev === 'error' ? 'review' : prev))
+            return
+          }
           setAiError('Connection error. Please try again.')
-          setAiPhase('error')
+          setAiPhase((prev) => (prev === 'review' ? prev : 'error'))
         },
       })
       cancelStreamRef.current = cancel

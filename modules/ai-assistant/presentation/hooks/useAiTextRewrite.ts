@@ -114,6 +114,7 @@ export function useAiTextRewrite(
       const { cancel } = openSseStream({
         url: resolveSseUrl(rawStreamUrl),
         headers: buildAiAssistantHeaders(),
+        initialLastEventId: '0',
         onEvent: (ev) => {
           if (isSseTokenEvent(ev.event)) {
             accumulated += extractSseTextDelta(ev.data)
@@ -131,12 +132,16 @@ export function useAiTextRewrite(
           }
         },
         onDone: () => {
-          setSuggestion(accumulated)
-          setPhase((prev) => (prev === 'loading' ? 'review' : prev))
-        },
-        onError: () => {
-          setError('Connection error. Please try again.')
-          setPhase('error')
+          if (accumulated.trim()) {
+            setSuggestion(accumulated)
+            setPhase((prev) => (prev === 'loading' || prev === 'error' ? 'review' : prev))
+            return
+          }
+          setPhase((prev) => {
+            if (prev === 'review') return prev
+            return 'error'
+          })
+          if (!accumulated.trim()) setError('Connection error. Please try again.')
         },
       })
       cancelStreamRef.current = cancel
