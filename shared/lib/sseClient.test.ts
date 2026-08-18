@@ -86,22 +86,22 @@ describe('isSseTerminalEvent', () => {
 })
 
 describe('resolveSseUrl', () => {
-  it('pipes same-origin API streams through the SSE BFF', () => {
+  it('keeps relative AI stream URLs on the same-origin API rewrite', () => {
     expect(resolveSseUrl('/api/v1/ai-assistant/messages/1/stream')).toBe(
-      '/api/sse/v1/ai-assistant/messages/1/stream'
+      '/api/v1/ai-assistant/messages/1/stream'
     )
   })
 
-  it('rewrites absolute API stream URLs onto the SSE BFF', () => {
-    expect(resolveSseUrl('http://localhost:8080/api/v1/ai-assistant/messages/1/stream')).toBe(
-      '/api/sse/v1/ai-assistant/messages/1/stream'
-    )
-  })
-
-  it('does not send the browser to a BE host with a bad TLS cert', () => {
+  it('strips a BE host so the browser never hits a bad TLS cert', () => {
     expect(
       resolveSseUrl('https://136-85-104-51.sslip.io/api/v1/ai-assistant/messages/abc/stream')
-    ).toBe('/api/sse/v1/ai-assistant/messages/abc/stream')
+    ).toBe('/api/v1/ai-assistant/messages/abc/stream')
+  })
+
+  it('unwraps the old /api/sse prefix back onto the rewrite path', () => {
+    expect(resolveSseUrl('/api/sse/v1/ai-assistant/messages/1/stream')).toBe(
+      '/api/v1/ai-assistant/messages/1/stream'
+    )
   })
 })
 

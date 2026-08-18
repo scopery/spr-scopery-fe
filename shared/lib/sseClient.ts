@@ -163,9 +163,10 @@ export function resolveSseEventName(event: SseParsedEvent): string {
 }
 
 /**
- * Always keep SSE same-origin via `/api/sse/*`.
- * Never send the browser to the BE host — that host often has a bad TLS cert
- * (e.g. sslip.io) while REST still works through the Next proxy.
+ * Keep SSE on the same origin as REST (`/api/v1/...`).
+ * Other AI calls work because the browser hits scopeary.com/api/* and Next
+ * rewrites with cookies. Do not send the browser to the BE host (bad TLS),
+ * and do not use `/api/sse` (that BFF is a different auth path → 401).
  */
 export function resolveSseUrl(streamUrl: string): string {
   let path = streamUrl.trim()
@@ -178,8 +179,7 @@ export function resolveSseUrl(streamUrl: string): string {
     }
   }
   if (!path.startsWith('/')) path = `/${path}`
-  if (path.startsWith('/api/sse/')) return path
-  if (path.startsWith('/api/')) return `/api/sse/${path.slice('/api/'.length)}`
+  if (path.startsWith('/api/sse/')) return `/api/${path.slice('/api/sse/'.length)}`
   return path
 }
 
