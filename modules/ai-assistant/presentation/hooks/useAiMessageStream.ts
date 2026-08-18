@@ -309,46 +309,66 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
           }
           const messageId = current.assistantMessageId
           if (messageId) {
-            void api
-              .getMessage(messageId)
-              .then((msg) => {
-                const latest = stateRef.current
-                if (isTerminalUiState(latest.uiState)) return
-                const status = String(msg.status ?? '').toUpperCase()
-                const text = latest.streamingText || msg.content || ''
-                if (status === 'COMPLETED' || text.trim()) {
-                  handleTerminal(applyCompleted({ ...latest, streamingText: text }))
-                  return
+            void (async () => {
+              const inFlight = new Set([
+                'RECEIVED',
+                'QUEUED',
+                'CONTEXTUALIZING',
+                'RETRIEVING',
+                'GENERATING',
+                'STREAMING',
+                'CANCEL_REQUESTED',
+              ])
+              for (let attempt = 0; attempt < 8; attempt++) {
+                try {
+                  const msg = await api.getMessage(messageId)
+                  const latest = stateRef.current
+                  if (isTerminalUiState(latest.uiState)) return
+                  const status = String(msg.status ?? '').toUpperCase()
+                  const text = latest.streamingText || msg.content || ''
+                  if (status === 'COMPLETED' || (text.trim() && !inFlight.has(status))) {
+                    handleTerminal(applyCompleted({ ...latest, streamingText: text }))
+                    return
+                  }
+                  if (status === 'FAILED' || status === 'BLOCKED') {
+                    handleTerminal(applyFailed(latest, 'Generation failed'))
+                    return
+                  }
+                  if (status === 'CANCELLED') {
+                    handleTerminal(applyCancelled(latest))
+                    return
+                  }
+                  if (inFlight.has(status) && attempt < 7) {
+                    await new Promise((r) => setTimeout(r, 1000))
+                    continue
+                  }
+                } catch {
+                  const latest = stateRef.current
+                  if (isTerminalUiState(latest.uiState)) return
+                  if (latest.streamingText.trim()) {
+                    handleTerminal(applyCompleted(latest))
+                    return
+                  }
+                  if (attempt < 7) {
+                    await new Promise((r) => setTimeout(r, 1000))
+                    continue
+                  }
                 }
-                if (status === 'FAILED' || status === 'BLOCKED') {
-                  handleTerminal(applyFailed(latest, 'Generation failed'))
-                  return
-                }
-                if (status === 'CANCELLED') {
-                  handleTerminal(applyCancelled(latest))
-                  return
-                }
-                setStreamState((prev) => applyReconnectExhausted(prev))
-                const cb = onTerminalRef.current
-                if (cb) {
-                  onTerminalRef.current = null
-                  cb()
-                }
-              })
-              .catch(() => {
-                const latest = stateRef.current
-                if (isTerminalUiState(latest.uiState)) return
-                if (latest.streamingText.trim()) {
-                  handleTerminal(applyCompleted(latest))
-                  return
-                }
-                setStreamState((prev) => applyReconnectExhausted(prev))
-                const cb = onTerminalRef.current
-                if (cb) {
-                  onTerminalRef.current = null
-                  cb()
-                }
-              })
+                break
+              }
+              const latest = stateRef.current
+              if (isTerminalUiState(latest.uiState)) return
+              if (latest.streamingText.trim()) {
+                handleTerminal(applyCompleted(latest))
+                return
+              }
+              setStreamState((prev) => applyReconnectExhausted(prev))
+              const cb = onTerminalRef.current
+              if (cb) {
+                onTerminalRef.current = null
+                cb()
+              }
+            })()
             return
           }
           if (current.streamingText.trim()) {
@@ -411,8 +431,7 @@ export function useAiMessageStream(): UseAiMessageStreamResult {
         return
       }
 
-      // Start replay from sequence 0 so events already persisted before connect are replayed
-      connect(resolveSseUrl(streamUrl), '0')
+      connect(resolveSseUrl(streamUrl))
     },
     [resetStream, connect, handleTerminal]
   )

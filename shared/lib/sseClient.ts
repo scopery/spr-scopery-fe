@@ -168,9 +168,20 @@ export function resolveSseEventName(event: SseParsedEvent): string {
  * so Next's `/api/:path*` rewrite does not buffer the stream.
  */
 export function resolveSseUrl(streamUrl: string): string {
-  if (streamUrl.startsWith('http')) return streamUrl
   const sseBase =
     typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_SSE_BASE_URL ?? '') : ''
+  if (streamUrl.startsWith('http')) {
+    if (sseBase) return streamUrl
+    try {
+      const parsed = new URL(streamUrl)
+      if (parsed.pathname.startsWith('/api/')) {
+        return `/api/sse/${parsed.pathname.slice('/api/'.length)}${parsed.search}`
+      }
+    } catch {
+      return streamUrl
+    }
+    return streamUrl
+  }
   const path = streamUrl.startsWith('/') ? streamUrl : `/${streamUrl}`
   if (sseBase) return `${sseBase}${path}`
   if (path.startsWith('/api/')) return `/api/sse/${path.slice('/api/'.length)}`
@@ -270,7 +281,7 @@ export function openSseStream(options: SseClientOptions): { cancel: () => void }
           Accept: 'text/event-stream',
           ...(options.headers ?? {}),
         }
-        if (lastEventId) {
+        if (lastEventId && lastEventId !== '0') {
           headers['Last-Event-ID'] = lastEventId
         }
 
@@ -298,18 +309,27 @@ export function openSseStream(options: SseClientOptions): { cancel: () => void }
         const decoder = new TextDecoder()
         let buffer = ''
 
+        const dispatch = (ev: SseParsedEvent) => {
+          const resolved: SseParsedEvent = { ...ev, event: resolveSseEventName(ev) }
+          if (resolved.id) lastEventId = resolved.id
+          if (isSseTerminalEvent(resolved.event, resolved.data)) sawTerminal = true
+          options.onEvent(resolved)
+        }
+
         while (!cancelled) {
           const { done, value } = await reader.read()
-          if (done) break
+          if (done) {
+            buffer += decoder.decode()
+            if (buffer.trim()) {
+              const { events } = parseSseChunk(buffer.endsWith('\n\n') ? buffer : `${buffer}\n\n`)
+              events.forEach(dispatch)
+            }
+            break
+          }
           buffer += decoder.decode(value, { stream: true })
           const { events, rest } = parseSseChunk(buffer)
           buffer = rest
-          for (const ev of events) {
-            const resolved: SseParsedEvent = { ...ev, event: resolveSseEventName(ev) }
-            if (resolved.id) lastEventId = resolved.id
-            if (isSseTerminalEvent(resolved.event, resolved.data)) sawTerminal = true
-            options.onEvent(resolved)
-          }
+          events.forEach(dispatch)
         }
 
         if (sawTerminal || cancelled) {

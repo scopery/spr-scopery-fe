@@ -91,6 +91,12 @@ describe('resolveSseUrl', () => {
       '/api/sse/v1/ai-assistant/messages/1/stream'
     )
   })
+
+  it('rewrites absolute API stream URLs onto the SSE BFF', () => {
+    expect(resolveSseUrl('http://localhost:8080/api/v1/ai-assistant/messages/1/stream')).toBe(
+      '/api/sse/v1/ai-assistant/messages/1/stream'
+    )
+  })
 })
 
 describe('resolveSseEventName', () => {
@@ -231,6 +237,66 @@ describe('openSseStream', () => {
 
     const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers)
     expect(headers.get('Last-Event-ID')).toBe('10')
+    vi.unstubAllGlobals()
+  })
+
+  it('does not send Last-Event-ID when seeded as 0', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: async () => ({ done: true, value: undefined }),
+        }),
+      },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await new Promise<void>((resolve) => {
+      openSseStream({
+        url: '/api/v1/ai-assistant/messages/1/stream',
+        initialLastEventId: '0',
+        onEvent: () => undefined,
+        onDone: () => resolve(),
+        onError: () => resolve(),
+        maxReconnects: 0,
+      })
+    })
+
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers)
+    expect(headers.get('Last-Event-ID')).toBeNull()
+    vi.unstubAllGlobals()
+  })
+
+  it('flushes a trailing COMPLETED frame without a blank line', async () => {
+    const chunks = ['id: 9\nevent: COMPLETED\ndata: {}']
+    let i = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        body: {
+          getReader: () => ({
+            read: async () => {
+              if (i >= chunks.length) return { done: true, value: undefined }
+              const value = new TextEncoder().encode(chunks[i++])
+              return { done: false, value }
+            },
+          }),
+        },
+      }))
+    )
+
+    const events: string[] = []
+    await new Promise<void>((resolve) => {
+      openSseStream({
+        url: '/api/v1/ai-assistant/messages/1/stream',
+        onEvent: (ev) => events.push(ev.event),
+        onDone: () => resolve(),
+        maxReconnects: 0,
+      })
+    })
+
+    expect(events).toContain('COMPLETED')
     vi.unstubAllGlobals()
   })
 

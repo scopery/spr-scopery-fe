@@ -114,7 +114,7 @@ export function useAiTextRewrite(
       const { cancel } = openSseStream({
         url: resolveSseUrl(rawStreamUrl),
         headers: buildAiAssistantHeaders(),
-        initialLastEventId: '0',
+        initialLastEventId: undefined,
         onEvent: (ev) => {
           if (isSseTokenEvent(ev.event)) {
             accumulated += extractSseTextDelta(ev.data)

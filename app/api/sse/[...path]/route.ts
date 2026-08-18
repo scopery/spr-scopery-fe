@@ -5,6 +5,8 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
+const BE_ACCESS_TOKEN_COOKIE = 'access_token'
+
 function getBackendBase(): string {
   return (
     process.env.API_INTERNAL_URL ??
@@ -16,6 +18,9 @@ function getBackendBase(): string {
 /**
  * Streaming BFF for SSE. Next's `/api/:path*` rewrite buffers event-stream
  * responses; this route pipes the backend body through so tokens arrive live.
+ *
+ * Auth matches the rest of the app: BE HttpOnly `access_token` cookie, or
+ * the BFF `scopery_token` used by `/api/proxy`.
  */
 async function streamProxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path: pathSegments } = await context.params
@@ -25,14 +30,19 @@ async function streamProxy(request: NextRequest, context: { params: Promise<{ pa
     target.searchParams.append(key, value)
   })
 
-  const token = request.cookies.get(SCOPERY_TOKEN_COOKIE)?.value
+  const token =
+    request.cookies.get(BE_ACCESS_TOKEN_COOKIE)?.value ??
+    request.cookies.get(SCOPERY_TOKEN_COOKIE)?.value
+
   const headers = new Headers()
   headers.set('Accept', request.headers.get('Accept') ?? 'text/event-stream')
   headers.set('Cache-Control', 'no-cache')
+  const cookie = request.headers.get('cookie')
+  if (cookie) headers.set('Cookie', cookie)
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
   const lastEventId = request.headers.get('Last-Event-ID')
-  if (lastEventId) headers.set('Last-Event-ID', lastEventId)
+  if (lastEventId && lastEventId !== '0') headers.set('Last-Event-ID', lastEventId)
   const workspaceId = request.headers.get('X-Workspace-Id')
   if (workspaceId) headers.set('X-Workspace-Id', workspaceId)
   const actorId = request.headers.get('X-Actor-Id')
