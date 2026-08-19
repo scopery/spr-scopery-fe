@@ -1,3 +1,5 @@
+import { getApiOrigin } from '@/shared/lib/api-paths'
+
 /**
  * SSE client for Wave 4/5 streaming.
  * Uses fetch streaming (not EventSource) so AbortController, credentials,
@@ -163,10 +165,8 @@ export function resolveSseEventName(event: SseParsedEvent): string {
 }
 
 /**
- * Keep SSE on the same origin as REST (`/api/v1/...`).
- * Other AI calls work because the browser hits scopeary.com/api/* and Next
- * rewrites with cookies. Do not send the browser to the BE host (bad TLS),
- * and do not use `/api/sse` (that BFF is a different auth path → 401).
+ * Rebuild the stream URL on the same origin as REST (`getApiOrigin()`).
+ * BE often returns an internal host (sslip.io) that the browser cannot TLS-trust.
  */
 export function resolveSseUrl(streamUrl: string): string {
   let path = streamUrl.trim()
@@ -175,12 +175,13 @@ export function resolveSseUrl(streamUrl: string): string {
       const parsed = new URL(path)
       path = `${parsed.pathname}${parsed.search}`
     } catch {
-      return path
+      path = streamUrl
     }
   }
   if (!path.startsWith('/')) path = `/${path}`
-  if (path.startsWith('/api/sse/')) return `/api/${path.slice('/api/sse/'.length)}`
-  return path
+  if (path.startsWith('/api/sse/')) path = `/api/${path.slice('/api/sse/'.length)}`
+  const origin = getApiOrigin()
+  return origin ? `${origin}${path}` : path
 }
 
 export interface SseParsedEvent {
@@ -285,7 +286,7 @@ export function openSseStream(options: SseClientOptions): { cancel: () => void }
           headers['Content-Type'] = 'application/json'
         }
 
-        const res = await fetch(options.url, {
+        const res = await fetch(resolveSseUrl(options.url), {
           method,
           credentials: 'include',
           headers,

@@ -106,13 +106,15 @@ export async function createMessage(
   }
 }
 
+const MESSAGE_STREAM_ID = /\/messages\/([^/?#]+)\/stream(?:\?|$)/
+
 export function resolveMessageStreamUrl(result: {
   streamUrl?: string
   assistantMessageId?: string
   messageId?: string
 }): string | null {
-  if (result.streamUrl) return result.streamUrl
-  const id = result.assistantMessageId ?? result.messageId
+  const fromUrl = result.streamUrl?.match(MESSAGE_STREAM_ID)?.[1]
+  const id = result.assistantMessageId ?? result.messageId ?? fromUrl ?? null
   return id ? AI_ASSISTANT_ENDPOINTS.messageStream(id) : null
 }
 

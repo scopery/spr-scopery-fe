@@ -86,7 +86,7 @@ describe('isSseTerminalEvent', () => {
 })
 
 describe('resolveSseUrl', () => {
-  it('keeps relative AI stream URLs on the same-origin API rewrite', () => {
+  it('keeps relative AI stream URLs on the API path', () => {
     expect(resolveSseUrl('/api/v1/ai-assistant/messages/1/stream')).toBe(
       '/api/v1/ai-assistant/messages/1/stream'
     )
@@ -98,7 +98,7 @@ describe('resolveSseUrl', () => {
     ).toBe('/api/v1/ai-assistant/messages/abc/stream')
   })
 
-  it('unwraps the old /api/sse prefix back onto the rewrite path', () => {
+  it('unwraps the old /api/sse prefix back onto the API path', () => {
     expect(resolveSseUrl('/api/sse/v1/ai-assistant/messages/1/stream')).toBe(
       '/api/v1/ai-assistant/messages/1/stream'
     )
