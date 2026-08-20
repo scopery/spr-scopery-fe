@@ -20,9 +20,8 @@ export type FunctionalItemType = (typeof FunctionalItemType)[keyof typeof Functi
 
 export const FunctionalItemStatus = {
   Draft: 'DRAFT',
-  InReview: 'IN_REVIEW',
-  Approved: 'APPROVED',
-  Implemented: 'IMPLEMENTED',
+  Active: 'ACTIVE',
+  Deprecated: 'DEPRECATED',
   Archived: 'ARCHIVED',
 } as const
 export type FunctionalItemStatus =

@@ -15,6 +15,7 @@ import type {
   UpdateFunctionalItemBody,
   UpdateNonFunctionalItemBody,
 } from '../model/functional-catalog'
+import { normalizeFunctionalItemStatus } from '../model/functional-item-status.rules'
 import type {
   FunctionApiLink,
   FunctionCommunicationLink,
@@ -95,6 +96,13 @@ export const FUNCTIONAL_CATALOG_ENDPOINTS = {
     ),
 } as const
 
+function mapFunctionalItem(item: FunctionalItem): FunctionalItem {
+  return {
+    ...item,
+    status: normalizeFunctionalItemStatus(item.status),
+  }
+}
+
 export async function listFunctionalItems(
   projectId: string,
   params?: { moduleId?: string }
@@ -105,14 +113,18 @@ export async function listFunctionalItems(
   const res = await apiClient.get<ListPayload<FunctionalItem>>(
     FUNCTIONAL_CATALOG_ENDPOINTS.functionalItems(projectId) + (qs ? `?${qs}` : '')
   )
-  return normalizeItemList(res)
+  const { items } = normalizeItemList(res)
+  return { items: items.map(mapFunctionalItem) }
 }
 
 export async function getFunctionalItem(
   projectId: string,
   id: string
 ): Promise<FunctionalItem> {
-  return apiClient.get(FUNCTIONAL_CATALOG_ENDPOINTS.functionalItem(projectId, id))
+  const item = await apiClient.get<FunctionalItem>(
+    FUNCTIONAL_CATALOG_ENDPOINTS.functionalItem(projectId, id)
+  )
+  return mapFunctionalItem(item)
 }
 
 export async function createFunctionalItem(
@@ -135,7 +147,14 @@ export async function updateFunctionalItem(
   id: string,
   body: UpdateFunctionalItemBody
 ): Promise<FunctionalItem> {
-  return apiClient.put(FUNCTIONAL_CATALOG_ENDPOINTS.functionalItem(projectId, id), body)
+  const updated = await apiClient.put<FunctionalItem>(
+    FUNCTIONAL_CATALOG_ENDPOINTS.functionalItem(projectId, id),
+    {
+      ...body,
+      status: normalizeFunctionalItemStatus(body.status),
+    }
+  )
+  return mapFunctionalItem(updated)
 }
 
 export async function deleteFunctionalItem(projectId: string, id: string): Promise<void> {

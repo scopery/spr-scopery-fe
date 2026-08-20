@@ -4,7 +4,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Pencil, Plus, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button, ConfirmDialog, Input, PageSkeleton, Stack, Typography } from '@/shared/ui'
+import {
+  Button,
+  ConfirmDialog,
+  Input,
+  PageSkeleton,
+  SearchableSelect,
+  Stack,
+  Typography,
+} from '@/shared/ui'
 import { AiTextareaEditToolbar } from '@/modules/ai-assistant'
 import { ROUTES } from '@/constants/routes'
 import { ApiError } from '@/shared/lib/api-types'
@@ -13,9 +21,11 @@ import { useDebouncedLocalDraft } from '@/shared/lib/useDebouncedLocalDraft'
 import { cn } from '@/utils/cn'
 import {
   BusinessRuleSeverity,
+  FunctionalItemStatus,
   type FunctionalItem,
   type UpdateFunctionalItemBody,
 } from '../model/functional-catalog'
+import { normalizeFunctionalItemStatus } from '../model/functional-item-status.rules'
 import * as useCaseApi from '../api/use-case.api'
 import { useFunctionalItemDetail } from '../hooks/useFunctionalItemDetail'
 import { useArchitectureNodeCatalog } from '../hooks/useArchitectureNodeCatalog'
@@ -121,7 +131,15 @@ type FnEditDraft = {
   description: string
   priority: string
   type: string
+  status: string
 }
+
+const STATUS_OPTIONS = [
+  { value: FunctionalItemStatus.Draft, label: 'Draft' },
+  { value: FunctionalItemStatus.Active, label: 'Active' },
+  { value: FunctionalItemStatus.Deprecated, label: 'Deprecated' },
+  { value: FunctionalItemStatus.Archived, label: 'Archived' },
+]
 
 const RULE_COLS = [
   {
@@ -172,6 +190,7 @@ export function FunctionalItemDetailPanel({
   const [editDescription, setEditDescription] = useState(item.description ?? '')
   const [editPriority, setEditPriority] = useState(item.priority)
   const [editType, setEditType] = useState(item.type)
+  const [editStatus, setEditStatus] = useState(() => normalizeFunctionalItemStatus(item.status))
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -185,8 +204,9 @@ export function FunctionalItemDetailPanel({
       description: editDescription,
       priority: editPriority,
       type: editType,
+      status: editStatus,
     }),
-    [editTitle, editDescription, editPriority, editType]
+    [editTitle, editDescription, editPriority, editType, editStatus]
   )
 
   const { draftHint, clearDraft } = useDebouncedLocalDraft<FnEditDraft>({
@@ -198,12 +218,14 @@ export function FunctionalItemDetailPanel({
       draft.title !== item.title ||
       draft.description !== (item.description ?? '') ||
       draft.priority !== item.priority ||
-      draft.type !== item.type,
+      draft.type !== item.type ||
+      draft.status !== normalizeFunctionalItemStatus(item.status),
     onHydrate: (draft) => {
       setEditTitle(draft.title)
       setEditDescription(draft.description)
       setEditPriority(draft.priority)
       setEditType(draft.type)
+      setEditStatus(normalizeFunctionalItemStatus(draft.status))
     },
   })
 
@@ -241,6 +263,7 @@ export function FunctionalItemDetailPanel({
     setEditDescription(item.description ?? '')
     setEditPriority(item.priority)
     setEditType(item.type)
+    setEditStatus(normalizeFunctionalItemStatus(item.status))
     setEditAcceptance(item.acceptanceCriteria ?? [])
     setAcceptanceDirty(false)
     setEditingAcceptance(false)
@@ -251,6 +274,7 @@ export function FunctionalItemDetailPanel({
     item.description,
     item.priority,
     item.type,
+    item.status,
     item.acceptanceCriteria,
     defaultTab,
   ])
@@ -309,6 +333,7 @@ export function FunctionalItemDetailPanel({
     setEditDescription(item.description ?? '')
     setEditPriority(item.priority)
     setEditType(item.type)
+    setEditStatus(normalizeFunctionalItemStatus(item.status))
     setEditing(true)
   }
 
@@ -318,6 +343,7 @@ export function FunctionalItemDetailPanel({
     setEditDescription(item.description ?? '')
     setEditPriority(item.priority)
     setEditType(item.type)
+    setEditStatus(normalizeFunctionalItemStatus(item.status))
     setEditing(false)
   }
 
@@ -332,12 +358,14 @@ export function FunctionalItemDetailPanel({
       return
     }
     const nextDescription = editDescription.trim() || null
+    const nextStatus = normalizeFunctionalItemStatus(editStatus)
     const prevDescription = item.description ?? null
     if (
       nextTitle === item.title &&
       nextDescription === prevDescription &&
       editPriority === item.priority &&
-      editType === item.type
+      editType === item.type &&
+      nextStatus === normalizeFunctionalItemStatus(item.status)
     ) {
       setEditing(false)
       return
@@ -351,7 +379,7 @@ export function FunctionalItemDetailPanel({
         description: nextDescription,
         priority: editPriority,
         type: editType,
-        status: item.status,
+        status: nextStatus,
         acceptanceCriteria: item.acceptanceCriteria ?? null,
       })
       clearDraft()
@@ -367,7 +395,7 @@ export function FunctionalItemDetailPanel({
     } finally {
       setSaving(false)
     }
-  }, [clearDraft, editDescription, editPriority, editTitle, editType, item, onSave])
+  }, [clearDraft, editDescription, editPriority, editStatus, editTitle, editType, item, onSave])
 
   const handleConfirmDelete = useCallback(async () => {
     if (!onDelete) return
@@ -401,7 +429,7 @@ export function FunctionalItemDetailPanel({
         description: item.description ?? null,
         priority: item.priority,
         type: item.type,
-        status: item.status,
+        status: normalizeFunctionalItemStatus(item.status),
         acceptanceCriteria: next.length ? next : [],
       })
       setEditAcceptance(next)
@@ -549,6 +577,15 @@ export function FunctionalItemDetailPanel({
                 placeholder="FUNCTIONAL"
                 disabled={saving}
               />
+              <div>
+                <p className="mb-1 text-xs text-neutral-500">Status</p>
+                <SearchableSelect
+                  options={STATUS_OPTIONS}
+                  value={editStatus}
+                  onValueChange={setEditStatus}
+                  disabled={saving}
+                />
+              </div>
               {formError ? (
                 <Typography tone="error" variant="small">
                   {formError}
@@ -578,6 +615,7 @@ export function FunctionalItemDetailPanel({
               />
               <ViewField label="Priority" value={item.priority} />
               <ViewField label="Type" value={item.type} />
+              <ViewField label="Status" value={normalizeFunctionalItemStatus(item.status)} />
             </>
           )}
 
