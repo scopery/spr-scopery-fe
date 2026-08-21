@@ -148,21 +148,13 @@ export function QualityCasesView() {
 
   const handleBulkDelete = async () => {
     if (tab !== 'functional' || selectedIds.size === 0) return
-    const ids = [...selectedIds]
     setBulkDeleting(true)
-    let ok = 0
-    let failed = 0
     try {
-      for (const id of ids) {
-        try {
-          await functional.deleteOne(id)
-          ok += 1
-        } catch {
-          failed += 1
-        }
-      }
-      if (ok > 0) toast.success(`Deleted ${ok} test case${ok === 1 ? '' : 's'}`)
-      if (failed > 0) toast.error(`${failed} could not be deleted`)
+      const result = await functional.bulkDelete([...selectedIds])
+      if (result && result.succeededCount > 0)
+        toast.success(`Deleted ${result.succeededCount} test case${result.succeededCount === 1 ? '' : 's'}`)
+      if (result && result.failedCount > 0)
+        toast.error(`${result.failedCount} could not be deleted`)
       setSelectedIds(new Set())
       setConfirmBulkDelete(false)
     } finally {

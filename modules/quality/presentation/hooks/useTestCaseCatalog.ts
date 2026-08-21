@@ -152,6 +152,20 @@ export function useTestCaseCatalog(projectId: string | null) {
     [projectId]
   )
 
+  const bulkDelete = useCallback(
+    async (ids: string[]) => {
+      if (!projectId || ids.length === 0) return { succeededCount: 0, failedCount: 0, failures: [] }
+      const result = await qualityApi.bulkDeleteTestCases(projectId, ids)
+      if (result.succeededCount > 0) {
+        const deletedSet = new Set(result.succeeded)
+        setItems((rows) => rows.filter((row) => !deletedSet.has(row.id)))
+        setTotal((value) => Math.max(0, value - result.succeededCount))
+      }
+      return result
+    },
+    [projectId]
+  )
+
   return {
     items,
     total,
@@ -202,5 +216,6 @@ export function useTestCaseCatalog(projectId: string | null) {
     bulkCreate,
     batchUpdate,
     deleteOne,
+    bulkDelete,
   }
 }

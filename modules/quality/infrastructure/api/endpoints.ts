@@ -17,6 +17,7 @@ export const QUALITY_ENDPOINTS = {
   testCase: (projectId: string, id: string) => apiPath(`/projects/${projectId}/test-cases/${id}`),
   testCasesBatch: (projectId: string) => apiPath(`/projects/${projectId}/test-cases/batch`),
   testCasesBulk: (projectId: string) => apiPath(`/projects/${projectId}/test-cases/bulk`),
+  testCasesBulkDelete: (projectId: string) => apiPath(`/projects/${projectId}/test-cases/bulk-delete`),
   testCaseSteps: (projectId: string, testCaseId: string) =>
     apiPath(`/projects/${projectId}/test-cases/${testCaseId}/steps`),
   testCaseStep: (projectId: string, testCaseId: string, stepId: string) =>

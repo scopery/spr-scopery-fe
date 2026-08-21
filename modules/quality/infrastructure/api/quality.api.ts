@@ -183,6 +183,21 @@ export async function deleteTestCase(projectId: string, testCaseId: string): Pro
   await apiClient.delete<void>(QUALITY_ENDPOINTS.testCase(projectId, testCaseId), { parseJson: false })
 }
 
+export interface BulkDeleteResponse {
+  totalRequested: number
+  succeededCount: number
+  failedCount: number
+  succeeded: string[]
+  failures: Array<{ id: string; errorCode: string; message: string }>
+}
+
+export async function bulkDeleteTestCases(
+  projectId: string,
+  ids: string[]
+): Promise<BulkDeleteResponse> {
+  return apiClient.post(QUALITY_ENDPOINTS.testCasesBulkDelete(projectId), { ids })
+}
+
 export async function submitTestCasesBulk(
   projectId: string,
   items: CreateTestCasePayload[]
