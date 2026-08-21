@@ -582,7 +582,7 @@ export function FunctionalItemDetailPanel({
                 <SearchableSelect
                   options={STATUS_OPTIONS}
                   value={editStatus}
-                  onValueChange={setEditStatus}
+                  onValueChange={(value) => setEditStatus(normalizeFunctionalItemStatus(value))}
                   disabled={saving}
                 />
               </div>
