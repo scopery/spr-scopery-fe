@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { ClipboardPaste, Plus, Search } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button, Input, PageSkeleton, Select, Typography } from '@/shared/ui'
+import { Button, ConfirmDialog, Input, PageSkeleton, Select, Typography } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
 import { useTestCaseCatalog } from '../hooks/useTestCaseCatalog'
 import { useVerificationCaseCatalog } from '../hooks/useVerificationCaseCatalog'
@@ -41,6 +41,8 @@ export function QualityCasesView() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [importOpen, setImportOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
 
   // Hydrate filters from URL once
   useEffect(() => {
@@ -144,6 +146,30 @@ export function QualityCasesView() {
     setSelectedIds(new Set())
   }
 
+  const handleBulkDelete = async () => {
+    if (tab !== 'functional' || selectedIds.size === 0) return
+    const ids = [...selectedIds]
+    setBulkDeleting(true)
+    let ok = 0
+    let failed = 0
+    try {
+      for (const id of ids) {
+        try {
+          await functional.deleteOne(id)
+          ok += 1
+        } catch {
+          failed += 1
+        }
+      }
+      if (ok > 0) toast.success(`Deleted ${ok} test case${ok === 1 ? '' : 's'}`)
+      if (failed > 0) toast.error(`${failed} could not be deleted`)
+      setSelectedIds(new Set())
+      setConfirmBulkDelete(false)
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
   if (loading && rows.length === 0) return <PageSkeleton variant="list" className="p-lg" />
 
   return (
@@ -224,6 +250,9 @@ export function QualityCasesView() {
           </Button>
           <Button size="sm" variant="outline" onClick={() => void bulkArchive()}>
             Archive
+          </Button>
+          <Button size="sm" tone="error" onClick={() => setConfirmBulkDelete(true)}>
+            Delete selected
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
             Clear
@@ -309,6 +338,17 @@ export function QualityCasesView() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmBulkDelete}
+        onClose={() => { if (!bulkDeleting) setConfirmBulkDelete(false) }}
+        title="Delete selected test cases"
+        message={`Delete ${selectedIds.size} selected test case${selectedIds.size === 1 ? '' : 's'}? This cannot be undone.`}
+        confirmLabel="Delete selected"
+        variant="danger"
+        loading={bulkDeleting}
+        onConfirm={() => void handleBulkDelete()}
+      />
 
       <QualitySingleAddModal
         open={createOpen}
