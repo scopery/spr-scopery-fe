@@ -142,6 +142,16 @@ export function useTestCaseCatalog(projectId: string | null) {
     [load, projectId]
   )
 
+  const deleteOne = useCallback(
+    async (testCaseId: string) => {
+      if (!projectId) return
+      await qualityApi.deleteTestCase(projectId, testCaseId)
+      setItems((rows) => rows.filter((row) => row.id !== testCaseId))
+      setTotal((value) => Math.max(0, value - 1))
+    },
+    [projectId]
+  )
+
   return {
     items,
     total,
@@ -191,5 +201,6 @@ export function useTestCaseCatalog(projectId: string | null) {
     create,
     bulkCreate,
     batchUpdate,
+    deleteOne,
   }
 }

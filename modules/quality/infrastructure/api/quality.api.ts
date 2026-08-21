@@ -179,6 +179,10 @@ export async function createTestCase(
   return apiClient.post(QUALITY_ENDPOINTS.testCases(projectId), body)
 }
 
+export async function deleteTestCase(projectId: string, testCaseId: string): Promise<void> {
+  await apiClient.delete<void>(QUALITY_ENDPOINTS.testCase(projectId, testCaseId), { parseJson: false })
+}
+
 export async function submitTestCasesBulk(
   projectId: string,
   items: CreateTestCasePayload[]

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
+import { Button, Input, Modal, PageSkeleton, Select, Stack, Typography } from '@/shared/ui'
 import { toast } from 'sonner'
 import { getProblemToastMessage } from '@/shared/lib/errorHandling'
 import { ROUTES } from '@/constants/routes'
@@ -100,6 +100,9 @@ export function ApplicationWorkbenchView() {
 
   const [tab, setTab] = useState<MainTab>('browse')
   const [importKind, setImportKind] = useState<ImportKind>('modules')
+  const [editNameOpen, setEditNameOpen] = useState(false)
+  const [editNameValue, setEditNameValue] = useState('')
+  const [editNameSaving, setEditNameSaving] = useState(false)
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const { items: relatedFunctionNodes } = useApplicationRelatedFunctions(
     workspaceId,
@@ -275,6 +278,29 @@ export function ApplicationWorkbenchView() {
     )
   }
 
+  const openEditName = () => {
+    setEditNameValue(application?.name ?? '')
+    setEditNameOpen(true)
+  }
+
+  const saveApplicationName = async () => {
+    if (!editNameValue.trim()) return
+    setEditNameSaving(true)
+    try {
+      await traceabilityApi.updateApplication(workspaceId, applicationId, {
+        name: editNameValue.trim(),
+        description: null,
+      })
+      toast.success('Application name updated')
+      setEditNameOpen(false)
+      await refetch({ silent: true })
+    } catch (err) {
+      toast.error(getProblemToastMessage(err))
+    } finally {
+      setEditNameSaving(false)
+    }
+  }
+
   const closeInspector = () => setSelectedKey(null)
 
   const saveNode = async (node: BrowseCatalogNode, payload: NodeEditPayload) => {
@@ -424,6 +450,9 @@ export function ApplicationWorkbenchView() {
                   : ''}
               </Typography>
             </div>
+            <Button size="sm" variant="outline" onClick={openEditName}>
+              Edit name
+            </Button>
           </div>
 
           <nav aria-label="Workbench" className="mt-1 flex gap-0.5 border-b border-neutral-200">
@@ -821,6 +850,39 @@ export function ApplicationWorkbenchView() {
           ) : null}
         </div>
       </div>
+
+      <Modal
+        open={editNameOpen}
+        onClose={() => {
+          if (!editNameSaving) setEditNameOpen(false)
+        }}
+        title="Edit application name"
+        actions={[
+          {
+            label: 'Cancel',
+            variant: 'ghost',
+            disabled: editNameSaving,
+            onClick: () => setEditNameOpen(false),
+          },
+          {
+            label: editNameSaving ? 'Saving…' : 'Save',
+            variant: 'primary',
+            loading: editNameSaving,
+            disabled: editNameSaving || !editNameValue.trim(),
+            onClick: () => void saveApplicationName(),
+          },
+        ]}
+      >
+        <Input
+          label="Name"
+          value={editNameValue}
+          required
+          onChange={(e) => setEditNameValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void saveApplicationName()
+          }}
+        />
+      </Modal>
     </div>
   )
 }

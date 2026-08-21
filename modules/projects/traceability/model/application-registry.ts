@@ -211,6 +211,11 @@ export interface CreateRegistryApplicationBody {
   ownerUserId?: string | null
 }
 
+export interface UpdateRegistryApplicationBody {
+  name: string
+  description?: string | null
+}
+
 export interface CreateRegistryAppModuleBody {
   code: string
   name: string

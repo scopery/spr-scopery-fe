@@ -15,6 +15,7 @@ import {
   Badge,
   BulkJobProgressPanel,
   Button,
+  ConfirmDialog,
   DataTable,
   Input,
   Modal,
@@ -190,6 +191,8 @@ export function TestCaseCatalogView() {
   } | null>(null)
   const [assignSaving, setAssignSaving] = useState(false)
   const [assigneeFilterOpen, setAssigneeFilterOpen] = useState(false)
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
   const { personFor: filterPersonFor } = useResolveUsers([catalog.assigneeId])
 
   useEffect(() => {
@@ -293,6 +296,30 @@ export function TestCaseCatalogView() {
 
   const pasteJobRunning = pastePoller.isPolling
   const pasteBusy = pasteSubmitting || pasteJobRunning
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    const ids = [...selectedIds]
+    setBulkDeleting(true)
+    let ok = 0
+    let failed = 0
+    try {
+      for (const id of ids) {
+        try {
+          await catalog.deleteOne(id)
+          ok += 1
+        } catch {
+          failed += 1
+        }
+      }
+      if (ok > 0) toast.success(`Deleted ${ok} test case${ok === 1 ? '' : 's'}`)
+      if (failed > 0) toast.error(`${failed} could not be deleted`)
+      setSelectedIds(new Set())
+      setConfirmBulkDelete(false)
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
 
   const saveAssignment = async (assigneeId: string | null) => {
     if (!assignTarget) return
@@ -453,6 +480,9 @@ export function TestCaseCatalogView() {
             }
           >
             Assign user
+          </Button>
+          <Button size="sm" tone="error" onClick={() => setConfirmBulkDelete(true)}>
+            Delete selected
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
             Clear
@@ -836,6 +866,19 @@ export function TestCaseCatalogView() {
         assigneePeople={assigneePeople}
         onClose={() => setDetailId(null)}
         onChanged={() => void catalog.refetch()}
+      />
+
+      <ConfirmDialog
+        open={confirmBulkDelete}
+        onClose={() => {
+          if (!bulkDeleting) setConfirmBulkDelete(false)
+        }}
+        title="Delete selected test cases"
+        message={`Delete ${selectedIds.size} selected test case${selectedIds.size === 1 ? '' : 's'}? This cannot be undone.`}
+        confirmLabel="Delete selected"
+        variant="danger"
+        loading={bulkDeleting}
+        onConfirm={() => void handleBulkDelete()}
       />
     </div>
   )
