@@ -311,8 +311,8 @@ function DataTableInner<T>(
                     selected
                       ? 'bg-neutral-200'
                       : focused
-                        ? 'border-l border-l-neutral-900 bg-neutral-100'
-                        : 'border-l border-l-transparent hover:bg-neutral-50',
+                        ? 'border-l-2 border-l-secondary bg-secondary/10'
+                        : 'border-l-2 border-l-transparent hover:bg-neutral-50',
                     typeof rowClassName === 'function' ? rowClassName(row) : rowClassName
                   )}
                   onClick={() => {
