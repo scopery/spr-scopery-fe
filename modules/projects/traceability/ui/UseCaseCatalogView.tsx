@@ -184,7 +184,7 @@ export function UseCaseCatalogView() {
                 <div className="flex items-center gap-2">
                   <Select
                     value={sort}
-                    onValueChange={(v) => setSort(v)}
+                    onValueChange={(v: string) => setSort(v)}
                     options={[
                       { value: 'createdAt,asc', label: 'Oldest first' },
                       { value: 'createdAt,desc', label: 'Newest first' },
