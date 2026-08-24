@@ -80,8 +80,8 @@ export function RunCaseScriptInline({
   return (
     <div className="mt-2 max-h-64 space-y-1.5 overflow-y-auto border-t border-neutral-100 pt-2 text-xs">
       {hasPreconditions ? (
-        <div className="rounded bg-amber-50 px-2 py-1.5">
-          <span className="mr-1.5 inline-block rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+        <div className="bg-amber-50 px-2 py-1.5">
+          <span className="mr-1.5 inline-block bg-amber-100 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
             Pre
           </span>
           <span className="whitespace-pre-wrap break-words text-neutral-800">
@@ -111,8 +111,8 @@ export function RunCaseScriptInline({
       ) : null}
 
       {hasExpected ? (
-        <div className="rounded bg-green-50 px-2 py-1.5">
-          <span className="mr-1.5 inline-block rounded bg-green-100 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700">
+        <div className="bg-green-50 px-2 py-1.5">
+          <span className="mr-1.5 inline-block bg-green-100 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700">
             Expect
           </span>
           <span className="whitespace-pre-wrap break-words text-neutral-800">

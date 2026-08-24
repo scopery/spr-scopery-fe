@@ -311,7 +311,7 @@ function DataTableInner<T>(
                     selected
                       ? 'bg-neutral-200'
                       : focused
-                        ? 'border-l-2 border-l-secondary bg-secondary/10'
+                        ? 'border-l-2 border-l-secondary bg-blue-50'
                         : 'border-l-2 border-l-transparent hover:bg-neutral-50',
                     typeof rowClassName === 'function' ? rowClassName(row) : rowClassName
                   )}
