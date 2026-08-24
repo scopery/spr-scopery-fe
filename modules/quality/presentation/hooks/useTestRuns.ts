@@ -71,7 +71,6 @@ export function useTestRuns(projectId: string | null) {
         hasDefect: hasDefect === '' ? undefined : hasDefect === 'true',
         page: 0,
         size: 200,
-        sort: 'testCase.code,asc',
       }
       const [functionalResponse, verificationResponse] = await Promise.all([
         showsFunctionalResults
@@ -81,12 +80,16 @@ export function useTestRuns(projectId: string | null) {
           ? qualityApi.listVerificationResults(projectId, selectedRunId)
           : Promise.resolve({ items: [] }),
       ])
-      setResults(
-        functionalResponse.items.map((item) => ({
-          ...item,
-          testCaseId: item.testCaseId ?? item.testCase?.id,
-        }))
-      )
+      const mapped = functionalResponse.items.map((item) => ({
+        ...item,
+        testCaseId: item.testCaseId ?? item.testCase?.id,
+      }))
+      mapped.sort((a, b) => {
+        const ca = a.testCase?.code ?? ''
+        const cb = b.testCase?.code ?? ''
+        return ca.localeCompare(cb, undefined, { numeric: true, sensitivity: 'base' })
+      })
+      setResults(mapped)
       setVerificationResults(verificationResponse.items)
       setResultTotal(
         (functionalResponse.page?.total ?? functionalResponse.items.length) +
