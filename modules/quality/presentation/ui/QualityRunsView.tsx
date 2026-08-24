@@ -637,7 +637,7 @@ export function QualityRunsView() {
                 ariaLabel="Run execution results"
                 rows={executionRows}
                 rowKey={(row) => row.resultId}
-                selectedRowKey={isQueuedPreview ? null : focusedRow?.resultId}
+                selectedRowKey={null}
                 selectedKeys={isQueuedPreview ? undefined : selectedIds}
                 onSelectedKeysChange={isQueuedPreview ? undefined : setSelectedIds}
                 onRowClick={isQueuedPreview ? undefined : () => undefined}
