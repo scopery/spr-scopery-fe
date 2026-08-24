@@ -103,18 +103,41 @@ function mapFunctionalItem(item: FunctionalItem): FunctionalItem {
   }
 }
 
+function withQuery(url: string, params: Record<string, string | number | boolean | undefined | null>): string {
+  const q = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') q.set(key, String(value))
+  }
+  const qs = q.toString()
+  return qs ? `${url}?${qs}` : url
+}
+
+function extractTotal<T>(res: ListPayload<T>, items: T[]): number {
+  if (!res || Array.isArray(res)) return items.length
+  const r = res as Record<string, unknown>
+  if (typeof r.totalElements === 'number') return r.totalElements
+  if (typeof r.total === 'number') return r.total
+  if (r.page && typeof r.page === 'object' && typeof (r.page as Record<string, unknown>).total === 'number') {
+    return (r.page as Record<string, unknown>).total as number
+  }
+  return items.length
+}
+
 export async function listFunctionalItems(
   projectId: string,
-  params?: { moduleId?: string }
-): Promise<{ items: FunctionalItem[] }> {
-  const q = new URLSearchParams()
-  if (params?.moduleId) q.set('moduleId', params.moduleId)
-  const qs = q.toString()
+  params?: { moduleId?: string; page?: number; size?: number; sort?: string }
+): Promise<{ items: FunctionalItem[]; total: number }> {
   const res = await apiClient.get<ListPayload<FunctionalItem>>(
-    FUNCTIONAL_CATALOG_ENDPOINTS.functionalItems(projectId) + (qs ? `?${qs}` : '')
+    withQuery(FUNCTIONAL_CATALOG_ENDPOINTS.functionalItems(projectId), {
+      moduleId: params?.moduleId,
+      page: params?.page,
+      size: params?.size,
+      sort: params?.sort,
+    })
   )
   const { items } = normalizeItemList(res)
-  return { items: items.map(mapFunctionalItem) }
+  const mapped = items.map(mapFunctionalItem)
+  return { items: mapped, total: extractTotal(res, mapped) }
 }
 
 export async function getFunctionalItem(
@@ -163,15 +186,18 @@ export async function deleteFunctionalItem(projectId: string, id: string): Promi
 
 export async function listNonFunctionalItems(
   projectId: string,
-  params?: { targetId?: string }
-): Promise<{ items: NonFunctionalItem[] }> {
-  const q = new URLSearchParams()
-  if (params?.targetId) q.set('targetId', params.targetId)
-  const qs = q.toString()
+  params?: { targetId?: string; page?: number; size?: number; sort?: string }
+): Promise<{ items: NonFunctionalItem[]; total: number }> {
   const res = await apiClient.get<ListPayload<NonFunctionalItem>>(
-    FUNCTIONAL_CATALOG_ENDPOINTS.nonFunctionalItems(projectId) + (qs ? `?${qs}` : '')
+    withQuery(FUNCTIONAL_CATALOG_ENDPOINTS.nonFunctionalItems(projectId), {
+      targetId: params?.targetId,
+      page: params?.page,
+      size: params?.size,
+      sort: params?.sort,
+    })
   )
-  return normalizeItemList(res)
+  const { items } = normalizeItemList(res)
+  return { items, total: extractTotal(res, items) }
 }
 
 export async function getNonFunctionalItem(

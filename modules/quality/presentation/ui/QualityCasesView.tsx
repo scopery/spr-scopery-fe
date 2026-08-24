@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { ClipboardPaste, Plus, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ClipboardPaste, Plus, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, ConfirmDialog, Input, PageSkeleton, Select, Typography } from '@/shared/ui'
 import { ROUTES } from '@/constants/routes'
@@ -103,6 +103,10 @@ export function QualityCasesView() {
   const error = tab === 'functional' ? functional.error : nfr.error
   const query = tab === 'functional' ? functional.query : nfr.query
   const status = tab === 'functional' ? functional.status : nfr.status
+  const sort = tab === 'functional' ? functional.sort : nfr.sort
+  const offset = tab === 'functional' ? functional.offset : nfr.offset
+  const total = tab === 'functional' ? functional.total : nfr.total
+  const pageSize = tab === 'functional' ? functional.pageSize : nfr.pageSize
 
   const setQuery = (value: string) => {
     if (tab === 'functional') functional.setQuery(value)
@@ -114,6 +118,16 @@ export function QualityCasesView() {
     if (tab === 'functional') functional.setStatus(value)
     else nfr.setStatus(value)
     persistFilters({ status: value })
+  }
+
+  const setSort = (value: string) => {
+    if (tab === 'functional') functional.setSort(value)
+    else nfr.setSort(value)
+  }
+
+  const setOffset = (value: number) => {
+    if (tab === 'functional') functional.setOffset(value)
+    else nfr.setOffset(value)
   }
 
   const toggleSelect = (id: string) => {
@@ -232,6 +246,17 @@ export function QualityCasesView() {
           options={STATUS_OPTIONS}
           className="w-40"
         />
+        <Select
+          value={sort}
+          onValueChange={setSort}
+          options={[
+            { value: 'updatedAt,desc', label: 'Recently updated' },
+            { value: 'code,asc', label: 'Code A–Z' },
+            { value: 'priority,desc', label: 'Priority' },
+            { value: 'title,asc', label: 'Title A–Z' },
+          ]}
+          className="ml-auto w-44"
+        />
       </div>
 
       {selectedIds.size > 0 && tab === 'functional' ? (
@@ -288,6 +313,33 @@ export function QualityCasesView() {
             : undefined
         }
       />
+
+      <footer className="flex items-center justify-between border-t border-neutral-200 px-lg py-sm">
+        <Typography variant="caption" tone="muted">
+          {total} {tab === 'functional' ? 'Test Cases' : 'NFR Verifications'}
+        </Typography>
+        <div className="flex items-center gap-sm">
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<ChevronLeft size={15} />}
+            aria-label="Previous page"
+            disabled={offset === 0}
+            onClick={() => setOffset(Math.max(0, offset - pageSize))}
+          />
+          <Typography variant="caption" tone="muted">
+            {total === 0 ? '0–0' : `${offset + 1}–${Math.min(offset + pageSize, total)}`}
+          </Typography>
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<ChevronRight size={15} />}
+            aria-label="Next page"
+            disabled={offset + pageSize >= total}
+            onClick={() => setOffset(offset + pageSize)}
+          />
+        </div>
+      </footer>
 
       {tab === 'functional' && selectedId ? (
         <TestCaseDetailDrawer

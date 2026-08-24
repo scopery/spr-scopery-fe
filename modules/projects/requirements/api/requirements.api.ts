@@ -41,13 +41,14 @@ function normalizeRequirement(raw: Requirement): Requirement {
 export async function listRequirements(
   orgId: string,
   projectId: string,
-  params?: { limit?: number; offset?: number; includeArchived?: boolean }
+  params?: { limit?: number; offset?: number; includeArchived?: boolean; sort?: string }
 ): Promise<RequirementsListResponse> {
   const includeArchived = params?.includeArchived === true
   const url = PROJECT_ENDPOINTS.requirements(orgId, projectId, {
     includeArchived,
     limit: params?.limit,
     offset: params?.offset,
+    sort: params?.sort,
   })
   const res = await apiClient.get<RequirementsListResponse | Requirement[]>(url)
   const items = (Array.isArray(res) ? res : (res.items ?? []))

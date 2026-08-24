@@ -14,10 +14,15 @@ import {
 } from '../model/requirement-status'
 import type { BulkJobResponse } from '@/shared/lib/bulkJobs'
 
+const PAGE_SIZE = 50
+
 export function useRequirements(orgId: string | null, projectId: string | null) {
   const [requirements, setRequirements] = useState<Requirement[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [sort, setSort] = useState('createdAt,asc')
+  const [offset, setOffset] = useState(0)
 
   const load = useCallback(async () => {
     if (!orgId || !projectId) return
@@ -25,16 +30,19 @@ export function useRequirements(orgId: string | null, projectId: string | null) 
     setError(null)
     try {
       const res = await requirementsApi.listRequirements(orgId, projectId, {
-        limit: 200,
+        limit: PAGE_SIZE,
+        offset,
         includeArchived: true,
+        sort,
       })
       setRequirements(res.items)
+      setTotal(res.page?.total ?? res.items.length)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load requirements')
     } finally {
       setLoading(false)
     }
-  }, [orgId, projectId])
+  }, [orgId, projectId, offset, sort])
 
   useEffect(() => {
     void load()
@@ -167,8 +175,14 @@ export function useRequirements(orgId: string | null, projectId: string | null) 
 
   return {
     requirements,
+    total,
     loading,
     error,
+    sort,
+    setSort: (value: string) => { setSort(value); setOffset(0) },
+    offset,
+    setOffset,
+    pageSize: PAGE_SIZE,
     refetch: load,
     createRequirement,
     updateRequirement,

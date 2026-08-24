@@ -4,10 +4,15 @@ import { useCallback, useEffect, useState } from 'react'
 import * as api from '../api/use-case.api'
 import type { BulkCreateUseCaseItem, CreateUseCaseBody, UseCase } from '../model/use-case'
 
+const PAGE_SIZE = 50
+
 export function useUseCaseCatalog(projectId: string | null, functionId?: string | null) {
   const [useCases, setUseCases] = useState<UseCase[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [sort, setSort] = useState('createdAt,asc')
+  const [offset, setOffset] = useState(0)
 
   const load = useCallback(async () => {
     if (!projectId) {
@@ -17,16 +22,25 @@ export function useUseCaseCatalog(projectId: string | null, functionId?: string 
     setLoading(true)
     setError(null)
     try {
-      const items = functionId
-        ? await api.listUseCasesByFunction(projectId, functionId)
-        : await api.listUseCases(projectId)
-      setUseCases(items ?? [])
+      if (functionId) {
+        const items = await api.listUseCasesByFunction(projectId, functionId)
+        setUseCases(items ?? [])
+        setTotal(items?.length ?? 0)
+      } else {
+        const res = await api.listUseCasesPaged(projectId, {
+          page: Math.floor(offset / PAGE_SIZE),
+          size: PAGE_SIZE,
+          sort,
+        })
+        setUseCases(res.items)
+        setTotal(res.total)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load use cases')
     } finally {
       setLoading(false)
     }
-  }, [projectId, functionId])
+  }, [projectId, functionId, offset, sort])
 
   useEffect(() => {
     void load()
@@ -61,8 +75,14 @@ export function useUseCaseCatalog(projectId: string | null, functionId?: string 
 
   return {
     useCases,
+    total,
     loading,
     error,
+    sort,
+    setSort: (value: string) => { setSort(value); setOffset(0) },
+    offset,
+    setOffset,
+    pageSize: PAGE_SIZE,
     refetch: load,
     createUseCase,
     submitUseCasesBulk,

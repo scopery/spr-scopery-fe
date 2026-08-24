@@ -142,12 +142,13 @@ export const PROJECT_ENDPOINTS = {
   requirements: (
     orgId: string,
     projectId: string,
-    params?: { includeArchived?: boolean; limit?: number; offset?: number }
+    params?: { includeArchived?: boolean; limit?: number; offset?: number; sort?: string }
   ) => {
     const search = new URLSearchParams()
     if (params?.includeArchived) search.set('includeArchived', 'true')
     if (params?.limit != null) search.set('limit', String(params.limit))
     if (params?.offset != null) search.set('offset', String(params.offset))
+    if (params?.sort) search.set('sort', params.sort)
     const q = search.toString()
     return apiPath(`/projects/${projectId}/requirements`) + (q ? `?${q}` : '')
   },

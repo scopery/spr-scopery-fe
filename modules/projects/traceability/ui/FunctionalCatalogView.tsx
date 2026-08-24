@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Search, SquareArrowOutUpRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, SquareArrowOutUpRight } from 'lucide-react'
 import { useParams, useSearchParams } from 'next/navigation'
 import { Button, DataTable, PageSkeleton, Select, Stack, Typography, ConfirmDialog, useVisibleRowSelection } from '@/shared/ui'
 import { toast } from 'sonner'
@@ -50,6 +50,15 @@ export function FunctionalCatalogView() {
   const {
     functionalItems,
     nonFunctionalItems,
+    frTotal,
+    nfrTotal,
+    frOffset,
+    nfrOffset,
+    sort,
+    pageSize,
+    setSort,
+    setFrOffset,
+    setNfrOffset,
     loading,
     error,
     createFr,
@@ -403,6 +412,19 @@ export function FunctionalCatalogView() {
                     />
                   </div>
                   <div className="flex items-center gap-2">
+                    <Select
+                      value={sort}
+                      onValueChange={setSort}
+                      options={[
+                        { value: 'createdAt,asc', label: 'Oldest first' },
+                        { value: 'createdAt,desc', label: 'Newest first' },
+                        { value: 'code,asc', label: 'Code A–Z' },
+                        { value: 'priority,desc', label: 'Priority' },
+                        { value: 'title,asc', label: 'Title A–Z' },
+                      ]}
+                      size="sm"
+                      className="w-36"
+                    />
                     <Button size="sm" variant="secondary" onClick={() => setFrImportOpen(true)}>
                       Import
                     </Button>
@@ -459,6 +481,16 @@ export function FunctionalCatalogView() {
                     />
                   )}
                 </div>
+                <div className="flex shrink-0 items-center justify-between border-t border-neutral-100 px-3 py-1.5">
+                  <Typography variant="caption" tone="muted">{frTotal} function{frTotal === 1 ? '' : 's'}</Typography>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="ghost" icon={<ChevronLeft size={14} />} aria-label="Previous page" disabled={frOffset === 0} onClick={() => setFrOffset(Math.max(0, frOffset - pageSize))} />
+                    <Typography variant="caption" tone="muted">
+                      {frTotal === 0 ? '0–0' : `${frOffset + 1}–${Math.min(frOffset + pageSize, frTotal)}`}
+                    </Typography>
+                    <Button size="sm" variant="ghost" icon={<ChevronRight size={14} />} aria-label="Next page" disabled={frOffset + pageSize >= frTotal} onClick={() => setFrOffset(frOffset + pageSize)} />
+                  </div>
+                </div>
               </div>
 
               {/* Right: detail — fills height, scrolls inside */}
@@ -504,6 +536,19 @@ export function FunctionalCatalogView() {
                       className="w-full bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
                     />
                   </div>
+                  <Select
+                    value={sort}
+                    onValueChange={setSort}
+                    options={[
+                      { value: 'createdAt,asc', label: 'Oldest first' },
+                      { value: 'createdAt,desc', label: 'Newest first' },
+                      { value: 'code,asc', label: 'Code A–Z' },
+                      { value: 'priority,desc', label: 'Priority' },
+                      { value: 'title,asc', label: 'Title A–Z' },
+                    ]}
+                    size="sm"
+                    className="w-36"
+                  />
                   <FunctionalCatalogAddBar
                     defaultKind="NFR"
                     onCreate={handleBulkCreate}
@@ -562,6 +607,16 @@ export function FunctionalCatalogView() {
                       ]}
                     />
                   )}
+                </div>
+                <div className="flex shrink-0 items-center justify-between border-t border-neutral-100 px-3 py-1.5">
+                  <Typography variant="caption" tone="muted">{nfrTotal} NFR{nfrTotal === 1 ? '' : 's'}</Typography>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="ghost" icon={<ChevronLeft size={14} />} aria-label="Previous page" disabled={nfrOffset === 0} onClick={() => setNfrOffset(Math.max(0, nfrOffset - pageSize))} />
+                    <Typography variant="caption" tone="muted">
+                      {nfrTotal === 0 ? '0–0' : `${nfrOffset + 1}–${Math.min(nfrOffset + pageSize, nfrTotal)}`}
+                    </Typography>
+                    <Button size="sm" variant="ghost" icon={<ChevronRight size={14} />} aria-label="Next page" disabled={nfrOffset + pageSize >= nfrTotal} onClick={() => setNfrOffset(nfrOffset + pageSize)} />
+                  </div>
                 </div>
               </div>
 

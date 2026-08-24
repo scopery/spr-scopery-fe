@@ -41,7 +41,7 @@ export function useTestRuns(projectId: string | null) {
     setLoadingRuns(true)
     setError(null)
     try {
-      const response = await qualityApi.listTestRuns(projectId, { page: 0, size: 50 })
+      const response = await qualityApi.listTestRuns(projectId, { page: 0, size: 50, sort: 'createdAt,asc' })
       setRuns(response.items)
       setSelectedRunId((current) =>
         current && response.items.some((run) => run.id === current)

@@ -339,7 +339,7 @@ export async function createTestCaseCoverage(
 
 export async function listTestRuns(
   projectId: string,
-  query: { q?: string; status?: string; page?: number; size?: number } = {}
+  query: { q?: string; status?: string; sort?: string; page?: number; size?: number } = {}
 ): Promise<ListResponse<TestRun>> {
   return asPageList(
     await apiClient.get<PagePayload<TestRun>>(

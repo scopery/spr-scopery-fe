@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Search, SquareArrowOutUpRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, SquareArrowOutUpRight } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import {
@@ -9,6 +9,7 @@ import {
   ConfirmDialog,
   DataTable,
   PageSkeleton,
+  Select,
   Typography,
   useVisibleRowSelection,
 } from '@/shared/ui'
@@ -26,7 +27,7 @@ import { useElicitationScopeLock } from '@/modules/projects/elicitation/presenta
 export function UseCaseCatalogView() {
   const { workspaceId, projectId } = useParams<{ workspaceId: string; projectId: string }>()
   const searchParams = useSearchParams()
-  const { useCases, loading, error, refetch, createUseCase, submitUseCasesBulk, deleteUseCase } =
+  const { useCases, total, loading, error, sort, setSort, offset, setOffset, pageSize, refetch, createUseCase, submitUseCasesBulk, deleteUseCase } =
     useUseCaseCatalog(projectId)
   const { functionalItems } = useFunctionalCatalog(projectId)
   const { isLocked: scopeLocked } = useElicitationScopeLock(projectId)
@@ -180,12 +181,26 @@ export function UseCaseCatalogView() {
                     className="w-full bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
                   />
                 </div>
-                <UseCaseAddBar
-                  projectId={projectId}
-                  onCreate={createUseCase}
-                  onSubmitBulk={submitUseCasesBulk}
-                  onBatchComplete={refetch}
-                />
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={sort}
+                    onValueChange={(v) => setSort(v)}
+                    options={[
+                      { value: 'createdAt,asc', label: 'Oldest first' },
+                      { value: 'createdAt,desc', label: 'Newest first' },
+                      { value: 'key,asc', label: 'Key A–Z' },
+                      { value: 'name,asc', label: 'Title A–Z' },
+                    ]}
+                    size="sm"
+                    className="w-36"
+                  />
+                  <UseCaseAddBar
+                    projectId={projectId}
+                    onCreate={createUseCase}
+                    onSubmitBulk={submitUseCasesBulk}
+                    onBatchComplete={refetch}
+                  />
+                </div>
               </div>
 
               {!scopeLocked && selectedKeys.size > 0 && filtered.length > 0 ? (
@@ -238,6 +253,31 @@ export function UseCaseCatalogView() {
                     ]}
                   />
                 )}
+              </div>
+
+              <div className="flex shrink-0 items-center justify-between border-t border-neutral-100 px-3 py-1.5">
+                <Typography variant="caption" tone="muted">
+                  {total} use case{total === 1 ? '' : 's'}
+                </Typography>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<ChevronLeft size={14} />}
+                    disabled={offset === 0}
+                    onClick={() => setOffset(Math.max(0, offset - pageSize))}
+                  />
+                  <Typography variant="caption" tone="muted">
+                    {total === 0 ? '0–0' : `${offset + 1}–${Math.min(offset + pageSize, total)}`}
+                  </Typography>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<ChevronRight size={14} />}
+                    disabled={offset + pageSize >= total}
+                    onClick={() => setOffset(offset + pageSize)}
+                  />
+                </div>
               </div>
             </div>
 

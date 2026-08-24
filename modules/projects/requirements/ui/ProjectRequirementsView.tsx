@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
-import { ExternalLink, Pencil, Search, SquareArrowOutUpRight, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ExternalLink, Pencil, Search, SquareArrowOutUpRight, Trash2 } from 'lucide-react'
 import {
   Typography,
   Badge,
@@ -11,6 +11,7 @@ import {
   ConfirmDialog,
   DataTable,
   PageSkeleton,
+  Select,
   useVisibleRowSelection,
 } from '@/shared/ui'
 import { toast } from 'sonner'
@@ -135,7 +136,13 @@ export function ProjectRequirementsView() {
   const { permissions, loading: permsLoading } = useEffectivePermissions(orgId, projectId)
   const {
     requirements,
+    total: reqTotal,
     loading: reqLoading,
+    sort: reqSort,
+    setSort: setReqSort,
+    offset: reqOffset,
+    setOffset: setReqOffset,
+    pageSize: reqPageSize,
     createRequirement,
     updateRequirement,
     submitRequirementsBulk,
@@ -585,6 +592,19 @@ export function ProjectRequirementsView() {
                     packages={scopePackages}
                     className="w-[180px]"
                   />
+                  <Select
+                    value={reqSort}
+                    onValueChange={setReqSort}
+                    options={[
+                      { value: 'createdAt,asc', label: 'Oldest first' },
+                      { value: 'createdAt,desc', label: 'Newest first' },
+                      { value: 'code,asc', label: 'Code A–Z' },
+                      { value: 'priority,desc', label: 'Priority' },
+                      { value: 'title,asc', label: 'Title A–Z' },
+                    ]}
+                    size="sm"
+                    className="w-36"
+                  />
                   <div className="flex flex-wrap gap-0.5">
                     {(
                       [
@@ -753,6 +773,32 @@ export function ProjectRequirementsView() {
                     ]}
                   />
                 )}
+              </div>
+              <div className="flex shrink-0 items-center justify-between border-t border-neutral-100 px-3 py-1.5">
+                <Typography variant="caption" tone="muted">
+                  {reqTotal} requirement{reqTotal === 1 ? '' : 's'}
+                </Typography>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<ChevronLeft size={14} />}
+                    aria-label="Previous page"
+                    disabled={reqOffset === 0}
+                    onClick={() => setReqOffset(Math.max(0, reqOffset - reqPageSize))}
+                  />
+                  <Typography variant="caption" tone="muted">
+                    {reqTotal === 0 ? '0–0' : `${reqOffset + 1}–${Math.min(reqOffset + reqPageSize, reqTotal)}`}
+                  </Typography>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<ChevronRight size={14} />}
+                    aria-label="Next page"
+                    disabled={reqOffset + reqPageSize >= reqTotal}
+                    onClick={() => setReqOffset(reqOffset + reqPageSize)}
+                  />
+                </div>
               </div>
             </div>
 

@@ -87,6 +87,29 @@ export async function listUseCases(projectId: string): Promise<UseCase[]> {
   return apiClient.get<UseCase[]>(USE_CASE_ENDPOINTS.list(projectId))
 }
 
+export interface UseCasePagedResponse {
+  items: UseCase[]
+  total: number
+}
+
+export async function listUseCasesPaged(
+  projectId: string,
+  query: { page?: number; size?: number; sort?: string } = {}
+): Promise<UseCasePagedResponse> {
+  const q = new URLSearchParams()
+  if (query.page != null) q.set('page', String(query.page))
+  if (query.size != null) q.set('size', String(query.size))
+  if (query.sort) q.set('sort', query.sort)
+  const qs = q.toString()
+  const url = USE_CASE_ENDPOINTS.list(projectId) + (qs ? `?${qs}` : '')
+  const res = await apiClient.get<UseCase[] | { items?: UseCase[]; content?: UseCase[]; totalElements?: number; total?: number }>(url)
+  if (Array.isArray(res)) return { items: res, total: res.length }
+  const items = res.items ?? res.content ?? []
+  const r = res as Record<string, unknown>
+  const total = typeof r.totalElements === 'number' ? r.totalElements : typeof r.total === 'number' ? r.total : items.length
+  return { items, total }
+}
+
 export async function createUseCase(
   projectId: string,
   body: CreateUseCaseBody
