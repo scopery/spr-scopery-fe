@@ -70,7 +70,8 @@ export function useTestRuns(projectId: string | null) {
         assigneeId: assigneeId || undefined,
         hasDefect: hasDefect === '' ? undefined : hasDefect === 'true',
         page: 0,
-        size: 100,
+        size: 200,
+        sort: 'testCase.code,asc',
       }
       const [functionalResponse, verificationResponse] = await Promise.all([
         showsFunctionalResults

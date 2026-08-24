@@ -335,6 +335,7 @@ export interface TestRunResultsQuery {
   hasDefect?: boolean
   page?: number
   size?: number
+  sort?: string
 }
 
 export interface UpdateTestRunResultPayload {

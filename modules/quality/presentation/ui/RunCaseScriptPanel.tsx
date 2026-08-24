@@ -78,33 +78,46 @@ export function RunCaseScriptInline({
   }
 
   return (
-    <div className="mt-2 max-h-64 space-y-2 overflow-y-auto border-t border-neutral-100 pt-2 text-sm text-neutral-800">
+    <div className="mt-2 max-h-64 space-y-1.5 overflow-y-auto border-t border-neutral-100 pt-2 text-xs">
       {hasPreconditions ? (
-        <div>
-          <span className="font-medium text-neutral-600">Pre · </span>
-          <span className="whitespace-pre-wrap break-words">{script.preconditions}</span>
+        <div className="rounded bg-amber-50 px-2 py-1.5">
+          <span className="mr-1.5 inline-block rounded bg-amber-100 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+            Pre
+          </span>
+          <span className="whitespace-pre-wrap break-words text-neutral-800">
+            {script.preconditions}
+          </span>
         </div>
       ) : null}
 
       {hasSteps ? (
-        <ol className="list-decimal space-y-1.5 pl-5">
-          {script.steps.map((step) => (
-            <li key={step.id} className="min-w-0">
-              <span className="whitespace-pre-wrap break-words">{step.action || '—'}</span>
-              {step.expectedResult?.trim() ? (
-                <span className="mt-0.5 block whitespace-pre-wrap break-words text-neutral-600">
-                  → {step.expectedResult}
-                </span>
-              ) : null}
-            </li>
-          ))}
-        </ol>
+        <div>
+          <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+            Steps
+          </span>
+          <ol className="space-y-1 text-neutral-800" style={{ listStyleType: 'decimal', paddingLeft: '1.1rem' }}>
+            {script.steps.map((step) => (
+              <li key={step.id} className="min-w-0">
+                <span className="whitespace-pre-wrap break-words">{step.action || '—'}</span>
+                {step.expectedResult?.trim() ? (
+                  <span className="mt-0.5 block whitespace-pre-wrap break-words border-l-2 border-neutral-200 pl-2 text-neutral-500">
+                    {step.expectedResult}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+        </div>
       ) : null}
 
       {hasExpected ? (
-        <div>
-          <span className="font-medium text-neutral-600">Expected · </span>
-          <span className="whitespace-pre-wrap break-words">{script.expectedResult}</span>
+        <div className="rounded bg-green-50 px-2 py-1.5">
+          <span className="mr-1.5 inline-block rounded bg-green-100 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700">
+            Expect
+          </span>
+          <span className="whitespace-pre-wrap break-words text-neutral-800">
+            {script.expectedResult}
+          </span>
         </div>
       ) : null}
     </div>

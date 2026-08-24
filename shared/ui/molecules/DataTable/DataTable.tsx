@@ -152,6 +152,13 @@ function DataTableInner<T>(
     onFocusedRowChange(row)
   }, [focusedIndex, onFocusedRowChange, rowKey, rows])
 
+  useEffect(() => {
+    if (!keyboardEnabled || !tableRef.current) return
+    const trs = tableRef.current.querySelectorAll('tbody tr')
+    const el = trs[focusedIndex] as HTMLElement | undefined
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [focusedIndex, keyboardEnabled])
+
   const stickyOffsets = useMemo(() => {
     // Selectable checkbox column sits before sticky cells — include its width in left offsets.
     let offset = selectable ? 40 : 0
