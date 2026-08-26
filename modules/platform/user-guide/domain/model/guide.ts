@@ -5,7 +5,16 @@ export interface GuideStep {
   uiHints?: string[]
 }
 
-export type GuideDiagramType = 'org-hierarchy' | 'delivery-lifecycle' | 'workflow-e2e'
+export type GuideDiagramType =
+  | 'org-hierarchy'
+  | 'delivery-lifecycle'
+  | 'workflow-e2e'
+  | 'plan-overview'
+  | 'scope-overview'
+  | 'quality-overview'
+  | 'control-overview'
+  | 'collab-overview'
+  | 'ai-overview'
 
 export interface GuideHighlight {
   iconKey: string

@@ -325,6 +325,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     keywords: ['work items', 'tasks', 'todo', 'create task', 'board', 'list'],
     suggestedQuestions: ['How do I create a task?', 'What are Work Items?'],
     prerequisites: ['You are inside a project.', 'You can create/update tasks.'],
+    diagramType: 'plan-overview',
     steps: [
       {
         title: 'Open Work Items',
@@ -533,6 +534,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     subtitle: 'Decide what is in / out of scope for this project.',
     keywords: ['scope', 'in scope', 'out of scope'],
     suggestedQuestions: ['How do I set project scope?'],
+    diagramType: 'scope-overview',
     steps: [
       {
         title: 'Open Scope',
@@ -771,6 +773,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     subtitle: 'Hub for Cases → Runs → Defects → Releases.',
     keywords: ['quality', 'qa', 'testing', 'overview'],
     suggestedQuestions: ['Where is Quality?', 'How does the quality workflow work?'],
+    diagramType: 'quality-overview',
     steps: [
       {
         title: 'Open Quality Overview',
@@ -1003,6 +1006,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     subtitle: 'Risks, Assumptions, Issues, Dependencies — register and matrix.',
     keywords: ['raid', 'risk', 'issue', 'assumption', 'dependency', 'risk matrix'],
     suggestedQuestions: ['How do I add a RAID item?', 'Where is the risk matrix?'],
+    diagramType: 'control-overview',
     steps: [
       {
         title: 'Open RAID',
@@ -1147,6 +1151,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     subtitle: 'Schedule meetings, run agenda/actions, publish notes.',
     keywords: ['meetings', 'agenda', 'recap', 'publish', 'participants'],
     suggestedQuestions: ['How do I schedule a meeting?', 'How do I publish a meeting note?'],
+    diagramType: 'collab-overview',
     steps: [
       {
         title: 'Open Meetings',
@@ -1214,6 +1219,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     subtitle: 'Review AI planning suggestions before applying them.',
     keywords: ['ai planning', 'suggestions', 'review'],
     suggestedQuestions: ['How do I use AI Planning?'],
+    diagramType: 'ai-overview',
     steps: [
       {
         title: 'Open AI Planning',

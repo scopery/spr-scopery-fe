@@ -4,19 +4,25 @@ import React, { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
   ArrowDown,
+  ArrowRight,
+  Bell,
   BookOpen,
+  Bot,
   Building2,
   CheckSquare,
   ClipboardList,
   FileText,
   FolderOpen,
+  GitBranch,
   Layers,
   Maximize2,
+  MessageSquare,
   Minimize2,
   Rocket,
   Search,
   Settings,
   ShieldCheck,
+  Sparkles,
   Target,
   X,
   type LucideProps,
@@ -428,71 +434,167 @@ function DeliveryLifecycleDiagram() {
   )
 }
 
-function WorkflowE2EDiagram() {
-  const phases = [
-    {
-      step: 1,
-      label: 'Define Scope',
-      tags: ['Requirements', 'Functions', 'Use Cases', 'Screen Specs', 'Traceability'],
-    },
-    {
-      step: 2,
-      label: 'Plan Work',
-      tags: ['Work Items', 'Plan Structure', 'Timeline', 'Schedule'],
-    },
-    {
-      step: 3,
-      label: 'Docs & Meetings',
-      tags: ['Meeting Notes', 'Documents', 'Action Items', 'Decisions'],
-    },
-    {
-      step: 4,
-      label: 'Risk & Change Control',
-      tags: ['RAID Log', 'Change Requests', 'Baselines', 'Impact Assessment'],
-    },
-    {
-      step: 5,
-      label: 'Verify Quality',
-      tags: ['Test Cases', 'Test Runs', 'Defects', 'Release Gate'],
-    },
-    {
-      step: 6,
-      label: 'Release & Lock',
-      tags: ['Releases', 'Sign-off', 'Baseline Lock'],
-    },
-  ]
-
+function ScopeMockup() {
   return (
-    <div className="my-1 border border-neutral-200 bg-neutral-50 p-4">
-      <div className="relative pl-10">
-        <div className="absolute left-[19px] top-3 bottom-3 w-px bg-neutral-200" />
-        <div className="space-y-0">
-          {phases.map((phase, i) => (
-            <div key={phase.step} className="relative pb-5 last:pb-0">
-              <div className="absolute -left-10 flex h-6 w-6 items-center justify-center border border-neutral-200 bg-white shadow-sm">
-                <span className="text-[11px] font-semibold text-neutral-700">{phase.step}</span>
-              </div>
-              <div className="flex items-baseline gap-3 flex-wrap">
-                <span className="text-sm font-semibold text-neutral-900 shrink-0">{phase.label}</span>
-                <div className="flex flex-wrap gap-1">
-                  {phase.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="border border-neutral-200 bg-white px-2 py-0.5 text-[11px] text-neutral-600 shadow-sm"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              {i < phases.length - 1 && (
-                <div className="absolute -left-[26px] top-7">
-                  <ArrowDown size={12} className="text-neutral-300" />
-                </div>
-              )}
-            </div>
-          ))}
+    <div className="space-y-1.5">
+      {[
+        { code: 'REQ-001', label: 'User login via email', status: 'Open' },
+        { code: 'REQ-002', label: 'Password reset flow', status: 'Draft' },
+      ].map((r) => (
+        <div key={r.code} className="border border-neutral-200 bg-white px-2 py-1.5 shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-semibold text-neutral-400">{r.code}</span>
+            <span className="border border-neutral-200 px-1.5 py-px text-[9px] text-neutral-500">{r.status}</span>
+          </div>
+          <p className="mt-0.5 text-[11px] text-neutral-700">{r.label}</p>
+          <div className="mt-1 flex gap-2">
+            <span className="text-[9px] text-neutral-400">Use Cases: 2</span>
+            <span className="text-[9px] text-neutral-400">Test Cases: 1</span>
+          </div>
         </div>
+      ))}
+    </div>
+  )
+}
+
+function PlanMockup() {
+  const bars = [
+    { label: 'Design', w: '75%', offset: '0%' },
+    { label: 'Dev', w: '55%', offset: '20%' },
+    { label: 'QA', w: '35%', offset: '55%' },
+  ]
+  return (
+    <div className="space-y-1.5">
+      {bars.map((b) => (
+        <div key={b.label} className="flex items-center gap-2">
+          <span className="w-10 shrink-0 text-[10px] text-neutral-400">{b.label}</span>
+          <div className="relative flex-1 h-4 bg-neutral-100 border border-neutral-200">
+            <div
+              className="absolute top-0 h-full bg-neutral-800"
+              style={{ left: b.offset, width: b.w }}
+            />
+          </div>
+        </div>
+      ))}
+      <div className="flex justify-between pt-0.5">
+        {['W1', 'W2', 'W3', 'W4'].map((w) => (
+          <span key={w} className="text-[9px] text-neutral-300">{w}</span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DocsMockup() {
+  return (
+    <div className="border border-neutral-200 bg-white shadow-sm">
+      <div className="border-b border-neutral-200 px-2 py-1.5 flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-neutral-700">Kickoff Meeting</span>
+        <span className="text-[9px] text-neutral-400">27 Aug</span>
+      </div>
+      <div className="px-2 py-1.5 space-y-1">
+        {['Decision: Use REST API', 'Action: Update screen spec', 'Risk: Timeline tight'].map((line, i) => (
+          <div key={i} className="flex items-start gap-1.5">
+            <span className="mt-0.5 text-[9px] text-neutral-300">•</span>
+            <span className="text-[10px] text-neutral-600">{line}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function RiskMockup() {
+  const rows = [
+    { type: 'Risk', label: 'API instability', status: 'Open' },
+    { type: 'Issue', label: 'Delayed design', status: 'Active' },
+    { type: 'CR', label: 'Add SSO scope', status: 'Pending' },
+  ]
+  return (
+    <div className="border border-neutral-200 bg-white shadow-sm">
+      {rows.map((r, i) => (
+        <div
+          key={i}
+          className={cn('flex items-center gap-2 px-2 py-1.5', i < rows.length - 1 && 'border-b border-neutral-100')}
+        >
+          <span className="w-10 shrink-0 border border-neutral-200 px-1 py-px text-center text-[9px] text-neutral-500">{r.type}</span>
+          <span className="flex-1 text-[10px] text-neutral-700">{r.label}</span>
+          <span className="text-[9px] text-neutral-400">{r.status}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function QualityMockup() {
+  const cases = [
+    { id: 'TC-001', label: 'Login success', result: 'PASS' },
+    { id: 'TC-002', label: 'Wrong password', result: 'PASS' },
+    { id: 'TC-003', label: 'Reset flow', result: 'FAIL' },
+  ]
+  return (
+    <div className="border border-neutral-200 bg-white shadow-sm">
+      {cases.map((c, i) => (
+        <div
+          key={c.id}
+          className={cn('flex items-center gap-2 px-2 py-1.5', i < cases.length - 1 && 'border-b border-neutral-100')}
+        >
+          <span className="text-[10px] font-medium text-neutral-400">{c.id}</span>
+          <span className="flex-1 text-[10px] text-neutral-700">{c.label}</span>
+          <span className={cn('border px-1.5 py-px text-[9px] font-semibold', c.result === 'PASS' ? 'border-neutral-300 text-neutral-600' : 'border-neutral-400 text-neutral-800')}>
+            {c.result}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ReleaseMockup() {
+  return (
+    <div className="border border-neutral-200 bg-white shadow-sm">
+      <div className="border-b border-neutral-200 px-2 py-1.5 flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-neutral-700">v1.0.0</span>
+        <span className="border border-neutral-300 px-2 py-px text-[9px] font-semibold text-neutral-700">APPROVED</span>
+      </div>
+      <div className="px-2 py-1.5 space-y-1">
+        <div className="flex items-center gap-1.5">
+          <CheckSquare size={10} className="text-neutral-400" />
+          <span className="text-[10px] text-neutral-600">3 / 3 test cases passed</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <CheckSquare size={10} className="text-neutral-400" />
+          <span className="text-[10px] text-neutral-600">Baseline locked</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <CheckSquare size={10} className="text-neutral-400" />
+          <span className="text-[10px] text-neutral-600">Signed off by PM</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const PHASE_MOCKUPS = [ScopeMockup, PlanMockup, DocsMockup, RiskMockup, QualityMockup, ReleaseMockup]
+const PHASE_LABELS = ['① Define Scope', '② Plan Work', '③ Docs & Meetings', '④ Risk & Control', '⑤ Verify Quality', '⑥ Release']
+
+function WorkflowE2EDiagram() {
+  return (
+    <div className="my-1 border border-neutral-200 bg-neutral-50 p-3">
+      <div className="grid grid-cols-3 gap-px bg-neutral-200">
+        {PHASE_LABELS.map((label, i) => {
+          const Mockup = PHASE_MOCKUPS[i]
+          return (
+            <div key={label} className="bg-neutral-50 p-3">
+              <p className="mb-2 text-[11px] font-semibold text-neutral-700">{label}</p>
+              <Mockup />
+            </div>
+          )
+        })}
+      </div>
+      <div className="mt-2 flex items-center gap-1.5">
+        <ArrowDown size={10} className="text-neutral-300 rotate-[-90deg]" />
+        <p className="text-[10px] text-neutral-400">Flow: Scope → Plan → Docs → Risk → Quality → Release</p>
       </div>
     </div>
   )
@@ -534,10 +636,338 @@ function HighlightsGrid({ highlights }: { highlights: GuideHighlight[] }) {
   )
 }
 
+function PlanOverviewDiagram() {
+  const columns = [
+    { label: 'To Do', items: ['Design login UI', 'Write API spec', 'Setup CI/CD'] },
+    { label: 'In Progress', items: ['Implement auth', 'Review mockups'] },
+    { label: 'Done', items: ['Project kickoff', 'Tech stack decision'] },
+  ]
+  const bars = [
+    { label: 'Design', w: 70, offset: 0 },
+    { label: 'Dev', w: 55, offset: 20 },
+    { label: 'QA', w: 30, offset: 55 },
+    { label: 'Deploy', w: 15, offset: 82 },
+  ]
+  return (
+    <div className="my-1 border border-neutral-200 bg-neutral-50 p-3 space-y-3">
+      {/* Kanban */}
+      <div>
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Work Items</p>
+        <div className="grid grid-cols-3 gap-px bg-neutral-200">
+          {columns.map((col) => (
+            <div key={col.label} className="bg-white">
+              <div className="border-b border-neutral-200 px-2 py-1">
+                <span className="text-[10px] font-semibold text-neutral-600">{col.label}</span>
+              </div>
+              <div className="p-1.5 space-y-1">
+                {col.items.map((item) => (
+                  <div key={item} className="border border-neutral-200 bg-neutral-50 px-1.5 py-1">
+                    <span className="text-[10px] text-neutral-700">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Timeline */}
+      <div>
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Timeline</p>
+        <div className="space-y-1.5">
+          {bars.map((b) => (
+            <div key={b.label} className="flex items-center gap-2">
+              <span className="w-12 shrink-0 text-[10px] text-neutral-500">{b.label}</span>
+              <div className="relative flex-1 h-3.5 bg-neutral-100 border border-neutral-200">
+                <div className="absolute top-0 h-full bg-neutral-700" style={{ left: `${b.offset}%`, width: `${b.w}%` }} />
+              </div>
+            </div>
+          ))}
+          <div className="ml-14 flex justify-between">
+            {['Week 1', 'Week 2', 'Week 3', 'Week 4'].map((w) => (
+              <span key={w} className="text-[9px] text-neutral-300">{w}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ScopeOverviewDiagram() {
+  const matrix = [
+    { req: 'REQ-001', uc: 'UC-001', tc: 'TC-001', covered: true },
+    { req: 'REQ-001', uc: 'UC-002', tc: 'TC-002', covered: true },
+    { req: 'REQ-002', uc: 'UC-003', tc: null, covered: false },
+    { req: 'REQ-003', uc: 'UC-004', tc: 'TC-003', covered: true },
+  ]
+  return (
+    <div className="my-1 border border-neutral-200 bg-neutral-50 p-3 space-y-3">
+      {/* Requirement cards */}
+      <div>
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Requirements</p>
+        <div className="space-y-1">
+          {[
+            { code: 'REQ-001', title: 'User authentication', status: 'Approved', ucs: 2 },
+            { code: 'REQ-002', title: 'Password reset', status: 'Draft', ucs: 1 },
+            { code: 'REQ-003', title: 'Session management', status: 'Open', ucs: 1 },
+          ].map((r) => (
+            <div key={r.code} className="flex items-center gap-2 border border-neutral-200 bg-white px-2 py-1.5">
+              <span className="text-[10px] font-semibold text-neutral-400 w-16 shrink-0">{r.code}</span>
+              <span className="flex-1 text-[10px] text-neutral-700">{r.title}</span>
+              <span className="border border-neutral-200 px-1.5 py-px text-[9px] text-neutral-500">{r.status}</span>
+              <span className="text-[9px] text-neutral-400">{r.ucs} UC</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Traceability */}
+      <div>
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Traceability</p>
+        <div className="border border-neutral-200 bg-white">
+          <div className="grid grid-cols-4 gap-0 border-b border-neutral-200 bg-neutral-50">
+            {['Requirement', 'Use Case', 'Test Case', 'Status'].map((h) => (
+              <div key={h} className="px-2 py-1 text-[9px] font-semibold uppercase text-neutral-400 border-r border-neutral-200 last:border-0">{h}</div>
+            ))}
+          </div>
+          {matrix.map((row, i) => (
+            <div key={i} className={cn('grid grid-cols-4 border-b border-neutral-100 last:border-0')}>
+              <div className="px-2 py-1 text-[10px] text-neutral-600 border-r border-neutral-100">{row.req}</div>
+              <div className="px-2 py-1 text-[10px] text-neutral-600 border-r border-neutral-100">{row.uc}</div>
+              <div className="px-2 py-1 text-[10px] text-neutral-600 border-r border-neutral-100">{row.tc ?? <span className="text-neutral-300">—</span>}</div>
+              <div className="px-2 py-1">
+                <span className={cn('text-[9px] font-semibold', row.covered ? 'text-neutral-600' : 'text-neutral-400')}>
+                  {row.covered ? 'Covered' : 'Gap'}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function QualityOverviewDiagram() {
+  const cases = [
+    { id: 'TC-001', title: 'Login with valid credentials', result: 'PASS' },
+    { id: 'TC-002', title: 'Login with wrong password', result: 'PASS' },
+    { id: 'TC-003', title: 'Session timeout redirect', result: 'FAIL' },
+    { id: 'TC-004', title: 'Password reset email', result: 'PASS' },
+  ]
+  const defects = [
+    { id: 'DEF-001', title: 'Session not cleared on logout', severity: 'High' },
+    { id: 'DEF-002', title: 'Reset email delay > 30s', severity: 'Medium' },
+  ]
+  const pass = cases.filter((c) => c.result === 'PASS').length
+  const total = cases.length
+  const pct = Math.round((pass / total) * 100)
+
+  return (
+    <div className="my-1 border border-neutral-200 bg-neutral-50 p-3 space-y-3">
+      {/* Summary bar */}
+      <div className="border border-neutral-200 bg-white px-3 py-2">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] font-semibold text-neutral-700">Sprint 1 — Quality Gate</span>
+          <span className="text-[11px] font-bold text-neutral-900">{pct}%</span>
+        </div>
+        <div className="h-2 w-full bg-neutral-100 border border-neutral-200">
+          <div className="h-full bg-neutral-700" style={{ width: `${pct}%` }} />
+        </div>
+        <div className="mt-1.5 flex gap-4">
+          <span className="text-[9px] text-neutral-500">Pass: {pass}</span>
+          <span className="text-[9px] text-neutral-500">Fail: {total - pass}</span>
+          <span className="text-[9px] text-neutral-500">Total: {total}</span>
+        </div>
+      </div>
+      {/* Test cases */}
+      <div>
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Test Cases</p>
+        <div className="border border-neutral-200 bg-white">
+          {cases.map((c, i) => (
+            <div key={c.id} className={cn('flex items-center gap-2 px-2 py-1.5', i < cases.length - 1 && 'border-b border-neutral-100')}>
+              <span className="w-14 shrink-0 text-[10px] font-medium text-neutral-400">{c.id}</span>
+              <span className="flex-1 text-[10px] text-neutral-700">{c.title}</span>
+              <span className={cn('border px-1.5 py-px text-[9px] font-semibold', c.result === 'PASS' ? 'border-neutral-300 text-neutral-600' : 'border-neutral-500 text-neutral-800')}>
+                {c.result}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Defects */}
+      <div>
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Defects</p>
+        <div className="border border-neutral-200 bg-white">
+          {defects.map((d, i) => (
+            <div key={d.id} className={cn('flex items-center gap-2 px-2 py-1.5', i < defects.length - 1 && 'border-b border-neutral-100')}>
+              <AlertTriangle size={10} className="shrink-0 text-neutral-400" />
+              <span className="flex-1 text-[10px] text-neutral-700">{d.title}</span>
+              <span className="text-[9px] text-neutral-500">{d.severity}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ControlOverviewDiagram() {
+  return (
+    <div className="my-1 border border-neutral-200 bg-neutral-50 p-3 space-y-3">
+      {/* Baseline flow */}
+      <div>
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Baselines & Change Flow</p>
+        <div className="flex items-center gap-1">
+          {[
+            { label: 'Baseline v1.0', note: 'Locked' },
+            null,
+            { label: 'CR-001: Add SSO', note: 'Approved' },
+            null,
+            { label: 'Baseline v2.0', note: 'Pending' },
+          ].map((item, i) =>
+            item === null ? (
+              <ArrowRight key={i} size={12} className="shrink-0 text-neutral-300" />
+            ) : (
+              <div key={i} className="flex-1 border border-neutral-200 bg-white px-2 py-1.5 text-center">
+                <p className="text-[10px] font-semibold text-neutral-700">{item.label}</p>
+                <p className="text-[9px] text-neutral-400">{item.note}</p>
+              </div>
+            )
+          )}
+        </div>
+      </div>
+      {/* RAID */}
+      <div>
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">RAID Log</p>
+        <div className="border border-neutral-200 bg-white">
+          {[
+            { type: 'Risk', title: 'Third-party API downtime', owner: 'Dev Lead', status: 'Mitigated' },
+            { type: 'Issue', title: 'Delayed design handoff', owner: 'PM', status: 'Active' },
+            { type: 'Dep', title: 'Auth service ready', owner: 'Arch', status: 'Open' },
+          ].map((r, i) => (
+            <div key={i} className={cn('flex items-center gap-2 px-2 py-1.5', i < 2 && 'border-b border-neutral-100')}>
+              <span className="w-10 shrink-0 border border-neutral-200 px-1 py-px text-center text-[9px] text-neutral-500">{r.type}</span>
+              <span className="flex-1 text-[10px] text-neutral-700">{r.title}</span>
+              <span className="text-[9px] text-neutral-400">{r.owner}</span>
+              <span className="text-[9px] text-neutral-400">{r.status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CollabOverviewDiagram() {
+  return (
+    <div className="my-1 border border-neutral-200 bg-neutral-50 p-3 space-y-3">
+      {/* Comments thread */}
+      <div>
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Comments on REQ-001</p>
+        <div className="border border-neutral-200 bg-white">
+          {[
+            { avatar: 'JD', name: 'John D.', time: '2h ago', msg: 'Can we clarify the session timeout behaviour?' },
+            { avatar: 'AN', name: 'Anna N.', time: '1h ago', msg: '@John timeout is 30 min per security policy.' },
+            { avatar: 'PM', name: 'Peter M.', time: '30m ago', msg: 'Updated the requirement. Please review.' },
+          ].map((c, i) => (
+            <div key={i} className={cn('flex gap-2 px-2 py-2', i < 2 && 'border-b border-neutral-100')}>
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center border border-neutral-200 bg-neutral-100 text-[9px] font-bold text-neutral-600">{c.avatar}</div>
+              <div className="min-w-0">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[10px] font-semibold text-neutral-800">{c.name}</span>
+                  <span className="text-[9px] text-neutral-400">{c.time}</span>
+                </div>
+                <p className="mt-0.5 text-[10px] leading-relaxed text-neutral-600">{c.msg}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Notifications */}
+      <div>
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Notifications</p>
+        <div className="border border-neutral-200 bg-white">
+          {[
+            { icon: MessageSquare, msg: 'Anna replied to your comment on REQ-001', time: '1h ago', unread: true },
+            { icon: Bell, msg: 'Test Run "Sprint 1" completed — 3 failures', time: '3h ago', unread: true },
+            { icon: CheckSquare, msg: 'CR-001 was approved by PM', time: '1d ago', unread: false },
+          ].map((n, i) => {
+            const Icon = n.icon
+            return (
+              <div key={i} className={cn('flex items-start gap-2 px-2 py-1.5', i < 2 && 'border-b border-neutral-100', n.unread && 'bg-neutral-50')}>
+                <Icon size={10} className="mt-0.5 shrink-0 text-neutral-400" />
+                <span className="flex-1 text-[10px] text-neutral-700">{n.msg}</span>
+                <span className="shrink-0 text-[9px] text-neutral-400">{n.time}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AiOverviewDiagram() {
+  const messages = [
+    { role: 'user', text: 'Summarize open risks in this project' },
+    { role: 'ai', text: 'Found 3 open risks:\n• API downtime — High (no mitigation yet)\n• Design delay — Medium (owner: PM)\n• Resource gap in QA — Low' },
+    { role: 'user', text: 'Draft a test case for the login requirement' },
+    { role: 'ai', text: 'TC-005: Login with valid credentials\nSteps: 1. Enter email 2. Enter password 3. Click Login\nExpected: Redirect to dashboard' },
+  ]
+  return (
+    <div className="my-1 border border-neutral-200 bg-neutral-50 p-3 space-y-3">
+      {/* AI Chat */}
+      <div>
+        <div className="mb-1.5 flex items-center gap-1.5">
+          <Sparkles size={11} className="text-neutral-500" />
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">AI Assistant</p>
+        </div>
+        <div className="border border-neutral-200 bg-white">
+          {messages.map((m, i) => (
+            <div key={i} className={cn('px-2 py-2', i < messages.length - 1 && 'border-b border-neutral-100', m.role === 'user' ? 'bg-neutral-50' : 'bg-white')}>
+              <div className="mb-0.5 flex items-center gap-1.5">
+                {m.role === 'ai' ? <Bot size={10} className="text-neutral-500" /> : <span className="text-[9px] font-semibold text-neutral-400">You</span>}
+                {m.role === 'ai' && <span className="text-[9px] font-semibold text-neutral-500">Scopery AI</span>}
+              </div>
+              <p className="text-[10px] leading-relaxed text-neutral-700 whitespace-pre-line">{m.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* AI Agent */}
+      <div>
+        <div className="mb-1.5 flex items-center gap-1.5">
+          <GitBranch size={11} className="text-neutral-500" />
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">AI Agents (automated)</p>
+        </div>
+        <div className="border border-neutral-200 bg-white">
+          {[
+            { name: 'Test Case Generator', trigger: 'On requirement approved', status: 'Active' },
+            { name: 'Risk Summarizer', trigger: 'Daily at 08:00', status: 'Active' },
+            { name: 'Meeting Note Extractor', trigger: 'On doc upload', status: 'Paused' },
+          ].map((a, i) => (
+            <div key={i} className={cn('flex items-center gap-2 px-2 py-1.5', i < 2 && 'border-b border-neutral-100')}>
+              <span className="flex-1 text-[10px] font-medium text-neutral-700">{a.name}</span>
+              <span className="text-[9px] text-neutral-400">{a.trigger}</span>
+              <span className={cn('border px-1.5 py-px text-[9px]', a.status === 'Active' ? 'border-neutral-300 text-neutral-600' : 'border-neutral-200 text-neutral-400')}>{a.status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const DIAGRAM_COMPONENTS: Record<GuideDiagramType, () => React.ReactElement> = {
   'org-hierarchy': OrgHierarchyDiagram,
   'delivery-lifecycle': DeliveryLifecycleDiagram,
   'workflow-e2e': WorkflowE2EDiagram,
+  'plan-overview': PlanOverviewDiagram,
+  'scope-overview': ScopeOverviewDiagram,
+  'quality-overview': QualityOverviewDiagram,
+  'control-overview': ControlOverviewDiagram,
+  'collab-overview': CollabOverviewDiagram,
+  'ai-overview': AiOverviewDiagram,
 }
 
 function ArticleView({
