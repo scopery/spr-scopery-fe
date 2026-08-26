@@ -5,6 +5,8 @@ export interface GuideStep {
   uiHints?: string[]
 }
 
+export type GuideDiagramType = 'org-hierarchy' | 'delivery-lifecycle'
+
 export interface GuideArticle {
   id: string
   groupId: string
@@ -15,6 +17,7 @@ export interface GuideArticle {
   prerequisites?: string[]
   steps: GuideStep[]
   relatedIds?: string[]
+  diagramType?: GuideDiagramType
 }
 
 export interface GuideGroup {

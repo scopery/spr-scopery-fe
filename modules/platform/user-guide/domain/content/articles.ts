@@ -3,39 +3,118 @@ import type { GuideArticle } from '../model/guide'
 export const GUIDE_ARTICLES: GuideArticle[] = [
   // ── Getting started ───────────────────────────────────────────────
   {
+    id: 'getting-started-what-is-scopery',
+    groupId: 'getting-started',
+    title: 'What is Scopery?',
+    subtitle: 'A single platform that covers the full software delivery lifecycle — from planning to release.',
+    keywords: ['what is', 'scopery', 'intro', 'overview', 'platform', 'why', 'purpose'],
+    suggestedQuestions: [
+      'What is Scopery?',
+      'What can I do in Scopery?',
+      'Who is Scopery for?',
+      'Why use Scopery?',
+    ],
+    steps: [
+      {
+        title: 'One platform for the full delivery lifecycle',
+        body: 'Most teams juggle multiple disconnected tools — a task tracker for planning, a wiki for requirements, a spreadsheet for test cases, a separate tool for change requests. Scopery brings all of these into one place so your team works from a single source of truth.',
+      },
+      {
+        title: 'Who uses Scopery?',
+        body: 'Project Managers plan work and track progress. Business Analysts capture requirements, use cases, and screen specs. QA Engineers write test cases, run test cycles, and log defects. Team Leads manage baselines and change requests. Stakeholders get visibility into status, scope, and quality from one dashboard.',
+      },
+      {
+        title: 'Five areas, one connected flow',
+        body: 'Plan → Scope & Requirements → Quality → Commercial → Control. Each area feeds the next. Requirements link to test cases. Test runs gate releases. Change requests update baselines. Nothing is siloed.',
+      },
+      {
+        title: 'AI-assisted throughout',
+        body: 'Scopery has a built-in AI Assistant you can ask questions about your project, and AI Agents that can automate repetitive tasks like test case generation and status summarization.',
+        uiHints: ['AI Assistant'],
+      },
+    ],
+    relatedIds: ['getting-started-overview', 'getting-started-lifecycle', 'getting-started-end-to-end'],
+  },
+  {
     id: 'getting-started-overview',
     groupId: 'getting-started',
     title: 'How Scopery is organized',
-    subtitle: 'Org → Workspace → Project → workbench tabs. Start here if you are new.',
-    keywords: ['overview', 'navigation', 'sidebar', 'org', 'workspace', 'project', 'start'],
+    subtitle: 'Org → Workspace → Project — understand the hierarchy before you start.',
+    diagramType: 'org-hierarchy',
+    keywords: ['overview', 'navigation', 'sidebar', 'org', 'workspace', 'project', 'start', 'hierarchy'],
     suggestedQuestions: [
       'How is Scopery organized?',
       'Where do I start?',
       'What is a workspace vs project?',
+      'What is an org?',
     ],
     prerequisites: ['You have a login and at least one organization membership.'],
     steps: [
       {
-        title: 'Find your place in the hierarchy',
-        body: 'Top of the left sidebar shows the current workspace (and project when you are inside one). Click the name to open the switcher.',
+        title: 'Organization — the top level',
+        body: 'Your organization is your company or team account. It holds all your workspaces, members, and billing. You can belong to multiple orgs if you work across clients or companies.',
+        uiHints: ['Org switcher'],
+      },
+      {
+        title: 'Workspace — a department or team',
+        body: 'A workspace groups related projects together. It has its own member list, roles, and settings. Common patterns: one workspace per department (Engineering, QA, Product), or one per client if you are an agency.',
+        uiHints: ['Workspace switcher'],
+      },
+      {
+        title: 'Project — a delivery initiative',
+        body: 'A project is where the actual work lives. Each project has its own set of workbench tabs: Plan, Scope & Requirements, Quality, Commercial, and Control. Projects belong to exactly one workspace.',
+        uiHints: ['Project switcher'],
+      },
+      {
+        title: 'Find your context in the sidebar',
+        body: 'The top of the left sidebar always shows which workspace and project you are in. Click the name to switch. Below the divider you see the navigation for your current context — workspace-level links or project workbench tabs.',
         uiHints: ['Workspace / project switcher (top-left)'],
       },
+    ],
+    relatedIds: ['getting-started-what-is-scopery', 'getting-started-lifecycle', 'workspace-switch', 'project-create'],
+  },
+  {
+    id: 'getting-started-lifecycle',
+    groupId: 'getting-started',
+    title: 'The five workbench areas',
+    subtitle: 'Plan → Scope → Quality → Commercial → Control. What each area does and when to use it.',
+    diagramType: 'delivery-lifecycle',
+    keywords: ['plan', 'scope', 'quality', 'commercial', 'control', 'lifecycle', 'workbench', 'areas', 'tabs'],
+    suggestedQuestions: [
+      'What are the five areas?',
+      'What is the Plan tab?',
+      'What is Scope and Requirements?',
+      'Where do I write test cases?',
+      'What is Control for?',
+    ],
+    steps: [
       {
-        title: 'Use the left navigation',
-        body: 'Above the divider: Search, Notifications, AI Assistant. Below: workspace links or project workbench sections (Plan, Scope & Requirements, Quality, Commercial, Control…).',
-        uiHints: ['Search', 'Notifications', 'AI Assistant'],
+        title: 'Plan — track and schedule work',
+        body: 'Create Work Items (tasks, stories, epics), build your plan structure (WBS), schedule on the Timeline, and run capacity planning with Schedule. This is where the team knows what to build and by when.',
+        uiHints: ['Work Items', 'Timeline', 'Schedule', 'Plan Structure'],
       },
       {
-        title: 'Open this Guideline anytime',
-        body: 'Click your avatar at the bottom of the sidebar → Guideline.',
-        uiHints: ['Avatar menu', 'Guideline'],
+        title: 'Scope & Requirements — define what to build',
+        body: 'Capture Requirements, break them into Functions and Use Cases, write Screen Specs with field-level detail, and use Traceability to confirm every requirement is covered by a test case. This is the contract between stakeholders and the delivery team.',
+        uiHints: ['Requirements', 'Functions', 'Use Cases', 'Screen Specs', 'Traceability'],
       },
       {
-        title: 'Recommended first path',
-        body: 'Open/create a project → Overview → Work Items → Timeline → Scope / Requirements when ready → Quality Cases when testing starts.',
+        title: 'Quality — verify what was built',
+        body: 'Write Test Cases, group them into Test Runs, execute and track pass/fail results, log Defects when something breaks, and gate Releases against quality criteria. QA engineers live here.',
+        uiHints: ['Test Cases', 'Test Runs', 'Defects', 'Releases'],
+      },
+      {
+        title: 'Commercial — manage cost and contracts',
+        body: 'Track budget, contracts, and procurement. Useful for project managers and commercial leads who need cost visibility alongside delivery progress.',
+        uiHints: ['Commercial'],
+      },
+      {
+        title: 'Control — manage change and risk',
+        body: 'Lock the project plan into a Baseline, manage Change Requests when scope shifts, and track risks, assumptions, issues, and dependencies in RAID. Decisions are recorded here too so nothing gets lost in email threads.',
+        uiHints: ['Baselines', 'Change Requests', 'RAID', 'Decisions'],
       },
     ],
-    relatedIds: ['workspace-switch', 'project-create', 'plan-timeline', 'scope-requirements'],
+    relatedIds: ['getting-started-what-is-scopery', 'getting-started-end-to-end', 'scope-requirements', 'quality-cases'],
   },
   {
     id: 'getting-started-avatar-menu',

@@ -1,13 +1,25 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { BookOpen, Search, X } from 'lucide-react'
+import React, { useEffect, useMemo, useState } from 'react'
+import {
+  BookOpen,
+  Building2,
+  CheckSquare,
+  ClipboardList,
+  FileText,
+  FolderOpen,
+  Layers,
+  Search,
+  Settings,
+  ShieldCheck,
+  X,
+} from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { Input, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { GUIDE_ARTICLES, DEFAULT_GUIDE_ID } from '../../domain/content/articles'
 import { GUIDE_GROUPS } from '../../domain/content/groups'
-import type { GuideArticle } from '../../domain/model/guide'
+import type { GuideDiagramType, GuideArticle } from '../../domain/model/guide'
 import {
   articlesByGroup,
   collectSuggestedQuestions,
@@ -259,6 +271,142 @@ function SuggestionChips({
   )
 }
 
+function OrgHierarchyDiagram() {
+  const levels = [
+    {
+      icon: Building2,
+      label: 'Organization',
+      description: 'Your company or team account. One org can have many workspaces.',
+      examples: 'e.g. Acme Corp',
+    },
+    {
+      icon: Layers,
+      label: 'Workspace',
+      description: 'A department, product line, or client. Members and settings are scoped here.',
+      examples: 'e.g. Mobile Team, Client A',
+    },
+    {
+      icon: FolderOpen,
+      label: 'Project',
+      description: 'A delivery initiative with Plan, Scope, Quality, and Control workbench tabs.',
+      examples: 'e.g. App v2.0, Migration Sprint',
+    },
+  ]
+
+  return (
+    <div className="my-1 border border-neutral-200 bg-neutral-50 p-4">
+      <div className="flex flex-col items-center">
+        {levels.map((level, i) => {
+          const Icon = level.icon
+          return (
+            <div key={level.label} className="flex w-full flex-col items-center">
+              <div className="w-full max-w-md border border-neutral-200 bg-white px-4 py-3 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <Icon size={16} className="mt-0.5 shrink-0 text-neutral-500" />
+                  <div className="min-w-0">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm font-semibold text-neutral-900">{level.label}</span>
+                      <span className="text-xs text-neutral-400">{level.examples}</span>
+                    </div>
+                    <p className="mt-0.5 text-xs leading-relaxed text-neutral-600">
+                      {level.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              {i < levels.length - 1 && (
+                <div className="flex flex-col items-center py-1">
+                  <div className="h-4 w-px bg-neutral-300" />
+                  <svg width="10" height="6" viewBox="0 0 10 6" fill="currentColor" className="text-neutral-400">
+                    <path d="M5 6L0 0h10z" />
+                  </svg>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      <p className="mt-3 text-center text-[11px] text-neutral-400">
+        One org → many workspaces → many projects per workspace
+      </p>
+    </div>
+  )
+}
+
+function DeliveryLifecycleDiagram() {
+  const areas = [
+    {
+      icon: ClipboardList,
+      label: 'Plan',
+      items: ['Work Items', 'Timeline', 'Schedule', 'Plan Structure'],
+    },
+    {
+      icon: FileText,
+      label: 'Scope & Req',
+      items: ['Requirements', 'Functions', 'Use Cases', 'Traceability', 'Screen Specs'],
+    },
+    {
+      icon: CheckSquare,
+      label: 'Quality',
+      items: ['Test Cases', 'Test Runs', 'Defects', 'Releases'],
+    },
+    {
+      icon: Settings,
+      label: 'Commercial',
+      items: ['Budget', 'Contracts', 'Procurement'],
+    },
+    {
+      icon: ShieldCheck,
+      label: 'Control',
+      items: ['Baselines', 'Change Requests', 'RAID', 'Decisions'],
+    },
+  ]
+
+  return (
+    <div className="my-1 border border-neutral-200 bg-neutral-50 p-4">
+      <div className="overflow-x-auto">
+        <div className="flex min-w-max items-start gap-0">
+          {areas.map((area, i) => {
+            const Icon = area.icon
+            return (
+              <React.Fragment key={area.label}>
+                <div className="w-32 border border-neutral-200 bg-white shadow-sm">
+                  <div className="flex items-center gap-1.5 border-b border-neutral-200 px-2.5 py-2">
+                    <Icon size={13} className="shrink-0 text-neutral-500" />
+                    <span className="text-xs font-semibold text-neutral-900">{area.label}</span>
+                  </div>
+                  <ul className="px-2.5 py-2 space-y-1">
+                    {area.items.map((item) => (
+                      <li key={item} className="text-[11px] text-neutral-500 leading-snug">
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                {i < areas.length - 1 && (
+                  <div className="flex items-center self-stretch px-1 pt-[18px]">
+                    <svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor" className="text-neutral-300">
+                      <path d="M9 0l5 5-5 5V6H0V4h9V0z" />
+                    </svg>
+                  </div>
+                )}
+              </React.Fragment>
+            )
+          })}
+        </div>
+      </div>
+      <p className="mt-3 text-[11px] text-neutral-400">
+        Work flows left to right — you can work in any area at any time, but most teams follow this order.
+      </p>
+    </div>
+  )
+}
+
+const DIAGRAM_COMPONENTS: Record<GuideDiagramType, () => React.ReactElement> = {
+  'org-hierarchy': OrgHierarchyDiagram,
+  'delivery-lifecycle': DeliveryLifecycleDiagram,
+}
+
 function ArticleView({
   article,
   allArticles,
@@ -274,6 +422,8 @@ function ArticleView({
     .map((id) => findArticle(allArticles, id))
     .filter((a): a is GuideArticle => a != null)
 
+  const DiagramComponent = article.diagramType ? DIAGRAM_COMPONENTS[article.diagramType] : null
+
   return (
     <article className="space-y-5">
       <header className="space-y-1">
@@ -284,6 +434,8 @@ function ArticleView({
           {article.subtitle}
         </Typography>
       </header>
+
+      {DiagramComponent ? <DiagramComponent /> : null}
 
       {article.prerequisites && article.prerequisites.length > 0 ? (
         <section className="space-y-2">
