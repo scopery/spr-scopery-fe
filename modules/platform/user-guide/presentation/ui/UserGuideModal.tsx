@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import {
+  AlertTriangle,
+  ArrowDown,
   BookOpen,
   Building2,
   CheckSquare,
@@ -9,17 +11,22 @@ import {
   FileText,
   FolderOpen,
   Layers,
+  Maximize2,
+  Minimize2,
+  Rocket,
   Search,
   Settings,
   ShieldCheck,
+  Target,
   X,
+  type LucideProps,
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { Input, Typography } from '@/shared/ui'
 import { cn } from '@/utils/cn'
 import { GUIDE_ARTICLES, DEFAULT_GUIDE_ID } from '../../domain/content/articles'
 import { GUIDE_GROUPS } from '../../domain/content/groups'
-import type { GuideDiagramType, GuideArticle } from '../../domain/model/guide'
+import type { GuideDiagramType, GuideArticle, GuideHighlight } from '../../domain/model/guide'
 import {
   articlesByGroup,
   collectSuggestedQuestions,
@@ -38,6 +45,7 @@ export function UserGuideModal({ open, onClose, initialGuideId }: UserGuideModal
   const [mounted, setMounted] = useState(false)
   const [query, setQuery] = useState('')
   const [activeId, setActiveId] = useState(initialGuideId ?? DEFAULT_GUIDE_ID)
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -48,6 +56,10 @@ export function UserGuideModal({ open, onClose, initialGuideId }: UserGuideModal
     setActiveId(initialGuideId ?? DEFAULT_GUIDE_ID)
     setQuery('')
   }, [open, initialGuideId])
+
+  useEffect(() => {
+    if (!open) setExpanded(false)
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -82,7 +94,10 @@ export function UserGuideModal({ open, onClose, initialGuideId }: UserGuideModal
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-neutral-900/50 p-4"
+      className={cn(
+        'fixed inset-0 z-[100] flex bg-neutral-900/50',
+        expanded ? 'items-stretch p-0' : 'items-center justify-center p-4'
+      )}
       role="dialog"
       aria-modal="true"
       aria-labelledby="user-guide-title"
@@ -91,7 +106,10 @@ export function UserGuideModal({ open, onClose, initialGuideId }: UserGuideModal
       }}
     >
       <div
-        className="flex h-[min(88vh,820px)] w-full max-w-5xl flex-col border border-neutral-200 bg-white shadow-xl"
+        className={cn(
+          'flex flex-col border border-neutral-200 bg-white shadow-xl transition-none',
+          expanded ? 'h-screen w-screen' : 'h-[min(88vh,820px)] w-full max-w-5xl'
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -114,6 +132,14 @@ export function UserGuideModal({ open, onClose, initialGuideId }: UserGuideModal
               aria-label="Search guidelines"
             />
           </div>
+          <button
+            type="button"
+            aria-label={expanded ? 'Exit full screen' : 'Full screen'}
+            onClick={() => setExpanded((v) => !v)}
+            className="inline-flex h-8 w-8 items-center justify-center text-neutral-600 hover:bg-neutral-100"
+          >
+            {expanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+          </button>
           <button
             type="button"
             onClick={onClose}
@@ -402,9 +428,116 @@ function DeliveryLifecycleDiagram() {
   )
 }
 
+function WorkflowE2EDiagram() {
+  const phases = [
+    {
+      step: 1,
+      label: 'Define Scope',
+      tags: ['Requirements', 'Functions', 'Use Cases', 'Screen Specs', 'Traceability'],
+    },
+    {
+      step: 2,
+      label: 'Plan Work',
+      tags: ['Work Items', 'Plan Structure', 'Timeline', 'Schedule'],
+    },
+    {
+      step: 3,
+      label: 'Docs & Meetings',
+      tags: ['Meeting Notes', 'Documents', 'Action Items', 'Decisions'],
+    },
+    {
+      step: 4,
+      label: 'Risk & Change Control',
+      tags: ['RAID Log', 'Change Requests', 'Baselines', 'Impact Assessment'],
+    },
+    {
+      step: 5,
+      label: 'Verify Quality',
+      tags: ['Test Cases', 'Test Runs', 'Defects', 'Release Gate'],
+    },
+    {
+      step: 6,
+      label: 'Release & Lock',
+      tags: ['Releases', 'Sign-off', 'Baseline Lock'],
+    },
+  ]
+
+  return (
+    <div className="my-1 border border-neutral-200 bg-neutral-50 p-4">
+      <div className="relative pl-10">
+        <div className="absolute left-[19px] top-3 bottom-3 w-px bg-neutral-200" />
+        <div className="space-y-0">
+          {phases.map((phase, i) => (
+            <div key={phase.step} className="relative pb-5 last:pb-0">
+              <div className="absolute -left-10 flex h-6 w-6 items-center justify-center border border-neutral-200 bg-white shadow-sm">
+                <span className="text-[11px] font-semibold text-neutral-700">{phase.step}</span>
+              </div>
+              <div className="flex items-baseline gap-3 flex-wrap">
+                <span className="text-sm font-semibold text-neutral-900 shrink-0">{phase.label}</span>
+                <div className="flex flex-wrap gap-1">
+                  {phase.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="border border-neutral-200 bg-white px-2 py-0.5 text-[11px] text-neutral-600 shadow-sm"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {i < phases.length - 1 && (
+                <div className="absolute -left-[26px] top-7">
+                  <ArrowDown size={12} className="text-neutral-300" />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+type IconComponent = React.ComponentType<LucideProps>
+
+const HIGHLIGHT_ICONS: Record<string, IconComponent> = {
+  target: Target,
+  clipboard: ClipboardList,
+  file: FileText,
+  shield: ShieldCheck,
+  check: CheckSquare,
+  rocket: Rocket,
+  alert: AlertTriangle,
+  layers: Layers,
+  folder: FolderOpen,
+  building: Building2,
+  settings: Settings,
+  book: BookOpen,
+}
+
+function HighlightsGrid({ highlights }: { highlights: GuideHighlight[] }) {
+  return (
+    <div className="grid grid-cols-3 gap-px border border-neutral-200 bg-neutral-200">
+      {highlights.map((h) => {
+        const Icon = HIGHLIGHT_ICONS[h.iconKey] ?? FileText
+        return (
+          <div key={h.label} className="bg-white px-3 py-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Icon size={13} className="shrink-0 text-neutral-500" />
+              <span className="text-xs font-semibold text-neutral-900">{h.label}</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-neutral-500">{h.description}</p>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 const DIAGRAM_COMPONENTS: Record<GuideDiagramType, () => React.ReactElement> = {
   'org-hierarchy': OrgHierarchyDiagram,
   'delivery-lifecycle': DeliveryLifecycleDiagram,
+  'workflow-e2e': WorkflowE2EDiagram,
 }
 
 function ArticleView({
@@ -436,6 +569,10 @@ function ArticleView({
       </header>
 
       {DiagramComponent ? <DiagramComponent /> : null}
+
+      {article.highlights && article.highlights.length > 0 ? (
+        <HighlightsGrid highlights={article.highlights} />
+      ) : null}
 
       {article.prerequisites && article.prerequisites.length > 0 ? (
         <section className="space-y-2">

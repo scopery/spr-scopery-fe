@@ -5,7 +5,13 @@ export interface GuideStep {
   uiHints?: string[]
 }
 
-export type GuideDiagramType = 'org-hierarchy' | 'delivery-lifecycle'
+export type GuideDiagramType = 'org-hierarchy' | 'delivery-lifecycle' | 'workflow-e2e'
+
+export interface GuideHighlight {
+  iconKey: string
+  label: string
+  description: string
+}
 
 export interface GuideArticle {
   id: string
@@ -15,6 +21,7 @@ export interface GuideArticle {
   keywords: string[]
   suggestedQuestions: string[]
   prerequisites?: string[]
+  highlights?: GuideHighlight[]
   steps: GuideStep[]
   relatedIds?: string[]
   diagramType?: GuideDiagramType
