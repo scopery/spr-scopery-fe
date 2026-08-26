@@ -33,9 +33,12 @@ export { getApiBaseUrl } from '@/shared/lib/api-paths'
 /** Path prefix for auth endpoints — CSRF-exempt per BE spec */
 const AUTH_IAM_PREFIX = '/iam/auth/'
 
-// Refresh goes through BFF proxy so it can re-inject the refresh_token cookie
-// and update scopery_token / access_token cookies on success.
-const getAuthRefreshUrl = () => '/api/proxy/iam/auth/refresh'
+// Refresh must go through the rewrite path (not BFF proxy) because the
+// refresh_token cookie is scoped to path=/api/iam/auth by the BE. The browser
+// only sends refresh_token when the request URL starts with /api/iam/auth.
+// The BFF path /api/proxy/... does not match, so refresh_token would never
+// be forwarded and every refresh attempt would silently fail → logout.
+const getAuthRefreshUrl = () => apiPath('/iam/auth/refresh')
 
 const SESSION_COOKIE_NAME = SCOPERY_SESSION_COOKIE
 /** 7 days in seconds */
