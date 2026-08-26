@@ -171,6 +171,7 @@ export function mapScreenFullSpec(raw: unknown): ScreenFullSpec {
     name: String(r.name ?? ''),
     routePath: str(r.routePath ?? r.route_path),
     status: String(r.status ?? 'ACTIVE'),
+    mockupUrl: str(r.mockupUrl ?? r.mockup_url),
     modes: list(r.modes ?? r.screenModes ?? r.screen_modes).map(mapScreenMode),
     sections: list(r.sections ?? r.screenSections ?? r.screen_sections).map(mapSection),
     fields: list(r.fields ?? r.screenFields ?? r.screen_fields).map(mapFullSpecField),

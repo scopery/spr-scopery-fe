@@ -113,6 +113,7 @@ export interface ScreenFullSpec {
   name: string
   routePath: string | null
   status: string
+  mockupUrl?: string | null
   modes: ScreenMode[]
   sections: ScreenFullSpecSection[]
   fields: ScreenFullSpecField[]
@@ -146,7 +147,7 @@ export interface ScreenSpecDocFullSpec {
   /** Catalog application name — used in the Excel filename 【App】Document. */
   applicationName?: string | null
   /** Workspace screens used to resolve Event → Navigate to (may be outside this document). */
-  screenCatalog?: Array<{ id: string; code: string; name: string }>
+  screenCatalog?: Array<{ id: string; code: string; name: string; mockupUrl?: string | null }>
   revisions: ScreenSpecDocRevision[]
   screens: ScreenSpecDocFullSpecScreen[]
 }

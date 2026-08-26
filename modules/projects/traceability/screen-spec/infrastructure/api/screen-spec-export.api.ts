@@ -117,6 +117,7 @@ export async function loadExportScreenCatalog(
       id: screen.id,
       code: screen.code,
       name: screen.name,
+      mockupUrl: screen.mockupUrl ?? null,
     }))
   } catch {
     return []

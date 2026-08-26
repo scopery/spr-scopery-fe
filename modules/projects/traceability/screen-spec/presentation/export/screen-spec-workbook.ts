@@ -129,6 +129,48 @@ const EMPTY_HISTORY_ROWS = 8
 const VALIDATION_NOTE =
   'All field validation rules, including Required and Max Length. Defines still shows Required / Length as a summary.'
 
+// ── image helpers ─────────────────────────────────────────────────────────────
+
+interface ExcelImage {
+  buffer: ArrayBuffer
+  extension: 'jpeg' | 'png' | 'gif'
+  naturalWidth: number
+  naturalHeight: number
+}
+
+async function fetchImageForExcel(url: string | null | undefined): Promise<ExcelImage | null> {
+  if (!url?.trim()) return null
+  try {
+    const [dims, res] = await Promise.all([
+      new Promise<{ width: number; height: number }>((resolve) => {
+        if (typeof window === 'undefined') { resolve({ width: 0, height: 0 }); return }
+        const img = new Image()
+        img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
+        img.onerror = () => resolve({ width: 0, height: 0 })
+        img.src = url
+        setTimeout(() => resolve({ width: 0, height: 0 }), 8000)
+      }),
+      fetch(url),
+    ])
+    if (!res.ok) return null
+    const buffer = await res.arrayBuffer()
+    const ct = res.headers.get('content-type') ?? ''
+    const extension: 'jpeg' | 'png' | 'gif' = ct.includes('png') ? 'png' : ct.includes('gif') ? 'gif' : 'jpeg'
+    return { buffer, extension, naturalWidth: dims.width, naturalHeight: dims.height }
+  } catch {
+    return null
+  }
+}
+
+/** Returns row height in points to fit the image scaled to targetWidthPx. */
+function scaledRowHeightPts(img: ExcelImage, targetWidthPx: number): number {
+  if (img.naturalWidth <= 0 || img.naturalHeight <= 0) return 120
+  const scale = targetWidthPx / img.naturalWidth
+  return Math.min(400, Math.max(MIN_ROW_HEIGHT, img.naturalHeight * scale * 0.75))
+}
+
+// ── sheet helpers ─────────────────────────────────────────────────────────────
+
 function paint(
   cell: ExcelJS.Cell,
   fill?: ExcelJS.Fill,
@@ -356,6 +398,8 @@ function applySheetColumns(sheet: ExcelJS.Worksheet, widths: number[]) {
   sheet.columns = widths.map((width) => ({ width }))
 }
 
+// ── sheet builders ────────────────────────────────────────────────────────────
+
 function addChangeHistory(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   const sheet = wb.addWorksheet(SCREEN_SPEC_EXCEL_SHEETS.changeHistory)
   const start = writeMeta(sheet, model.header, THEME.history)
@@ -381,7 +425,10 @@ function addChangeHistory(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) 
   applySheetColumns(sheet, [16, 12, 18, 48, 18, 14])
 }
 
-function addLayout(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
+// Layout: px width of the 5 table columns (18+32+28+28+28 chars * 8px/char)
+const LAYOUT_TABLE_PX = (18 + 32 + 28 + 28 + 28) * 8
+
+async function addLayout(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   const sheet = wb.addWorksheet(SCREEN_SPEC_EXCEL_SHEETS.layout)
   const start = writeMeta(sheet, model.header, THEME.layout)
   writeBanner(sheet, start, HEADER_LAST_COL, 'Figma / UI Reference', THEME.layout.banner ?? FILL.layoutHeader, BOLD)
@@ -394,14 +441,54 @@ function addLayout(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
 
   const tableRow = start + 3
   const headers = ['Screen code', 'Screen name', 'Route', 'Modes', 'Notes']
+  const lastCol = headers.length
   writeTableHeaderRow(sheet, tableRow, headers, THEME.layout)
-  model.layoutScreens.forEach((row, i) => {
-    writeBodyCells(sheet, tableRow + 1 + i, [row.code, row.name, row.routePath, row.modes, row.note])
-  })
+
+  let r = tableRow + 1
+  for (const row of model.layoutScreens) {
+    writeBodyCells(sheet, r, [row.code, row.name, row.routePath, row.modes, row.note])
+    r += 1
+
+    if (row.mockupUrl) {
+      const img = await fetchImageForExcel(row.mockupUrl)
+      if (img) {
+        // Title row
+        sheet.mergeCells(r, 1, r, lastCol)
+        const titleCell = sheet.getCell(r, 1)
+        titleCell.value = 'Screenshot'
+        paint(titleCell, FILL.labelGrey, BOLD)
+        paintRange(sheet, r, 2, lastCol, FILL.labelGrey, BOLD)
+        ensureRowHeight(sheet.getRow(r))
+        r += 1
+
+        // Image row
+        const heightPts = scaledRowHeightPts(img, LAYOUT_TABLE_PX)
+        const imgRow = sheet.getRow(r)
+        imgRow.height = heightPts
+        sheet.mergeCells(r, 1, r, lastCol)
+        paint(sheet.getCell(r, 1), FILL.white)
+        paintRange(sheet, r, 2, lastCol, FILL.white)
+
+        const scaledH = img.naturalWidth > 0 ? img.naturalHeight * (LAYOUT_TABLE_PX / img.naturalWidth) : img.naturalHeight
+        const imageId = wb.addImage({ buffer: img.buffer, extension: img.extension })
+        sheet.addImage(imageId, {
+          tl: { col: 0, row: r - 1 },
+          ext: { width: LAYOUT_TABLE_PX, height: Math.round(scaledH) },
+          editAs: 'oneCell',
+        })
+        r += 1
+      }
+    }
+  }
+
   applySheetColumns(sheet, [18, 32, 28, 28, 28, 18])
 }
 
-function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
+// Defines: px width of the screenshot column (24 chars * 8px/char)
+const SCREENSHOT_COL_CHARS = 24
+const SCREENSHOT_COL_PX = SCREENSHOT_COL_CHARS * 8
+
+async function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
   const sheet = wb.addWorksheet(SCREEN_SPEC_EXCEL_SHEETS.defines)
   const start = writeMeta(sheet, model.header, THEME.defines)
   const modeHeaders = model.modeCodes.map(defineModeColumnLabel)
@@ -418,24 +505,26 @@ function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
     'Table / Source',
     'Column / Attribute',
     'Remark',
+    'Screenshot',
   ]
+  const screenshotCol = headers.length  // 1-indexed
   writeBanner(sheet, start, headers.length, 'Field Data', THEME.defines.banner ?? FILL.orange, WHITE_BOLD)
   writeTableHeaderRow(sheet, start + 1, headers, THEME.defines)
   freezeThrough(sheet, start + 1)
   const defineWidths = [
-    8,
-    28,
-    20,
-    14,
-    12,
-    12,
-    10,
+    8, 28, 20, 14, 12, 12, 10,
     ...model.modeCodes.map(() => 12),
-    16,
-    18,
-    20,
-    24,
+    16, 18, 20, 24, SCREENSHOT_COL_CHARS,
   ]
+
+  // Track consecutive field rows sharing a componentId for image merging
+  interface CompGroup {
+    screenshotUrl: string
+    startRow: number
+    endRow: number
+  }
+  const compGroups: CompGroup[] = []
+  let curGroup: { componentId: string; screenshotUrl: string; startRow: number } | null = null
 
   model.defineRows.forEach((row, i) => {
     const r = start + 2 + i
@@ -452,6 +541,7 @@ function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
       row.table,
       row.columnAttribute,
       row.remark,
+      '',  // Screenshot — filled by image later
     ]
     const fill = row.kind === 'screen' ? FILL.beigeDark : row.kind === 'section' ? FILL.beige : FILL.white
     const font = row.kind === 'field' ? FONT : BOLD
@@ -461,7 +551,51 @@ function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) {
       paint(sheet.getCell(r, 2), fill, BOLD)
       paintRange(sheet, r, 3, headers.length, fill, BOLD)
     }
+
+    // Group consecutive field rows by componentId for screenshot merging
+    if (row.kind === 'field' && row.componentId && row.componentScreenshotUrl) {
+      if (curGroup && curGroup.componentId === row.componentId) {
+        // extend current group (endRow tracked implicitly via i)
+      } else {
+        if (curGroup) compGroups.push({ ...curGroup, endRow: r - 1 })
+        curGroup = { componentId: row.componentId, screenshotUrl: row.componentScreenshotUrl, startRow: r }
+      }
+    } else {
+      if (curGroup) { compGroups.push({ ...curGroup, endRow: r - 1 }); curGroup = null }
+    }
   })
+  if (curGroup) compGroups.push({ ...curGroup, endRow: start + 2 + model.defineRows.length - 1 })
+
+  // Insert component screenshot images
+  for (const group of compGroups) {
+    const img = await fetchImageForExcel(group.screenshotUrl)
+    if (!img) continue
+
+    // Merge screenshot column for the group
+    if (group.startRow < group.endRow) {
+      sheet.mergeCells(group.startRow, screenshotCol, group.endRow, screenshotCol)
+    }
+    paint(sheet.getCell(group.startRow, screenshotCol), FILL.white)
+
+    // Set row heights proportionally so total height fits image
+    const totalHeightPts = scaledRowHeightPts(img, SCREENSHOT_COL_PX)
+    const numRows = group.endRow - group.startRow + 1
+    const perRowPts = totalHeightPts / numRows
+    for (let rowIdx = group.startRow; rowIdx <= group.endRow; rowIdx++) {
+      const exRow = sheet.getRow(rowIdx)
+      exRow.height = Math.max(exRow.height || MIN_ROW_HEIGHT, perRowPts)
+    }
+
+    const scaledH = img.naturalWidth > 0
+      ? img.naturalHeight * (SCREENSHOT_COL_PX / img.naturalWidth)
+      : img.naturalHeight
+    const imageId = wb.addImage({ buffer: img.buffer, extension: img.extension })
+    sheet.addImage(imageId, {
+      tl: { col: screenshotCol - 1, row: group.startRow - 1 },
+      ext: { width: SCREENSHOT_COL_PX, height: Math.round(scaledH) },
+      editAs: 'oneCell',
+    })
+  }
 
   applySheetColumns(sheet, defineWidths)
 }
@@ -551,8 +685,8 @@ export async function buildScreenSpecExcelWorkbook(doc: ScreenSpecDocFullSpec): 
   const wb = new ExcelJS.Workbook()
   wb.creator = 'Scopery'
   addChangeHistory(wb, model)
-  addLayout(wb, model)
-  addDefines(wb, model)
+  await addLayout(wb, model)
+  await addDefines(wb, model)
   addProcesses(wb, model)
   addEvents(wb, model)
   addValidation(wb, model)

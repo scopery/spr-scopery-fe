@@ -64,6 +64,7 @@ export interface ScreenSpecExcelLayoutRow {
   routePath: string
   modes: string
   note: string
+  mockupUrl?: string | null
 }
 
 export interface ScreenSpecExcelDefineRow {
@@ -81,6 +82,8 @@ export interface ScreenSpecExcelDefineRow {
   columnAttribute: string
   remark: string
   screenCode: string
+  componentId?: string | null
+  componentScreenshotUrl?: string | null
 }
 
 export interface ScreenSpecExcelOutlineRow {
@@ -187,10 +190,11 @@ export function collectDefineModeCodes(screens: ScreenFullSpec[]): string[] {
       if (code) present.add(code)
     }
   }
+  const standard = STANDARD_DEFINE_MODE_CODES.filter((code) => present.has(code))
   const optional = OPTIONAL_DEFINE_MODE_CODES.filter((code) => present.has(code))
   const known = new Set<string>([...STANDARD_DEFINE_MODE_CODES, ...OPTIONAL_DEFINE_MODE_CODES])
   const extra = [...present].filter((code) => !known.has(code)).sort()
-  return [...STANDARD_DEFINE_MODE_CODES, ...optional, ...extra]
+  return [...standard, ...optional, ...extra]
 }
 
 export function defineModeColumnLabel(modeCode: string): string {
@@ -416,6 +420,7 @@ export function buildScreenSpecWorkbookModel(doc: ScreenSpecDocFullSpec): Screen
       .map((m) => m.name || String(m.modeCode))
       .join(', '),
     note: entry.note ?? '',
+    mockupUrl: entry.screen.mockupUrl ?? null,
   }))
 
   const defineRows: ScreenSpecExcelDefineRow[] = []
@@ -674,6 +679,8 @@ function toDefineFieldRow(
     columnAttribute: field.dataField?.columnName ?? '',
     remark: field.remark ?? '',
     screenCode,
+    componentId: field.componentId ?? null,
+    componentScreenshotUrl: field.component?.screenshotUrl ?? null,
   }
 }
 

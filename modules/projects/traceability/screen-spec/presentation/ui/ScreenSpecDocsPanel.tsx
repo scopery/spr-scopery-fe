@@ -154,7 +154,7 @@ export function ScreenSpecDocsPanel({
       setDraft({ projectId: '', documentCode: '', documentName: '', language: 'EN' })
       setCreateOpen(false)
       if (created) setSelectedId(created.id)
-      toast.success('High Level Design created')
+      toast.success('Detail Design created')
     } catch (err) {
       toast.error(getProblemToastMessage(err))
     } finally {
@@ -167,7 +167,7 @@ export function ScreenSpecDocsPanel({
       <aside className="flex min-h-0 flex-col overflow-hidden border-r border-neutral-200">
         <div className="flex items-center justify-between gap-2 border-b border-neutral-100 px-3 py-2">
           <Typography weight="medium" variant="small">
-            High Level Design
+            Detail Design
           </Typography>
           <div className="flex items-center">
             <Button
@@ -175,7 +175,7 @@ export function ScreenSpecDocsPanel({
               variant="ghost"
               iconOnly
               icon={<Plus size={16} strokeWidth={1.75} />}
-              aria-label="Create High Level Design"
+              aria-label="Create Detail Design"
               onClick={openCreate}
             />
             <Button
@@ -183,7 +183,7 @@ export function ScreenSpecDocsPanel({
               variant="ghost"
               iconOnly
               icon={<CircleHelp size={16} strokeWidth={1.75} />}
-              aria-label="How to use High Level Design"
+              aria-label="How to use Detail Design"
               onClick={() => setGuideOpen(true)}
             />
           </div>
@@ -198,8 +198,8 @@ export function ScreenSpecDocsPanel({
           {items.length === 0 && !loading ? (
             <Typography tone="muted" variant="small" className="p-3">
               {projects.length === 0
-                ? 'Create a project in this workspace first. High Level Design requires a project.'
-                : 'No High Level Design documents yet. Use + to create one.'}
+                ? 'Create a project in this workspace first. Detail Design requires a project.'
+                : 'No Detail Design documents yet. Use + to create one.'}
             </Typography>
           ) : null}
           <ul>
@@ -249,7 +249,7 @@ export function ScreenSpecDocsPanel({
       <Modal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="Create High Level Design"
+        title="Create Detail Design"
         size="sm"
         actions={[
           { label: 'Cancel', onClick: () => setCreateOpen(false), variant: 'ghost' },
@@ -307,7 +307,7 @@ export function ScreenSpecDocsPanel({
       <Modal
         open={guideOpen}
         onClose={() => setGuideOpen(false)}
-        title="How High Level Design works"
+        title="How Detail Design works"
         size="md"
         actions={[{ label: 'Close', onClick: () => setGuideOpen(false), variant: 'ghost' }]}
       >
@@ -928,7 +928,7 @@ function ScreenSpecDocEditor({
       <ConfirmDialog
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
-        title="Delete High Level Design?"
+        title="Delete Detail Design?"
         message="This removes the document and its change history. Screens in the catalog are not deleted."
         confirmLabel="Delete"
         variant="danger"

@@ -39,7 +39,15 @@ export function useScreenSpecExcelExport(
           loadApplicationName(workspaceId, applicationId),
           loadExportScreenCatalog(workspaceId, applicationId),
         ])
-        return await downloadScreenSpecExcel({ ...full, applicationName, screenCatalog })
+        const mockupByScreenId = new Map(screenCatalog.map((s) => [s.id, s.mockupUrl ?? null]))
+        const patchedScreens = full.screens.map((entry) => ({
+          ...entry,
+          screen: {
+            ...entry.screen,
+            mockupUrl: entry.screen.mockupUrl ?? mockupByScreenId.get(entry.screen.id) ?? null,
+          },
+        }))
+        return await downloadScreenSpecExcel({ ...full, screens: patchedScreens, applicationName, screenCatalog })
       } finally {
         setExporting(false)
       }
@@ -58,8 +66,9 @@ export function useScreenSpecExcelExport(
           loadApplicationName(workspaceId, appId),
           loadExportScreenCatalog(workspaceId, appId),
         ])
+        const mockupUrl = screenCatalog.find((s) => s.id === screenId)?.mockupUrl ?? null
         return await downloadScreenSpecExcel({
-          ...wrapSingleScreenAsDocument(screen, { applicationName }),
+          ...wrapSingleScreenAsDocument({ ...screen, mockupUrl }, { applicationName }),
           screenCatalog,
         })
       } finally {
