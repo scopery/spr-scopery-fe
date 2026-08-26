@@ -109,7 +109,7 @@ async function loadFieldForExport(
 export async function loadExportScreenCatalog(
   workspaceId: string,
   applicationId: string | null | undefined
-): Promise<Array<{ id: string; code: string; name: string }>> {
+): Promise<Array<{ id: string; code: string; name: string; mockupUrl: string | null }>> {
   if (!applicationId) return []
   try {
     const res = await listScreens(workspaceId, applicationId)
