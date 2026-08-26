@@ -557,14 +557,14 @@ async function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) 
       if (curGroup && curGroup.componentId === row.componentId) {
         // extend current group (endRow tracked implicitly via i)
       } else {
-        if (curGroup) compGroups.push({ ...curGroup, endRow: r - 1 })
+        if (curGroup) { const g = curGroup; compGroups.push({ ...g, endRow: r - 1 }) }
         curGroup = { componentId: row.componentId, screenshotUrl: row.componentScreenshotUrl, startRow: r }
       }
     } else {
-      if (curGroup) { compGroups.push({ ...curGroup, endRow: r - 1 }); curGroup = null }
+      if (curGroup) { const g = curGroup; compGroups.push({ ...g, endRow: r - 1 }); curGroup = null }
     }
   })
-  if (curGroup) compGroups.push({ ...curGroup, endRow: start + 2 + model.defineRows.length - 1 })
+  if (curGroup) { const g = curGroup; compGroups.push({ ...g, endRow: start + 2 + model.defineRows.length - 1 }) }
 
   // Insert component screenshot images
   for (const group of compGroups) {
