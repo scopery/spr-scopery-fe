@@ -517,14 +517,16 @@ async function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) 
     16, 18, 20, 24, SCREENSHOT_COL_CHARS,
   ]
 
-  // Track consecutive field rows sharing a componentId for image merging
+  // Track consecutive field rows sharing a componentId for merging + optional screenshot
   interface CompGroup {
-    screenshotUrl: string
+    componentId: string
+    screenshotUrl: string | null
     startRow: number
     endRow: number
   }
   const compGroups: CompGroup[] = []
-  let curGroup: { componentId: string; screenshotUrl: string; startRow: number } | null = null
+  // Use a separate array to avoid TypeScript narrowing loss after forEach closure
+  const pendingGroup: Array<{ componentId: string; screenshotUrl: string | null; startRow: number }> = []
 
   model.defineRows.forEach((row, i) => {
     const r = start + 2 + i
@@ -552,33 +554,37 @@ async function addDefines(wb: ExcelJS.Workbook, model: ScreenSpecWorkbookModel) 
       paintRange(sheet, r, 3, headers.length, fill, BOLD)
     }
 
-    // Group consecutive field rows by componentId for screenshot merging
-    if (row.kind === 'field' && row.componentId && row.componentScreenshotUrl) {
-      if (curGroup && curGroup.componentId === row.componentId) {
-        // extend current group (endRow tracked implicitly via i)
+    // Group consecutive field rows by componentId (regardless of whether screenshot exists)
+    if (row.kind === 'field' && row.componentId) {
+      const cur = pendingGroup[0]
+      if (cur && cur.componentId === row.componentId) {
+        // extend current group — update screenshotUrl if we now have one
+        if (!cur.screenshotUrl && row.componentScreenshotUrl) cur.screenshotUrl = row.componentScreenshotUrl
       } else {
-        if (curGroup) compGroups.push({ ...curGroup!, endRow: r - 1 })
-        curGroup = { componentId: row.componentId, screenshotUrl: row.componentScreenshotUrl, startRow: r }
+        if (cur) compGroups.push({ ...cur, endRow: r - 1 })
+        pendingGroup[0] = { componentId: row.componentId, screenshotUrl: row.componentScreenshotUrl ?? null, startRow: r }
       }
     } else {
-      if (curGroup) { compGroups.push({ ...curGroup!, endRow: r - 1 }); curGroup = null }
+      const cur = pendingGroup[0]
+      if (cur) { compGroups.push({ ...cur, endRow: r - 1 }); pendingGroup.length = 0 }
     }
   })
-  const lastGroup = curGroup as ({ screenshotUrl: string; startRow: number } | null)
-  if (lastGroup != null) {
-    compGroups.push({ ...lastGroup, endRow: start + 2 + model.defineRows.length - 1 })
+  const remaining = pendingGroup[0]
+  if (remaining) {
+    compGroups.push({ ...remaining, endRow: start + 2 + model.defineRows.length - 1 })
   }
 
   // Insert component screenshot images
   for (const group of compGroups) {
-    const img = await fetchImageForExcel(group.screenshotUrl)
-    if (!img) continue
-
-    // Merge screenshot column for the group
+    // Always merge the screenshot column cells for the group
     if (group.startRow < group.endRow) {
       sheet.mergeCells(group.startRow, screenshotCol, group.endRow, screenshotCol)
     }
     paint(sheet.getCell(group.startRow, screenshotCol), FILL.white)
+
+    // Insert image only when a screenshot URL is available
+    const img = await fetchImageForExcel(group.screenshotUrl)
+    if (!img) continue
 
     // Set row heights proportionally so total height fits image
     const totalHeightPts = scaledRowHeightPts(img, SCREENSHOT_COL_PX)
