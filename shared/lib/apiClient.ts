@@ -33,7 +33,9 @@ export { getApiBaseUrl } from '@/shared/lib/api-paths'
 /** Path prefix for auth endpoints — CSRF-exempt per BE spec */
 const AUTH_IAM_PREFIX = '/iam/auth/'
 
-const getAuthRefreshUrl = () => apiPath('/iam/auth/refresh')
+// Refresh goes through BFF proxy so it can re-inject the refresh_token cookie
+// and update scopery_token / access_token cookies on success.
+const getAuthRefreshUrl = () => '/api/proxy/iam/auth/refresh'
 
 const SESSION_COOKIE_NAME = SCOPERY_SESSION_COOKIE
 /** 7 days in seconds */

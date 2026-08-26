@@ -177,8 +177,8 @@ export const AI_AGENT_ADMIN_ENDPOINTS = {
     `/api/v1/admin/ai-assistant/workspace-configs/${workspaceId}`,
 
   /* T. AI Assistant Knowledge base (admin guide definitions) */
-  aiAssistantGuides: () => `/api/v1/admin/ai-assistant/guides`,
-  aiAssistantGuide: (id: string) => `/api/v1/admin/ai-assistant/guides/${id}`,
+  aiAssistantGuides: () => `/api/proxy/v1/admin/ai-assistant/guides`,
+  aiAssistantGuide: (id: string) => `/api/proxy/v1/admin/ai-assistant/guides/${id}`,
 
   /* R. Tools */
   tools: (params?: PageParams) => withSearch(apiPath('/ai-agent/tools'), params),
